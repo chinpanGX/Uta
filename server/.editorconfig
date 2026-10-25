@@ -1,0 +1,11 @@
+# ASP.NET Core サーバー用。ルートの .editorconfig に加えて適用される。
+# サーバーは .NET 10（C# 14）。Unity には入らないため、新しい C# の書き方を許す。
+# shared/ のコードは Unity と共有するので、ここでは C# 9 の制約を受けない（shared/.editorconfig 側が適用される）。
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:suggestion
+csharp_style_prefer_primary_constructors = true:suggestion
+dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
+csharp_style_prefer_index_operator = true:suggestion
+csharp_style_prefer_range_operator = true:suggestion
+csharp_style_prefer_top_level_statements = true:suggestion

@@ -1,0 +1,66 @@
+# --- Unity (client/<プロジェクト名>/。現在は client/uta/) ---
+# Unity が自動生成するフォルダ。.meta ファイルと Packages/packages-lock.json は必ずコミットする。
+client/*/[Ll]ibrary/
+client/*/[Tt]emp/
+client/*/[Oo]bj/
+client/*/[Bb]uild/
+client/*/[Bb]uilds/
+client/*/[Ll]ogs/
+client/*/[Uu]ser[Ss]ettings/
+client/*/[Mm]emoryCaptures/
+client/*/[Rr]ecordings/
+# Unity が生成する IDE 用プロジェクト（server/・shared/ のプロジェクトファイルは対象外）
+client/*/*.csproj
+client/*/*.sln
+client/*/*.slnx
+client/*/*.suo
+client/*/*.user
+client/*/*.pidb
+client/*/*.booproj
+client/*/*.unityproj
+client/*/*.DotSettings.user
+client/*/sysinfo.txt
+# Unity が生成するその他
+client/*/[Aa]ssets/[Ss]treamingAssets/aa/*
+client/*/ServerData/
+client/*/[Aa]ssets/AddressableAssetsData/*/*.bin*
+client/*/[Aa]ssets/[Ss]treamingAssets/[Bb]uild[Rr]eports*
+client/*/[Aa]ssets/AssetStoreTools*
+client/*/InitTestScene*.unity*
+client/*/.utmp/
+client/*/.vsconfig.user
+client/*/crashlytics-build.properties
+client/*/*.pdb
+client/*/*.mdb
+client/*/*.opendb
+client/*/*.VC.db
+client/*/ExportedObj/
+client/*/.consulo/
+client/*/.gradle/
+# ビルド成果物
+client/*/*.apk
+client/*/*.aab
+client/*/*.unitypackage
+client/*/*.app
+client/*/*.ipa
+
+# --- .NET (server/, shared/) ---
+bin/
+obj/
+.vs/
+*.user
+*.suo
+# ローカル用の設定・秘密情報は含めない
+appsettings.*.local.json
+*.env
+.env
+
+# --- エディタ・ツール ---
+.idea/
+.obsidian/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- 作業用出力 ---
+out/

@@ -1,0 +1,12 @@
+# Unity とサーバーの共有コード用。ルートの .editorconfig に加えて適用される。
+# Unity にソースで入るため、client/ と同じく C# 9 の範囲に収める。
+
+[*.cs]
+# ファイルスコープ namespace(C# 10)は使わず、ブロック形式にする
+csharp_style_namespace_declarations = block_scoped:suggestion
+# プライマリコンストラクタ(C# 12)、コレクション式(C# 12)、Index/Range は使わない
+csharp_style_prefer_primary_constructors = false:suggestion
+dotnet_style_prefer_collection_expression = never:suggestion
+csharp_style_prefer_index_operator = false:suggestion
+csharp_style_prefer_range_operator = false:suggestion
+csharp_style_prefer_top_level_statements = false:suggestion

@@ -1,0 +1,12 @@
+[submodule "external/VolTech-MagicOnion"]
+	path = external/VolTech-MagicOnion
+	url = https://github.com/chinpanGX/VolTech-MagicOnion
+[submodule "external/Supplement"]
+	path = external/Supplement
+	url = git@github.com:chinpanGX/Supplement.git
+[submodule "external/UnityScreenNavigator"]
+	path = external/UnityScreenNavigator
+	url = git@github.com:chinpanGX/UnityScreenNavigator.git
+[submodule "external/MasterMemoryAddons"]
+	path = external/MasterMemoryAddons
+	url = https://github.com/chinpanGX/MasterMemoryAddons.git
