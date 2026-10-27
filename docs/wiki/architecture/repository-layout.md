@@ -176,7 +176,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 |---|---|---|
 | `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド |
 | MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` |
-| MasterMemory・MessagePack・MagicOnion のバージョンが揃うか | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド |
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル |
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド |
 | `IsExternalInit` の置き方（5章） | 5章 | Unity と .NET 10 の両方でのビルド |
@@ -237,8 +237,9 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 
 ### 10.6 クライアントのローカル保存
 
-- **共通基盤（`external/Supplement`）のセーブデータの仕組みを使う**。`IFileStorageService` / `SaveDataRepository`（AES で暗号化）。MessagePack 版（`Supplement.MessagePack`）は改ざん・破損を検知できる（[Supplement の docs](../../../external/Supplement/docs/features/save-data.md)）
-- 何を保存するか（認証トークン、設定など）と、JSON 版と MessagePack 版のどちらを使うかは、**実装するときに決める**
+- **共通基盤（`external/Supplement`）の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](../../../external/Supplement/docs/features/messagepack-save-data.md)）
+- MessagePack は通信とマスタでも使うので、Supplement が参照する MessagePack の版を、MagicOnion・MasterMemory とそろえる（8章の要検証）
+- 何を保存するか（認証トークン、設定など）は、**実装するときに決める**
 
 ## 未決事項
 
