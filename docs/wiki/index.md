@@ -31,7 +31,7 @@ updated: 2026-10-27
 
 ### 実装設計書（4編・叩き台）
 
-- [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、アセンブリと層の依存ルール、共有コードの制約、機能ID
+- [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、アセンブリと層の依存ルール、共有コードの制約、機能ID、共通の規約、環境構成とデプロイ
 - [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約
 - [architecture/api-design.md](architecture/api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [architecture/screen-design.md](architecture/screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
@@ -50,6 +50,7 @@ updated: 2026-10-27
 - [decisions/0008-shared-domain-and-onion.md](decisions/0008-shared-domain-and-onion.md) — ドメイン層を共有し、クライアントはオニオンアーキテクチャにする。クライアントは判定・予測表示まで、シードは持たない（accepted）
 - [decisions/0009-client-stack.md](decisions/0009-client-stack.md) — クライアントは uGUI + UnityScreenNavigator・VContainer・UniTask・縦画面（accepted）
 - [decisions/0010-database.md](decisions/0010-database.md) — DB は PostgreSQL + Npgsql + Dapper、セッションは状態を1列にまとめて保存（accepted）
+- [decisions/0011-deploy-google-cloud.md](decisions/0011-deploy-google-cloud.md) — API サーバーをコンテナにして Google Cloud（Cloud Run + Cloud SQL）にデプロイする（accepted）
 
 ## 一次資料（raw）
 

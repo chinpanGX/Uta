@@ -9,6 +9,7 @@ updated: 2026-10-27
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-27 | adr | ADR 0011（API をコンテナにして Google Cloud の Cloud Run + Cloud SQL にデプロイ）を accepted で起票。repository-layout.md に11章「環境構成とデプロイ」と8章の要検証2件を追加。index・game-spec・CLAUDE.md・glossary を更新
 - 2026-10-27 | spec | クライアントのローカル保存は Supplement の MessagePack 版（`Supplement.MessagePack`）に決定。repository-layout.md 10.6 と 8章（版の整合）に反映
 - 2026-10-27 | spec | テストは xUnit v3（最新の安定版）、サーバーの結合テストは Testcontainers に決定。マスタ ID の採番規則は作らない、ローカル保存の対象は実装時に決める、を repository-layout.md 10章に反映
 - 2026-10-27 | spec | マスタの日時を `string`（`yyyy-MM-dd HH:mm:ss`、JST として解釈）に決定。検証・スプレッドシートの注意・アドオンの改善案を repository-layout.md 10.2・masterdata-pipeline.md 3章・8章に反映

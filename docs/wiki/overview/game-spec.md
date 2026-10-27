@@ -26,6 +26,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - 共有型は `shared/` に置く（`Uta.Domain`・`Uta.Shared`）。マスタは `masterdata/` の定義から MasterMemoryAddons でクライアント用・サーバー用に生成する（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - クライアント: オニオンアーキテクチャ、uGUI + UnityScreenNavigator・VContainer・UniTask、縦画面（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)、[ADR 0009](../decisions/0009-client-stack.md)）
 - DB: PostgreSQL + Npgsql + Dapper（[ADR 0010](../decisions/0010-database.md)）
+- デプロイ: API はコンテナにして Google Cloud の Cloud Run、DB は Cloud SQL（[ADR 0011](../decisions/0011-deploy-google-cloud.md)）
 - 実装設計書は4編（[共通・基盤](../architecture/repository-layout.md) / [マスター](../architecture/masterdata-pipeline.md) / [API](../architecture/api-design.md) / [画面](../architecture/screen-design.md)）
 
 ## ゲームループ（推測・未確定）

@@ -179,6 +179,8 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 | MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド |
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル |
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド |
+| Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 |
+| Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 |
 | `IsExternalInit` の置き方（5章） | 5章 | Unity と .NET 10 の両方でのビルド |
 | `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 任意。実機で予測値とサーバーの結果を見比べる（Unity 側のテストは必須にしない） |
 
@@ -240,6 +242,46 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **共通基盤（`external/Supplement`）の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](../../../external/Supplement/docs/features/messagepack-save-data.md)）
 - MessagePack は通信とマスタでも使うので、Supplement が参照する MessagePack の版を、MagicOnion・MasterMemory とそろえる（8章の要検証）
 - 何を保存するか（認証トークン、設定など）は、**実装するときに決める**
+
+## 11. 環境構成とデプロイ [決定／手順は Uta案]
+
+ローカルでテストし、問題がなければデプロイして実機から確かめる。デプロイ先は Google Cloud（[ADR 0011](../decisions/0011-deploy-google-cloud.md)）。
+
+### 11.1 環境
+
+| 環境 | API | DB | 用途 |
+|---|---|---|---|
+| ローカル（開発） | `dotnet run` / IDE で直接起動 | PostgreSQL を Docker Compose で起動 | 実装・デバッグ。Unity エディターと実機から接続 |
+| ローカル（確認） | コンテナ | Docker Compose | デプロイ前に、イメージがそのまま動くかを確かめる |
+| dev（Google Cloud） | Cloud Run | Cloud SQL for PostgreSQL | デプロイ後の確認。実機から接続 |
+
+- 本番環境は分けない（商用公開は非目標）
+- 結合テストは Testcontainers がテストのたびに DB を立ち上げるので、上の DB とは別（10.4）
+- 実機からローカルのサーバーにつなぐときは、`localhost` ではなく PC の LAN の IP を使い、ポートを公開する
+
+### 11.2 工程
+
+1. **ローカルで確かめる**: `dotnet test`（単体テストと結合テスト）を通し、Unity エディターと実機から操作して確かめる
+2. **イメージを作る**: `dotnet publish /t:PublishContainer` で API のイメージを作り、Artifact Registry に登録する。サーバー用のマスタのバイナリもイメージに含める
+3. **マイグレーションを流す**: DbUp（基盤の設計書の推奨）でスキーマを更新する。実行の方法（Cloud Run のジョブにするか、起動時に流すか）は未決
+4. **デプロイする**: Cloud Run のサービスを、新しいイメージで更新する
+5. **確かめる**: ヘルスチェックと、実機から「ログイン → ガチャを1回引く」までのスモークテスト
+6. **問題があれば戻す**: Cloud Run の1つ前のリビジョンにトラフィックを戻す（推測。マイグレーションを戻す必要があるかは変更による）
+
+### 11.3 費用を抑える
+
+- Cloud Run は最小のインスタンス数を 0 にする
+- Cloud SQL は使わない期間に停止する
+- 料金は作る前に公式の料金表で確認する
+
+### 11.4 未決事項
+
+- CI（GitHub Actions など）でデプロイまで自動化するか、最初は手動で流すか
+- リージョン（東京 `asia-northeast1` が候補。推測）
+- 秘密の値の置き場（Secret Manager など）と、Cloud Run から Cloud SQL への接続方法
+- マイグレーションの実行方法（11.2 の 3）と、DbUp の採用を ADR にするか
+- `docker-compose.yml` の置き場（リポジトリの最上位か、`server/` 配下か）
+- ヘルスチェックの作り方（gRPC のヘルスチェックか、HTTP のエンドポイントか）
 
 ## 未決事項
 
