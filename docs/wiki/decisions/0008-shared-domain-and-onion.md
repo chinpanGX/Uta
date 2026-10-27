@@ -16,13 +16,13 @@ updated: 2026-10-27
 
 - **ドメイン層 `shared/Uta.Domain` を共有する**。中身は純粋なゲームルール（計算式、状態遷移、検証、値オブジェクト、enum、ID 型）
   - netstandard2.1、C# 9。UnityEngine・MasterMemory・生成物に依存しない
-  - `float` / `double` を使わない。乱数は `IRandom` を注入し、決定的な疑似乱数を使う。`System.Random` は使わない
+  - `float` / `double` を使わない。乱数は `IRandom` を注入し、決定的な疑似乱数 `xoshiro256**` を使う。`System.Random` は使わない
   - マスタの値は引数または小さなインターフェース越しに受け取る。`[ServerOnly]` の列には依存しない
 - **通信契約は `shared/Uta.Shared`** に分ける（サービスIF・DTO・エラーコード）
 - **クライアントはオニオンアーキテクチャ**にする。`Domain` → `Application` → `Infrastructure` / `Presentation` → `Bootstrap`。層ごとに asmdef を分け、依存の向きをコンパイルで強制する。`Application` は UnityEngine に依存しない
 - **サーバーは同じ層の考え方を、1プロジェクト内のフォルダと名前空間で表す**。依存の向きはアーキテクチャテストで守る（基盤と同じ方針）
 - **サーバー権威は変えない**。結果の確定は常にサーバー
-- **クライアントは `Uta.Domain` を、使用可否の判定と予測の表示まで使う。クライアントにはシードを渡さない**（2026-10-27 に確定）。乱数が絡む結果（ドローなど）は予測しない。「同じシードと操作列で結果が一致する」ことは、本番のクライアントではなく CI のテストで確かめる
+- **クライアントは `Uta.Domain` を、使用可否の判定と予測の表示まで使う。クライアントにはシードを渡さない**（2026-10-27 に確定）。乱数が絡む結果（ドローなど）は予測しない。「同じシードと操作列で結果が一致する」ことは、本番のクライアントではなく `Uta.Domain` の単体テスト（.NET 10）で確かめる。Unity 側のテストは必須にしない
 - **DTO ↔ Domain のマッピングは Infrastructure に閉じる**（2026-10-27 に確定）。DTO は enum とプリミティブ型で組み、マッピングを薄く保つ
 - **クライアントの `Application` は UniTask を参照してよい**（[ADR 0009](0009-client-stack.md)）。そのため asmdef の `noEngineReferences` は使わず、「UnityEngine の API を使わない」ルールをレビューまたはアナライザーで守る。`Uta.Domain` は同期処理だけにする
 - **固有の知識は共通のドメインに入れず、各側の外側の層に置く**。サーバー固有（抽選、天井、シード生成、レンタル候補の決定、報酬付与）はサーバーの `Domain/`、クライアント固有（表示用の整形、演出、UI の状態）はクライアントの `Application` / `Presentation`。共通の型を各側のエンティティが包む（合成）形にし、継承・`partial` は使わない（[repository-layout.md](../architecture/repository-layout.md) 6.1）

@@ -96,6 +96,7 @@ uta/
 - 共有型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](docs/wiki/decisions/0007-masterdata-with-addons.md)）。
 - 層の構成と依存ルールは [architecture/repository-layout.md](docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](docs/wiki/decisions/0010-database.md)）。
 - マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。共有ドメインでは `float` / `double` を使わない。
+- ID はマスタが `int`、サーバーが発行するものは ULID。時刻はサーバーが正で JST 固定、日付の更新は 12 時。乱数は `xoshiro256**`。強制アップデートはアプリのバージョンで判定（[repository-layout.md](docs/wiki/architecture/repository-layout.md) 10章）。
 - iOS（IL2CPP / AOT）制約を常に考慮する。リフレクション依存を避け、Source Generator / 事前生成を優先する。
 - モバイル実機ビルドを早期・継続的に通す。
 

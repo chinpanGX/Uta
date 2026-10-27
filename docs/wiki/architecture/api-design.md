@@ -60,7 +60,7 @@ updated: 2026-10-27
 
 ## 3. プレイヤーデータ（データモデル）[決定／列は Uta案]
 
-保存する対象の一覧。列・型・キーは未決。DB は PostgreSQL、アクセスは Npgsql + Dapper（[ADR 0010](../decisions/0010-database.md)）。
+保存する対象の一覧。サーバーが発行する ID（ユーザー、セッション、履歴など）は ULID、マスタの ID は `int`（[repository-layout.md](repository-layout.md) 10.1）。そのほかの列・型・キーは未決。DB は PostgreSQL、アクセスは Npgsql + Dapper（[ADR 0010](../decisions/0010-database.md)）。
 
 | 対象 | 主な内容 | 元の仕様 |
 |---|---|---|
@@ -94,7 +94,7 @@ updated: 2026-10-27
 | 最終評価・報酬の計算 | 未決（推測では `Uta.Domain`） | 評価の予測表示が要るか次第 |
 | 所持品・通貨の更新 | サーバー専用 | 更新はサーバーのみ |
 
-- 乱数は決定的な疑似乱数を `IRandom` 越しに使い、`System.Random` は使わない。レッスンごとにシードを1つ持つ（[lesson-card.md](../systems/lesson-card.md) 13章）
+- 乱数は決定的な疑似乱数 `xoshiro256**` を `IRandom` 越しに使い、`System.Random` は使わない。レッスンごとにシードを1つ持つ（[lesson-card.md](../systems/lesson-card.md) 13章）
 - `Uta.Domain` は、`[ServerOnly]` のマスタの値に依存しない。必要な値は引数で受け取る（[repository-layout.md](repository-layout.md) 5章）
 
 ## 5. 再開・中断の扱い（推測）

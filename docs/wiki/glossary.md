@@ -81,6 +81,9 @@ updated: 2026-10-27
 | 正本 | 他のものを生成する元になる、手で編集するデータ（マスタの定義・CSV） | `masterdata/` |
 | スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/masterdata-pipeline.md) 6章 |
 | `Op` | マスタの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
+| ULID | 時刻順に並ぶ一意な ID。サーバーが発行する ID に使う（マスタの ID は `int`） | [repository-layout](architecture/repository-layout.md) 10.1 |
+| 日付の更新 | 日ごとの区切り。12:00 JST | 同 10.2 |
+| `xoshiro256**` | 共有ドメインで使う決定的な疑似乱数（64 ビット。xorshift の後継） | 同 10.3 |
 | 万分率 / パーセント表記 | 小数を整数で持つための単位（確率は万分率、倍率はパーセント） | マスタは小数を扱わない |
 
 ## 未決事項

@@ -112,7 +112,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 - UnityEngine に依存しない。MasterMemory・生成物にも依存しない（サーバーから参照できなくなる）
 - **`float` / `double` を使わない**。整数または固定小数点（[lesson-card.md](../systems/lesson-card.md) 9.6）。クライアント（IL2CPP）とサーバー（.NET 10）で結果を一致させるため
-- **乱数は `IRandom` を注入し、決定的な疑似乱数**（xoshiro / PCG など）を使う。`System.Random` は使わない（[lesson-card.md](../systems/lesson-card.md) 13章）。シードの生成はサーバー
+- **乱数は `IRandom` を注入し、決定的な疑似乱数 `xoshiro256**`** を使う（10.3）。`System.Random` は使わない（[lesson-card.md](../systems/lesson-card.md) 13章）。シードの生成はサーバー
 - `[ServerOnly]` の列に依存するルールは `Domain` に入れない。必要な値は引数で受け取る
 - `init` を使う場合は `IsExternalInit` の定義が必要（MasterMemoryAddons の docs で確認。置き方は、各アセンブリに `internal` で置く案。推測・要確認）
 - `record`・`required`・nullable の値型（`int?` など）は、マスタの生成ソースでは使えない（アドオンの制約）。`shared/` でも同じ制約にそろえる [Uta案]
@@ -129,7 +129,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - 範囲は [ADR 0008](../decisions/0008-shared-domain-and-onion.md) で決定（2026-10-27）。これに合わせて [CLAUDE.md](../../../CLAUDE.md) の実装方針と [produce.md](../systems/produce.md) 10章を更新した
 - 結果の先行表示（シードをクライアントに渡す）は、山札の引きを先読みする不正を防げないため行わない
 - **古いクライアントの計算式が、サーバーの最新の式とずれることがある**。予測の表示はずれてもよく、確定は必ずサーバーのレスポンスで行う。ずれが問題になる変更（ルールの変更）は、強制アップデート（基盤の `x-app-version`）で扱う
-- [lesson-card.md](../systems/lesson-card.md) 15.7 の「同じシードと操作列で、クライアントとサーバーの結果が完全に一致する」は、**CI のテスト**（`Uta.Domain` を Unity 相当の環境と .NET 10 の両方で実行）で確かめる。本番のクライアントで再現するものではない
+- [lesson-card.md](../systems/lesson-card.md) 15.7 の「同じシードと操作列で、同じ結果になる」は、**`Uta.Domain` の単体テスト（.NET 10）**で確かめる（10.4）。本番のクライアントはシードを持たないので、IL2CPP 上で乱数の結果を再現する必要はない。乱数が絡まない予測の一致は、整数演算と同じコードを使うことで担保する
 
 ### 6.1 固有の知識の置き場 [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
 
@@ -162,7 +162,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 
 - `master-gen --check`（CSV の検証と、生成ソースが古くないかの検出）
 - マスタのバイナリを `MemoryDatabase` で読めること（クライアント用・サーバー用の両方）
-- **同じシードと操作列で、クライアントとサーバーの結果が一致するテスト**（`Uta.Domain` を両側で実行）
+- `Uta.Domain` の単体テスト（同じシードと操作列で同じ結果になること）と、サーバーの結合テスト（10.4）
 - サーバーの依存方向のアーキテクチャテスト
 - `git clone --recurse-submodules` での初期化（CI も同様）
 - クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` が UnityEngine の API を使っていないか。手段は未決）
@@ -180,7 +180,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル |
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド |
 | `IsExternalInit` の置き方（5章） | 5章 | Unity と .NET 10 の両方でのビルド |
-| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、7章 | 同じシードと操作列のテスト |
+| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 任意。実機で予測値とサーバーの結果を見比べる（Unity 側のテストは必須にしない） |
 
 ## 9. 共通規約の参照先
 
@@ -192,9 +192,57 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 | マスタの定義・生成・配信 | [masterdata-pipeline.md](masterdata-pipeline.md) |
 | 用語 | [glossary.md](../glossary.md) |
 
+## 10. 共通の規約 [決定]
+
+2026-10-27 に決めた、全編が前提にする規約。
+
+### 10.1 ID の体系
+
+| 対象 | 型 | 備考 |
+|---|---|---|
+| マスタの ID（カード、アイドル、ガチャなど） | `int` | マスタの列の型の制約（[masterdata-pipeline.md](masterdata-pipeline.md)）に合う。採番の規則（機能ごとの番号帯にするか）は未決 |
+| サーバーが発行する ID（ユーザー、プロデュースのセッション、ガチャ履歴など） | ULID | 時刻順に並び、サーバーを分けても衝突しない |
+
+- ULID の C# の型と、DB・DTO での持ち方（PostgreSQL の `uuid` に入れるか、文字列にするか。DTO では文字列か 16 バイトか）は未決。Unity と .NET の両方で使えるライブラリ（Cysharp の `Ulid` など）を使う案（推測）
+- ULID を `Uta.Domain` が扱う場合は、`Uta.Domain` が外部ライブラリに依存しないよう、値オブジェクトで包むか、ID を持たない設計にする（未決）
+
+### 10.2 時刻
+
+- **時刻はサーバーが正**。クライアントの時刻で判定しない
+- **タイムゾーンは JST 固定**
+- **日付の更新は 12 時**（12:00 JST）。日ごとの区切り（日替わりの処理など）はこの時刻を境にする
+- マスタの列に日時の型はないので、ガチャの開催期間などの日時は `long` で持つ案（UNIX 時刻の秒。推測・未決）
+- ガチャの期間終了時の、交換pt から交換メダルへの変換（[gacha.md](../systems/gacha.md)）も、サーバーの時刻で行う
+
+### 10.3 乱数
+
+- **アルゴリズムは `xoshiro256**`**（64 ビット。xorshift の後継）
+- 実装は `Uta.Domain` に置き、サーバーで使う。範囲内の整数の取り出し方も、同じコードで固定する
+- シードはサーバーが生成する（暗号用の乱数を使う。推測）。シードと乱数の位置はプロデュースのセッションに保存する（[api-design.md](api-design.md) 3章）
+- `System.Random` は使わない
+
+### 10.4 テスト
+
+- **単体テストは専用のプロジェクト（dll）に分ける**。主な対象は `Uta.Domain`（同じシードと操作列で同じ結果になること、計算式）
+- **サーバーは結合テストを書く**（DB を含めて、RPC から結果・保存までを確かめる）
+- **Unity 側のテストは必須にしない**
+- テストのフレームワーク（xunit など）とプロジェクトの置き場は未決
+
+### 10.5 バージョンと強制アップデート
+
+- **強制アップデートは、アプリのバージョンで判定する**（基盤の `x-app-version`。[server-foundation.md](server-foundation.md)）
+- マスタのスキーマ（定義）を変えたときや、`Uta.Domain` のルールを変えたときも、新しいアプリのバージョンを出して強制アップデートで揃える。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）
+
+### 10.6 クライアントのローカル保存
+
+- **共通基盤（`external/Supplement`）のセーブデータの仕組みを使う**。`IFileStorageService` / `SaveDataRepository`（AES で暗号化）。MessagePack 版（`Supplement.MessagePack`）は改ざん・破損を検知できる（[Supplement の docs](../../../external/Supplement/docs/features/save-data.md)）
+- 何を保存するか（認証トークン、設定など）と、JSON 版と MessagePack 版のどちらを使うかは未決
+
 ## 未決事項
 
 - `Uta.Shared` と基盤の `Abstractions` の役割分担（ADR 0005 の未決事項）。`Uta.Shared` は Uta 固有のサービスIF・DTOだけ、が素直（推測）
 - `Application` で UnityEngine の API を使わないことを守る手段（アナライザーにするか、レビューだけにするか）
 - サーバーのアーキテクチャテストの具体（NetArchTest など）
+- ULID の持ち方、マスタ ID の採番規則、日時の持ち方（10.1、10.2）
+- テストのフレームワークと置き場、ローカル保存の対象（10.4、10.6）
 - ビルド・CI の実体（`architecture/build-ci.md` として起こす予定）
