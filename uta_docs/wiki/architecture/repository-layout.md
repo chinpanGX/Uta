@@ -41,7 +41,7 @@ uta/
 │  ├─ MasterMemoryAddons/    #   マスタのコード生成・検証・バイナリ生成
 │  ├─ Supplement/            #   Unity 補助パッケージ
 │  └─ UnityScreenNavigator/  #   画面遷移
-├─ docs/
+├─ uta_docs/
 ├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない
 │  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）
 │  ├─ csv/                   #   スプレッドシートから書き出した CSV
