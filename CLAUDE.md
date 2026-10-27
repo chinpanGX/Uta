@@ -1,26 +1,26 @@
 # Uta — プロジェクト運用ルール（スキーマ層）
 
 このファイルは、LLM（Claude）がこのリポジトリで作業するときの最上位ルールです。
-作業前に必ず `docs/wiki/index.md` を読んでください。詳しいルールは、作業に応じて下のページを読みます。
+作業前に必ず `uta_docs/wiki/index.md` を読んでください。詳しいルールは、作業に応じて下のページを読みます。
 
 ## プロジェクト概要
 
 - 名称: Uta（うた）
-- 目的: 育成（プロデュース）・ガチャのゲームシステム基礎部分を実装する、技術先行の個人開発プロジェクト（3Dライブは保留: [ADR 0003](docs/wiki/decisions/0003-defer-3d-live.md)）
-- 目的（追加）: Unity 7 を早期段階で触る。Unity のバージョンは Unity 7 で確定（2026-10-27。現在 `7000.0.0a12`）。クライアント基盤・サーバー基盤も Unity 7 で試す（[ADR 0006](docs/wiki/decisions/0006-adopt-unity-7-early.md)、accepted）。Unity 7 Preview は 12 月予定
+- 目的: 育成（プロデュース）・ガチャのゲームシステム基礎部分を実装する、技術先行の個人開発プロジェクト（3Dライブは保留: [ADR 0003](uta_docs/wiki/decisions/0003-defer-3d-live.md)）
+- 目的（追加）: Unity 7 を早期段階で触る。Unity のバージョンは Unity 7 で確定（2026-10-27。現在 `7000.0.0a12`）。クライアント基盤・サーバー基盤も Unity 7 で試す（[ADR 0006](uta_docs/wiki/decisions/0006-adopt-unity-7-early.md)、accepted）。Unity 7 Preview は 12 月予定
 - 対象プラットフォーム: Android / iOS / Windows
-- 技術構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10）、通信は MagicOnion（gRPC）。サーバーの土台は [architecture/server-foundation.md](docs/wiki/architecture/server-foundation.md)
+- 技術構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10）、通信は MagicOnion（gRPC）。サーバーの土台は [architecture/server-foundation.md](uta_docs/wiki/architecture/server-foundation.md)
 - 開発体制: 個人開発
 
 ## 作業に応じて読むファイル
 
 | 作業 | 読むファイル |
 |---|---|
-| 設計・仕様を確認する、未決事項に触れる | `docs/wiki/index.md` → 関連ページ（全体は `overview/game-spec.md`、各システムは `systems/`）。決定は ADR（`decisions/`）が正 |
-| 技術選定・方針変更をする | `docs/wiki/decisions/`（既存 ADR を確認。新規は `0000-template.md` を使う） |
+| 設計・仕様を確認する、未決事項に触れる | `uta_docs/wiki/index.md` → 関連ページ（全体は `overview/game-spec.md`、各システムは `systems/`）。決定は ADR（`decisions/`）が正 |
+| 技術選定・方針変更をする | `uta_docs/wiki/decisions/`（既存 ADR を確認。新規は `0000-template.md` を使う） |
 | C# のコードを書く | 下の「C# コーディング規約」と `.editorconfig` |
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
-| 用語を使う・追加する | `docs/wiki/glossary.md` |
+| 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
 
 ## 常に守ること
 
@@ -36,7 +36,7 @@
 模倣してよいのは**ゲームシステムの構造のみ**（育成ループ、ガチャ、ライブ演出の仕組み）。
 キャラクター、名称、楽曲、UI素材、ロゴ、世界観、シナリオは**すべてオリジナル**にする。
 既存作品の素材・名称・固有の表現を、コード・ドキュメント・アセットに入れない。
-詳細は `docs/wiki/decisions/0001-ip-policy.md`。
+詳細は `uta_docs/wiki/decisions/0001-ip-policy.md`。
 
 ## リポジトリ構成
 
@@ -46,7 +46,7 @@ uta/
 ├─ .editorconfig / .gitattributes / .gitignore  # .editorconfig は client/・server/・shared/ にも置く
 ├─ external/      # Git サブモジュール（自作の共通パッケージ・サーバー基盤）
 ├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）
-├─ docs/
+├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
 │  └─ wiki/       # LLMが維持する整理済み知識
 │     ├─ index.md
@@ -63,7 +63,7 @@ uta/
 
 ## wiki の運用（3操作）
 
-1. **Ingest**: 調べたこと・決めたことは、まず `docs/raw/` に置き、`docs/wiki/` に反映する。反映したら `index.md` と `log.md` を更新する。
+1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら `index.md` と `log.md` を更新する。
 2. **Query**: 設計・実装の根拠は wiki から引く。wiki に無いことは推測で実装せず、先に wiki へ起こす。
 3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・index 未登録ページを点検して修正する。
 
@@ -92,11 +92,11 @@ uta/
 ## 実装方針
 
 - サーバー権威: 育成の計算結果、ガチャ抽選、所持品の更新はすべてサーバーで行う。結果の確定は常にサーバー。
-- クライアントは表示と入力に加え、共有ドメイン（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
-- 共有型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](docs/wiki/decisions/0007-masterdata-with-addons.md)）。
-- 層の構成と依存ルールは [architecture/repository-layout.md](docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](docs/wiki/decisions/0010-database.md)）。デプロイ先は Google Cloud の Cloud Run + Cloud SQL（[ADR 0011](docs/wiki/decisions/0011-deploy-google-cloud.md)）。
+- クライアントは表示と入力に加え、共有ドメイン（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
+- 共有型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](uta_docs/wiki/decisions/0007-masterdata-with-addons.md)）。
+- 層の構成と依存ルールは [architecture/repository-layout.md](uta_docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](uta_docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](uta_docs/wiki/decisions/0010-database.md)）。デプロイ先は Google Cloud の Cloud Run + Cloud SQL（[ADR 0011](uta_docs/wiki/decisions/0011-deploy-google-cloud.md)）。
 - マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。共有ドメインでは `float` / `double` を使わない。
-- ID はマスタが `int`、サーバーが発行するものは ULID。時刻はサーバーが正で JST 固定、日付の更新は 12 時。乱数は `xoshiro256**`。強制アップデートはアプリのバージョンで判定（[repository-layout.md](docs/wiki/architecture/repository-layout.md) 10章）。
+- ID はマスタが `int`、サーバーが発行するものは ULID。時刻はサーバーが正で JST 固定、日付の更新は 12 時。乱数は `xoshiro256**`。強制アップデートはアプリのバージョンで判定（[repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 10章）。
 - iOS（IL2CPP / AOT）制約を常に考慮する。リフレクション依存を避け、Source Generator / 事前生成を優先する。
 - モバイル実機ビルドを早期・継続的に通す。
 
@@ -109,7 +109,7 @@ uta/
 - private / internal のフィールドは接頭辞なしの camelCase（`_` を付けない）
 - interface は `I`、型パラメーターは `T` で始める
 - 言語バージョンに関わるルールはフォルダごとの `.editorconfig` で分けている:
-  - `client/`・`shared/`・`masterdata/`: Unity にソースで入るため **C# 9 の範囲に収める**（Unity 7 で C# 14 が使えると確認できたら見直す。[ADR 0006](docs/wiki/decisions/0006-adopt-unity-7-early.md)）（ファイルスコープ namespace、プライマリコンストラクタ、コレクション式、Index/Range は使わない）
+  - `client/`・`shared/`・`masterdata/`: Unity にソースで入るため **C# 9 の範囲に収める**（Unity 7 で C# 14 が使えると確認できたら見直す。[ADR 0006](uta_docs/wiki/decisions/0006-adopt-unity-7-early.md)）（ファイルスコープ namespace、プライマリコンストラクタ、コレクション式、Index/Range は使わない）
   - `server/`: .NET 10（C# 14）。新しい C# の書き方を許す（ファイルスコープ namespace など）
 - `.cs` は BOM 付き UTF-8、改行は LF
 - テストのメソッド名は `Method_Condition_Result` の形を許す
@@ -120,7 +120,7 @@ uta/
 - Unity の `.meta` ファイルは必ずコミットする。`client/uta/Library/` などの自動生成物は入れない（`.gitignore`）
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
 - コミットメッセージは日本語
-- サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
+- サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
   - clone: `git clone --recurse-submodules <Uta の URL>`（済みの clone では `git submodule update --init`）
   - サブモジュール内で作業する前にブランチを切る（`git switch -c <branch>`）。detached HEAD のまま commit しない
   - 追加: `git submodule add <URL> external/<名前>`（すでに clone 済みなら、その場所を指定すれば取り込める）。追加したら ADR 0005 の表も更新する
@@ -133,4 +133,4 @@ uta/
 
 ## 用語集
 
-用語は `docs/wiki/glossary.md` に集約する。
+用語は `uta_docs/wiki/glossary.md` に集約する。

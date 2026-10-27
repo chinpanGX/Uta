@@ -19,7 +19,7 @@
 - 既存作品の素材・固有名称を提案・生成しない
 
 ## 進め方（ドキュメント駆動 / LLM wiki）
-- Project knowledge の `docs/wiki/index.md` を最初に参照する
+- Project knowledge の `uta_docs/wiki/index.md` を最初に参照する
 - 実装の相談では、先に仕様ページの更新案を出し、それから実装案を出す
 - 技術選定・方針変更は ADR の追記案として出す（既存 ADR は書き換えず Superseded にする）
 - wiki の更新案は、そのままリポジトリに反映できる Markdown（frontmatter 付き）で出す
