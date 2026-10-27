@@ -1,7 +1,7 @@
 ---
 title: Uta wiki 目次
 status: draft
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # Uta wiki 目次
@@ -11,6 +11,7 @@ updated: 2026-10-26
 ## 概要
 
 - [log.md](log.md) — 時系列の更新履歴
+- [glossary.md](glossary.md) — 用語集(仮称を含む)
 
 ## 全体仕様
 
@@ -18,14 +19,23 @@ updated: 2026-10-26
 
 ## システム仕様
 
-- [systems/produce.md](systems/produce.md) — プロデュース（育成）：ターン・カード・計算式・画面ワイヤーの叩き台
-- [systems/gacha.md](systems/gacha.md) — ガチャ：排出テーブル、天井、サーバー抽選、所持品反映
+- [systems/produce.md](systems/produce.md) — プロデュース（育成）：週構成、行動、レッスン・試験の値、スコアボーナス、NPC、最終評価、プレイヤーLv
+- [systems/lesson-card.md](systems/lesson-card.md) — レッスン・試験のカードロジック：カード定義、コスト、条件、効果、計算式、ターン処理順、初期カードセット、実装フェーズ
+- [systems/idol-support.md](systems/idol-support.md) — 育成アイドル・サポートカード：ステータス、初期デッキ、トレーニング・覚醒、アビリティ、イベント、レンタル枠
+- [systems/gacha.md](systems/gacha.md) — ガチャ：排出率、天井（交換pt）、重複時の扱い、無償通貨のみ
 - [systems/live.md](systems/live.md) — 3Dライブ：**保留（MVP対象外）**
 
 ## アーキテクチャ
 
 - [architecture/server-foundation.md](architecture/server-foundation.md) — サーバー基盤（.NET 10、MagicOnion + PostgreSQL）：構成、フィルター順序、エラー、認証・冪等性
-- （未作成）リポジトリ構成 / マスタデータ配信 / ビルド・CI
+
+### 実装設計書（4編・叩き台）
+
+- [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、アセンブリと層の依存ルール、共有コードの制約、機能ID
+- [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約
+- [architecture/api-design.md](architecture/api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
+- [architecture/screen-design.md](architecture/screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
+- （未作成）ビルド・CI
 
 ## 決定記録（ADR）
 
@@ -35,11 +45,17 @@ updated: 2026-10-26
 - [decisions/0003-defer-3d-live.md](decisions/0003-defer-3d-live.md) — 3DライブをMVPから外す（accepted）
 - [decisions/0004-server-foundation.md](decisions/0004-server-foundation.md) — サーバーは .NET 10 と C# サーバー基盤を採用（accepted）
 - [decisions/0005-foundation-submodule.md](decisions/0005-foundation-submodule.md) — 基盤と自作パッケージを `external/` に Git サブモジュールで取り込む（proposed。4 件登録済み）
-- [decisions/0006-adopt-unity-7-early.md](decisions/0006-adopt-unity-7-early.md) — Unity 7 を早期に触ることを目的に加える（proposed）
+- [decisions/0006-adopt-unity-7-early.md](decisions/0006-adopt-unity-7-early.md) — Unity 7 を早期に触ることを目的に加える。Unity のバージョンは Unity 7 で確定（accepted）
+- [decisions/0007-masterdata-with-addons.md](decisions/0007-masterdata-with-addons.md) — マスタを MasterMemoryAddons でクライアント用・サーバー用に出し分ける。列の型は int/long/string/bool/enum のみ、masterdata/ は最上位、CSV が正本（accepted）
+- [decisions/0008-shared-domain-and-onion.md](decisions/0008-shared-domain-and-onion.md) — ドメイン層を共有し、クライアントはオニオンアーキテクチャにする。クライアントは判定・予測表示まで、シードは持たない（accepted）
+- [decisions/0009-client-stack.md](decisions/0009-client-stack.md) — クライアントは uGUI + UnityScreenNavigator・VContainer・UniTask・縦画面（accepted）
+- [decisions/0010-database.md](decisions/0010-database.md) — DB は PostgreSQL + Npgsql + Dapper、セッションは状態を1列にまとめて保存（accepted）
+
+## 一次資料（raw）
+
+- [../raw/2026-10-26-reference-structure-research.md](../raw/2026-10-26-reference-structure-research.md) — 参考作品の構造調査メモ（名称・出典URLは残さない）
 
 ## 未作成だが必要なページ
 
-- glossary.md（用語集）
-- architecture/repository-layout.md
-- architecture/masterdata-pipeline.md
+- architecture/build-ci.md（ビルド・CI。repository-layout.md 7章の実体）
 - architecture/unity7-evaluation.md（Unity 7 検証の記録）

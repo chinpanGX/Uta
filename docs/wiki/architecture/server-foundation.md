@@ -82,7 +82,7 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 ## Uta での扱い（推測）
 
 - Uta の `shared/` に置く Uta 固有のサービスIF・DTO・マスタ型は、基盤の `Abstractions` と同じく Unity と共有するので **C# 9 の範囲**に収める（[CLAUDE.md](../../../CLAUDE.md)）
-- 育成の `ExecuteTurn` やガチャは冪等性の対象にする。再送の判定は `x-request-id` + `last_responses` に任せ、仕様側で独自の重複防止を作らない
+- 育成の操作（`ChooseWeekAction` / `ExecuteLessonAction`。[api-design.md](api-design.md) 1章）やガチャは冪等性の対象にする。再送の判定は `x-request-id` + `last_responses` に任せ、仕様側で独自の重複防止を作らない
 
 ## 未確定事項
 

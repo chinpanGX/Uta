@@ -7,7 +7,7 @@
 
 - 名称: Uta（うた）
 - 目的: 育成（プロデュース）・ガチャのゲームシステム基礎部分を実装する、技術先行の個人開発プロジェクト（3Dライブは保留: [ADR 0003](docs/wiki/decisions/0003-defer-3d-live.md)）
-- 目的（追加・提案中）: Unity 7 を早期段階で触る。クライアント基盤・サーバー基盤も Unity 7 で試す（[ADR 0006](docs/wiki/decisions/0006-adopt-unity-7-early.md)、proposed）。Unity 7 Preview は 12 月予定で、それまでは Unity 6 系で進める
+- 目的（追加）: Unity 7 を早期段階で触る。Unity のバージョンは Unity 7 で確定（2026-10-27。現在 `7000.0.0a12`）。クライアント基盤・サーバー基盤も Unity 7 で試す（[ADR 0006](docs/wiki/decisions/0006-adopt-unity-7-early.md)、accepted）。Unity 7 Preview は 12 月予定
 - 対象プラットフォーム: Android / iOS / Windows
 - 技術構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10）、通信は MagicOnion（gRPC）。サーバーの土台は [architecture/server-foundation.md](docs/wiki/architecture/server-foundation.md)
 - 開発体制: 個人開発
@@ -45,6 +45,7 @@ uta/
 ├─ CLAUDE.md
 ├─ .editorconfig / .gitattributes / .gitignore  # .editorconfig は client/・server/・shared/ にも置く
 ├─ external/      # Git サブモジュール（自作の共通パッケージ・サーバー基盤）
+├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）
 ├─ docs/
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
 │  └─ wiki/       # LLMが維持する整理済み知識
@@ -53,11 +54,11 @@ uta/
 │     ├─ glossary.md
 │     ├─ overview/      # ゲーム全体の概要仕様
 │     ├─ systems/       # produce / gacha（live は保留）
-│     ├─ architecture/  # サーバー基盤など
+│     ├─ architecture/  # 実装設計書（共通・基盤 / マスター / API / 画面）、サーバー基盤
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # サービスIF・DTO・マスタ型（Unity/サーバー共有）
+└─ shared/        # Uta.Domain（共有ドメイン）・Uta.Shared（サービスIF・DTO）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
@@ -90,8 +91,11 @@ uta/
 
 ## 実装方針
 
-- サーバー権威: 育成の計算結果、ガチャ抽選、所持品の更新はすべてサーバーで行う。クライアントは表示と入力のみ。
-- 共有型は `shared/` に置く。Unity / サーバー双方から参照する。
+- サーバー権威: 育成の計算結果、ガチャ抽選、所持品の更新はすべてサーバーで行う。結果の確定は常にサーバー。
+- クライアントは表示と入力に加え、共有ドメイン（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
+- 共有型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](docs/wiki/decisions/0007-masterdata-with-addons.md)）。
+- 層の構成と依存ルールは [architecture/repository-layout.md](docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](docs/wiki/decisions/0010-database.md)）。
+- マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。共有ドメインでは `float` / `double` を使わない。
 - iOS（IL2CPP / AOT）制約を常に考慮する。リフレクション依存を避け、Source Generator / 事前生成を優先する。
 - モバイル実機ビルドを早期・継続的に通す。
 
@@ -104,7 +108,7 @@ uta/
 - private / internal のフィールドは接頭辞なしの camelCase（`_` を付けない）
 - interface は `I`、型パラメーターは `T` で始める
 - 言語バージョンに関わるルールはフォルダごとの `.editorconfig` で分けている:
-  - `client/`・`shared/`: Unity にソースで入るため **C# 9 の範囲に収める**（Unity 7 で C# 14 が使えると確認できたら見直す。[ADR 0006](docs/wiki/decisions/0006-adopt-unity-7-early.md)）（ファイルスコープ namespace、プライマリコンストラクタ、コレクション式、Index/Range は使わない）
+  - `client/`・`shared/`・`masterdata/`: Unity にソースで入るため **C# 9 の範囲に収める**（Unity 7 で C# 14 が使えると確認できたら見直す。[ADR 0006](docs/wiki/decisions/0006-adopt-unity-7-early.md)）（ファイルスコープ namespace、プライマリコンストラクタ、コレクション式、Index/Range は使わない）
   - `server/`: .NET 10（C# 14）。新しい C# の書き方を許す（ファイルスコープ namespace など）
 - `.cs` は BOM 付き UTF-8、改行は LF
 - テストのメソッド名は `Method_Condition_Result` の形を許す

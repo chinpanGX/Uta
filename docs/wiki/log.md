@@ -1,7 +1,7 @@
 ---
 title: 更新履歴
 status: draft
-updated: 2026-10-26
+updated: 2026-10-27
 ---
 
 # 更新履歴
@@ -9,6 +9,15 @@ updated: 2026-10-26
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-27 | lint | 会話で決めたが未反映だった内容を反映。repository-layout.md（層・制約・固有の知識の置き場を [決定] に、古いクライアントとのずれの扱い、8章「実装前に確かめること」を追加）、masterdata-pipeline.md（8章「アドオンの改善バックログ」を追加）、game-spec.md（クライアントの役割・技術構成・DB を更新）、glossary.md（技術・設計の用語を追加）
+- 2026-10-27 | adr | 未決13件を推奨案で決定。ADR 0007・0008 を accepted に変更し、ADR 0009（クライアント: uGUI + UnityScreenNavigator・VContainer・UniTask・縦画面）・ADR 0010（DB: PostgreSQL + Npgsql + Dapper、セッションの保存形式）を起票
+- 2026-10-27 | spec | 13件の決定を設計書4編・CLAUDE.md・project-instructions.md・produce.md 10章・lesson-card.md に反映（ドメイン使用範囲、カード効果の表現、masterdata/ の配置、RPC の分割、エラーコードの番号帯、マッピング、生成物・配信・CSV の運用）
+- 2026-10-27 | spec | repository-layout.md に「固有の知識の置き場」（6.1）を追加し、ADR 0008 に反映。サーバーの構成図に `Domain/` を追加
+- 2026-10-27 | adr | ADR 0006 を accepted に変更。Unity のバージョンを Unity 7（現在 `7000.0.0a12`）で確定し、「Preview まで Unity 6 系」の記述を ADR 0006・CLAUDE.md・project-instructions.md・game-spec.md・index.md から更新。repository-layout.md の未決事項（バージョンの食い違い）を解消
+- 2026-10-27 | adr | ADR 0007（マスタを MasterMemoryAddons で出し分ける。列の型は int/long/string/bool/enum のみ）・ADR 0008（ドメイン層の共有とクライアントのオニオン構成）を proposed で起票
+- 2026-10-27 | spec | 実装設計書4編の叩き台を architecture/ に追加（repository-layout / masterdata-pipeline / api-design / screen-design）。index を更新、game-spec の未決事項にリンクを追加
+- 2026-10-27 | spec | 参考作品の構造調査を反映。systems/produce.md を書き直し（旧叩き台の12ターン制・数値・画面ワイヤーを廃止し、週構成・レッスン・試験・評価・プレイヤーLvに置き換え）、systems/lesson-card.md・systems/idol-support.md を新規作成、systems/gacha.md を書き直し（課金なし・無償通貨のみ、レンタル枠はサーバーのマスタから）。glossary に仮称を追加、index・game-spec を更新
+- 2026-10-27 | ingest | raw/2026-10-26-reference-structure-research.md を追加（名称・出典URLは残さない。ADR 0001）
 - 2026-10-26 | adr | ADR 0005 を更新（対象を共通パッケージに拡大、配置先を `external/` に決定）。VolTech-MagicOnion・Supplement・UnityScreenNavigator・MasterMemoryAddons をサブモジュールとして登録。CLAUDE.md の Git 節と構成図、index を更新
 - 2026-10-26 | adr | ADR 0006（Unity 7 を早期に触ることを目的に追加）を proposed で起票。CLAUDE.md・project-instructions.md・game-spec.md の目的欄を更新
 - 2026-10-26 | adr | ADR 0005 の基盤開発ルールを修正（サブモジュール内でも別 clone でもよい。push 順序は基盤 → Uta）、worktree の注意を追記
