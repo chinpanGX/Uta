@@ -76,7 +76,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 | 同じ列を型違いで使いたい | enum で種別を持ち、値は `int` の汎用列にする | 効果の種別 + 引数 |
 | 真偽・有無 | `bool` / enum。nullable は使わない（空欄＝既定値） | |
 | ID | `int`（[repository-layout.md](repository-layout.md) 10.1） | |
-| 日時 | `long`（UNIX 時刻の秒）にする案。時刻は JST・サーバーが正（[repository-layout.md](repository-layout.md) 10.2）。未決 | ガチャの開催期間 |
+| 日時 | `string`。形式は `yyyy-MM-dd HH:mm:ss`、JST として解釈する（[repository-layout.md](repository-layout.md) 10.2） | ガチャの開催期間 |
 
 - 計算は整数または固定小数点（[lesson-card.md](../systems/lesson-card.md) 9.6）。この規約は同じ理由（クライアントとサーバーで結果を一致させる）による
 - [lesson-card.md](../systems/lesson-card.md) 3.2 の YAML 例には `focusScale: 1.5` のような小数がある。マスタに移すときは `150`（パーセント）のように整数にする
@@ -99,6 +99,10 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
   - 他のテーブルを指す値は、汎用列に入れず `RefCardId` などの**専用の列**にし、`[Exists(typeof(...), AllowEmpty = true)]` を付ける。参照先の存在を属性で検証するため
   - `Op` ごとの引数の意味（`Value` / `Arg1`〜`Arg3` が何か、どの参照列を使うか）は一覧にして保守し、`IValidatable` で検証する（必須の引数が空でないか、使わない引数が埋まっていないか）。`[ServerOnly]` の値を参照しないので、クライアント用の出力に入っても問題ない
   - 引数が3つで足りない `Op` が出たら、`Arg` を増やすか、その `Op` だけ子テーブルにするかをその時に決める
+- **日時の扱い** [決定]
+  - 形式を検証する: `master-gen` は文字列の形式を検証しないので、`IValidatable` で `ParseExact` できるかを確かめる（共通の値なので、クライアント用の出力に入ってもよい）
+  - スプレッドシートが日付を自動で変換しないよう、日時の列のセルは書式なしのテキストにする（書き出しで `2026/11/1 12:00` のような形に変わるのを防ぐ）
+  - 解析は読み込みのたびに行わず、マスタを読むラッパーで一度だけ解析して持つ
 - 代替の「`Op` ごとにテーブルを分ける」案は、テーブルが効果の種類だけ増え、記載順に処理するための結合も重くなるため採らない（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - 効果は「記載順に処理する」ので、`Order` を必ず持つ
 - 同じ構造が週構成（[produce.md](../systems/produce.md) 3.1）、アイドル・サポートカードのアビリティ・イベント（[idol-support.md](../systems/idol-support.md)）にも出る。先に1つ（カード）で型を決め、他へ流用する
@@ -178,6 +182,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 | `[Exists]` が別の側を参照する場合 | `[ClientOnly]` / `[ServerOnly]` の列・テーブルを参照したとき、片側の生成物や検証がどうなるか | 未確認（4章） |
 | Windows での実行 | アドオンは make を前提にしている。Windows では scoop / choco / WSL の用意が要る | 未着手（7章） |
 | 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
+| 日時の列の検証 | `string` の日時の形式（`yyyy-MM-dd HH:mm:ss`）を属性で宣言し、`master-gen` が検証できるとよい。いまは `IValidatable` で書く | 案 |
 | `Op` ごとの引数の検証 | 3章の「汎用列＋参照列」を属性で宣言できると、`IValidatable` の手書きが減る（推測。必要になってから検討） | 案 |
 
 - 列の型（`int` / `long` / `string` / `bool` / enum のみ）は**改善の対象にしない**。Uta の確定事項（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）

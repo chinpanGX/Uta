@@ -211,7 +211,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **時刻はサーバーが正**。クライアントの時刻で判定しない
 - **タイムゾーンは JST 固定**
 - **日付の更新は 12 時**（12:00 JST）。日ごとの区切り（日替わりの処理など）はこの時刻を境にする
-- マスタの列に日時の型はないので、ガチャの開催期間などの日時は `long` で持つ案（UNIX 時刻の秒。推測・未決）
+- **マスタの日時は `string` で持つ**。形式は `yyyy-MM-dd HH:mm:ss` で、JST として解釈する（オフセットは書かない。例: `2026-11-01 12:00:00`）。読むときは `DateTime.ParseExact`（`CultureInfo.InvariantCulture`）で厳密に読み、JST の `DateTimeOffset` にする（[masterdata-pipeline.md](masterdata-pipeline.md) 3章）
 - ガチャの期間終了時の、交換pt から交換メダルへの変換（[gacha.md](../systems/gacha.md)）も、サーバーの時刻で行う
 
 ### 10.3 乱数
@@ -243,6 +243,6 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - `Uta.Shared` と基盤の `Abstractions` の役割分担（ADR 0005 の未決事項）。`Uta.Shared` は Uta 固有のサービスIF・DTOだけ、が素直（推測）
 - `Application` で UnityEngine の API を使わないことを守る手段（アナライザーにするか、レビューだけにするか）
 - サーバーのアーキテクチャテストの具体（NetArchTest など）
-- ULID の持ち方、マスタ ID の採番規則、日時の持ち方（10.1、10.2）
+- ULID の持ち方、マスタ ID の採番規則（10.1）
 - テストのフレームワークと置き場、ローカル保存の対象（10.4、10.6）
 - ビルド・CI の実体（`architecture/build-ci.md` として起こす予定）

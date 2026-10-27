@@ -83,6 +83,7 @@ updated: 2026-10-27
 | `Op` | マスタの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
 | ULID | 時刻順に並ぶ一意な ID。サーバーが発行する ID に使う（マスタの ID は `int`） | [repository-layout](architecture/repository-layout.md) 10.1 |
 | 日付の更新 | 日ごとの区切り。12:00 JST | 同 10.2 |
+| マスタの日時 | `string` の `yyyy-MM-dd HH:mm:ss`（JST） | 同 10.2 |
 | `xoshiro256**` | 共有ドメインで使う決定的な疑似乱数（64 ビット。xorshift の後継） | 同 10.3 |
 | 万分率 / パーセント表記 | 小数を整数で持つための単位（確率は万分率、倍率はパーセント） | マスタは小数を扱わない |
 
