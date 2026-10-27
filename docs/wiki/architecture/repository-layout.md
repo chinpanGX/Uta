@@ -200,7 +200,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 
 | 対象 | 型 | 備考 |
 |---|---|---|
-| マスタの ID（カード、アイドル、ガチャなど） | `int` | マスタの列の型の制約（[masterdata-pipeline.md](masterdata-pipeline.md)）に合う。採番の規則（機能ごとの番号帯にするか）は未決 |
+| マスタの ID（カード、アイドル、ガチャなど） | `int` | マスタの列の型の制約（[masterdata-pipeline.md](masterdata-pipeline.md)）に合う。**採番の規則は作らない**（2026-10-27 決定） |
 | サーバーが発行する ID（ユーザー、プロデュースのセッション、ガチャ履歴など） | ULID | 時刻順に並び、サーバーを分けても衝突しない |
 
 - ULID の C# の型と、DB・DTO での持ち方（PostgreSQL の `uuid` に入れるか、文字列にするか。DTO では文字列か 16 バイトか）は未決。Unity と .NET の両方で使えるライブラリ（Cysharp の `Ulid` など）を使う案（推測）
@@ -226,7 +226,9 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **単体テストは専用のプロジェクト（dll）に分ける**。主な対象は `Uta.Domain`（同じシードと操作列で同じ結果になること、計算式）
 - **サーバーは結合テストを書く**（DB を含めて、RPC から結果・保存までを確かめる）
 - **Unity 側のテストは必須にしない**
-- テストのフレームワーク（xunit など）とプロジェクトの置き場は未決
+- **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する
+- **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）
+- テストプロジェクトの置き場は未決
 
 ### 10.5 バージョンと強制アップデート
 
@@ -236,13 +238,13 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 ### 10.6 クライアントのローカル保存
 
 - **共通基盤（`external/Supplement`）のセーブデータの仕組みを使う**。`IFileStorageService` / `SaveDataRepository`（AES で暗号化）。MessagePack 版（`Supplement.MessagePack`）は改ざん・破損を検知できる（[Supplement の docs](../../../external/Supplement/docs/features/save-data.md)）
-- 何を保存するか（認証トークン、設定など）と、JSON 版と MessagePack 版のどちらを使うかは未決
+- 何を保存するか（認証トークン、設定など）と、JSON 版と MessagePack 版のどちらを使うかは、**実装するときに決める**
 
 ## 未決事項
 
 - `Uta.Shared` と基盤の `Abstractions` の役割分担（ADR 0005 の未決事項）。`Uta.Shared` は Uta 固有のサービスIF・DTOだけ、が素直（推測）
 - `Application` で UnityEngine の API を使わないことを守る手段（アナライザーにするか、レビューだけにするか）
 - サーバーのアーキテクチャテストの具体（NetArchTest など）
-- ULID の持ち方、マスタ ID の採番規則（10.1）
-- テストのフレームワークと置き場、ローカル保存の対象（10.4、10.6）
+- ULID の持ち方（10.1）
+- テストプロジェクトの置き場（10.4）
 - ビルド・CI の実体（`architecture/build-ci.md` として起こす予定）
