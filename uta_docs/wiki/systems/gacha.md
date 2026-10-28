@@ -1,7 +1,7 @@
 ---
 title: ガチャ
 status: draft
-updated: 2026-10-26
+updated: 2026-10-28
 ---
 
 # ガチャ
@@ -110,7 +110,7 @@ updated: 2026-10-26
 
 - 7章の値
 - ガチャ通貨の入手手段(プロデュース報酬、ログインなど)
-- DB(基盤の推奨は PostgreSQL + Npgsql + Dapper、未確定。[server-foundation](../architecture/server-foundation.md))とトランザクション設計
+- トランザクション設計(DB は PostgreSQL + Npgsql + Dapper に決定。[ADR 0010](../decisions/0010-database.md))
 
 ## 実装メモ
 

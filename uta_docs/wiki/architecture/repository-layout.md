@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通基盤（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # リポジトリ構成・レイヤー・共通基盤（実装設計書 共通・基盤編）
@@ -221,6 +221,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **アルゴリズムは `xoshiro256**`**（64 ビット。xorshift の後継）
 - 実装は `Uta.Domain` に置き、サーバーで使う。範囲内の整数の取り出し方も、同じコードで固定する
 - シードはサーバーが生成する（暗号用の乱数を使う。推測）。シードと乱数の位置はプロデュースのセッションに保存する（[api-design.md](api-design.md) 3章）
+- シードから用途・場面ごとのストリームを SplitMix64 で作る。範囲内の整数は棄却法、シャッフルは Fisher–Yates。ストリームの一覧と引く順番は [produce.md](../systems/produce.md) 10.2・10.3（2026-10-28 決定）
 - `System.Random` は使わない
 
 ### 10.4 テスト
@@ -230,7 +231,8 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **Unity 側のテストは必須にしない**
 - **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する
 - **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）
-- テストプロジェクトの置き場は未決
+- テストプロジェクトはテスト対象の隣に置く。`Uta.Domain` は `shared/Uta.Domain.Tests/`（2026-10-28 決定）。サーバーの置き場はサーバーの作成時に決める
+- 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
 
 ### 10.5 バージョンと強制アップデート
 

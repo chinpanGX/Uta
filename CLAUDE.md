@@ -129,7 +129,10 @@ uta/
 
 ## ビルド・テスト・実行
 
-まだ無い。プロジェクト（`server/`・`client/`・`shared/`）を作成したら、実際に動くコマンドをここに追記する。
+プロジェクト（`server/`・`client/`）を作成したら、実際に動くコマンドをここに追記する。
+
+- `shared/Uta.Domain` のビルド: `dotnet build shared/Uta.Domain`
+- `shared/Uta.Domain` の単体テスト: `dotnet test --project shared/Uta.Domain.Tests`（.NET 10 SDK。実行方式はルートの `global.json` で Microsoft.Testing.Platform を指定）
 
 ## 用語集
 

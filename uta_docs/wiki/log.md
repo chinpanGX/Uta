@@ -1,7 +1,7 @@
 ---
 title: 更新履歴
 status: draft
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # 更新履歴
@@ -9,6 +9,10 @@ updated: 2026-10-27
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-28 | impl | `shared/Uta.Domain`（netstandard2.1・C# 9）にレッスンのフェーズ0・1（カード定義・状態・乱数・計算式・エンジン）を実装し、`shared/Uta.Domain.Tests`（xunit.v3 4.0.2、49件）を追加。architecture/lesson-domain-types.md を新規作成し index に登録。ルートに global.json、CLAUDE.md にビルド・テストのコマンドを追記、repository-layout.md 10.4 にテストの置き場を反映
+- 2026-10-28 | spec | produce.md 10章の案を決定に変更。要求に「次の操作番号」を足す（api-design.md 1・5章）。乱数ストリームの作り方を repository-layout.md 10.3、新しい用語を glossary に反映
+- 2026-10-28 | lint | 調査反映ページを点検して修正（lesson-card: スコアボーナスの参照先 5.2・最終スコアボーナス、中間試験の早期終了は初級・中級のみ、カード ID を int に、同タイミングの順にサポートアビリティを追加、シードの粒度を produce.md 10章に揃える。produce: 完了条件を ADR 0008 に合わせる、決定済みの未決事項を削除、API案を RPC の分割に合わせる、NPC スコアは切り捨て。gacha: DB を ADR 0010 に。updated を修正）。参考作品と同じ仮称を glossary に「置き換え対象」として記録
+- 2026-10-28 | spec | produce.md 10章を書き換え、サーバー検証の土台の案（入力待ち単位の処理、用途・場面ごとの乱数ストリームと引く順番、操作の記録形式、途中再開で保存する状態）を [Uta案] で追加
 - 2026-10-27 | lint | `docs/` を `uta_docs/` にリネーム。CLAUDE.md・README・raw/README・project-instructions・ADR 0001/0006・repository-layout.md の参照を更新（ADR 0003 の記録と過去のログは当時の表記のまま）
 - 2026-10-27 | adr | ADR 0011（API をコンテナにして Google Cloud の Cloud Run + Cloud SQL にデプロイ）を accepted で起票。repository-layout.md に11章「環境構成とデプロイ」と8章の要検証2件を追加。index・game-spec・CLAUDE.md・glossary を更新
 - 2026-10-27 | spec | クライアントのローカル保存は Supplement の MessagePack 版（`Supplement.MessagePack`）に決定。repository-layout.md 10.6 と 8章（版の整合）に反映
