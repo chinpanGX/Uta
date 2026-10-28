@@ -1,7 +1,7 @@
 ---
 title: Uta wiki 目次
 status: draft
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # Uta wiki 目次
@@ -35,6 +35,7 @@ updated: 2026-10-27
 - [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約
 - [architecture/api-design.md](architecture/api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [architecture/screen-design.md](architecture/screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
+- [architecture/lesson-domain-types.md](architecture/lesson-domain-types.md) — レッスンの共有ドメインの型（`Uta.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
 - （未作成）ビルド・CI
 
 ## 決定記録（ADR）

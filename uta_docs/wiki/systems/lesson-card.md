@@ -581,4 +581,4 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 ## 実装メモ
 
-(実装後に仕様とのズレをここに記録する)
+- 2026-10-28: フェーズ0・1のエンジンを `shared/Uta.Domain` に実装（型は [lesson-domain-types.md](../architecture/lesson-domain-types.md)）。試験・ドリンク・育成アイテムは未実装。仕様に無い細部（使ったカードを捨札へ移す時点、スキップの回復の時点など）は lesson-domain-types.md 5章に [Uta案] として書いた

@@ -231,7 +231,8 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **Unity 側のテストは必須にしない**
 - **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する
 - **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）
-- テストプロジェクトの置き場は未決
+- テストプロジェクトはテスト対象の隣に置く。`Uta.Domain` は `shared/Uta.Domain.Tests/`（2026-10-28 決定）。サーバーの置き場はサーバーの作成時に決める
+- 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
 
 ### 10.5 バージョンと強制アップデート
 
