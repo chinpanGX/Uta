@@ -9,6 +9,7 @@ updated: 2026-10-28
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-28 | spec | 効果の `Op` 一覧を決定。効果・条件はグループ（`EffectGroup`/`Effect`、`ConditionGroup`/`Condition`）にまとめてカードから指す、対象のステータスと発動タイミングは型付きの enum 列（`Status`/`Trigger`）、倍率・回数の `Arg` は 0＝既定値。masterdata-pipeline.md 3章・3.1、lesson-card.md 6.1・7章、glossary に反映（ADR 0007 の「汎用列＋型付きの参照列」の範囲内なので ADR は変えない）
 - 2026-10-28 | spec | CI は最初は手動で流し、手順が固まったら GitHub Actions で自動化する、に決定。repository-layout.md 11.2 に追記して 11.4 の未決から外し、ADR 0011 の「CI での自動化は未決」を更新
 - 2026-10-27 | lint | `docs/` を `uta_docs/` にリネーム。CLAUDE.md・README・raw/README・project-instructions・ADR 0001/0006・repository-layout.md の参照を更新（ADR 0003 の記録と過去のログは当時の表記のまま）
 - 2026-10-27 | adr | ADR 0011（API をコンテナにして Google Cloud の Cloud Run + Cloud SQL にデプロイ）を accepted で起票。repository-layout.md に11章「環境構成とデプロイ」と8章の要検証2件を追加。index・game-spec・CLAUDE.md・glossary を更新

@@ -1,7 +1,7 @@
 ---
 title: マスタデータの定義・生成・配信（実装設計書 マスター設計編）
 status: draft
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # マスタデータの定義・生成・配信（実装設計書 マスター設計編）
@@ -23,7 +23,7 @@ updated: 2026-10-27
 - **列の型は `int` / `long` / `string` / `bool` / enum だけ**。`float`・配列・nullable はマスタでは扱わない [決定。2026-10-27 に確定]
 - クライアント用・サーバー用の出し分けは、定義に付ける `[ClientOnly]` / `[ServerOnly]` で行う（列にも、型全体にも付けられる）[確認]
 - マスタの正本は最上位の `masterdata/` に置く [決定]
-- カード効果などの入れ子は、汎用列＋型付きの参照列で表す [決定。3章]
+- カード効果などの入れ子は、汎用列＋型付きの参照列で表す。効果と条件はグループにまとめる [決定。3章、`Op` の一覧は 3.1]
 - 生成したソースはコミットし、CI の `master-gen --check` で検出する。バイナリはコミットしない [決定。5章]
 - 配信は、まずアプリに同梱（StreamingAssets）し、あとで Addressables に移る [決定。6章]
 - CSV は Git の `masterdata/csv/` を正本にする [決定。7章]
@@ -83,19 +83,31 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 ### 難所: カード定義の入れ子
 
-[lesson-card.md](../systems/lesson-card.md) 3章のカード定義は、`base` / `enhanced`（`CardFace`）の中に `costs` / `useConditions` / `effects` の**配列**を持つ。列が5型だけで配列を使えないと、そのままでは表せない。次のように正規化する（テーブル・列の名前は仮）:
+[lesson-card.md](../systems/lesson-card.md) 3章のカード定義は、`base` / `enhanced`（`CardFace`）の中に `costs` / `useConditions` / `effects` の**配列**を持つ。さらに効果は、持続効果・発動予約の中に効果を持ち（入れ子）、効果ごとに条件（効果内条件）を持つ。列が5型だけで配列を使えないと、そのままでは表せない。
+
+**効果と条件は「グループ」にまとめ、カードからグループを指す** [決定。2026-10-28]（テーブル・列の名前は仮）:
 
 | テーブル | 主キー | 主な列 |
 |---|---|---|
 | `Card` | `CardId` | プラン、種別、レアリティ、`UnlockLv`、`OnceInLesson`、`Unique`、`StartInHand` |
-| `CardFace` | `CardId` + `Face`（通常 / 強化） | （面ごとの共通項目があれば） |
-| `CardCost` | `CardId` + `Face` + `Order` | `Kind`（enum）、`Value` |
-| `CardCondition` | 同上 | `Kind`（enum）、`Value`、`Arg1`… |
-| `CardEffect` | 同上 | `Op`（enum）、`Value`、`Arg1`〜`Arg3`（汎用の `int`）、`RefCardId` などの参照列 |
+| `CardFace` | `CardId` + `Face`（通常 / 強化） | `EffectGroupId`、`UseConditionGroupId`（空欄＝条件なし） |
+| `CardCost` | `CardId` + `Face` + `Order` | `Kind`（enum `CostKind`）、`Value` |
+| `EffectGroup` | `EffectGroupId` | （見出し。`Memo` など） |
+| `Effect` | `EffectGroupId` + `Order` | `Op`（enum）、`Status`（enum）、`Trigger`（enum）、`Value`、`Arg1`〜`Arg3`（`int`）、`RefConditionGroupId`、`RefEffectGroupId`、`RefCardId` |
+| `ConditionGroup` | `ConditionGroupId` | （見出し） |
+| `Condition` | `ConditionGroupId` + `Order` | `Subject`（enum）、`Comparator`（enum）、`Value`。グループ内はすべて満たすと真（AND） |
 
-- **効果は汎用列＋型付きの参照列で表す** [決定]
-  - `Op` は効果の種類の enum（[lesson-card.md](../systems/lesson-card.md) の `op:` にあたる。例: パラメータ上昇、元気の付与、ステータスの付与）。効果エンジンは `Op` を見て処理を切り替える
+- グループの見出しテーブル（`EffectGroup` / `ConditionGroup`）を置くのは、参照列に `[Exists(typeof(EffectGroup))]` を付けて、存在を属性で検証するため（複合キーの子テーブルは `Exists` の参照先にしにくい。推測）
+- グループの ID も、マスタの ID の方針どおり**採番の規則は作らない**（[repository-layout.md](repository-layout.md) 10.1）。手で振る
+- コストはカードにしかない（ドリンク・育成アイテムはコストを持たない）ので、グループにせず `CardCost` のままにする
+- メリット: 入れ子の深さに制限がなく、効果内条件を複数持てる。同じ `Effect` / `Condition` を育成アイテム・ドリンク（[lesson-card.md](../systems/lesson-card.md) 15.6）、アビリティ（[idol-support.md](../systems/idol-support.md)）からも使える
+- デメリット: 1枚のカードが CSV の複数の表に分かれ、読みにくい。代替の「カードごとの表に `ParentOrder` と条件の列を足す」案は、効果内条件が1つに限られ、アイテム・アビリティで同じ表を作り直すことになるため採らない
+
+- **効果は汎用列＋型付きの列で表す** [決定]
+  - `Op` は効果の種類の enum（[lesson-card.md](../systems/lesson-card.md) 7章の `op:` にあたる）。効果エンジンは `Op` を見て処理を切り替える。一覧は 3.1
+  - 対象のステータスは `Status`、持続効果の発動タイミングは `Trigger` という**型付きの enum の列**に入れる（`Arg` に数値で入れない）。CSV に名前で書け、enum の名前を `master-gen` が検証できるため。使わない行では空欄（enum の 0 ＝ `None`）
   - 数値は `Value` と `Arg1`〜`Arg3`（`int`）に入れる。小数は整数にする（例: `focusScale: 1.5` → `150`。パーセント）
+  - **倍率・回数の `Arg` は 0（空欄）を既定値として扱う**（連撃 0 → 1回、倍率 0 → 100%、持続の制限 0 → 無制限）。どの項目も 0 そのものに意味がないため、「空欄＝既定値」の規約にそろえる
   - 他のテーブルを指す値は、汎用列に入れず `RefCardId` などの**専用の列**にし、`[Exists(typeof(...), AllowEmpty = true)]` を付ける。参照先の存在を属性で検証するため
   - `Op` ごとの引数の意味（`Value` / `Arg1`〜`Arg3` が何か、どの参照列を使うか）は一覧にして保守し、`IValidatable` で検証する（必須の引数が空でないか、使わない引数が埋まっていないか）。`[ServerOnly]` の値を参照しないので、クライアント用の出力に入っても問題ない
   - 引数が3つで足りない `Op` が出たら、`Arg` を増やすか、その `Op` だけ子テーブルにするかをその時に決める
@@ -106,6 +118,71 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - 代替の「`Op` ごとにテーブルを分ける」案は、テーブルが効果の種類だけ増え、記載順に処理するための結合も重くなるため採らない（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - 効果は「記載順に処理する」ので、`Order` を必ず持つ
 - 同じ構造が週構成（[produce.md](../systems/produce.md) 3.1）、アイドル・サポートカードのアビリティ・イベント（[idol-support.md](../systems/idol-support.md)）にも出る。先に1つ（カード）で型を決め、他へ流用する
+
+### 3.1 効果の `Op` 一覧 [決定。2026-10-28]
+
+効果プリミティブ（[lesson-card.md](../systems/lesson-card.md) 7章）と列の対応。「フェーズ」はカードとして動かし始めるフェーズ（[lesson-card.md](../systems/lesson-card.md) 15章）で、enum には最初から全部を定義する（15.1）。空欄の列は使わない（`IValidatable` で埋まっていないことを確かめる）。
+
+| `Op` | フェーズ | `Status` / `Trigger` | `Value` | `Arg1`〜`Arg3`・参照列 |
+|---|---|---|---|---|
+| `Param` | 1 | — | パラメータ | `Arg1` 連撃の回数（4）、`Arg2` 集中の倍率%（4）、`Arg3` 好調の倍率%（3） |
+| `ParamByRatio` | 1（好印象）/ 2（元気・やる気） | `Status`＝参照元 | 倍率% | — |
+| `ParamBonus` | 未定 | — | 上昇量増加% | `Arg1` ターン数 |
+| `AddGenki` | 1 | — | 値 | — |
+| `AddFixedGenki` | 2 | — | 値 | — |
+| `RecoverHp` | 2 | — | 値 | — |
+| `ScaleResource` | 2 | `Status`＝対象 | 倍率%（端数は切り捨て） | — |
+| `SetResource` | 2 | `Status`＝対象 | 値 | — |
+| `AddTurns` | 1（消費体力減少） | `Status` | ターン数 | — |
+| `AddStack` | 1（好印象・消費体力削減） | `Status` | 値 | — |
+| `AddPercent` | 未定 | `Status` | % | `Arg1` ターン数（0＝ずっと） |
+| `Draw` | 1 | — | 枚数 | — |
+| `AddUses` | 1 | — | 回数 | — |
+| `ReplaceHand` | 未定 | — | — | — |
+| `EnhanceHand` | 未定 | — | — | — |
+| `CreateCard` | 未定 | — | — | `RefCardId`。生成する位置の持ち方は採用時に決める |
+| `Schedule` | 未定 | — | 何ターン後か（次のターン＝1） | `RefEffectGroupId` |
+| `Persistent` | 1（使用時） | `Trigger` | — | `Arg1` ターン数・`Arg2` 回数（0＝無制限）、`RefEffectGroupId`（発動する効果）、`RefConditionGroupId`（発動条件） |
+
+- どの `Op` でも、`RefConditionGroupId` を埋めると**効果内条件**になる（満たさないとその行だけ飛ばす。判定はコストの前。[lesson-card.md](../systems/lesson-card.md) 6.2）。`Persistent` の `RefConditionGroupId` は効果内条件ではなく、発動のたびに見る条件として扱う
+- [lesson-card.md](../systems/lesson-card.md) 7.6 の後回しのプリミティブ（`RepeatNext` / `AddLessonTurn` / `DeckManipulate`）は enum に入れず、そのカードを採用するときに足す
+- 「未定」は、どのフェーズのカードにも使われていないもの（初期カードセットに無い）
+
+`Status`（enum `StatusKind`）の値: `Genki`、`Impression`、`Motivation`、`Focus`、`GoodCondition`、`Excellent`、`CostDown`（消費体力減少）、`CostUp`（消費体力増加）、`CostReduce`（消費体力削減）、`GenkiBlock`（元気増加無効）、`DebuffGuard`（低下状態無効）、`ImpressionBoost`（好印象強化）、`FocusBoost`（集中強化）。名前は仮称（[glossary.md](../glossary.md)）。
+
+`Trigger`（enum `TriggerKind`）の値。カードの種別での絞り込みは、条件ではなく `Trigger` の種類で表す:
+
+| 値 | タイミング（[lesson-card.md](../systems/lesson-card.md) 10章） |
+|---|---|
+| `LessonStart` | L1 |
+| `TurnStart` / `AfterTurnStart` | T3 / T5 |
+| `EveryNTurns` | T7（N は `Value`） |
+| `OnCostHpDecrease` | P4 |
+| `OnCardUse` / `OnActiveCardUse` / `OnMentalCardUse` | P5 |
+| `AfterCardUse` / `AfterActiveCardUse` / `AfterMentalCardUse` | P7 |
+| `OnSkip` | E1 |
+| `TurnEnd` | E2 |
+
+`CostKind`: `Consume`、`HpDirect`（フェーズ1）、`GoodConditionTurns`、`ExcellentTurns`（フェーズ3）、`Focus`（フェーズ4）、`Impression`、`Motivation`（使うカードを採用したとき）。
+
+`Condition` の `Subject`（enum `ConditionSubject`）と `Comparator`（`Ge` / `Le` / `Eq`）:
+
+| `Subject` | `Value` | 例 |
+|---|---|---|
+| `Impression` / `Genki` / `Motivation` / `Focus` | 値 | L02（`Impression` `Ge` 1） |
+| `GoodConditionTurns` / `ExcellentTurns` | ターン数（「状態である」は `Ge` 1） | S04、S11 |
+| `HpPercent` | 最大体力に対する% | F05（`HpPercent` `Ge` 50） |
+| `Turn` | 何ターン目か | |
+| `TargetPercent` | クリア目標に対する% | |
+
+例（L14 の通常版。ID は説明用）:
+
+| テーブル | 行 |
+|---|---|
+| `CardCost` | `Consume` 4 |
+| `CardFace` | `EffectGroupId` 1401 |
+| `Effect`（1401） | 1: `AddStack` `Impression` 3 ／ 2: `Persistent` `OnMentalCardUse` → `RefEffectGroupId` 1402 |
+| `Effect`（1402） | 1: `AddStack` `Impression` 1 |
 
 ## 4. 出し分けの区分 [Uta案]
 
@@ -189,7 +266,6 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 ## 未決事項
 
-- `Op` の一覧と、`Op` ごとの引数の意味（最初は好印象のフェーズ1の範囲。[lesson-card.md](../systems/lesson-card.md) 15.2）
 - 区分が「要確認」のテーブル（4章）、`Exists` が別の側のテーブルを参照した場合の挙動
 - スプレッドシート → CSV の書き出し手順・スクリプト
 - ツールの実行コマンドを Uta 側にどう用意するか（Makefile か、スクリプトか）

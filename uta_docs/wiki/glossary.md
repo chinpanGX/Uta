@@ -1,7 +1,7 @@
 ---
 title: 用語集
 status: draft
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # 用語集
@@ -80,7 +80,8 @@ updated: 2026-10-27
 | `[ClientOnly]` / `[ServerOnly]` | マスタ定義に付け、クライアント用・サーバー用のどちらの出力に残すかを決める属性 | MasterMemoryAddons |
 | 正本 | 他のものを生成する元になる、手で編集するデータ（マスタの定義・CSV） | `masterdata/` |
 | スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/masterdata-pipeline.md) 6章 |
-| `Op` | マスタの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
+| `Op` | マスタの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3.1 |
+| 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
 | ULID | 時刻順に並ぶ一意な ID。サーバーが発行する ID に使う（マスタの ID は `int`） | [repository-layout](architecture/repository-layout.md) 10.1 |
 | 日付の更新 | 日ごとの区切り。12:00 JST | 同 10.2 |
 | Testcontainers | テストのときに Docker でコンテナ（PostgreSQL など）を立ち上げるライブラリ。サーバーの結合テストに使う | [repository-layout](architecture/repository-layout.md) 10.4 |
