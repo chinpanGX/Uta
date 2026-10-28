@@ -50,12 +50,17 @@ uta/
 │  ├─ Uta.Domain/            # [Uta案] 純粋なゲームルール
 │  └─ Uta.Shared/            # [Uta案] サービスIF・DTO（通信契約）
 ├─ server/                   # [決定] .NET 10
+│  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）
 │  └─ Uta.Server/            # [Uta案] 1プロジェクト。フォルダで層を分ける
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
 │     ├─ Infrastructure/     #   DB、マスタの読み込み
+│     ├─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
 │     └─ MasterData/Generated/   生成物（サーバー用）
+├─ tests/                    # [決定] テストプロジェクト（10.4）。.NET 10 のみ
+│  ├─ Uta.Domain.Tests/
+│  └─ Uta.Server.Tests/
 └─ client/uta/               # [決定] Unity プロジェクトのルート
    └─ Assets/Scripts/
       ├─ Application/        # [Uta案] ユースケース、ポート
@@ -82,8 +87,9 @@ uta/
 | クライアント `Presentation` | `Assets/Scripts/Presentation` | asmdef | `Application`、`Uta.Domain`、`UnityScreenNavigator`、UniTask |
 | クライアント `Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて |
 
-- サーバーを1プロジェクトにするのは基盤と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。ツールは基盤の設計書が挙げる NetArchTest を想定）
+- サーバーを1プロジェクトにするのは基盤と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは基盤の設計書が挙げる **NetArchTest** で、`tests/Uta.Server.Tests` に置く [決定。2026-10-28]
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
+- クライアントの `Application` の asmdef は **`noEngineReferences: true`** にし、UnityEngine の API を使えないことをコンパイル時に強制する [決定。2026-10-28]。UniTask を参照したまま有効にできるかは要検証（8章）。できなければ、レビューで守る
 - DI は VContainer、非同期処理は UniTask [決定。[ADR 0009](../decisions/0009-client-stack.md)]
 
 ## 4. 層の依存ルール [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
@@ -93,7 +99,7 @@ uta/
 | 層 | 責務 | 禁止 |
 |---|---|---|
 | Domain | ゲームルール（計算式、状態遷移、検証）、値オブジェクト、enum、ID 型 | UnityEngine、MasterMemory とその生成物、MagicOnion、DB、`float` / `double` |
-| Application | ユースケース。外部とのやりとりは**ポート（インターフェース）**で定義する。UniTask は使ってよい | UnityEngine の API（asmdef では強制できないため、レビューまたはアナライザーで守る）、Infrastructure・Presentation・`Uta.Shared` への参照 |
+| Application | ユースケース。外部とのやりとりは**ポート（インターフェース）**で定義する。UniTask は使ってよい | UnityEngine の API（asmdef の `noEngineReferences` で強制する。3章）、Infrastructure・Presentation・`Uta.Shared` への参照 |
 | Infrastructure | ポートの実装（API 呼び出し、マスタ読み込み、ローカル保存）。DTO ↔ Domain のマッピングはここで行う | Presentation への参照 |
 | Presentation | View（表示）と Presenter（Application を呼ぶ） | Infrastructure・`Uta.Shared`（通信 DTO）への参照 |
 | Bootstrap | 起動、DI の組み立て（Composition Root）。すべてを参照してよい | — |
@@ -165,7 +171,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - `Uta.Domain` の単体テスト（同じシードと操作列で同じ結果になること）と、サーバーの結合テスト（10.4）
 - サーバーの依存方向のアーキテクチャテスト
 - `git clone --recurse-submodules` での初期化（CI も同様）
-- クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` が UnityEngine の API を使っていないか。手段は未決）
+- クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` は `noEngineReferences` で強制。3章）
 - Windows / Android / iOS の実機ビルド（早期・継続的に）
 
 ## 8. 実装前に確かめること（要検証）
@@ -182,6 +188,9 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 |
 | Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 |
 | `IsExternalInit` の置き方（5章） | 5章 | Unity と .NET 10 の両方でのビルド |
+| `Application` の asmdef を `noEngineReferences: true` にしたまま UniTask を参照できるか | 3章 | Unity でのコンパイル |
+| Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 |
+| `x-app-version` をハンドラーから読めるか（基盤の `ServiceContext` など） | [api-design.md](api-design.md) 5章 | 基盤の実装を読む・動かす |
 | `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 任意。実機で予測値とサーバーの結果を見比べる（Unity 側のテストは必須にしない） |
 
 ## 9. 共通規約の参照先
@@ -205,8 +214,14 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 | マスタの ID（カード、アイドル、ガチャなど） | `int` | マスタの列の型の制約（[masterdata-pipeline.md](masterdata-pipeline.md)）に合う。**採番の規則は作らない**（2026-10-27 決定） |
 | サーバーが発行する ID（ユーザー、プロデュースのセッション、ガチャ履歴など） | ULID | 時刻順に並び、サーバーを分けても衝突しない |
 
-- ULID の C# の型と、DB・DTO での持ち方（PostgreSQL の `uuid` に入れるか、文字列にするか。DTO では文字列か 16 バイトか）は未決。Unity と .NET の両方で使えるライブラリ（Cysharp の `Ulid` など）を使う案（推測）
-- ULID を `Uta.Domain` が扱う場合は、`Uta.Domain` が外部ライブラリに依存しないよう、値オブジェクトで包むか、ID を持たない設計にする（未決）
+- **ULID の持ち方** [決定。2026-10-28]:
+
+| 場所 | 型 | 理由 |
+|---|---|---|
+| サーバーの中 | Cysharp の `Ulid` | 生成・比較・変換がそろっている |
+| DB | `uuid`（16 バイト） | インデックスが小さい。Dapper の TypeHandler で `Ulid` と相互に変換する |
+| DTO（`Uta.Shared`） | 26文字の `string` | クライアントが Ulid のライブラリに依存しない。ログでもそのまま読める。受け取ったら解析して検証する |
+| `Uta.Domain` | 持たない | `Uta.Domain` を外部ライブラリから独立させる。ID はアプリ層のエンティティが持つ（6.1 の合成） |
 
 ### 10.2 時刻
 
@@ -230,12 +245,16 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **Unity 側のテストは必須にしない**
 - **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する
 - **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）
-- テストプロジェクトの置き場は未決
+- **テストプロジェクトは最上位の `tests/` に置く** [決定。2026-10-28]。`tests/Uta.Domain.Tests`（単体テスト）と `tests/Uta.Server.Tests`（結合テスト・アーキテクチャテスト）。最上位にソリューション（`Uta.slnx` の案。推測）を置き、`dotnet test` 1回で全部を流す
+  - `shared/` の外に置くので、Unity のローカルパッケージに入らない
+  - テストは .NET 10 でしか動かないので、`tests/.editorconfig` は `server/` と同じ（新しい C# を許す）にする
+  - コードとテストのフォルダが離れるのは受け入れる
 
 ### 10.5 バージョンと強制アップデート
 
 - **強制アップデートは、アプリのバージョンで判定する**（基盤の `x-app-version`。[server-foundation.md](server-foundation.md)）
 - マスタのスキーマ（定義）を変えたときや、`Uta.Domain` のルールを変えたときも、新しいアプリのバージョンを出して強制アップデートで揃える。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）
+- 進行中のプロデュースは、開始したときとアプリのバージョンが違えば破棄する（2026-10-28 決定。[api-design.md](api-design.md) 5章）。1つのセッションを、常に1つのルールで最後まで進めるため
 
 ### 10.6 クライアントのローカル保存
 
@@ -263,7 +282,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 
 1. **ローカルで確かめる**: `dotnet test`（単体テストと結合テスト）を通し、Unity エディターと実機から操作して確かめる
 2. **イメージを作る**: `dotnet publish /t:PublishContainer` で API のイメージを作り、Artifact Registry に登録する。サーバー用のマスタのバイナリもイメージに含める
-3. **マイグレーションを流す**: DbUp（基盤の設計書の推奨）でスキーマを更新する。実行の方法（Cloud Run のジョブにするか、起動時に流すか）は未決
+3. **マイグレーションを流す**: DbUp でスキーマを更新する。API と同じイメージの `migrate` コマンドを、Cloud Run のジョブとして流す（ローカルでは `dotnet run -- migrate`。[ADR 0012](../decisions/0012-migration-dbup.md)）
 4. **デプロイする**: Cloud Run のサービスを、新しいイメージで更新する
 5. **確かめる**: ヘルスチェックと、実機から「ログイン → ガチャを1回引く」までのスモークテスト
 6. **問題があれば戻す**: Cloud Run の1つ前のリビジョンにトラフィックを戻す（推測。マイグレーションを戻す必要があるかは変更による）
@@ -276,19 +295,21 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - Cloud SQL は使わない期間に停止する
 - 料金は作る前に公式の料金表で確認する
 
-### 11.4 未決事項
+### 11.4 構成の詳細 [決定。2026-10-28]
 
-- リージョン（東京 `asia-northeast1` が候補。推測）
-- 秘密の値の置き場（Secret Manager など）と、Cloud Run から Cloud SQL への接続方法
-- マイグレーションの実行方法（11.2 の 3）と、DbUp の採用を ADR にするか
-- `docker-compose.yml` の置き場（リポジトリの最上位か、`server/` 配下か）
-- ヘルスチェックの作り方（gRPC のヘルスチェックか、HTTP のエンドポイントか）
+| 項目 | 決定 | メリット / デメリット |
+|---|---|---|
+| リージョン | 東京 `asia-northeast1` | 実機からの遅延が小さい / 米国のリージョンより少し高い |
+| 秘密の値 | Secret Manager に置き、Cloud Run の環境変数として渡す | 標準のやり方で、リポジトリに入らない / わずかに費用がかかる（無料枠に収まる見込み。推測） |
+| Cloud SQL への接続 | Cloud Run 組み込みの Cloud SQL 接続（Unix ソケット）と、パスワード認証（パスワードは Secret Manager） | 設定が最小 / IAM 認証よりパスワードの管理が要る。プライベート IP は VPC の費用がかかるので採らない |
+| マイグレーション | DbUp。`migrate` コマンドを Cloud Run のジョブで流す（[ADR 0012](../decisions/0012-migration-dbup.md)） | 複数のインスタンスで同時に流れない / デプロイの手順が1つ増える |
+| Compose のファイル | `server/compose.yaml` | サーバー専用だと分かる / 最上位から起動するときはパスを指定する |
+| ヘルスチェック | gRPC のヘルスチェック（`grpc.health.v1`、`Grpc.AspNetCore.HealthChecks`）。DB の確認は含めない | HTTP/2 だけで受ける構成に合う。Cloud SQL を止めても API が再起動を繰り返さない / Cloud Run のプローブの設定は要確認（8章） |
+
+- 料金は作る前に公式の料金表で確認する（11.3）
 
 ## 未決事項
 
-- `Uta.Shared` と基盤の `Abstractions` の役割分担（ADR 0005 の未決事項）。`Uta.Shared` は Uta 固有のサービスIF・DTOだけ、が素直（推測）
-- `Application` で UnityEngine の API を使わないことを守る手段（アナライザーにするか、レビューだけにするか）
-- サーバーのアーキテクチャテストの具体（NetArchTest など）
-- ULID の持ち方（10.1）
-- テストプロジェクトの置き場（10.4）
-- ビルド・CI の実体（`architecture/build-ci.md` として起こす予定）
+- ビルド・CI の実体（`architecture/build-ci.md` として起こす予定。手動の手順を書き留めてから GitHub Actions に移す。11.2）
+
+（2026-10-28 に解決: `Uta.Shared` は Uta 固有のものだけを置き、基盤の `Abstractions` を参照する（[api-design.md](api-design.md)）。`Application` は `noEngineReferences` で守る（3章）。アーキテクチャテストは NetArchTest（3章）。ULID の持ち方（10.1）。テストの置き場（10.4）。デプロイの構成（11.4））

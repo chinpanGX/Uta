@@ -242,12 +242,13 @@ outputs:
 
 ## 7. 導入と運用
 
-- ツール（`net10.0`）の実行方法: `external/MasterMemoryAddons` を `dotnet run --project ...Tools -- code-gen --config masterdata/masterdata.yaml` で呼ぶ。アドオンは Makefile を前提にしているが、Windows では make の用意が要る（scoop / choco / WSL）。Uta 側にコマンドを用意するか未決
+- ツール（`net10.0`）の実行方法: `external/MasterMemoryAddons` を `dotnet run --project ...Tools -- code-gen --config masterdata/masterdata.yaml` で呼ぶ。アドオンは Makefile を前提にしているが、Uta では make を使わず PowerShell のスクリプトで包む（下記）
 - アプリが参照する MasterMemory / MessagePack のバージョンは、**アドオンのツールと同じにする**（アドオンの docs 時点で MasterMemory 3.0.4、MessagePack 3.1.12）[確認]。MagicOnion が要求する MessagePack のバージョンと揃うかは未確認（基盤の設計書は「MagicOnion 7 系なら MessagePack は 3 系」と書いている）
 - アドオンの変更は、サブモジュール側を先に push してから Uta のポインタを更新する（[ADR 0005](../decisions/0005-foundation-submodule.md)）
 - **CSV は Git の `masterdata/csv/` を正本にする** [決定]。差分をレビューでき、ビルドが再現できる
-  - スプレッドシートは編集の道具とし、タブ名をテーブル名にそろえて CSV に書き出す（ファイル名＝テーブル名。水平分割は `item_weapon.csv` のように `_` で区切る。[確認]）
-  - 書き出しの手順・スクリプトは未決。スプレッドシートと CSV の行き来の手間が課題になる
+  - ファイル名＝テーブル名。水平分割は `item_weapon.csv` のように `_` で区切る [確認]
+  - **最初はスプレッドシートを使わず、CSV を直接編集する** [決定。2026-10-28]。書き出しの手順が要らない。グループ ID を使う入れ子の表（3章）を手で編集するのがつらくなったら、スプレッドシートと書き出しのスクリプトを足す（そのときは、タブ名をテーブル名にそろえる）
+- **ツールは PowerShell のスクリプトで包む** [決定。2026-10-28]。`masterdata/gen.ps1` から `dotnet run --project external/MasterMemoryAddons/...` を呼ぶ（`code-gen`・`master-gen`・`--check` を引数で切り替える案）。Windows で make が要らず、GitHub Actions でも `pwsh` で動く。スクリプトの中身は、実装するときに書く
 
 ## 8. アドオンの改善バックログ
 
@@ -257,7 +258,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 |---|---|---|
 | Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の実機確認になる | 未着手 |
 | `[Exists]` が別の側を参照する場合 | `[ClientOnly]` / `[ServerOnly]` の列・テーブルを参照したとき、片側の生成物や検証がどうなるか | 未確認（4章） |
-| Windows での実行 | アドオンは make を前提にしている。Windows では scoop / choco / WSL の用意が要る | 未着手（7章） |
+| Windows での実行 | アドオンは make を前提にしている。Uta は `masterdata/gen.ps1` で回避する（7章）。アドオン側に PowerShell のスクリプトを用意してもよい | 回避済み |
 | 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
 | 日時の列の検証 | `string` の日時の形式（`yyyy-MM-dd HH:mm:ss`）を属性で宣言し、`master-gen` が検証できるとよい。いまは `IValidatable` で書く | 案 |
 | `Op` ごとの引数の検証 | 3章の「汎用列＋参照列」を属性で宣言できると、`IValidatable` の手書きが減る（推測。必要になってから検討） | 案 |
@@ -267,8 +268,6 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 ## 未決事項
 
 - 区分が「要確認」のテーブル（4章）、`Exists` が別の側のテーブルを参照した場合の挙動
-- スプレッドシート → CSV の書き出し手順・スクリプト
-- ツールの実行コマンドを Uta 側にどう用意するか（Makefile か、スクリプトか）
 - クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
 - MasterMemory・MessagePack・MagicOnion のバージョン整合
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか

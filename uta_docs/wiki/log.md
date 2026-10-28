@@ -9,6 +9,8 @@ updated: 2026-10-28
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-28 | adr | ADR 0012（マイグレーションは DbUp、API とは別の `migrate` コマンドで流す）を accepted で起票。ADR 0011 に 11.4 の決定を追記、ADR 0002 に「マスタ型の置き場は ADR 0007 で置き換え」の注記を追加。index・CLAUDE.md を更新
+- 2026-10-28 | spec | 未決事項を推奨案で決定。api-design.md を更新（RPC 名の確定と `SyncAsync` の追加、エラーは domain `uta`＋機能の接頭辞の reason に変更（基盤の `ErrorCode` が数値を持たないため番号帯をやめた）、テーブル一覧、セッションの状態の中身・`state_version`・`produce_actions`、最終評価は `Uta.Domain`、中断・放棄・**アプリのバージョンが違えば破棄**）。repository-layout.md（ULID の持ち方、`tests/`、`noEngineReferences`、NetArchTest、11.4 のデプロイ構成、8章に要検証3件）、masterdata-pipeline.md（CSV を直接編集、`gen.ps1`）、produce.md（6.1 報酬）、gacha.md（8章 通貨の入手と変換）、game-spec.md（認証は匿名のみ）、screen-design.md（起動フローに同期）、glossary を更新
 - 2026-10-28 | spec | 効果の `Op` 一覧を決定。効果・条件はグループ（`EffectGroup`/`Effect`、`ConditionGroup`/`Condition`）にまとめてカードから指す、対象のステータスと発動タイミングは型付きの enum 列（`Status`/`Trigger`）、倍率・回数の `Arg` は 0＝既定値。masterdata-pipeline.md 3章・3.1、lesson-card.md 6.1・7章、glossary に反映（ADR 0007 の「汎用列＋型付きの参照列」の範囲内なので ADR は変えない）
 - 2026-10-28 | spec | CI は最初は手動で流し、手順が固まったら GitHub Actions で自動化する、に決定。repository-layout.md 11.2 に追記して 11.4 の未決から外し、ADR 0011 の「CI での自動化は未決」を更新
 - 2026-10-27 | lint | `docs/` を `uta_docs/` にリネーム。CLAUDE.md・README・raw/README・project-instructions・ADR 0001/0006・repository-layout.md の参照を更新（ADR 0003 の記録と過去のログは当時の表記のまま）
