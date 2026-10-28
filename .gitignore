@@ -21,6 +21,9 @@ client/*/*.unityproj
 client/*/*.DotSettings.user
 client/*/sysinfo.txt
 # Unity が生成するその他
+# 異常終了時に Unity が残すシーンの復旧用フォルダ
+client/*/[Aa]ssets/_Recovery/
+client/*/[Aa]ssets/_Recovery.meta
 client/*/[Aa]ssets/[Ss]treamingAssets/aa/*
 client/*/ServerData/
 client/*/[Aa]ssets/AddressableAssetsData/*/*.bin*
