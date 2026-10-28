@@ -24,7 +24,7 @@ updated: 2026-10-28
 - クライアント用・サーバー用の出し分けは、定義に付ける `[ClientOnly]` / `[ServerOnly]` で行う（列にも、型全体にも付けられる）[確認]
 - マスタの正本は最上位の `masterdata/` に置く [決定]
 - カード効果などの入れ子は、汎用列＋型付きの参照列で表す。効果と条件はグループにまとめる [決定。3章、`Op` の一覧は 3.1]
-- 生成したソースはコミットし、CI の `master-gen --check` で検出する。バイナリはコミットしない [決定。5章]
+- 生成したソースはコミットし、CI の `master-gen --check` で検出する。バイナリもコミットする [決定。5章、[ADR 0013](../decisions/0013-commit-masterdata-binary.md)]
 - 配信は、まずアプリに同梱（StreamingAssets）し、あとで Addressables に移る [決定。6章]
 - CSV は Git の `masterdata/csv/` を正本にする [決定。7章]
 
@@ -209,20 +209,23 @@ outputs:
     target: client
     source: ../client/uta/Assets/Scripts/Infrastructure/MasterData/Generated
     namespace: Uta.MasterData
-    binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes   # 同梱。コミットしない
+    binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes   # 同梱。コミットする
     encrypt: true
   - name: server
     target: server
     source: ../server/Uta.Server/MasterData/Generated
     namespace: Uta.MasterData
-    binary: ../server/Uta.Server/MasterData/masterdata.bytes                   # コミットしない
+    binary: ../server/Uta.Server/MasterData/masterdata.bytes                   # コミットする
 ```
 
 - **`source` のディレクトリは生成のたびに中身を丸ごと入れ替える**。生成専用のディレクトリにし、手書きのファイルを置かない [確認]
 - 出力先には `namespace` が必須。`MasterDataSchema.cs`（スキーマのハッシュを持つ）も一緒に出る [確認]
 - 開発用の出力先は `environments` で上書きできる [確認]
 - **生成したソースはコミットする** [決定]。ツールがなくても Unity でプロジェクトを開け、レビューで差分も見える。生成し忘れは CI の `master-gen --check` が終了コード 1 で検出する
-- **バイナリはコミットせず、ビルドのときに作る** [決定]。`.gitignore` に `masterdata.bytes` と `masterdata.manifest.json` の出力先を足す（未実施）
+- **バイナリ（`masterdata.bytes`）とマニフェストもコミットする** [決定。2026-10-28。[ADR 0013](../decisions/0013-commit-masterdata-binary.md)]。clone した直後から、ツールなしで Unity で動かせる
+  - **生成は CSV か定義を変えたときだけ行う**。クライアント用は暗号化のソルトと IV を毎回乱数で作り、マニフェストには `createdAt` が入るので、中身が同じでも生成するたびに差分が出る [確認。アドオンの pipeline.md]
+  - CSV を変えたら、同じコミットでバイナリも作り直す。レビューは CSV の差分で行う
+  - 作り直し忘れは、今の `--check` では検出できない（生成ソースしか見ない）。アドオンの改善（8章）が入るまでは運用で防ぐ
 
 ## 6. バイナリと配信
 
@@ -261,6 +264,8 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 | Windows での実行 | アドオンは make を前提にしている。Uta は `masterdata/gen.ps1` で回避する（7章）。アドオン側に PowerShell のスクリプトを用意してもよい | 回避済み |
 | 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
 | 日時の列の検証 | `string` の日時の形式（`yyyy-MM-dd HH:mm:ss`）を属性で宣言し、`master-gen` が検証できるとよい。いまは `IValidatable` で書く | 案 |
+| 中身が同じなら書き換えない | データのハッシュ（`dataHash`）が既存のバイナリと同じなら、ファイルを書き換えない（マニフェストも）。バイナリをコミットするので、意味のない差分を出さないため（[ADR 0013](../decisions/0013-commit-masterdata-binary.md)） | 案 |
+| `--check` でバイナリの古さも検出 | 出力済みのバイナリの `dataHash` が、今の CSV から計算した値と違えば終了コード 1 にする。作り直し忘れを CI で検出するため（[ADR 0013](../decisions/0013-commit-masterdata-binary.md)） | 案 |
 | `Op` ごとの引数の検証 | 3章の「汎用列＋参照列」を属性で宣言できると、`IValidatable` の手書きが減る（推測。必要になってから検討） | 案 |
 
 - 列の型（`int` / `long` / `string` / `bool` / enum のみ）は**改善の対象にしない**。Uta の確定事項（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）

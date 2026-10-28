@@ -52,6 +52,7 @@ updated: 2026-10-28
 - [decisions/0010-database.md](decisions/0010-database.md) — DB は PostgreSQL + Npgsql + Dapper、セッションは状態を1列にまとめて保存（accepted）
 - [decisions/0011-deploy-google-cloud.md](decisions/0011-deploy-google-cloud.md) — API サーバーをコンテナにして Google Cloud（Cloud Run + Cloud SQL）にデプロイする（accepted）
 - [decisions/0012-migration-dbup.md](decisions/0012-migration-dbup.md) — マイグレーションは DbUp、API とは別の `migrate` コマンド（dev は Cloud Run のジョブ）で流す（accepted）
+- [decisions/0013-commit-masterdata-binary.md](decisions/0013-commit-masterdata-binary.md) — マスタのバイナリもコミットする。ADR 0007 の「バイナリはコミットしない」を置き換え（accepted）
 
 ## 一次資料（raw）
 

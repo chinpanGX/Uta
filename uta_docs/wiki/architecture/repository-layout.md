@@ -166,7 +166,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 CLAUDE.md のとおり、実際に動くコマンドはまだない。作ったら CLAUDE.md にも追記する。入れたい検証:
 
-- `master-gen --check`（CSV の検証と、生成ソースが古くないかの検出）
+- `master-gen --check`（CSV の検証と、生成ソースが古くないかの検出。バイナリの古さの検出は、アドオンの改善待ち。[ADR 0013](../decisions/0013-commit-masterdata-binary.md)）
 - マスタのバイナリを `MemoryDatabase` で読めること（クライアント用・サーバー用の両方）
 - `Uta.Domain` の単体テスト（同じシードと操作列で同じ結果になること）と、サーバーの結合テスト（10.4）
 - サーバーの依存方向のアーキテクチャテスト

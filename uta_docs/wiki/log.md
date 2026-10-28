@@ -9,6 +9,7 @@ updated: 2026-10-28
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-28 | adr | ADR 0013（マスタのバイナリもコミットする）を accepted で起票し、ADR 0007 に置き換えの注記を追加。masterdata-pipeline.md 5章（生成は CSV か定義を変えたときだけ）・8章（アドオンの改善2件: 中身が同じなら書き換えない、`--check` でバイナリの古さを検出）、repository-layout.md 7章、index を更新。バイナリを無視する `.gitignore` は足さない
 - 2026-10-28 | adr | ADR 0012（マイグレーションは DbUp、API とは別の `migrate` コマンドで流す）を accepted で起票。ADR 0011 に 11.4 の決定を追記、ADR 0002 に「マスタ型の置き場は ADR 0007 で置き換え」の注記を追加。index・CLAUDE.md を更新
 - 2026-10-28 | spec | 未決事項を推奨案で決定。api-design.md を更新（RPC 名の確定と `SyncAsync` の追加、エラーは domain `uta`＋機能の接頭辞の reason に変更（基盤の `ErrorCode` が数値を持たないため番号帯をやめた）、テーブル一覧、セッションの状態の中身・`state_version`・`produce_actions`、最終評価は `Uta.Domain`、中断・放棄・**アプリのバージョンが違えば破棄**）。repository-layout.md（ULID の持ち方、`tests/`、`noEngineReferences`、NetArchTest、11.4 のデプロイ構成、8章に要検証3件）、masterdata-pipeline.md（CSV を直接編集、`gen.ps1`）、produce.md（6.1 報酬）、gacha.md（8章 通貨の入手と変換）、game-spec.md（認証は匿名のみ）、screen-design.md（起動フローに同期）、glossary を更新
 - 2026-10-28 | spec | 効果の `Op` 一覧を決定。効果・条件はグループ（`EffectGroup`/`Effect`、`ConditionGroup`/`Condition`）にまとめてカードから指す、対象のステータスと発動タイミングは型付きの enum 列（`Status`/`Trigger`）、倍率・回数の `Arg` は 0＝既定値。masterdata-pipeline.md 3章・3.1、lesson-card.md 6.1・7章、glossary に反映（ADR 0007 の「汎用列＋型付きの参照列」の範囲内なので ADR は変えない）
