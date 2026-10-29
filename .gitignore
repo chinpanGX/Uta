@@ -67,3 +67,10 @@ Thumbs.db
 
 # --- 作業用出力 ---
 out/
+
+# --- egm の作業中の下書き（.claude/skills/uta-elephant/SKILL.md）---
+/scratch/
+
+# --- Claude Code のローカル設定・worktree ---
+/.claude/settings.local.json
+/.claude/worktrees/
