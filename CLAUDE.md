@@ -21,6 +21,7 @@
 | C# のコードを書く | 下の「C# コーディング規約」と `.editorconfig` |
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
 | 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
+| コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`） |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
