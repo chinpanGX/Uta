@@ -1,6 +1,6 @@
 ---
 name: uta-elephant
-description: Uta で egm（Elephant-Goldfish Model）のスキルを使うときの、プロジェクトの文脈と Uta 独自の運用ルール。/egm:egm-brainstorm・egm-draft・egm-review・egm-review-loop・egm-resolve・egm-drift-report・egm-bootstrap を Uta で使うとき、egm のスキルより先に読む。
+description: Uta で egm（Elephant-Goldfish Model）のスキルを使うときの、プロジェクトの文脈と Uta 独自の運用ルール。/egm:egm-brainstorm・egm-draft・egm-review・egm-review-loop・egm-resolve・egm-drift-report・egm-bootstrap を Uta で使うとき、egm のスキルより先に読む。設計書のレビューは egm ではなく requesting-design-review を使う。
 ---
 
 # uta-elephant — Uta で egm を使うときのルール
@@ -39,7 +39,7 @@ egm のテンプレート（Overview / Goals / Open Questions / CUJs / Technical
 - 推測は推測と明記する
 - 他ページへのリンクは相対パスの Markdown リンク
 - 新しい用語は `glossary.md` に足す
-- Detailed Implementation Plan（触るファイルの一覧・検証計画）は、仕様ページには長く書かない。raw の design に残し、仕様ページからリンクする
+- Detailed Implementation Plan（触るファイルの一覧・検証計画）は、仕様ページには書かない。`uta_docs/plans/` に plans/README.md の書式で実装計画として書き、仕様ページからリンクする（[ADR 0012](../../../uta_docs/wiki/decisions/0012-design-heavy-sonnet-implementation.md)）
 - 技術選定・方針変更を含むなら、ADR を `decisions/0000-template.md` から新しく作る（既存 ADR は書き換えず Superseded にする）
 
 ## 書くときに守ること
@@ -50,9 +50,11 @@ egm のテンプレート（Overview / Goals / Open Questions / CUJs / Technical
 - 実装方針（サーバー権威、共有ドメインでは `float` / `double` を使わない、iOS の AOT 制約、乱数は `xoshiro256**` など）は CLAUDE.md の「実装方針」に従う。
 - .NET SDK / Unity で実行していない検証を「通った」と書かない。Verification Plan には実際にあるコマンドだけを書く（CLAUDE.md の「ビルド・テスト・実行」）。
 
-## Goldfish（レビュー）に渡す文脈
+## レビュー
 
-`/egm:egm-review`・`/egm:egm-review-loop` の `GoldfishContext` には、対象の文書に加えて次を入れる。レビュー担当は会話の経緯を知らないので、これがないと決定済みのことを蒸し返す。
+設計書のレビューは、`/egm:egm-review`・`/egm:egm-review-loop` ではなく [requesting-design-review](../requesting-design-review/SKILL.md) を使う。egm のレビューは 1 ページの仕様には重く、Claude からも呼べないため（スキルに `disable-model-invocation: true` が付いている）。
+
+egm の brainstorm・draft の途中でレビューが走るときや、ユーザーが egm のレビューを指定したときは、`GoldfishContext` に対象の文書に加えて次を入れる。レビュー担当は会話の経緯を知らないので、これがないと決定済みのことを蒸し返す。
 
 - `CLAUDE.md`
 - `uta_docs/wiki/decisions/`（ADR 全体）

@@ -9,6 +9,7 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | adr | ADR 0012（設計は厚く書き、実装は Sonnet のサブエージェントに任せる）を proposed で起票。実装計画の置き場 `uta_docs/plans/` と書式（plans/README.md）、設計書レビューのスキル requesting-design-review を追加
 - 2026-10-31 | impl | external/VolTech-MagicOnion を a65980e に更新（RPC ごとの設定を、共有インターフェース（`ServiceBase<T>` の `T`）の属性だけから読む。`[SkipAuth]` はクラスに付けられず、冪等性の対象にもならない。予約エラーの既定の action を基盤の仕様に表で置く）
 - 2026-10-28 | impl | `shared/Uta.Domain`（netstandard2.1・C# 9）にレッスンのフェーズ0・1（カード定義・状態・乱数・計算式・エンジン）を実装し、`shared/Uta.Domain.Tests`（xunit.v3 4.0.2、49件）を追加。architecture/lesson-domain-types.md を新規作成し index に登録。ルートに global.json、CLAUDE.md にビルド・テストのコマンドを追記、repository-layout.md 10.4 にテストの置き場を反映
 - 2026-10-28 | spec | produce.md 10章の案を決定に変更。要求に「次の操作番号」を足す（api-design.md 1・5章）。乱数ストリームの作り方を repository-layout.md 10.3、新しい用語を glossary に反映
