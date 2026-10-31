@@ -25,7 +25,7 @@ updated: 2026-10-31
 - [ ] 育成開始 → 週の行動 → レッスン・試験 → 最終評価・報酬付与 が サーバー経由で動く(確かめ方: サーバーの結合テストで、最短シナリオ([game-spec.md](../overview/game-spec.md))を RPC だけで最後まで進め、`produce_results` と報酬の付与を確かめる)
 - [ ] 結果の確定・乱数はすべてサーバー。クライアントは入力と表示に加え、Shared.Domain で使用可否の判定と予測の表示まで([ADR 0008](../decisions/0008-shared-domain-and-onion.md))(確かめ方: レビュー。クライアントの `Infrastructure` が乱数とシードを持たないこと)
 - [ ] 中断・再開ができる(状態がサーバーに保存されている)(確かめ方: 結合テストで、途中で `GetStateAsync` を呼んで続きの操作ができること)
-- [ ] 同一シード+同一操作列で結果が再現できる(確かめ方: `Uta.Domain` の単体テストで、再生した状態が項目ごとに一致すること。10.6)
+- [ ] 同一シード+同一操作列で結果が再現できる(確かめ方: `Uta.Domain` の単体テストで、再生した状態が項目ごとに一致すること。[produce-domain.md](../architecture/produce-domain.md) 7章)
 
 ## 決まっていること
 
@@ -35,7 +35,7 @@ updated: 2026-10-31
 - 参照するのは参考作品の基本シナリオ1つ。プランは感性・理論・共通の3つ。第3のプラン(指針を切り替える型)は実装しない [決定]
 - 週構成・行動・レッスン設定は、コードに埋め込まずマスタで定義する [決定]
 - **MVP は初級だけ**。行動はレッスン・授業・支給・休む。相談・おでかけ・ドリンク・育成アイテム・特別レッスン・信頼度は MVP では作らない(仕様は残す)[決定。2026-10-31。[game-spec.md](../overview/game-spec.md) 最小実装範囲]。中級・上級の値は参考作品の構造の資料として残す
-- 週の進行(行動の処理、選択肢の抽選、レッスン後の処理、試験の結果と評価)は `Uta.Domain` に置く。サーバーは保存・付与と RPC の受け口だけを持つ。再生の検証(10.6)を `Uta.Domain` の単体テストで書けるようにするため [決定。2026-10-31]
+- 週の進行(行動の処理、選択肢の抽選、レッスン後の処理、試験の結果と評価)は `Uta.Domain` に置く。サーバーは保存・付与と RPC の受け口だけを持つ。再生の検証([produce-domain.md](../architecture/produce-domain.md) 7章)を `Uta.Domain` の単体テストで書けるようにするため [決定。2026-10-31]
 
 ---
 
@@ -67,33 +67,10 @@ updated: 2026-10-31
 - 初級・中級の「※」の週(支給・おでかけ・相談のどれが出るか)は、アイドルごとに固定。上級だけ3パターンからランダム。[確認]
 - MVP は初級だけで、「※」の週は**支給に固定**する(アイドルごとの差は持たない)[決定。2026-10-31]。アイドルごと・パターン抽選の表し方は、中級・上級を作るときに決める
 
-マスタの表 [決定。2026-10-31。名前は仮。列の型の規約は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章]:
-
-| テーブル | 主キー | 列 |
-|---|---|---|
-| `Scenario` | `ScenarioId` | `Name`、`Difficulty`(enum: `None` / `Beginner` / `Intermediate` / `Advanced`)、`WeekCount`、`ParamCap`(パラメータ上限)、`RetryCount`(再挑戦の回数。3) |
-| `ScenarioWeek` | `ScenarioId` + `Week` | `Kind`(enum: `None` / `Action` / `Finishing` / `MidExam` / `FinalExam`)、`LessonSettingId`(その週のレッスン・試験の設定。0 ＝なし。`Action` の週でレッスンの枠がないときは 0) |
-| `WeekActionSlot` | `ScenarioId` + `Week` + `Order` | `Kind`(enum `ActionKind`: `None` / `Lesson` / `Class` / `Supply` / `Outing` / `Consult`)。週の行動の枠(画面の並び)。休むは枠に書かない(下) |
-| `LessonSetting` | `LessonSettingId` | `TurnsSense`、`TurnsLogic`(育成アイドルのプランで使い分ける。共通プランのアイドルはいない。試験は 0)、`ClearTarget`、`PerfectTarget`(どちらも試験は 0)、`ExamEarlyEndScore`(中間試験の早期終了。0 ＝なし) |
-| `ClassOption` | `ScenarioId` + `Week` + `Order` | `HpCost`(0＝コストなし)、`ParamGain`、`GivesCard`(`bool`) |
-| `ExamRivalScore` | `ScenarioId` + `Week` | `BaseScore`(5.3 の R。中間の R は早期終了スコアと同じ値を入れるが、8章で別々に調整できるよう列を分ける) |
-| `ExamPattern` | `ExamPatternId` | `FirstPercent` / `SecondPercent` / `ThirdPercent`(審査比率。表示だけに使い、計算では読まない)、`MidFirstTurns` / `MidSecondTurns` / `MidThirdTurns`、`FinalSenseFirstTurns`…(最終・感性の 3 つ)、`FinalLogicFirstTurns`…(最終・理論の 3 つ)、`FirstTurnSecondRatePerTenThousand`(先頭のターンを 2 番目にする確率。5.1。1 番目の比率が 45% 以上の型は 0) |
-| `ExamRankReward` | `ExamKind`(enum: `None` / `Mid` / `Final`) + `Rank`(1〜3) | `ParamAll`(全パラメータに足す量) |
-| `ScoreBonusSetting` | `Id`(1 行だけ) | `APerThousand`(5.2 の a)、`BFirst` / `BSecond` / `BThird`(5.2 の b) |
-| `EvaluationScoreBand` | `Order` | `MinScore`(この値以上)、`ScalePerThousand`、`Fixed`(6章のスコア分の表) |
-| `EvaluationRank` | `Rank`(enum: `None` / `F` … `SSPlus`) | `MinValue`(この評価値以上) |
-| `EvaluationRankReward` | `Rank` | `GachaCurrency`、`Gold`、`SupportPoints`、`Exp`(6.1 の報酬) |
-| `OfferRarityWeight` | `Rarity` | `Weight`(8章) |
-| `PlayerLevelExp` | `Level` | `RequiredExp`(Level → Level+1 に要る経験値。7章) |
-
-- 区分 [決定。2026-10-31]: `EvaluationRankReward` だけ ServerOnly(報酬の付与はサーバー専用。[api-design.md](../architecture/api-design.md) 4章)。ほかは Common。`ExamRivalScore` を Common にするのは、試験中の順位の表示と順位の判定を `Uta.Domain` で行うため(NPC のスコアはクライアントにも見える)
-- 行動の効果は、行動の種類ごとの専用の表(`ClassOption`)で持つ。支給は MVP では選択肢を引くだけなので表を持たない(育成pt を扱うときに `SupplySetting` を足す。3.3)。カードの効果グループ([lesson-enums.md](../architecture/lesson-enums.md))は使わない。MVP の行動は 3 種類だけで、専用の列のほうが読みやすく検証もしやすいため
-- 休むの回復量(最大体力の 70%)はルールの値として `Uta.Domain` の定数に置く(行動ごとの差がない)
+- マスタのテーブル・列・区分・検証は [produce-tables.md](../architecture/master/produce-tables.md)
 - 休むは `WeekActionSlot` に書かない。`Action` の週には常に最後の枠として並べ(枠番号は `WeekActionSlot` の行の数)、体力が最大体力より少ないときだけ選べる(3.3)
 - 仕上げの週(`Finishing`)には `WeekActionSlot` に `Lesson` を 1 行だけ置く。プレイヤーはパラメータを選んで `ChooseWeekActionAsync`(枠番号 0)を送る
-- 試験の週(`MidExam` / `FinalExam`)は入力を待たない。前の週の処理が終わったら、同じ要求の中で試験を始める(10.1.1)
-- 5.3 の NPC の割合(80 / 65 / 50 / 35 / 20%)、休む・仕上げの回復率(70%)、パーフェクトの回復(残りターン × 2)、6章のパラメータ分の倍率(2300 / 1000)と順位分(1700 / 900 / 500)、[lesson-card.md](lesson-card.md) 4.1 のレッスンルールの値は `Uta.Domain` の定数に置く
-- 検証(`IValidatable`): 週番号が 1〜`WeekCount` で抜けがない、最後の週が `FinalExam`、試験の週の前の週が `Finishing`、`WeekActionSlot` は `Action` の週と `Finishing` の週(`Lesson` 1 行)にだけある、試験・仕上げの週は `LessonSettingId` が 0 でない、試験の `LessonSetting` はターン数・目標が 0、`ExamPattern` の割り振りの合計が 5.1 のターン数(中間 9、最終・感性 12、最終・理論 11)と同じ。試験のターン数の正は `ExamPattern` の割り振りの合計
+- 試験の週(`MidExam` / `FinalExam`)は入力を待たない。前の週の処理が終わったら、同じ要求の中で試験を始める(10.1)
 - 最短シナリオ(確認用。[game-spec.md](../overview/game-spec.md)): 3 週。週 1 `Action`(レッスンだけ)、週 2 `Finishing`、週 3 `FinalExam`
 
 ### 3.2 初期値 [確認]
@@ -173,7 +150,7 @@ updated: 2026-10-31
 MVP(初級)の授業 [決定。2026-10-31]:
 
 - 選択肢は 3 つ(`ClassOption`)。初級は 体力8 / 体力4 / コストなし(上の表の値)。参考作品の「不調カード1枚」で払う道は、不調カード(lesson-card.md F08)を作らないので持たない
-- 上がるパラメータは、選択肢ごとに 3 パラメータから一様に 1 つ引く(`Week` ストリーム。週の開始時に選択肢の順に引いて提示する。10.3)
+- 上がるパラメータは、選択肢ごとに 3 パラメータから一様に 1 つ引く(`Week` ストリーム。週の開始時に選択肢の順に引いて提示する。[produce-domain.md](../architecture/produce-domain.md) 4章)
 - `HpCost` が 1 以上で、体力が `HpCost` 以下の選択肢は選べない(体力は 0 にならない)。コストなし(`HpCost` = 0)は体力 0 でも選べる
 - 授業の上昇にはパラメータボーナス(4.3 の 2)を掛けない。ボーナスはレッスンの後だけ([idol-support.md](idol-support.md) 1.2)。足すときは 4.3 の加算の関数を通す
 - `GivesCard` なら、スキルカードの選択肢(3.5)を提示する
@@ -209,7 +186,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 - ターン数は、育成アイドルのプランが感性なら `TurnsSense`、理論なら `TurnsLogic` を使う
 - パーフェクトで終了したら、クリア報酬に加えて「残りターン数×2」の体力回復。
 - 特別レッスンは確率で発生する。1週目のレッスンと、授業から変わったレッスンは特別にならない。基本発生率は10%と考えられている(推定)。実際の発生率は、基本発生率+サポートカード・アイドルのアビリティの合計。
-- 特別レッスンは MVP では作らない。作るときは、発生率をパラメータ別に持ち(基本発生率は `Scenario` の列、万分率)、判定の順は 10.3 [決定。2026-10-31]
+- 特別レッスンは MVP では作らない。作るときは、発生率をパラメータ別に持ち(基本発生率は `Scenario` の列、万分率)、判定の順は [produce-domain.md](../architecture/produce-domain.md) 4章 [決定。2026-10-31]
 
 ターン数は感性 / 理論。目標は「クリア(パーフェクト)」。
 
@@ -252,7 +229,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 5. パーフェクトで終わったとき: 体力を `残りターン数 × 2` 回復。残りターン数は「規定のターン数 − 終わったターンの番号」(終わったターンは含めない)
 6. 仕上げレッスンなら、最大体力の 70%(切り捨て)を回復
 
-- **パラメータの加算の関数は 1 つ**にする。どのパラメータの増加(レッスン、授業、試験の順位報酬、サポートアビリティ)もこれを通す。中で `ParamCap`(3.1)を上限に止める。上限で止めて捨てた分はどこにも残さない
+- **パラメータの加算の関数は 1 つ**にする。どのパラメータの増加(レッスン、授業、試験の順位報酬、サポートアビリティ)もこれを通す。中で `ParamCap`([produce-tables.md](../architecture/master/produce-tables.md) の `Scenario`)を上限に止める。上限で止めて捨てた分はどこにも残さない
 - 体力の回復も 1 つの関数を通し、最大体力で止める
 - **レッスン・試験の間の体力の正は `LessonState`** [決定。2026-10-31]。「育成」の体力はレッスンの開始時の値のまま触らず、終わったら `LessonResult` の体力で上書きする(試験も同じ。合否にかかわらず)。`GetState` はレッスン・試験の間は `LessonState` の体力を返す
 - レッスン終了時のサポートアビリティ(idol-support.md 2.3)は MVP では作らない。作るときは 2 の後に置く
@@ -269,8 +246,8 @@ MVP(初級)の授業 [決定。2026-10-31]:
 - 各ターンにパラメータがランダムに割り振られる。審査比率が高いパラメータほど多く割り振られる。
 - Uta のアイドルも下の 4 型から選ぶ。アイドルのマスタは審査の型 ID と、どのパラメータが 1 番・2 番・3 番かを持ち、型のマスタ(`ExamPattern`)が比率とターン割り振り(下の表)を持つ [決定。2026-10-31。[idol-support.md](idol-support.md) 1.4]
 - 最後の3ターンは固定で、審査比率の3番目 → 2番目 → 1番目の順(最終ターンが1番目)。
-- 最初のターンは基本的に1番目のパラメータ。1番目の比率が45%未満のアイドルは、1〜2割の確率で2番目になる。[確認]。Uta の確率は 15%(`ExamPattern` の `FirstTurnSecondRatePerTenThousand` = 1500)[決定。2026-10-31]。**判定はどの型でも 1 回引く**。1 番目の比率が 45% 以上の型は率を 0 にしておく(10.2 の「率が 0% でも 1 回引く」。45% はマスタの値を入れるときの目安で、コードは見ない)
-- 審査ターンの列は、週の進行(`Uta.Domain`)が試験の開始時に作ってレッスンエンジンに渡す(10.3 の順)。作り方: 先頭(1 番目、確率で 2 番目)と最後の 3 ターン(3 番目 → 2 番目 → 1 番目)を置き、残りのターンに、型の割り振りから先頭と最後の 3 ターンの分を引いた数ずつ(先頭が 2 番目になったときは、2 番目から 1 引く) 1〜3 番目を並べて(1 番目 → 2 番目 → 3 番目の順)、シャッフルする
+- 最初のターンは基本的に1番目のパラメータ。1番目の比率が45%未満のアイドルは、1〜2割の確率で2番目になる。[確認]。Uta の確率は 15%(`ExamPattern` の `FirstTurnSecondRatePerTenThousand` = 1500)[決定。2026-10-31]。**判定はどの型でも 1 回引く**。1 番目の比率が 45% 以上の型は率を 0 にしておく([produce-domain.md](../architecture/produce-domain.md) 3章 の「率が 0% でも 1 回引く」。45% はマスタの値を入れるときの目安で、コードは見ない)
+- 審査ターンの列は、週の進行(`Uta.Domain`)が試験の開始時に作ってレッスンエンジンに渡す([produce-domain.md](../architecture/produce-domain.md) 4章 の順)。作り方: 先頭(1 番目、確率で 2 番目)と最後の 3 ターン(3 番目 → 2 番目 → 1 番目)を置き、残りのターンに、型の割り振りから先頭と最後の 3 ターンの分を引いた数ずつ(先頭が 2 番目になったときは、2 番目から 1 引く) 1〜3 番目を並べて(1 番目 → 2 番目 → 3 番目の順)、シャッフルする
 
 ターン割り振り(1番 / 2番 / 3番のターン数):
 
@@ -308,7 +285,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 
 - **不合格で終わっても、6章の式で評価値とランクを出す**。順位分は 0。中間不合格で終わったときは最終試験を受けていないので、スコア分も 0(評価値はパラメータ分だけ)
 - 不合格で終わるのは「完了」の一種で、放棄・破棄([api-design.md](../architecture/api-design.md) 5章)とは違う。報酬は 6.1 のとおり付ける。`produce_results` には終わり方「完了」と、試験の結果(中間不合格 / 最終不合格 / 最終合格)を残す
-- 再挑戦は、**その試験の開始直前の状態**に戻して、同じ試験を最初からやり直す。戻すのは 10.5 の「育成」の区分を丸ごと(パラメータ・体力・デッキなど。ただし再挑戦の残り回数は戻さずに 1 減らす)。「乱数」「進行」「記録」の区分は戻さない。挑戦回数(その試験の中で 0 始まり。10.5 の「進行」に持つ)を 1 増やすので、乱数のストリーム(10.2 のキー)は前の挑戦と別になる。戻り先の状態はセッションの状態に持つ(10.5)
+- 再挑戦は、**その試験の開始直前の状態**に戻して、同じ試験を最初からやり直す。戻すのは [produce-domain.md](../architecture/produce-domain.md) 6章 の「育成」の区分を丸ごと(パラメータ・体力・デッキなど。ただし再挑戦の残り回数は戻さずに 1 減らす)。「乱数」「進行」「記録」の区分は戻さない。挑戦回数(その試験の中で 0 始まり。[produce-domain.md](../architecture/produce-domain.md) 6章 の「進行」に持つ)を 1 増やすので、乱数のストリーム([produce-domain.md](../architecture/produce-domain.md) 3章 のキー)は前の挑戦と別になる。戻り先の状態はセッションの状態に持つ([produce-domain.md](../architecture/produce-domain.md) 6章)
 - 再挑戦の残り回数は、中間と最終で共有する(5.1)
 - 評価(6章)・順位報酬・結果の保存に使うのは、**最後の挑戦**のスコアと順位(最高の挑戦ではない)
 
@@ -417,7 +394,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 - **Uta の必要経験値(マスタの初期値。仮)** [決定。2026-10-31]: Lv L → L+1 に `40 × L`(マスタ `PlayerLevelExp` の行の初期値)。上限は Lv 100。1 回の付与で複数レベル上がってよい。上限に達したら経験値は増やさない
 - 経験値の持ち方 [決定。2026-10-31]: `players` に Lv と「今のレベルの中の経験値」を持つ。付与のたびに、`PlayerLevelExp` の必要量に届いたら引いて Lv を上げる(複数回)
 - 機能の解放: Lv5 相談での強化、Lv10 再抽選+1、Lv15 相談での削除、Lv65 除去+1。MVP では作らない(PRD-14)。カードの `unlockLv` だけは MVP でも見る
-- カード・ドリンクもレベルで解放される(カードの `unlockLv`)。値は参考作品の値を使う([lesson-card.md](lesson-card.md) 14章)。プロデュースの開始時の Lv を開始時の入力に写す(10.5)
+- カード・ドリンクもレベルで解放される(カードの `unlockLv`)。値は参考作品の値を使う([lesson-card.md](lesson-card.md) 14章)。プロデュースの開始時の Lv を開始時の入力に写す([produce-domain.md](../architecture/produce-domain.md) 6章)
 - [Uta案] 参考作品は経験値の大半を課題・実績の報酬で得る。Uta にはその仕組みが無いので、プロデュース報酬の経験値を増やすか、必要経験値を減らす。
 
 ---
@@ -454,35 +431,22 @@ MVP(初級)の授業 [決定。2026-10-31]:
 
 ---
 
-## 10. 乱数・操作の記録・サーバー状態
+## 10. 進行と局面の遷移
 
-### 10.0 前提 [決定]
+### 10.0 要件 [決定]
 
-- サーバー権威。結果の確定は常にサーバー。クライアントはシードと乱数を持たず、Shared.Domain で使用可否の判定と予測の表示までを行う。乱数が絡む結果は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))
-- 乱数は `xoshiro256**`。`System.Random` は使わない。シードはサーバーが生成する([repository-layout.md](../architecture/repository-layout.md) 10.3)
-- `float` / `double` を使わない([lesson-card.md](lesson-card.md) 9.6)
-- セッションは検索用の列と、状態を丸ごと入れた1列(MessagePack の `bytea`)に分け、バージョン列で楽観ロックをかける([ADR 0010](../decisions/0010-database.md)、[api-design.md](../architecture/api-design.md) 3章)
-- 操作の RPC は局面ごとに分ける(API案)。再送は `x-request-id` + `last_responses` に任せる([api-design.md](../architecture/api-design.md) 1章、[server-foundation](../architecture/server-foundation.md))
-- 同じシードと同じ操作列で、同じ結果を再現できる(完了条件)
-- 1ユーザーにつき進行中のセッションは1つ [決定。[api-design.md](../architecture/api-design.md) 3章]
-- 中断(アプリの終了)は期限なしで再開できる。放棄は明示の操作で、報酬なし。**開始したときとアプリのバージョン(または状態の形式のバージョン)が違えば、進行中のセッションを破棄する**(報酬なし) [決定。2026-10-28。[api-design.md](../architecture/api-design.md) 5章]
-- 状態の中身・乱数・操作の記録はこの章が正。セッションの検索用の列と、中断・放棄・破棄の流れは [api-design.md](../architecture/api-design.md) 3.1・5章が正
+- サーバー権威。結果の確定は常にサーバー。クライアントはシードと乱数を持たず、Shared.Domain で使用可否の判定と予測の表示までを行う([ADR 0008](../decisions/0008-shared-domain-and-onion.md))
+- 中断(アプリの終了)は期限なしで再開できる。放棄は明示の操作で、報酬なし。開始したときとアプリのバージョンが違えば、進行中のセッションを破棄する(報酬なし)
+- 乱数で決まる提示内容(授業の上昇パラメータ、カードの選択肢など)は、提示する前に決めておき、再接続しても変わらない(リセマラの防止)
+- 同じシードと同じ操作列で、同じ結果を再現できる
+- 1回の操作で、次にプレイヤーの入力が要る地点(入力待ち)まで進む
+- 作り方(乱数のストリームと引く順、操作の記録、保存する状態、再現の確かめ方、RPC と DTO)は [produce-domain.md](../architecture/produce-domain.md)
 
-以下 10.1〜10.6 は [決定]。2026-10-28 に決めた。10.7 は未決。
-
-### 10.1 処理の単位: 入力待ちから入力待ちまで
-
-- サーバーは1回の操作を受けると、**次にプレイヤーの入力が要る地点(入力待ち)まで**を1回で処理し、その状態を保存して返す。
-  - 例: カードを使う → 効果の処理 → (使用数が尽きたら)ターン終了 → 次のターン開始・ドロー → 入力待ち
-  - 例: 週の行動を選ぶ → サポートイベント → 行動の結果 → スキルカードの選択肢の提示 → 入力待ち
-- 保存される状態は、常にどこかの入力待ち。途中再開は「最後の入力待ちから続ける」だけになり、処理の途中を保存する仕組みは要らない。
-- 乱数で決まる提示内容(授業の上昇パラメータ、相談の品ぞろえ、カードの選択肢など)は、**提示する前に引いて状態に保存する**。再接続や `GetState` で引き直さない(リセマラの防止)。
-
-### 10.1.1 MVP の局面の遷移 [決定。2026-10-31]
+### 10.1 MVP の局面の遷移 [決定。2026-10-31]
 
 | 今の局面 | 受ける操作 | 処理 | 次の局面 |
 |---|---|---|---|
-| (なし) | 開始(`StartAsync`) | 開始時の入力を写す(10.5)→ 初期デッキを作る([idol-support.md](idol-support.md) 1.3)→ サポートアビリティの枠 1 を編成の順に適用する(idol-support.md 2.3)→ `Scenario` ストリームで引く(10.3。MVP は引くものなし)→ 週 1 を始める(週の終わりと同じ処理) | 週の選択 |
+| (なし) | 開始(`StartAsync`) | 開始時の入力を写す([produce-domain.md](../architecture/produce-domain.md) 6章)→ 初期デッキを作る([idol-support.md](idol-support.md) 1.3)→ サポートアビリティの枠 1 を編成の順に適用する(idol-support.md 2.3)→ `Scenario` ストリームで引く([produce-domain.md](../architecture/produce-domain.md) 4章。MVP は引くものなし)→ 週 1 を始める(週の終わりと同じ処理) | 週の選択 |
 | 週の選択(`Action` の週) | 行動を選ぶ(レッスン + パラメータ) | 4.1 のレッスンを始める | レッスン |
 | 週の選択(`Action` の週) | 行動を選ぶ(授業 + 選択肢) | 3.4 の上昇 → `GivesCard` なら選択肢を引く | 選択肢があればカードの選択肢、なければ週の終わり |
 | 週の選択(`Action` の週) | 行動を選ぶ(支給) | 選択肢を引く(MVP の支給は常にカードの選択肢を出す) | カードの選択肢(0 枚なら週の終わり) |
@@ -493,231 +457,20 @@ MVP(初級)の授業 [決定。2026-10-31]:
 | 試験 | カードを使う / スキップ | lesson-card.md 10章。終われば順位を決める | 試験の結果(再挑戦が残るとき)、またはそのまま 5.1.1 の表 |
 | 試験の結果 | 再挑戦する / しない | 5.1.1 | 試験、または 5.1.1 の表 |
 
-- **週の終わり**は入力待ちではない。同じ要求の中で週番号を 1 増やし、次の週を始める: 次の週が `Action` なら提示の乱数を引いて(10.3)「週の選択」、`Finishing` なら「週の選択」、試験の週なら審査ターンの列を作って「試験」
+- **週の終わり**は入力待ちではない。同じ要求の中で週番号を 1 増やし、次の週を始める: 次の週が `Action` なら提示の乱数を引いて([produce-domain.md](../architecture/produce-domain.md) 4章)「週の選択」、`Finishing` なら「週の選択」、試験の週なら審査ターンの列を作って「試験」
 - 中間試験に合格したら(5.1.1)順位報酬を足して週の終わりへ。最終試験・不合格で終わったら評価と報酬(6.1)を処理して「終了」
-- 相談中・ドリンクの整理は MVP では作らない(10.4)
-
-### 10.2 乱数ストリーム
-
-セッションのシード(マスターシード)から、用途と場面ごとに独立したストリームを作る。
-
-| ストリーム | キー | 使う場面 |
-|---|---|---|
-| `Scenario` | なし(1本) | 上級の週パターン、中級11週のイベント(3.2、3.4) |
-| `Week` | 週番号 | 特別レッスンの判定、授業の上昇パラメータと確率分岐、おでかけのイベント、相談の品ぞろえと割引、支給の育成pt、サポートイベントの発生、クリア報酬のドリンク |
-| `Offer` | 週番号 | スキルカードの選択肢の抽選と再抽選(3.5) |
-| `Lesson` | 週番号 + 挑戦回数 | 山札のシャッフルと再シャッフル、不調カードの生成位置、ランダムな効果、スキルカードサポート、試験の審査ターン |
-
-- マスターシード: 64 ビット。プロデュース開始時にサーバーが暗号用の乱数(`RandomNumberGenerator`)で生成する([repository-layout.md](../architecture/repository-layout.md) 10.3)。
-- ストリームの初期化: キーとマスターシードから `xoshiro256**` の状態を作る。式は [lesson-domain-types.md](../architecture/lesson-domain-types.md) 4章が正(実装済み。テストベクタで守る)
-- 挑戦回数は **0 始まり**(初回の挑戦が 0、再挑戦のたびに 1 増える)。レッスンは常に 0
-- 1本のストリームにしない理由:
-  - あるレッスンで引く回数が変わっても(ドロー効果のあるカードを足すなど)、後の週の結果がずれない。自動プレイでのバランス比較と、不具合の切り分けがしやすい
-  - 試験の再挑戦は挑戦回数がキーに入るので、山札の並びが前回と変わる(並びを覚えて再挑戦する攻略を防ぐ)
-  - 保存するのは、使用中のストリームの状態だけで済む
-- `Offer` を `Week` から分けるのは、再抽選の回数(プレイヤーの操作で変わる)が `Week` の引く回数に混ざらないようにするため。今の順番では同じ週で `Offer` の後に `Week` を引く場面はないので、分けなくても結果は変わらないが、行動の効果を足したときに引く順番を考えなくてよいよう、分けたままにする(実装済み)
-
-乱数の取り出し方(`Uta.Domain` に置き、同じコードで固定する):
-
-| 操作 | 方法 |
-|---|---|
-| `NextInt(n)`(0 以上 n 未満) | 64 ビットの値を引き、`(2^64 − n) mod n` 未満なら引き直す(棄却法)。残りを `mod n`。偏りが出ず、64 ビットの演算だけで済む |
-| 確率の判定 | 確率は万分率の整数。`NextInt(10000) < 率`。**判定する場面では、率が 0% や 100% でも1回引く**(マスタの値を変えても、引く回数が変わらないようにする) |
-| 範囲 `[min, max]` | `min + NextInt(max − min + 1)` |
-| 重み付きの抽選 | 重みの合計 `W` に対して `NextInt(W)`。候補はマスタの ID の昇順に並べて累積する |
-| 候補から 1 つ | 候補を ID の昇順に並べ、`NextInt(候補の数)` 番目 |
-| シャッフル | Fisher–Yates。末尾から、`i` 番目と `NextInt(i + 1)` 番目を入れ替える |
-
-### 10.3 乱数を引く順番
-
-決まった順番で引く。どこで何回引いたかは、状態と操作列から一意に決まる。
-
-**プロデュース開始時**(`Scenario`)
-
-1. 上級なら週パターン(A / B / C)
-2. 中級なら11週のイベント
-
-**週の開始時(提示の前)**(`Week`。前の週の処理を終えた同じ要求の中で行う)
-
-1. 特別レッスンの判定(対象のレッスン週だけ。MVP では作らない): 歌唱 → 律動 → 表現の順に、パラメータごとの率(基本発生率+アビリティの合計)で 1 回ずつ、計 3 回引く
-2. 授業: 選択肢の順に、上昇するパラメータ
-3. おでかけ: イベント
-4. 相談: スキルカード4種、ドリンク4種、割引の対象
-
-その週に出ない行動の分は引かない。
-
-**行動を選んだ後**(`Week`)
-
-1. サポートイベント(行動の前。MVP では作らない): 編成の順に、各カードの 1 つ目のイベント(SR 以上)の発生判定を 1 回ずつ
-2. 行動の確率分岐(授業の「40%で110」など)、支給の育成pt
-3. サポートイベント(行動の後。MVP では作らない): 編成の順に、各カードの解放済みの行動後のイベントを、イベントの順に 1 回ずつ判定
-4. スキルカードの選択肢(`Offer`): 枠の順に、レアリティを重みで引き、そのレアリティの候補から1枚を引く(カード ID の昇順に並べて `NextInt(候補の数)`)。同じ選択肢の中での重複と、除去したカードと、デッキにすでにある重複不可(lesson-card.md 14章の「重」)のカードは候補から外す。再抽選は同じストリームの続きから引く
-
-**レッスン・試験の開始時**(`Lesson`。[lesson-card.md](lesson-card.md) 10章の L1・L2)
-
-1. 試験なら審査ターン: 先頭のターンの判定(どの型でも 1 回。5.1)→ 最後の3ターンと先頭を除いた残りのターンをシャッフル
-2. L1 の「レッスン開始時」効果の中の乱数(効果の記載順)
-3. L2: 開始時手札のカードが5枚を超えるなら、そのカードの組をインスタンス ID の昇順に並べてからシャッフルして、先頭5枚を手札へ
-4. L2: 残りのカード(超えた分を含む)を、カードのインスタンス ID の昇順に並べてからシャッフルし、山札にする
-
-**ターン中**(`Lesson`。lesson-card.md 10章の順)
-
-- T3・T5・T7・P6・E2 などの効果の中の乱数は、効果を処理する順に引く
-- T4 のドローや効果のドローで山札が空になったら、その時点で捨札をシャッフルする(捨札は入った順に並べてからシャッフル)
-- 山札のランダムな位置への生成は `NextInt(山札の枚数 + 1)`(0 が一番上)
-- スキルカードサポート(次点。MVP では作らない): T4 の直後に、編成の順で発生判定 → 発生したら対象の手札を `NextInt(対象の枚数)` で選ぶ。タイミングは仮
-
-**レッスンの後**: クリア報酬のドリンク(`Week`)→ スキルカードの選択肢(`Offer`)
-
-### 10.4 操作の記録
-
-受け付けた操作だけを、受け付けた順に記録する。拒否した操作は記録しない。
-
-| 局面 | 操作 | 引数 | 担当の RPC |
-|---|---|---|---|
-| 週の選択 | 行動を選ぶ | 行動の枠番号、選択肢の番号(授業・おでかけ)、パラメータ(レッスン) | `ChooseWeekActionAsync` |
-| 相談中 | 交換する / 強化する / 削除する / 終える | 品の番号 / カードのインスタンス ID | `ExecuteConsultActionAsync` |
-| カードの選択肢 | 選ぶ / 再抽選 / 除去 / 受け取らない | 選択肢の番号 | `ResolveCardOfferAsync` |
-| ドリンクの整理 | 捨てる | ドリンクの枠番号(0〜3。3 は受け取ろうとしたドリンク) | `DiscardDrinkAsync` |
-| 終了以外の入力待ち | ドリンクを捨てる(3.6 の「いつでも捨てられる」) | ドリンクの枠番号(0〜2) | `DiscardDrinkAsync` |
-| 試験の結果 | 再挑戦する / しない | — | `DecideExamRetryAsync` |
-| レッスン・試験 | カードを使う | カードのインスタンス ID | `ExecuteLessonActionAsync` |
-| レッスン・試験 | ドリンクを使う | ドリンクの枠番号 | `ExecuteLessonActionAsync` |
-| レッスン・試験 | スキップ | — | `ExecuteLessonActionAsync` |
-| 終了以外 | 放棄する | — | `AbandonAsync`(操作の記録には残さない。セッションが終わるため) |
-
-- 局面は 10.5 の「進行」の局面。**試験の結果**は、再挑戦が残るときの入力待ち(合否にかかわらず。5.1.1)。**ドリンクの整理**は、ドリンクを3つ持っているときに4つ目を受け取ったときの入力待ちで、4つから1つ捨てるまで先へ進まない [決定。2026-10-31]
-- **MVP で受ける操作**は、週の選択・カードの選択肢(選ぶ・受け取らないだけ。再抽選・除去は残り回数 0 なので常に拒否)・試験の結果・レッスン・試験(カードを使う・スキップだけ)・放棄。相談中・ドリンクの整理・ドリンクを使う / 捨てるは MVP の後(`OperationKind` の値は予約して残す)
-- 要求の局面が今の局面と違えば拒否する(`PRODUCE_UNEXPECTED_PHASE`)。例外は「ドリンクを捨てる」で、終了以外のどの入力待ちでも受ける(MVP の後)
-
-1件の記録: `操作番号(0 から連番)`、`操作の種類(enum)`、`週番号`、`挑戦回数`、`ターン番号`、`引数(int × 3)`。
-
-操作の種類(enum `OperationKind`)と引数 [決定。2026-10-31]。使わない引数は 0(番号・パラメータを入れる引数で、無いときは -1):
-
-| 値 | 名前 | 引数1 | 引数2 | 引数3 |
-|---|---|---|---|---|
-| 0 | `None` | | | |
-| 1 | `ChooseWeekAction` | 行動の枠番号 | 選択肢の番号(無いとき -1) | パラメータ(`ParamKind`。レッスン以外は、Request の `Param` を見ずに -1 を入れる) |
-| 2 | `ConsultExchange` | 品の番号 | | |
-| 3 | `ConsultEnhance` | カードのインスタンス ID | | |
-| 4 | `ConsultRemove` | カードのインスタンス ID | | |
-| 5 | `ConsultFinish` | | | |
-| 6 | `OfferPick` | 選択肢の番号 | | |
-| 7 | `OfferReroll` | | | |
-| 8 | `OfferRemove` | 選択肢の番号 | | |
-| 9 | `OfferDecline` | | | |
-| 10 | `DiscardDrink` | ドリンクの枠番号 | | |
-| 11 | `ExamRetry` | | | |
-| 12 | `ExamNoRetry` | | | |
-| 13 | `UseCard` | カードのインスタンス ID | | |
-| 14 | `UseDrink` | ドリンクの枠番号 | | |
-| 15 | `Skip` | | | |
-
-- **カードはインスタンス ID で指す**。手札の位置では指さない(表示の並びに左右されない)。インスタンス ID はセッションの中だけの連番の `int`(初期デッキは [idol-support.md](idol-support.md) 1.3 の並びで 1 から、以降は入手順)。セッションの外には出ないので ULID にしない([repository-layout.md](../architecture/repository-layout.md) 10.1 の「サーバーが発行する ID」には当たらない、という整理)
-- **要求には次の操作番号を入れる**。サーバーの番号と違えば拒否し、クライアントは `GetState` で取り直す。同じターンにカードとドリンクを続けて使うと、ターン番号だけでは古い要求と新しい要求を区別できないため([api-design.md](../architecture/api-design.md) 1章にも反映)
-- **古い要求の拒否は操作番号だけで行う** [決定。2026-10-31]。要求は週・ターン・挑戦回数を持たない(サーバーの状態から分かる)。エラーは `PRODUCE_STALE_OPERATION` の 1 つ
-- 記録は状態の1列(10.5)の中に持つ。1回のプロデュースで数百件・数 KB の見込み(推測)で、ADR 0010 の「1ターンの読み書きが1行」を変えずに済む。調査で SQL から見たくなったら、別テーブルに追記する形に移す
-
-### 10.5 保存する状態(途中再開)
-
-状態の1列に入れるもの。検索用の列(ユーザー、状態、週、ターン、開始時のアプリのバージョン、状態の形式のバージョン、楽観ロックのバージョン)は [api-design.md](../architecture/api-design.md) 3.1 のとおり。
-
-| 区分 | 内容 |
-|---|---|
-| 形式 | 状態の形式のバージョン |
-| 開始時の入力 | セッション ID、ユーザー ID、シナリオ、**育成アイドルとサポートカード(0〜5枚)の開始時点の性能**(育成アイドル: ID・トレーニング・覚醒。サポートカード: カード ID・レベル・上限解放回数。所持IDは持たない)、開始時のプレイヤーLv(カードの `unlockLv` の絞り込みに使う。3.5)、マスターシード。開始時の体力は最大体力と同じ |
-| 乱数 | 使用中のストリームごとに、種類・キーと `xoshiro256**` の状態(64 ビット × 4)、引いた回数(調査用) |
-| 進行 | 局面(週の選択 / カードの選択肢 / レッスン / 試験 / 試験の結果 / 終了。入力待ちの種類のこと)、試験の開始直前の状態(再挑戦の戻り先。5.1.1)、週番号、**挑戦回数**(今の試験の中で 0 始まり。5.1.1)、次の操作番号、確定した週構成、その週に提示した内容(10.3 で引いたもの) |
-| 育成 | パラメータ3種、体力・最大体力、デッキ(インスタンス ID・カード ID・強化済みか)、次のインスタンス ID、試験の再挑戦の残り回数、中間試験の結果 |
-| レッスン中だけ | `LessonState` の全部の値([lesson-domain-types.md](../architecture/lesson-domain-types.md) 3章。山札の**並び順**、得たパラメータ(試験ならスコア)、ステータスと印、上昇量増加、発動予約、持続効果と残り回数、付与の順番を含む)と、試験なら審査ターンの列 |
-| 記録 | 操作の記録(10.4) |
-
-- 上の表は **MVP で持つもの**。MVP の後に足すもの(形式のバージョンを上げて足す。[api-design.md](../architecture/api-design.md) 3.1): 局面の「相談中」「ドリンクの整理」、相談の残り回数と費用、育成pt、ドリンク(最大3)、育成アイテム(残り回数)、再抽選・除去の残り回数、除去したカード、回数制限のあるアビリティの使用回数
-- `Uta.Domain` が持つのは「開始時の入力」のうちプレイヤーLv と性能、「育成」「進行」「レッスン中だけ」の区分。「開始時の入力」のセッション ID・ユーザー ID(ULID)・マスターシードと「乱数」の区分は、サーバーが `Uta.Domain` の状態を包んで持つ([repository-layout.md](../architecture/repository-layout.md) 6.1)
-- **乱数の受け渡し** [決定。2026-10-31]: `Uta.Domain` は乱数をポート `IRandomStreamSource`(`IRandom Get(RandomStreamKey key)`。`Uta.Domain.Rng` に置く)から受け取る。ドメインは週番号・挑戦回数からキーを作って求め、サーバーがポートを実装する(マスターシードと保存済みのストリームの状態から `RandomStreams.Create` で作り、要求の終わりに状態を保存する)。ドメインはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。テストと再生では、マスターシードを持つテスト用の実装を渡す
-
-- 開始時の性能を写して持つのは、プロデュース中にトレーニングなどをしても、進行中のセッションの結果を変えないため。
-- `GetState` で返さないもの: マスターシード、ストリームの状態、**山札の並び順**(枚数と、インスタンス ID の昇順に並べ替えた中身だけを返す。PRD-08)、まだ提示していない乱数の結果。
-- `Uta.Domain` は MessagePack に依存しない。保存の形はサーバーの `Infrastructure` で、共通の状態の型を包んで作る(ADR 0010 の「影響・リスク」、[repository-layout.md](../architecture/repository-layout.md) 6.1)。
-
-### 10.6 再現の確かめ方
-
-- 「開始時の入力+操作の記録」を最初から再生すると、保存した状態と一致する。これを `Uta.Domain` の単体テストで確かめる(lesson-card.md 15.8、repository-layout.md 10.4)。
-- 再生した状態の比べ方 [決定。2026-10-31]: `Uta.Domain` の単体テストでは、再生した状態と比べる状態が両方メモリにあるので、**値を項目ごとに比べる**(状態の型に、全部の値を比べる関数を置く)。**状態のハッシュは作らない**。IL2CPP との一致の確認([lesson-card.md](lesson-card.md) 15.8)も、実機で再生した状態と、.NET で再生した状態の値を項目ごとに比べる(.NET の側の値はテストの期待値として持つ)。状態の比べ方の正はこの節
-- **マスタの版・ルールの版は、アプリのバージョンと同じ**とする [決定。2026-10-31]。マスタ(サーバーの値を含む)やルールを変えたら、アプリのバージョンを上げる([repository-layout.md](../architecture/repository-layout.md) 10.5)。再現を保証するのは、開始時と `app_version` が同じ場合だけ。違えばセッションは破棄される(10.0)
-
-### 10.7 この章の未決事項
-
-- スキルカードサポートの判定のタイミング(10.3 では T4 の直後を仮置き)
-
-## API案 [決定。2026-10-31／型の名前は実装時に変えてよい]
-
-RPC の分け方は [api-design.md](../architecture/api-design.md) 1章が正。**局面ごとに RPC を1つ**にし、同じ局面の操作は Request の「操作の種類」(enum)で分ける。1つの汎用の「操作」RPC に全部の引数を詰めないのは、DTO の型で局面と引数の組み合わせを縛り、使わない引数が混ざらないようにするため。
-
-```csharp
-// shared/Uta.Shared に置く。MVP で宣言するもの
-public interface IProduceService : IService<IProduceService>
-{
-    UnaryResult<ProduceStateResponse> StartAsync(StartProduceRequest request);
-    UnaryResult<ProduceStateResponse> ChooseWeekActionAsync(ChooseWeekActionRequest request);
-    UnaryResult<ProduceStateResponse> ResolveCardOfferAsync(ResolveCardOfferRequest request);
-    UnaryResult<ProduceStateResponse> DecideExamRetryAsync(DecideExamRetryRequest request);
-    UnaryResult<ProduceStateResponse> ExecuteLessonActionAsync(ExecuteLessonActionRequest request);
-    UnaryResult<ProduceStateResponse> GetStateAsync();      // 再開用。[NoSideEffects]
-    UnaryResult<ProduceResultResponse> AbandonAsync();      // 進行中のセッションは1つなので引数なし
-}
-```
-
-- MVP では宣言しない(作るときに足す): `GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`。宣言するとサーバーで実装が要るため。RPC は後から足しても、ほかの RPC に影響しない(api-design.md 1章)
-
-Request のフィールド。操作の RPC はすべて、先頭に `OperationNumber` を持つ:
-
-| フィールド | 型 | 内容 |
-|---|---|---|
-| `OperationNumber` | `int` | 次の操作番号(10.4)。サーバーと違えば拒否 |
-
-| Request | フィールド(`OperationNumber` の後) |
-|---|---|
-| `StartProduceRequest` | `IdolId`(`int`)、`SupportCardUids`(`string[]`、所持ID 0〜5 個を枠の順に。[idol-support.md](idol-support.md) 2.1・2.2.1)、`RentalCandidateId`(`int`。MVP は 0＝なし)、`ScenarioId`(`int`。難易度はシナリオが持つ)。`OperationNumber` は持たない |
-| `ChooseWeekActionRequest` | `SlotIndex`(`int`)、`OptionIndex`(`int`。無いとき -1)、`Param`(`ParamKind`。レッスン以外は無視) |
-| `ExecuteConsultActionRequest`(MVP の後) | `Kind`(enum `ConsultActionKind`: `Exchange` / `Enhance` / `Remove` / `Finish`)、`ItemIndex`(`int`。`Exchange` のみ)、`CardInstanceId`(`int`。`Enhance` / `Remove` のみ) |
-| `ResolveCardOfferRequest` | `Kind`(enum `CardOfferActionKind`: `Pick` / `Reroll` / `Remove` / `Decline`)、`OfferIndex`(`int`。`Pick` / `Remove` のみ) |
-| `DiscardDrinkRequest`(MVP の後) | `SlotIndex`(`int`) |
-| `DecideExamRetryRequest` | `Retry`(`bool`) |
-| `ExecuteLessonActionRequest` | `Kind`(enum `LessonActionKind`: `UseCard` / `UseDrink` / `Skip`)、`CardInstanceId`(`int`。`UseCard` のみ)、`DrinkSlotIndex`(`int`。`UseDrink` のみ) |
-
-- 使わないフィールドは 0(`OptionIndex` は -1)を送り、サーバーは見ない
-- Response [決定。2026-10-31]: `ProduceResultResponse` は `produce_results` の行(終わり方・試験の結果・評価値・ランク・付与した報酬)。`ProduceStateResponse` のフィールド(10.5 の「`GetState` で返さないもの」を除いた状態):
-
-| フィールド | 型 | 内容・いつ入るか |
-|---|---|---|
-| `OperationNumber` | `int` | 次の操作番号 |
-| `Phase` | enum `ProducePhase` | `None` / `WeekSelect` / `CardOffer` / `Lesson` / `Exam` / `ExamResult` / `Finished` |
-| `Week` | `int` | 週番号 |
-| `Singing` / `Rhythm` / `Expression` | `int` | パラメータ |
-| `Hp` / `MaxHp` | `int` | 体力(レッスン・試験の間は `LessonState` の値。4.3) |
-| `Deck` | 配列 | インスタンス ID・カード ID・強化済みか |
-| `ExamRetryLeft` | `int` | 再挑戦の残り回数 |
-| `WeekActions` | 配列 | 週の選択のとき: 枠ごとの行動の種類。休むは最後の枠(選べないときは選べない印) |
-| `ClassOptions` | 配列 | 授業の週のとき: 選択肢ごとの `HpCost`・上がるパラメータ・`ParamGain` |
-| `CardOffers` | `int[]` | カードの選択肢のとき: カード ID(枠の順) |
-| `Lesson` | 型 | レッスン・試験のとき: lesson-card.md 12章の状態から山札の並びを除いたもの(手札のインスタンス ID、山札・捨札・除外の中身は ID の昇順)と、試験なら審査ターンの列・スコア・NPC のスコア |
-| `ExamResult` | 型 | 試験の結果のとき: スコア・順位・NPC のスコア・合否 |
-| `Result` | `ProduceResultResponse` | 終了の局面に入った操作のレスポンスだけ(ほかは空) |
-
-- 終わった後に `GetState` を呼ぶと `PRODUCE_NOT_IN_PROGRESS` を返す。結果は終了の局面に入った操作のレスポンスだけで返す。そのレスポンスを受け取る前にアプリが落ちたら、結果の画面は出さずにホームに戻る(報酬は付与済みで、ホームの所持品に反映されている)
-- エラーの一覧は [api-design.md](../architecture/api-design.md) 2章が正。このページの操作で返すのは `PRODUCE_STALE_OPERATION`(操作番号が違う)、`PRODUCE_UNEXPECTED_PHASE`(局面が違う)、`PRODUCE_INVALID_ARGUMENT`(範囲外の番号・ID、使えない操作、`RentalCandidateId` が 0 でない)、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_INVALID_FORMATION`(idol-support.md 2.1)、`PRODUCE_ALREADY_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`(api-design.md 5章)
+- 相談中・ドリンクの整理は MVP では作らない([produce-domain.md](../architecture/produce-domain.md) 5章)
 
 ## 未決事項
 
-- 10.7 の各項目
+- 実装設計の未決事項は [produce-domain.md](../architecture/produce-domain.md)
 - 報酬の具体の値(6.1 は仮)
 - 信頼度の上がり方と保存(PRD-11 を作るとき)
 - 相談・おでかけの値(価格・割引の丸め・費用の上がり方・イベントの中身。作るとき)
 - 中級・上級の週構成の表し方(アイドルごと・パターン抽選)
 - 画面ワイヤーは [overview/screen-wireframes.md](../overview/screen-wireframes.md)(叩き台)
 
-(2026-10-28 に解決: 操作の記録・再開時の保存内容 → 10章。放棄・破棄 → [api-design.md](../architecture/api-design.md) 5章。報酬の流れ → 6.1。マスタの形式と配信 → [masterdata-pipeline.md](../architecture/masterdata-pipeline.md)。DB → [ADR 0010](../decisions/0010-database.md))
+(2026-10-28 に解決: 操作の記録・再開時の保存内容 → [produce-domain.md](../architecture/produce-domain.md) 5・6章。放棄・破棄 → [api-design.md](../architecture/api-design.md) 5章。報酬の流れ → 6.1。マスタの形式と配信 → [masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md)。DB → [ADR 0010](../decisions/0010-database.md))
 
 ## 実装メモ
 

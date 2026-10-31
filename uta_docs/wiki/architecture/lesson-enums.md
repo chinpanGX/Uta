@@ -6,7 +6,7 @@ updated: 2026-10-31
 
 # レッスンの効果・条件・コストの enum と列
 
-レッスンの効果（[lesson-card.md](../systems/lesson-card.md) 7章）・ステータス（8章）・持続効果のトリガー（10章）・コスト（5章）・条件（6章）の **enum の名前・数値と、効果の列の対応の正**。マスタ（[masterdata-pipeline.md](masterdata-pipeline.md) 3章）と共有ドメイン（[lesson-domain-types.md](lesson-domain-types.md) 2章、`shared/Uta.Domain/Lesson/LessonEnums.cs`）は、どちらもこのページに合わせる。ほかのページには enum の値や列の対応を書き写さず、このページへリンクする。
+レッスンの効果（[lesson-card.md](../systems/lesson-card.md) 7章）・ステータス（8章）・持続効果のトリガー（10章）・コスト（5章）・条件（6章）の **enum の名前・数値と、効果の列の対応の正**。マスタ（[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章）と共有ドメイン（[lesson-domain-types.md](lesson-domain-types.md) 2章、`shared/Uta.Domain/Lesson/LessonEnums.cs`）は、どちらもこのページに合わせる。マスタの側は `masterdata/Definitions` に同じ名前・数値の写しを置き、テストでずれを見つける（[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章）。ほかのページには enum の値や列の対応を書き写さず、このページへリンクする。
 
 2026-10-31 の設計書レビュー（lesson-card.md の Critical C1）で、マスタの仕様とコードで名前・値・列の対応が別物になっていたため、名前を見直してここに 1 つにまとめた。
 
@@ -16,11 +16,12 @@ updated: 2026-10-31
 - 対象のステータスは `Status`（`StatusKind`）、持続効果のトリガーは `Trigger`（`PersistentTrigger`）という**型付きの列**に入れる。`Arg` に enum を数値で入れない。CSV に名前で書け、`master-gen` が名前を検証できるため
 - `Value` は効果の**主な量**（パラメータ、倍率、ターン数、枚数など）。`Arg1`〜`Arg3` は補助の値。どちらも `int`
 - 倍率・回数の `Arg` は **0（空欄）を既定値**として扱う（連撃 0 → 1回、倍率 0 → 100%、持続の制限 0 → 無制限）
-- **このページの enum（効果・トリガー・ステータス・コスト・条件）と、これから新しく作る列の enum は、0 を `None` にする**。空欄（0）を「指定なし」と区別し、必須の列が空のときに検証で弾くため。既にある `Plan`・`CardType`・`Rarity`・`ParamKind`・`LessonKind`・`LessonPhase` は 0 が有効な値のまま変えない（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.1）。これらを列に使うテーブルは、空欄を `IValidatable` で別に弾く（例: `Card` のレアリティ、[idol-support.md](../systems/idol-support.md) 6章）
+- **Uta の enum は、0 を `Nothing`（指定なし）にする**。このページの enum（効果・トリガー・ステータス・コスト・条件）、既にある `Plan`・`CardType`・`Rarity`・`ParamKind`・`LessonKind`（6章で振り直す）、これから作る enum（マスタの列・DTO・状態）のすべて。CSV の空欄は 0 になるので、`Nothing` と区別でき、必須の列が空のときに検証で弾ける [決定。2026-10-31。ユーザーの判断。それまでは 0 の名前を `None` とし、既にある 6 つは 0 が有効な値のまま変えないとしていた]。例外は `LessonPhase`（0 の `NotStarted` は「始まる前」という実際の局面で、列にも使わない）
 - **数値はこのページで固定する**。以後は値を変えず、追加は末尾に足す（マスタ・保存の値に使うため）。このページを作る前のコードの数値は、保存したデータがまだ無いので付け直す（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）
+- **効果の入れ子の深さは 1**: `AddPersistent`・`ScheduleEffect` の子の効果に、`AddPersistent`・`ScheduleEffect` を置かない。グループの循環もこれで起きない [決定。2026-10-31。[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章]
 - 参照（`RefConditionGroupId` などの効果内条件）は**どの `Op` でも同じ意味**（満たさないとその行だけ飛ばす。判定はコストの前。lesson-card.md 6.2）。`AddPersistent` でも、その行の条件は「持続効果を付与するかどうか」の条件で、例外を作らない。発動のたびに見る条件は、発動する効果（子）の効果内条件に付ける（lesson-card.md 7.5）
 - 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する
-- 「フェーズ」は**コードで処理できるようになるフェーズ**（lesson-card.md 15章）。カードで使い始めるフェーズとは限らない（使うカードがないものは合成カードで確かめる。lesson-card.md 15.1）。enum には最初から全部を定義し、まだ動かせない `Op` を使うカードは読み込み時にエラーにする（lesson-card.md 15.1）
+- 「フェーズ」は**コードで処理できるようになるフェーズ**（[lesson-phases.md](lesson-phases.md)）。カードで使い始めるフェーズとは限らない（使うカードがないものは合成カードで確かめる。[lesson-phases.md](lesson-phases.md) 1章）。enum には最初から全部を定義し、まだ動かせない `Op` を使うカードは読み込み時にエラーにする（[lesson-phases.md](lesson-phases.md) 1章）
 - lesson-card.md 7.6 の後回しのプリミティブ（`RepeatNext` / `AddLessonTurn` / `DeckManipulate`）は enum に入れず、そのカードを採用するときにこのページの末尾に足す
 
 ### 命名の規則
@@ -33,7 +34,7 @@ updated: 2026-10-31
 
 | 値 | 名前 | 内容（lesson-card.md 7章） | フェーズ | `Status` / `Trigger` | `Value` | `Arg1`〜`Arg3`・参照 |
 |---|---|---|---|---|---|---|
-| 0 | `None` | 指定なし（エラー） | — | — | — | — |
+| 0 | `Nothing` | 指定なし（エラー） | — | — | — | — |
 | 1 | `GainParam` | パラメータ上昇 | 1 | — | 上昇量 | `Arg1` 連撃の回数（0 は 1）、`Arg2` 集中の倍率%（0 は 100）、`Arg3` 好調の倍率%（0 は 100） |
 | 2 | `GainParamByImpression` | 好印象の N% 分パラメータ上昇 | 1 | — | 倍率% | — |
 | 3 | `GainParamByGenki` | 元気の N% 分パラメータ上昇 | 2 | — | 倍率% | — |
@@ -75,7 +76,7 @@ updated: 2026-10-31
 
 | 値 | 名前 | タイミング（lesson-card.md 10章） | フェーズ |
 |---|---|---|---|
-| 0 | `None` | 指定なし（エラー） | — |
+| 0 | `Nothing` | 指定なし（エラー） | — |
 | 1 | `LessonStart` | L1 | 1 |
 | 2 | `TurnStart` | T3 | 1 |
 | 3 | `AfterTurnStart` | T5 | 1 |
@@ -96,7 +97,7 @@ updated: 2026-10-31
 
 | 値 | 名前 | 用語（[glossary.md](../glossary.md)） | 単位 |
 |---|---|---|---|
-| 0 | `None` | 指定なし | — |
+| 0 | `Nothing` | 指定なし | — |
 | 1 | `GoodCondition` | 好調 | ターン |
 | 2 | `Excellent` | 絶好調 | ターン |
 | 3 | `Focus` | 集中 | 値 |
@@ -114,7 +115,7 @@ updated: 2026-10-31
 
 | 値 | 名前 | 内容（lesson-card.md 5章） | フェーズ |
 |---|---|---|---|
-| 0 | `None` | 指定なし（エラー） | — |
+| 0 | `Nothing` | 指定なし（エラー） | — |
 | 1 | `Consume` | 元気 → 体力の順に払う。補正を受ける | 1 |
 | 2 | `HpDirect` | 体力から直接払う。補正を受けない | 1 |
 | 3 | `GoodConditionTurns` | 好調のターン | 1(実装済み。使うカードはフェーズ 3 だが無いので合成カードで確かめる) |
@@ -129,7 +130,7 @@ updated: 2026-10-31
 
 | 値 | `ConditionSubject` | `Value` | 例 |
 |---|---|---|---|
-| 0 | `None` | 指定なし（エラー） | |
+| 0 | `Nothing` | 指定なし（エラー） | |
 | 1 | `GoodConditionTurns` | ターン数（「状態である」は `GreaterOrEqual` 1） | S04、S11 |
 | 2 | `ExcellentTurns` | ターン数 | |
 | 3 | `Focus` | 値 | S05 |
@@ -142,12 +143,27 @@ updated: 2026-10-31
 
 | 値 | `Comparator` |
 |---|---|
-| 0 | `None`（エラー） |
+| 0 | `Nothing`（エラー） |
 | 1 | `GreaterOrEqual` |
 | 2 | `LessOrEqual` |
 | 3 | `Equal` |
 
-## 6. 例（L14 の通常版。ID は説明用）
+## 6. 既にある enum の数値 [決定。2026-10-31]
+
+`Nothing` を 0 に足し、ほかを 1 つずつずらす。保存したデータもマスタもまだ無いので、付け直してよい（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.1）。
+
+| enum | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| `Plan` | `Nothing` | `Free` | `Sense` | `Logic` | | |
+| `CardType` | `Nothing` | `Active` | `Mental` | `Trouble` | | |
+| `Rarity` | `Nothing` | `N` | `R` | `SR` | `SSR` | |
+| `ParamKind` | `Nothing` | `Singing` | `Rhythm` | `Expression` | | |
+| `LessonKind` | `Nothing` | `Normal` | `Special` | `Finishing` | `MidExam` | `FinalExam` |
+
+- `ParamKind` を配列の添字に使うところは、`(int)kind - 1` ではなく大きさ 4 の配列にして添字 0 を使わない（`StatusSet` と同じ形）
+- マスタの enum（[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章の写し）も同じ名前・数値にする
+
+## 7. 例（L14 の通常版。ID は説明用）
 
 | テーブル | 行 |
 |---|---|

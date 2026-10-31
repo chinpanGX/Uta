@@ -1,6 +1,6 @@
 # uta_docs/plans
 
-実装計画の置き場。仕様（`uta_docs/wiki/`）が「何を作るか」を決め、実装計画は「どのファイルに何を書くか」を決める。実装は、この計画をもとに Sonnet のサブエージェントが行う（[ADR 0014](../wiki/decisions/0014-design-heavy-sonnet-implementation.md)、proposed）。
+実装計画の置き場。仕様（`uta_docs/wiki/`）が「何を作るか」を決め、実装計画は「どのファイルに何を書くか」を決める。実装は、この計画をもとに Sonnet のサブエージェントが行う（[ADR 0017](../wiki/decisions/0017-spec-design-plan-stages.md)、proposed）。
 
 ## 計画を書くとき
 

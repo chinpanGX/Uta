@@ -11,7 +11,7 @@ Uta の最上位ルールは `CLAUDE.md`。ここはそれを egm 向けに言�
 ## 最初に読むもの（Elephant の文脈）
 
 1. `CLAUDE.md`（運用ルール・実装方針・コーディング規約）
-2. `uta_docs/wiki/index.md`（wiki の入口）
+2. `uta_docs/wiki/index.md`（wiki の入口。ページの一覧は各フォルダの `README.md`）
 3. `uta_docs/wiki/decisions/` の ADR（決定はここが正。特に `0001-ip-policy.md`）
 4. 扱う機能に関係するページ（`overview/game-spec.md`、`systems/`、`architecture/`）
 5. `uta_docs/wiki/glossary.md`（用語）
@@ -28,7 +28,7 @@ egm 標準の `docs/designs/` と `SITEMAP.md` は**使わない**。Uta の wik
 | 仕様として反映 | （なし） | `uta_docs/wiki/systems/` か `architecture/` のページに、Uta の書式で反映する（下記） |
 
 - `uta_docs/raw/` のファイルは一度置いたら書き換えない（`uta_docs/raw/README.md`）。直すときは新しいファイルを置く。
-- raw に置いただけでは終わらない。必ず wiki に反映し、`index.md` と `log.md` を更新する。
+- raw に置いただけでは終わらない。必ず wiki に反映し、そのフォルダの `README.md` と `log.md` を更新する。
 
 ## wiki に反映するときの書式
 
@@ -39,7 +39,7 @@ egm のテンプレート（Overview / Goals / Open Questions / CUJs / Technical
 - 推測は推測と明記する
 - 他ページへのリンクは相対パスの Markdown リンク
 - 新しい用語は `glossary.md` に足す
-- Detailed Implementation Plan（触るファイルの一覧・検証計画）は、仕様ページには書かない。`uta_docs/plans/` に plans/README.md の書式で実装計画として書き、仕様ページからリンクする（[ADR 0014](../../../uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)）
+- Detailed Implementation Plan（触るファイルの一覧・検証計画）は、仕様ページには書かない。`uta_docs/plans/` に plans/README.md の書式で実装計画として書き、仕様ページからリンクする（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)）
 - 技術選定・方針変更を含むなら、ADR を `decisions/0000-template.md` から新しく作る（既存 ADR は書き換えず Superseded にする）
 
 ## 書くときに守ること

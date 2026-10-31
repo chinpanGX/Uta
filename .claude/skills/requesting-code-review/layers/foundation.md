@@ -53,7 +53,7 @@ git -C external/<名前> diff <古いポインタ>..<新しいポインタ>
 
 ## サーバー基盤（VolTech-MagicOnion）
 
-- [ ] フィルターの順序（RpcLogFilter → ServerStatusFilter → AuthFilter → DateChangeFilter → ハンドラー）を変えていないか。変えるなら設計書と [server-foundation.md](../../../../uta_docs/wiki/architecture/server-foundation.md) の更新が要る
+- [ ] フィルターの順序（RpcLogFilter → ServerStatusFilter → AuthFilter → DateChangeFilter → ハンドラー）を変えていないか。変えるなら設計書と [server-foundation.md](../../../../uta_docs/wiki/architecture/server/server-foundation.md) の更新が要る
 - [ ] エラーの変換（`BusinessException` → `FAILED_PRECONDITION` + ErrorInfo、想定外 → `INTERNAL`）、ヘッダー、冪等性、トランザクションの約束を壊していないか
 - [ ] 認証・トークンの扱いに穴がないか（期限切れ、`[SkipAuth]` の範囲）
 

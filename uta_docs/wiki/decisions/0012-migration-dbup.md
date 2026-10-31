@@ -8,7 +8,7 @@ updated: 2026-10-28
 
 ## 状況
 
-DB は PostgreSQL（[ADR 0010](0010-database.md)）、デプロイ先は Cloud Run + Cloud SQL（[ADR 0011](0011-deploy-google-cloud.md)）。スキーマを更新する仕組みと、それをいつ・どこで流すかを決める必要がある。サーバー基盤の設計書は DbUp を推奨している（[server-foundation.md](../architecture/server-foundation.md)）。ADR 0011 では、マイグレーションの実行方法を未決にしていた。
+DB は PostgreSQL（[ADR 0010](0010-database.md)）、デプロイ先は Cloud Run + Cloud SQL（[ADR 0011](0011-deploy-google-cloud.md)）。スキーマを更新する仕組みと、それをいつ・どこで流すかを決める必要がある。サーバー基盤の設計書は DbUp を推奨している（[server-foundation.md](../architecture/server/server-foundation.md)）。ADR 0011 では、マイグレーションの実行方法を未決にしていた。
 
 ## 決定
 

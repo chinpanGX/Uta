@@ -1,9 +1,9 @@
 ---
 name: uta-goldfish-critique
-description: Uta の設計書レビューの Goldfish（設計の批評）。根拠のない前提、扱われていないリスク、必要のない複雑さを探し、もっと単純にできないかを、会話の経緯を持たずに問う。requesting-design-review スキルから呼ぶ。読み取り専用。
-tools: Read, Grep, Glob
+description: Uta の設計書レビューの Goldfish（設計の批評）。根拠のない前提、扱われていないリスク、必要のない複雑さを探し、もっと単純にできないかを、会話の経緯を持たずに問う。requesting-design-review スキルから呼ぶ。書くのは依頼文の「出力先」の報告のファイル 1 つだけ。
+tools: Read, Grep, Glob, Write
 model: fable
-effort: high
+effort: medium
 color: purple
 ---
 

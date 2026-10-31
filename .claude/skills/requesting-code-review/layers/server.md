@@ -1,7 +1,7 @@
 # server レイヤーのチェックリスト（`server/`）
 
 ASP.NET Core + MagicOnion（Unary のみ）、.NET 10（C# 14）。DB は PostgreSQL（Npgsql + Dapper）、デプロイ先は Cloud Run + Cloud SQL。
-根拠: CLAUDE.md、[ADR 0002](../../../../uta_docs/wiki/decisions/0002-magiconion.md)・[0004](../../../../uta_docs/wiki/decisions/0004-server-foundation.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)・[0010](../../../../uta_docs/wiki/decisions/0010-database.md)・[0011](../../../../uta_docs/wiki/decisions/0011-deploy-google-cloud.md)、[server-foundation.md](../../../../uta_docs/wiki/architecture/server-foundation.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜4章・10〜11章。
+根拠: CLAUDE.md、[ADR 0002](../../../../uta_docs/wiki/decisions/0002-magiconion.md)・[0004](../../../../uta_docs/wiki/decisions/0004-server-foundation.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)・[0010](../../../../uta_docs/wiki/decisions/0010-database.md)・[0011](../../../../uta_docs/wiki/decisions/0011-deploy-google-cloud.md)、[server-foundation.md](../../../../uta_docs/wiki/architecture/server/server-foundation.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜4章・10〜11章。
 
 ## 層と依存
 
@@ -16,7 +16,7 @@ ASP.NET Core + MagicOnion（Unary のみ）、.NET 10（C# 14）。DB は Postgr
 
 - [ ] 結果をサーバーで確定しているか。クライアントから送られた値（計算結果、所持数、時刻）を信じていないか
 - [ ] リクエストの検証: 所持していないカード・アイテム、範囲外の値、状態と合わない操作を弾いているか
-- [ ] 乱数が `xoshiro256**` で、シードはサーバーが生成しているか。`System.Random` を使っていないか。ストリームの作り方・引く順番が produce.md 10.2・10.3 どおりか
+- [ ] 乱数が `xoshiro256**` で、シードはサーバーが生成しているか。`System.Random` を使っていないか。ストリームの作り方・引く順番が `uta_docs/wiki/architecture/produce-domain.md` 3・4章どおりか
 - [ ] シードや抽選の内部状態をレスポンス・ログでクライアントに漏らしていないか
 - [ ] 時刻はサーバーの時刻で、JST 固定、日付の更新は 12:00 JST か（repository-layout.md 10.2）。`DateTime.Now` を直接使っていないか（テストで差し替えられる時刻の抽象を使うのが望ましい）
 

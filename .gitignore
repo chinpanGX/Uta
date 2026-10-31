@@ -74,3 +74,6 @@ out/
 # --- Claude Code のローカル設定・worktree ---
 /.claude/settings.local.json
 /.claude/worktrees/
+
+# 設計書レビューの Goldfish の報告（作業用。requesting-design-review）
+uta_docs/reviews/.raw/

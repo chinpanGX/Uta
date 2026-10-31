@@ -28,7 +28,7 @@ updated: 2026-10-28
 - **CSV は Git の `masterdata/csv/` を正本にする**。スプレッドシートは編集の道具とし、タブ名をテーブル名にそろえて書き出す（2026-10-27 に確定）
 - Uta で使いながら、必要な改善はアドオン側に入れる（サブモジュール側を先に push してから Uta のポインタを更新する。ADR 0005）
 
-詳細は [architecture/masterdata-pipeline.md](../architecture/masterdata-pipeline.md)。
+詳細は [architecture/master/masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md)。
 
 ## 理由
 

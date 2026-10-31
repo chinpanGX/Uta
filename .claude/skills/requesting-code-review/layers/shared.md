@@ -1,7 +1,7 @@
 # shared レイヤーのチェックリスト（`shared/`、`masterdata/`）
 
 `shared/Uta.Domain`（純粋なゲームルール）と `shared/Uta.Shared`（サービスIF・DTO）。Unity（IL2CPP）と .NET 10 サーバーの**両方**でソースのまま動く。`masterdata/`（マスタの定義・CSV）もここで見る。
-根拠: CLAUDE.md、[ADR 0007](../../../../uta_docs/wiki/decisions/0007-masterdata-with-addons.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜6章・10章、[lesson-domain-types.md](../../../../uta_docs/wiki/architecture/lesson-domain-types.md)、[masterdata-pipeline.md](../../../../uta_docs/wiki/architecture/masterdata-pipeline.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)。
+根拠: CLAUDE.md、[ADR 0007](../../../../uta_docs/wiki/decisions/0007-masterdata-with-addons.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜6章・10章、[lesson-domain-types.md](../../../../uta_docs/wiki/architecture/lesson-domain-types.md)、[masterdata-pipeline.md](../../../../uta_docs/wiki/architecture/master/masterdata-pipeline.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)。
 
 **このレイヤーの不具合は、クライアントとサーバーの両方に同時に出る。** 重さは両側への影響で付ける。
 

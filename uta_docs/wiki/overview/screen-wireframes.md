@@ -34,19 +34,19 @@ updated: 2026-10-31
 
 | ワイヤー | screen-design の画面 | 機能ID | 呼ぶ API(仮) |
 |---|---|---|---|
-| ホーム | ホーム | — | GetPlayer、GetState(再開) |
+| ホーム | ホーム | — | GetPlayer、GetState(再開を押したとき) |
 | 1. 編成 | 編成 | PRD-01、SUP-06 | GetRentalCandidates、Start |
 | 2. 週の行動選択 | 週の行動選択 | PRD-02 | ChooseWeekAction |
 | 3. レッスン・試験 | レッスン / 試験 | PRD-03〜08 | ExecuteLessonAction |
-| 4. スキルカード獲得 | (一覧に未掲載。追加を提案) | PRD-02 | ResolveCardOffer |
-| 5. 授業・おでかけ・支給 | (一覧に未掲載。追加を提案) | PRD-02 | ChooseWeekAction |
-| 6. 相談 | (一覧に未掲載。PRD-09 は次点) | PRD-09 | ChooseWeekAction(相談に入る)、ExecuteConsultAction |
-| 7. 試験結果 | (一覧に未掲載。追加を提案) | PRD-06 | DecideExamRetry(再挑戦する / しない) |
-| 8. 最終評価 | プロデュース結果 | PRD-13 | GetState |
+| 4. スキルカード獲得 | スキルカード獲得 | PRD-02 | ResolveCardOffer |
+| 5. 授業・おでかけ・支給 | 授業・おでかけ・支給 | PRD-02 | ChooseWeekAction |
+| 6. 相談 | 相談(PRD-09 は次点) | PRD-09 | ChooseWeekAction(相談に入る)、ExecuteConsultAction |
+| 7. 試験結果 | 試験結果 | PRD-06 | DecideExamRetry(再挑戦する / しない) |
+| 8. 最終評価 | プロデュース結果 | PRD-13 | 終了の局面に入った操作のレスポンス(GetState では取らない。[produce-domain.md](../architecture/produce-domain.md) 8章) |
 | 9. ガチャ | ガチャ(一覧・排出率・結果)、交換 | GAC-01〜04 | GetGachas、Draw、Exchange |
 | 10. 一覧・強化 | 所持一覧・詳細、育成アイドルの強化、サポートカードの強化 | IDL-01・02、SUP-01・02 | GetPlayer、Train、Awaken、LevelUp、LimitBreak |
 
-API の名前は [api-design.md](../architecture/api-design.md) と [produce.md](../systems/produce.md) の API案が正。4〜7 の操作は produce.md 10.4 の操作の記録に対応する。
+API の名前は [api-design.md](../architecture/api-design.md) と [produce-domain.md](../architecture/produce-domain.md) 8章が正。4〜7 の操作は [produce-domain.md](../architecture/produce-domain.md) 5章 の操作の記録に対応する。
 
 ---
 
@@ -233,7 +233,7 @@ API の名前は [api-design.md](../architecture/api-design.md) と [produce.md]
 └──────────────────────────────┘
 ```
 
-- 予想値は、Shared.Domain で計算した表示専用の値(Presenter は `Application` のユースケース越しに受け取る)。確定はサーバー応答([lesson-card](../systems/lesson-card.md) 9章、screen-design 6章)。山札の中身は枚数と並べ替えた一覧だけ表示する(並び順は返さない。produce.md 10.5)。
+- 予想値は、Shared.Domain で計算した表示専用の値(Presenter は `Application` のユースケース越しに受け取る)。確定はサーバー応答([lesson-card](../systems/lesson-card.md) 9章、screen-design 6章)。山札の中身は枚数と並べ替えた一覧だけ表示する(並び順は返さない。[produce-domain.md](../architecture/produce-domain.md) 6章)。
 - ドリンク [◆] をタップ → 詳細 → 「使う」。ターンも使用数も消費しない。
 - スキップ: 確認なしで実行するか、確認を出すかは未決。
 - ターン終了時の好印象による上昇、発動予約などは、ログ表示で順に見せる(演出の粒度は未決)。
@@ -265,7 +265,7 @@ API の名前は [api-design.md](../architecture/api-design.md) と [produce.md]
 - カードを選ぶ → 「獲得する」で確定。強化済み(+)のカードは強化版の性能を表示する。
 - 除去: 押すとそのカードが消え、そのプロデュース中は出なくなる(確認ダイアログあり)。除去の残り回数が0なら非表示。
 - 再抽選: 3枚まとめて引き直す。巻き戻しはできない。
-- 受け取らない: 確認ダイアログの後、何も獲得せずに進む(produce.md 10.4 の操作)。
+- 受け取らない: 確認ダイアログの後、何も獲得せずに進む([produce-domain.md](../architecture/produce-domain.md) 5章 の操作)。
 
 ---
 
@@ -348,7 +348,7 @@ API の名前は [api-design.md](../architecture/api-design.md) と [produce.md]
 └──────────────────────────────┘
 ```
 
-- 再挑戦: 確認ダイアログ → 試験の最初からやり直す。残り回数は中間・最終の合計で3回。山札の並びは前回と変わる(produce.md 10.2)。
+- 再挑戦: 確認ダイアログ → 試験の最初からやり直す。残り回数は中間・最終の合計で3回。山札の並びは前回と変わる([produce-domain.md](../architecture/produce-domain.md) 3章)。
 - 再挑戦は、体力・デッキ・ドリンクなどを試験の開始直前の状態に戻してやり直す(produce.md 5.1.1)。
 - 4位以下のときは「次へ」の代わりに「再挑戦」か「プロデュース終了」。プロデュース終了でも最終評価(8.)へ進み、評価と報酬が出る(produce.md 5.1.1)。再挑戦が残っていなければ「再挑戦」は出さない。
 - 中間試験の合格時は、育成アイテムの選択(または獲得)画面を挟む(選択式かは未決)。

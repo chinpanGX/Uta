@@ -8,7 +8,7 @@ updated: 2026-10-31
 
 実装設計書（4編）の4編目。クライアントの Presentation 層にあたる、画面・遷移・起動フローを定める。前提は [repository-layout.md](repository-layout.md)。
 
-- 各画面は、呼ぶ API（[api-design.md](api-design.md)）と、使うマスタ（[masterdata-pipeline.md](masterdata-pipeline.md)）に機能ID付きで対応づける
+- 各画面は、呼ぶ API（[api-design.md](api-design.md)）と、使うマスタ（[masterdata-pipeline.md](master/masterdata-pipeline.md)）に機能ID付きで対応づける
 - 画面のワイヤー・見た目はこのページには書かない。[overview/screen-wireframes.md](../overview/screen-wireframes.md)（叩き台）に置く。**画面名・文言は仮称**（[ADR 0001](../decisions/0001-ip-policy.md)）
 
 ## 凡例
@@ -46,8 +46,8 @@ updated: 2026-10-31
 
 | 画面 | 種類 | 機能ID | 呼ぶ API（仮） | 主なマスタ |
 |---|---|---|---|---|
-| 起動・ロード | ページ | — | IssueToken、（マスタ取得） | マスタのバイナリ |
-| ホーム | ページ | — | GetPlayer | — |
+| 起動・ロード | ページ | — | RegisterAsync（初回）、IssueTokenAsync、SyncAsync（4章）。マスタは同梱を読む（RPC にしない） | マスタのバイナリ |
+| ホーム | ページ | — | GetPlayer。再開を押したら GetState（進行中かは起動時の `SyncAsync` で知る。[api-design.md](api-design.md) 1章） | — |
 | ガチャ（一覧） | ページ | GAC-01 | GetGachas | ガチャ、排出率 |
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
 | ガチャ（結果） | ページ／モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
@@ -59,7 +59,7 @@ updated: 2026-10-31
 | 週の行動選択 | ページ | PRD-02 | ChooseWeekAction、GetState | 週構成、行動 |
 | レッスン | ページ | PRD-03〜08 | ExecuteLessonAction | スキルカード、レッスンルール |
 | 試験 | ページ | PRD-06、PRD-07 | ExecuteLessonAction | 試験の設定、スコアボーナス |
-| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）。終わった後の `GetState` は結果を返さない（[produce.md](../systems/produce.md) API案） | 評価の設定 |
+| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）。終わった後の `GetState` は結果を返さない（[produce-domain.md](produce-domain.md) 8章） | 評価の設定 |
 | 設定・お知らせ | ページ／モーダル | — | — | — |
 | スキルカード獲得 | モーダル（案） | PRD-02 | ResolveCardOffer | スキルカード |
 | 授業・おでかけ・支給 | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
@@ -87,11 +87,11 @@ updated: 2026-10-31
 
 ## 4. 起動フロー [Uta案・推測]
 
-`Bootstrap` が行う。詳細は [server-foundation.md](server-foundation.md) と [masterdata-pipeline.md](masterdata-pipeline.md) 6章。
+`Bootstrap` が行う。詳細は [server-foundation.md](server/server-foundation.md) と [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章。
 
 1. 認証: 端末の登録・トークンの発行（`IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
 2. （サーバーの状態の判定は無い）強制アップデートとメンテナンスは実装しない（[repository-layout.md](repository-layout.md) 10.5）。VolTech-MagicOnion のクライアントは `UPDATE_REQUIRED`・`MAINTENANCE` の受け口を持つが、サーバーは返さないので、Uta の画面は作らない
-3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
+3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
 4. 同期: `IPlayerService.SyncAsync` を呼ぶ（初回のプレイヤー作成と初期付与、バージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる
 5. ホームへ遷移する
 
@@ -102,6 +102,7 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - VolTech-MagicOnion のクライアント（`ApiCore`: 順番待ち、再認証、進行中通知、エラーハンドラー）を使う。画面は `ErrorPolicy` に従って、再試行・ダイアログ・タイトルへ戻る、を出し分ける（VolTech-MagicOnion の設計書「クライアント側」）
 - 通信中は入力を受け付けない表示（ブロッカー）を出す。進行中通知の受け口は VolTech-MagicOnion のものを使う
 - 通信の失敗後の再送は、同じ `x-request-id` で行う。画面側で独自の重複防止はしない
+- **日付の更新（12:00 JST）をまたいだとき** [決定。2026-10-31。ユーザーの判断]: VolTech-MagicOnion はどの RPC にも `DATE_CHANGED` を返し、既定の動作はタイトルへ戻る。MVP はこれを受け入れ、変えない。プロデュース中でも状態はサーバーに残っているので、起動の流れ（4章）からホームの「再開」で続ける（[api-design.md](api-design.md) 1章 `SyncAsync`）
 
 ## 6. レッスン・試験画面とドメインの関係 [決定]
 

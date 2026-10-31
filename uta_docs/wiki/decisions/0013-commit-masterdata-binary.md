@@ -29,7 +29,7 @@ updated: 2026-10-28
 
 ## 影響・リスク
 
-- **CSV を変えてバイナリを作り直し忘れると、古いバイナリがコミットされる**。今の `master-gen --check` は生成ソースしか見ない。アドオンに「`--check` でバイナリの古さも検出する」を足すまでは、運用で防ぐ（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 8章）
+- **CSV を変えてバイナリを作り直し忘れると、古いバイナリがコミットされる**。今の `master-gen --check` は生成ソースしか見ない。アドオンに「`--check` でバイナリの古さも検出する」を足すまでは、運用で防ぐ（[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 8章）
 - 中身が同じでも、生成すると差分が出る。アドオンに「データのハッシュが同じならファイルを書き換えない」を足すまでは、変えたときだけ生成する運用で防ぐ（同 8章）
 - マスタのバイナリを無視する `.gitignore` は足さない
 

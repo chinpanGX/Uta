@@ -91,7 +91,8 @@ def collect_files(root):
     files = []
     docs = root / "uta_docs"
     for path in sorted(docs.rglob("*.md")):
-        if ".obsidian" in path.parts:
+        # .raw/ は Goldfish の報告の作業用（Git に入れない）。点検しない
+        if ".obsidian" in path.parts or ".raw" in path.parts:
             continue
         files.append(path)
     for base in (root / ".claude" / "skills", root / ".claude" / "agents"):
@@ -204,6 +205,8 @@ def check_frontmatter(root, report):
 
 
 def check_index_and_orphans(root, inbound, report):
+    """登録の点検。wiki 直下のページとフォルダの README は index.md から、
+    フォルダの中のページは同じフォルダの README.md からリンクされていること。"""
     wiki = root / "uta_docs" / "wiki"
     index = (wiki / "index.md").resolve()
     for path in sorted(wiki.rglob("*.md")):
@@ -211,16 +214,25 @@ def check_index_and_orphans(root, inbound, report):
         if resolved == index:
             continue
         sources = inbound.get(resolved, set())
-        if index not in sources:
-            report.add("エラー", "index に未登録", rel(root, path), "index.md からリンクされていない")
-        if path.name not in ("log.md", "0000-template.md") and not (sources - {index, resolved}):
-            report.add("警告", "孤立ページ", rel(root, path), "index.md 以外のページからリンクされていない")
+        if path.parent == wiki or (path.name == "README.md" and path.parent.parent == wiki):
+            registry, where = index, "index.md"
+        elif path.name == "README.md":
+            # 入れ子のフォルダ（architecture/master/ など）の README は、親のフォルダの README から
+            registry, where = (path.parent.parent / "README.md").resolve(), f"{path.parent.parent.name}/README.md"
+        else:
+            registry, where = (path.parent / "README.md").resolve(), f"{path.parent.name}/README.md"
+        if registry not in sources:
+            report.add("エラー", "目次に未登録", rel(root, path), f"{where} からリンクされていない")
+        if path.name not in ("log.md", "0000-template.md", "README.md") and not (sources - {index, registry, resolved}):
+            report.add("警告", "孤立ページ", rel(root, path), "目次（index.md・README.md）以外のページからリンクされていない")
 
 
 def check_adrs(root, report):
     decisions = root / "uta_docs" / "wiki" / "decisions"
     numbers = {}
     for path in sorted(decisions.glob("*.md")):
+        if path.name == "README.md":
+            continue
         match = ADR_FILE_RE.match(path.name)
         if not match:
             report.add("エラー", "ADR", rel(root, path), "ファイル名が NNNN-件名.md でない")
@@ -238,10 +250,11 @@ def check_adrs(root, report):
         if len(paths) > 1:
             report.add("エラー", "ADR", ", ".join(rel(root, p) for p in paths), f"番号 {number} が重複している")
 
-    # index.md の ADR の行に書いた status が、ADR 本体と合っているか
-    index = root / "uta_docs" / "wiki" / "index.md"
-    for lineno, line in enumerate(index.read_text(encoding="utf-8").split("\n"), 1):
-        match = re.search(r"\(decisions/((\d{4})-[^)]+\.md)\)", line)
+    # decisions/README.md の ADR の行に書いた status が、ADR 本体と合っているか
+    index = decisions / "README.md"
+    lines = index.read_text(encoding="utf-8").split("\n") if index.exists() else []
+    for lineno, line in enumerate(lines, 1):
+        match = re.search(r"\((?:\./)?((\d{4})-[^)/]+\.md)\)", line)
         if not match or match.group(2) == "0000":
             continue
         path = decisions / match.group(1)
@@ -250,13 +263,13 @@ def check_adrs(root, report):
         status = (read_frontmatter(path.read_text(encoding="utf-8")) or {}).get("status", "")
         written = [s for s in ADR_STATUS if s in line]
         if status and written and status not in written:
-            report.add("エラー", "ADR", f"uta_docs/wiki/index.md:{lineno}",
-                       f"index では {'/'.join(written)} だが、{match.group(1)} は {status}")
+            report.add("エラー", "ADR", f"uta_docs/wiki/decisions/README.md:{lineno}",
+                       f"README では {'/'.join(written)} だが、{match.group(1)} は {status}")
 
     # 本文の「ADR NNNN」が実在する番号か
     existing = set(numbers)
     for path in [root / "CLAUDE.md"] + sorted((root / "uta_docs").rglob("*.md")) + sorted((root / ".claude").rglob("*.md")):
-        if not path.exists() or "worktrees" in path.relative_to(root).parts:
+        if not path.exists() or {"worktrees", ".raw"} & set(path.relative_to(root).parts):
             continue
         text = strip_code_blocks(path.read_text(encoding="utf-8"))
         for lineno, line in enumerate(text.split("\n"), 1):

@@ -1,7 +1,7 @@
 # 整合性のチェックリスト
 
 対象のページが、決まっていること・ほかのページ・既にあるコードと食い違っていないかを見る。wiki の書式もここで見る。
-根拠: CLAUDE.md、[ADR](../../../../uta_docs/wiki/decisions/)（特に [0001](../../../../uta_docs/wiki/decisions/0001-ip-policy.md)・[0007](../../../../uta_docs/wiki/decisions/0007-masterdata-with-addons.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）、[glossary.md](../../../../uta_docs/wiki/glossary.md)、[index.md](../../../../uta_docs/wiki/index.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 10章。
+根拠: CLAUDE.md、[ADR](../../../../uta_docs/wiki/decisions)（特に [0001](../../../../uta_docs/wiki/decisions/0001-ip-policy.md)・[0007](../../../../uta_docs/wiki/decisions/0007-masterdata-with-addons.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）、[glossary.md](../../../../uta_docs/wiki/glossary.md)、[index.md](../../../../uta_docs/wiki/index.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 10章。
 egm の codebase_details・structural・style の観点を Uta 向けにまとめたもの。
 
 **矛盾は、どちらが正しいかを決めずに両方の場所を挙げる。** 正は ADR > CLAUDE.md > 仕様ページの順だが、仕様ページ同士の食い違いはユーザーが決める。
@@ -27,7 +27,7 @@ egm の codebase_details・structural・style の観点を Uta 向けにまと�
 - [ ] 同じもの（数値、状態、処理の順、画面、API）について、関係するページと違うことを書いていないか
 - [ ] 対象のページで決めたことが、ほかのページの「未決事項」に残ったままになっていないか（逆も）
 - [ ] リンク先のページ・節が実在するか。リンクは相対パスか
-- [ ] 新しいページなら `index.md` に登録されているか（実装計画は `uta_docs/plans/` に置き、index には登録しない）
+- [ ] 新しいページなら、そのフォルダの `README.md` に登録されているか（実装計画は `uta_docs/plans/` に置き、index には登録しない）
 - [ ] 実装計画なら、frontmatter の `spec` の仕様ページと食い違っていないか。仕様にない機能を足していないか
 
 ## 用語

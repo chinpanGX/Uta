@@ -6,12 +6,13 @@ updated: 2026-10-31
 
 # レッスンの Shared.Domain の型（Uta.Domain）
 
-[lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce.md](../systems/produce.md) 10.2 の乱数を、`shared/Uta.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
+[lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce-domain.md](produce-domain.md) 3章 の乱数を、`shared/Uta.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
 
 ## 凡例
 
 - **[決定]**: 2026-10-28 にこの設計で進めると決めたこと
 - **[Uta案]**: 仕様に書かれていない細部を、実装のために仮に決めたもの
+- **[未実装]**: コード（`shared/Uta.Domain`）にまだ無い型。書いてあるのは今の案で、シグネチャはその型を作る実装計画で決める（2026-10-31 に、実装済みの型と区別するために足した）
 
 ## 決まっていること [決定]
 
@@ -44,9 +45,9 @@ updated: 2026-10-31
 | `PersistentTrigger` | 持続効果が反応するタイミングの enum |
 | `ICardCatalog` | ID からカード定義を返すポート |
 | `LessonRules` | lesson-card.md 4.1 の値（`Uta.Domain` の定数） |
-| `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。試験なら `ExamSetup` も持つ |
-| `ExamSetup` | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int singing, int rhythm, int expression, int aPerThousand, int bFirst, int bSecond, int bThird, int earlyEndScore)`: 審査ターンの列、試験の開始時の 3 パラメータの値、スコアボーナスの係数(5.2 の a と、審査比率の 1〜3 番目の b)、早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int rank)` は 1 ターン分(`rank` は審査比率の何番目か 1〜3)。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
-| `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。15.1） |
+| `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。試験なら `ExamSetup` も持つ(`ExamSetup` を渡す引数は未実装) |
+| `ExamSetup` [未実装] | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int singing, int rhythm, int expression, int aPerThousand, int bFirst, int bSecond, int bThird, int earlyEndScore)`: 審査ターンの列、試験の開始時の 3 パラメータの値、スコアボーナスの係数(5.2 の a と、審査比率の 1〜3 番目の b)、早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int rank)` は 1 ターン分(`rank` は審査比率の何番目か 1〜3)。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
+| `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。[lesson-phases.md](lesson-phases.md) 1章） |
 
 ### 2.1 `Op` ごとの引数
 
@@ -61,7 +62,7 @@ updated: 2026-10-31
 
 | 型 | 責務 |
 |---|---|
-| `CardInstance` | インスタンス ID・カード ID・強化済みか（[produce.md](../systems/produce.md) 10.4） |
+| `CardInstance` | インスタンス ID・カード ID・強化済みか（[produce-domain.md](produce-domain.md) 5章） |
 | `Zones` | 山札・手札・捨札・除外を、インスタンス ID の並びで持つ。山札の先頭が一番上。ドロー、再シャッフル、ランダムな位置への挿入 |
 | `StatusSet` | 8章のステータスの値と、「プレイヤー操作中に初めて付与したか」の印（11章） |
 | `ParamBonusEntry` | パラメータ上昇量増加の、% と残りターンと「プレイヤー操作中に初めて付与したか」の印 |
@@ -73,7 +74,7 @@ updated: 2026-10-31
 - 「スキルカード使用数追加」はステータスにせず、残りの使用数（ターン開始で基本値に戻す）に足す [Uta案]
 - 集中強化・好印象強化の持続ターンは、フェーズ4で決める（いまは値だけ）
 
-## 4. 乱数（produce.md 10.2）
+## 4. 乱数（[produce-domain.md](produce-domain.md) 3章）
 
 | 型 | 責務 |
 |---|---|
@@ -83,7 +84,7 @@ updated: 2026-10-31
 | `Xoshiro256StarStar` | 本体。状態（64 ビット × 4）と引いた回数を出し入れできる |
 | `RandomStreamKind` / `RandomStreamKey` / `RandomStreams` | キーとマスターシードからストリームを作る |
 
-ストリームの作り方 [決定。2026-10-31。[produce.md](../systems/produce.md) 10.2 はここを正とする]: キー `(種類 << 48) | (週 << 32) | 挑戦回数` を SplitMix64 の混ぜる関数に通し、マスターシードと XOR した値を SplitMix64 の初期値にして、4回引いた値を `xoshiro256**` の状態にする。
+ストリームの作り方 [決定。2026-10-31。[produce-domain.md](produce-domain.md) 3章 はここを正とする]: キー `(種類 << 48) | (週 << 32) | 挑戦回数` を SplitMix64 の混ぜる関数に通し、マスターシードと XOR した値を SplitMix64 の初期値にして、4回引いた値を `xoshiro256**` の状態にする。
 
 ## 5. 計算と処理（lesson-card.md 9章・10章）
 
@@ -92,7 +93,7 @@ updated: 2026-10-31
 | `LessonFormulas` | 9.1 最終消費量、9.2 パラメータ上昇値、9.3 元気、9.4 好印象（9.5 試験スコアは試験の実装時） |
 | `LessonCommand` | カードを使う / ドリンクを使う / スキップ |
 | `UseCheckResult` / `LessonApplyResult` | 使用可否と、操作を受け付けたか |
-| `LessonResult` / `LessonEndReason` | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す |
+| `LessonResult` / `LessonEndReason` [未実装] | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す |
 | `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。クライアントの予測にも使う）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
 | `EffectExecutor` | `Op` ごとの `switch` で効果を処理する |
 | `ConditionEvaluator` | 条件の判定（P1・P2） |
@@ -106,7 +107,7 @@ updated: 2026-10-31
 - 1ターン目のドロー枚数は `max(0, 1ターン目の最低手札枚数 − 開始時手札の枚数)`
 - スキップの体力回復は、E1 より前に行う
 
-## 6. フェーズ1で動かす範囲（lesson-card.md 15.2）
+## 6. フェーズ1で動かす範囲（[lesson-phases.md](lesson-phases.md) 2章）
 
 | 区分 | 範囲 |
 |---|---|

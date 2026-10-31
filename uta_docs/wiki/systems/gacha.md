@@ -65,29 +65,13 @@ updated: 2026-10-31
 - 排出テーブルの中身(行)を変えるときは、新しい `GachaTableId` のテーブルを作る。同じ ID のまま変えない(履歴の `gacha_table_id` から当時の確率を追えるようにする)。**この規則は公開・配布してから適用する**。MVP の開発中は、同じ ID のまま CSV を書き換え、DB を作り直してよい
 - 確定枠を別のテーブルにする理由: ピックアップ(GAC-06)で確定枠だけ重みを変えられるようにするため。MVP では通常枠の SR 以上と同じ比なので重複に見えるが、テーブルを分けておけば GAC-06 で構造を変えずに済む(ユーザーの判断。2026-10-31)。`GachaTable` を見出しとして別に置くのは、`Gacha` の 2 つの列から `[Exists]` で参照するため
 - ガチャは「通常枠のテーブル」と「確定枠のテーブル」の 2 つを指す。単発と 10 連の 1〜9 枠目は通常枠、10 連の 10 枠目は確定枠から引く。確定枠のテーブルには SR 以上のカードだけを入れる。参考作品の「10連のどこかに SR 以上 1 枚」ではなく「10 枠目を常に SR 以上」に単純化した
-- マスタの表(名前は仮。[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) の規約に従う):
-
-| テーブル | 主キー | 列 |
-|---|---|---|
-| `Gacha` | `GachaId` | `SingleCost`、`TenCost`、`NormalTableId`、`GuaranteedTableId`、`CeilingPoints`(交換に要る交換pt) |
-| `GachaTable` | `GachaTableId` | (見出し) |
-| `GachaTableEntry` | `GachaTableId` + `Order` | `ItemKind`(enum。下)、`ItemId`、`Weight`(1 以上) |
-| `GachaCeilingItem` | `GachaId` + `Order` | `ItemKind`、`ItemId` |
-| `DuplicateConversion` | `ItemKind` + `Rarity` | `Amount`(育成アイドルはかけらの量、サポートカードは完凸後の強化pt の量。5章・[idol-support.md](idol-support.md) 3章の値) |
-
-- **`ItemKind` と `Outcome` の正はここ** [決定。2026-10-31]: `ItemKind` は `None` = 0 / `Idol` = 1 / `SupportCard` = 2、`Outcome` は `None` = 0 / `New` = 1 / `Duplicate` = 2。マスタの enum(masterdata から生成)と DTO の enum(`Uta.Shared`)は同じ名前・同じ数値で別に定義し、DB の `item_kind`・`outcome` には数値(`smallint`)を入れる。`None` はマスタ・DTO・履歴のどこにも入れない(検証で弾く)
-- 区分: どれもクライアントで確率を表示するので Common(クライアントにも出す)。`DuplicateConversion` も、結果の画面で量を見せるので Common
-- 育成アイドルとサポートカードを 1 つの列 `ItemId` で指す(専用の参照列にしない)のは、DTO と履歴の形(`ItemKind` + `ItemId`)にそろえるため。存在の検証は `[Exists]` ではなく `IValidatable` で、`ItemKind` ごとのマスタを引いて行う
-- 検証(`IValidatable`): `ItemKind` が `None` でない、重みが 1 以上、テーブルごとの重みの合計が `int.MaxValue` 以下(`RandomOps.WeightedIndex` の制約)、テーブルが空でない、`ItemId` が存在する、確定枠のテーブルに R がない(`ItemId` のマスタの `Rarity` を見る)
+- マスタのテーブル・列・`ItemKind` と `Outcome` の enum・区分・検証は [gacha-tables.md](../architecture/master/gacha-tables.md)
 
 ### 3.2 抽選 [決定。2026-10-31]
 
-- 乱数は `xoshiro256**`(CLAUDE.md・[repository-layout.md](../architecture/repository-layout.md) 10.3)。**要求ごとに**、サーバーが暗号用乱数(.NET の `RandomNumberGenerator`)で 64 ビットのシードを作り、SplitMix64 で 4 回引いて `Xoshiro256StarStar` の状態にする([lesson-domain-types.md](../architecture/lesson-domain-types.md) 4章と同じ初期化)。シードは保存しない(ガチャは再現を求めない。結果は履歴に残る)
-- 1 枠につき 1 回、`RandomOps.WeightedIndex`(棄却法。偏りなし)でテーブルから 1 行を選ぶ。候補は `GachaTableEntry` の `Order` の昇順に並べて渡す。レア → カードのような 2 段階には分けない
+- 1 枠につき 1 回、テーブルの重みでテーブルから 1 行を選ぶ。レア → カードのような 2 段階には分けない
 - 10 連は 1 枠目から順に引き、所持品への反映(5章)も枠の順に行う
-- 置き場: 抽選はサーバー専用([api-design.md](../architecture/api-design.md) 4章)なので、`server/` の Domain 層に置く。抽選の関数は、候補の行の並びと `IRandom` を引数で受け取り、選んだ行の添字を返す純粋な関数にする(シードの作成は Application 層)。型名・シグネチャはガチャの実装計画で決める
-- 確かめ方: テストでは、決まった値を返す `IRandom` を渡して、重みから期待どおりの行が選ばれることを単体テストで確かめる。大量に引いて率を見る統計のテストはしない。`RandomOps.WeightedIndex` のテストは今は重み 0 の 1 件だけなので、累積の境界(どの値がどの行に当たるか)のテストをガチャの実装計画で `RandomTests` に足す
-- テスト用の `IRandom` は、選ばせたい値 `r`(0 以上・重みの合計 `total` 未満)に対して **`r + total` を返す**。`NextInt` の棄却法は `2^64 mod total` 未満の値を捨てて引き直すので、`r` をそのまま返すと永遠に引き直すことがある。`r + total` はしきい値以上で、`total` で割った余りが `r` になる
+- 乱数・抽選の関数の置き場・テストの方法は [gacha-support-server.md](../architecture/server/gacha-support-server.md) 1章
 
 ## 4. 天井(交換pt)
 
@@ -141,37 +125,9 @@ updated: 2026-10-31
 
 | 論点 | 方針 |
 |---|---|
-| 抽選結果の記録 | **カード 1 枚 = 1 行**。`DrawAsync` 1 回の行は `request_id`(`x-request-id`)で束ねる。列は [api-design.md](../architecture/api-design.md) 3章 |
 | 確率の表示と実際の一致 | 3.1 の重みから表示と抽選の両方を作る |
-| 同時実行 | 所持品を変える RPC(`DrawAsync`・`ExchangeAsync`)は、トランザクションの**最初に `players` の行を更新またはロックする**。`DrawAsync` は通貨の減算 `UPDATE players SET gacha_currency = gacha_currency - @cost WHERE player_id = @id AND gacha_currency >= @cost`(更新が 0 行なら `GACHA_NOT_ENOUGH_CURRENCY`)、`ExchangeAsync` は `SELECT ... FROM players WHERE player_id = @id FOR UPDATE`。この行ロックで同じプレイヤーの要求が直列になるので、重複の判定(5章)はその後に読めば正しい。抽選・所持品・履歴・冪等性の保存済みレスポンスは同じトランザクションで書く |
 | API | RPC・DTO・エラーは [api-design.md](../architecture/api-design.md) 1・2章 |
-| 所持品の書き込み | 5章の処理が書くのは次の 4 種だけ: 育成アイドルの行の追加(トレーニング 0・覚醒 0・かけら 0)、かけらの加算、サポートカードの行の追加(所持ID は ULID、レベル 1、上限解放 0、入手日時)、`players.support_points` の加算。列名と型はサーバーの実装計画の DDL で決める |
-| `ExpectedCost` | 画面に出した価格と違う額を引かれないための保険(マスタの版はアプリのバージョンと同じなので、食い違うのはクライアントの不具合のとき) |
-
-### 6.1 処理の手順 [決定。2026-10-31]
-
-サーバーはマスタを Infrastructure の `MemoryDatabase` から読む([repository-layout.md](../architecture/repository-layout.md) 4章)。`server/` と `masterdata/` はまだない(作るのはそれぞれの最初の実装計画)。
-
-`DrawAsync`(1 つのトランザクション):
-
-1. `Count` が 1 か 10 でなければ `GACHA_INVALID_COUNT`
-2. `GachaId` がマスタになければ `GACHA_NOT_FOUND`
-3. 価格を決める(`Count` が 1 なら `SingleCost`、10 なら `TenCost`)。`ExpectedCost` と違えば `GACHA_COST_MISMATCH`
-4. 通貨を減らす(上の SQL に `RETURNING gacha_currency` を付け、残りを受け取る)。0 行なら `GACHA_NOT_ENOUGH_CURRENCY`
-5. シードを作って乱数を用意する(3.2)
-6. 枠ごとに(1 から `Count` まで)、抽選する(10 連の 10 枠目は確定枠)→ 5章の処理 → 履歴に 1 行。完凸の判定は枠ごとに `EXISTS` で読んでよい(同じ要求の中で完凸は増えないので、まとめて読んでも結果は同じ。読み方は実装に任せる)
-7. 交換pt を `Count` だけ足す(`gacha_exchange_points` に行がなければ作る。`INSERT ... ON CONFLICT (player_id, gacha_id) DO UPDATE SET points = points + @n RETURNING points` で今の値を受け取る)
-8. Response を作る(api-design.md 1.1)
-
-`ExchangeAsync`(1 つのトランザクション):
-
-1. `GachaId` がマスタになければ、または `CeilingItemOrder` が `GachaCeilingItem` になければ `GACHA_NOT_FOUND`
-2. `players` の行をロックする(上の SQL)
-3. 交換pt を減らす: `UPDATE gacha_exchange_points SET points = points - @c WHERE player_id = @id AND gacha_id = @g AND points >= @c`。0 行(行がない場合を含む)なら `GACHA_NOT_ENOUGH_POINTS`
-4. 5章の処理 → 履歴に 1 行(4章)
-5. Response を作る(`RETURNING points` で受けた残りの交換pt。結果の `Slot` は 0)
-
-`GetGachasAsync`: マスタの `Gacha` を `GachaId` の昇順にすべて返す。交換pt の行がないガチャは 0 を返す。
+| 処理の手順 | 記録・同時実行・所持品の書き込み・RPC ごとの手順は [gacha-support-server.md](../architecture/server/gacha-support-server.md) 2章 |
 
 ## 7. Uta で決めること(参考作品で未公開)
 
@@ -186,7 +142,6 @@ updated: 2026-10-31
 
 ## 未決事項
 
-- `request_id` に入れる `x-request-id` をハンドラーで読む手段(VolTech-MagicOnion の `ServiceContext.Items` などで渡せるか。[server-foundation.md](../architecture/server-foundation.md) の未確認の項目)。サーバーのガチャの実装計画は、この確認を待つ
 - 期間・ピックアップを作るとき、またはガチャ ID を替えるとき(1章)の、古い ID に残った交換pt の扱い(交換メダルへの変換・新しい ID への引き継ぎ・リセット)。MVP の間はガチャ ID を替えない
 
 

@@ -13,7 +13,7 @@ updated: 2026-10-25
 ## 決定
 
 - サーバーは **.NET 10**（ASP.NET Core）で作る
-- 共通部分は既存の C# サーバー基盤を使う。概要は [architecture/server-foundation.md](../architecture/server-foundation.md)（原典: 基盤の設計書）
+- 共通部分は既存の C# サーバー基盤を使う。概要は [architecture/server/server-foundation.md](../architecture/server/server-foundation.md)（原典: 基盤の設計書）
 - 確定するもの: MasterMemory、MagicOnion、MessagePack
 - DB は PostgreSQL + Npgsql + Dapper を第一候補とするが、**最終決定は別途**（未確定）
 

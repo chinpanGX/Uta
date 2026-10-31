@@ -44,12 +44,12 @@ updated: 2026-10-31
 | 審査の型 | 審査比率と試験のターン割り振りの組。4 種類からアイドルごとに選ぶ（[idol-support](systems/idol-support.md) 1.4） |
 | 最短シナリオ | 確認用の 3 週だけの週構成（レッスン → 仕上げ → 最終試験。[game-spec](overview/game-spec.md)） |
 | プレイヤー経験値 | プロデュースの報酬で得て、プレイヤーLv を上げる値（[produce](systems/produce.md) 7章） |
-| 初期の所持品 | アカウントを作ったときに付与する育成アイドル・サポートカード・ガチャ通貨（[game-spec](overview/game-spec.md)） |
+| 初期の所持品 | アカウントを作ったときに付与する育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt（[game-spec](overview/game-spec.md)） |
 | 信頼度 | アイドルごとの永続レベル。試験のスコアボーナスなどが増える（MVP では作らない） |
 | プレイヤーLv | アカウント単位のレベル。カードや機能が解放される |
 | 不調カード | 授業などのコストとしてデッキに入る、効果のないカード |
-| 挑戦回数 | 同じレッスン・試験に挑んだ回数。0 始まりで、試験の再挑戦のたびに 1 増える（[produce](systems/produce.md) 10.2） |
-| 局面 | プロデュースの入力待ちの種類（週の選択、カードの選択肢、レッスン、試験の結果など。produce 10.5） |
+| 挑戦回数 | 同じレッスン・試験に挑んだ回数。0 始まりで、試験の再挑戦のたびに 1 増える（[produce-domain](architecture/produce-domain.md) 3章） |
+| 局面 | プロデュースの入力待ちの種類（週の選択、カードの選択肢、レッスン、試験の結果など。[produce-domain](architecture/produce-domain.md) 6章） |
 | クリア目標 / パーフェクト目標 | レッスンで、超えると報酬が出る値 / 届くとレッスンが終わる値（produce 4.1） |
 | 仕上げボーナス | 仕上げレッスンでクリア目標を超えた分。3 等分して全パラメータに足す（produce 4.2） |
 | スコアボーナス | 試験で、パラメータの上昇をスコアに換算する倍率（produce 5.2） |
@@ -109,7 +109,7 @@ updated: 2026-10-31
 | 用語 | 定義 | 備考 |
 |---|---|---|
 | 共通基盤 | `external/` に Git サブモジュールで取り込んだ自作のリポジトリ 4 つ（VolTech-MagicOnion・Supplement・UnityScreenNavigator・MasterMemoryAddons）の総称。Uta 以外のアプリでも使う前提で育てる。「共通」はこの意味でだけ使う | [repository-layout](architecture/repository-layout.md) 3.1。1 つを指すときはリポジトリ名で書き、「基盤」とだけ書かない |
-| VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server-foundation.md) |
+| VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server/server-foundation.md) |
 | サーバー基盤 | VolTech-MagicOnion のサーバー側（`VolTech.Server`。認証・冪等性・エラー・フィルター順） | 同上 |
 | Shared | `shared/` にある、クライアントとサーバーの両方から使うコード（Shared.Domain と Shared.Contracts）。「共有」とは書かず Shared と書く（「共通」と見間違えないため） | [repository-layout](architecture/repository-layout.md) 3章・5章 |
 | Shared.Domain（`Uta.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定）。コードは `Uta.Shared.Domain` に改名する予定（未実施） | [repository-layout](architecture/repository-layout.md) 3章・6章 |
@@ -123,9 +123,9 @@ updated: 2026-10-31
 | 機能ID | 仕様の機能に付ける ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）。設計書4編の横断に使う | |
 | `[ClientOnly]` / `[ServerOnly]` | マスタ定義に付け、クライアント用・サーバー用のどちらの出力に残すかを決める属性 | MasterMemoryAddons |
 | 正本 | 他のものを生成する元になる、手で編集するデータ（マスタの定義・CSV） | `masterdata/` |
-| スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/masterdata-pipeline.md) 6章 |
+| スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/master/masterdata-pipeline.md) 6章 |
 | `Op`（`EffectOp`） | マスタと Shared.Domain の効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える。名前・数値・列の対応は lesson-enums が正 | [lesson-enums](architecture/lesson-enums.md) |
-| 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
+| 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/master/masterdata-pipeline.md) 3章 |
 | 中断 / 放棄 / 破棄 | プロデュースの止め方。中断はアプリの終了で、いつでも再開できる。放棄はプレイヤーの明示の操作。破棄はアプリのバージョン（または状態の形式）が開始時と違うときにサーバーが行う。放棄・破棄は報酬なし | [api-design](architecture/api-design.md) 5章 |
 | 同期（`SyncAsync`） | 起動時に1回呼ぶ、副作用のある RPC。プレイヤーの作成と初期付与（初回だけ）、バージョン違いのプロデュースの破棄をまとめて行う | [api-design](architecture/api-design.md) 1章 |
 | ULID | 時刻順に並ぶ一意な ID。サーバーが発行する ID に使う（マスタの ID は `int`） | [repository-layout](architecture/repository-layout.md) 10.1 |
@@ -135,11 +135,11 @@ updated: 2026-10-31
 | マスタの日時 | `string` の `yyyy-MM-dd HH:mm:ss`（JST） | 同 10.2 |
 | `xoshiro256**` | Shared.Domain で使う決定的な疑似乱数（64 ビット。xorshift の後継） | 同 10.3 |
 | 万分率 / 千分率 / パーセント表記 | 小数を整数で持つための単位。確率は万分率、カードの効果の倍率はパーセント、0.1% 刻みが要る値（評価・スコアボーナスの係数、パラメータボーナス）は千分率（2026-10-31） | マスタは小数を扱わない |
-| マスターシード | プロデュースのセッションに1つ持つ乱数のシード。ここから用途・場面ごとのストリームを作る | [produce](systems/produce.md) 10.2 |
-| 乱数ストリーム | 用途（週構成・週・カードの選択肢・レッスン）と場面（週番号・挑戦回数）ごとに独立した乱数の列 | 同 10.2 |
-| 入力待ち | プレイヤーの操作を待つ地点。サーバーは入力待ちから次の入力待ちまでを1回で処理して保存する | 同 10.1 |
-| 操作番号 | セッションの操作の記録に付ける 0 からの連番。要求に「次の操作番号」を入れ、古い要求を拒否する | 同 10.4 |
-| カードのインスタンス ID | セッションの中だけで使うカードの連番（`int`）。同じカードの2枚を区別する | 同 10.4 |
+| マスターシード | プロデュースのセッションに1つ持つ乱数のシード。ここから用途・場面ごとのストリームを作る | [produce-domain](architecture/produce-domain.md) 3章 |
+| 乱数ストリーム | 用途（週構成・週・カードの選択肢・レッスン）と場面（週番号・挑戦回数）ごとに独立した乱数の列 | 同 3章 |
+| 入力待ち | プレイヤーの操作を待つ地点。サーバーは入力待ちから次の入力待ちまでを1回で処理して保存する | 同 2章 |
+| 操作番号 | セッションの操作の記録に付ける 0 からの連番。要求に「次の操作番号」を入れ、古い要求を拒否する | 同 5章 |
+| カードのインスタンス ID | セッションの中だけで使うカードの連番（`int`）。同じカードの2枚を区別する | 同 5章 |
 
 ## 置き換え対象の仮称（ADR 0001）
 
