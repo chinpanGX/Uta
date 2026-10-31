@@ -243,6 +243,24 @@ updated: 2026-10-31
 
 信頼度によるスコアボーナス増加(Lv1〜10): 0 / 5 / 10 / 15 / 15 / 20 / 30 / 40 / 50 / 50%
 
+### 5.1.1 試験の結果と局面の遷移 [決定。2026-10-31]
+
+試験が終わると、順位で合格(1〜3位)か不合格(4位以下)かが決まる。再挑戦が残っていれば、合否にかかわらず局面「試験の結果」で入力を待ち、再挑戦するかを選ぶ([screen-wireframes.md](../overview/screen-wireframes.md) 7章)。残っていなければ、この局面を飛ばして「再挑戦しない」と同じに進む。
+
+再挑戦しない(または残っていない)ときの扱い:
+
+| 試験 | 結果 | 次の局面 | 順位報酬(5.1) | 評価(6章) | 報酬(6.1) | 経験値(7章) | `produce_results` |
+|---|---|---|---|---|---|---|---|
+| 中間 | 合格 | 週の選択(次の週) | 付与 | — | — | — | — |
+| 中間 | 不合格 | 終了 | なし | 出す(下記) | ランクに応じて付与 | 中間不合格 | 完了(試験の結果: 中間不合格) |
+| 最終 | 合格 | 終了 | 付与(評価の前にパラメータへ足す) | 出す | ランクに応じて付与 | 最終合格 | 完了(試験の結果: 最終合格) |
+| 最終 | 不合格 | 終了 | なし | 出す(下記) | ランクに応じて付与 | 最終不合格 | 完了(試験の結果: 最終不合格) |
+
+- **不合格で終わっても、6章の式で評価値とランクを出す**。順位分は 0。中間不合格で終わったときは最終試験を受けていないので、スコア分も 0(評価値はパラメータ分だけ)
+- 不合格で終わるのは「完了」の一種で、放棄・破棄([api-design.md](../architecture/api-design.md) 5章)とは違う。報酬は 6.1 のとおり付ける。`produce_results` には終わり方「完了」と、試験の結果(中間不合格 / 最終不合格 / 最終合格)を残す
+- 再挑戦は、**その試験の開始直前の状態**(パラメータ・体力・デッキ・ドリンク・育成アイテムの残り回数など)に戻して、同じ試験を最初からやり直す。挑戦回数を1増やすので、乱数のストリーム(10.2 のキー)は前の挑戦と別になる。戻り先の状態はセッションの状態に持つ(10.5)
+- 再挑戦の残り回数は、中間と最終で共有する(5.1)
+
 ### 5.2 スコアボーナス [決定]
 
 参考作品の式は公開されていないため、Uta 独自の式を使う。
@@ -320,16 +338,17 @@ updated: 2026-10-31
 | 報酬 | 使い道 |
 |---|---|
 | ガチャ通貨 | ガチャ([gacha.md](gacha.md)) |
-| ゴールド | 育成アイドルのトレーニング、サポートカードのレベルアップ([idol-support.md](idol-support.md)) |
+| ゴールド | 育成アイドルのトレーニング、サポートカードのレベルアップ(サポート強化pt と一緒に使う。[idol-support.md](idol-support.md) 2.2) |
 | プレイヤー経験値 | プレイヤーLv(7章) |
 
 - ランクごとの量はマスタで持つ。仮の値はガチャ通貨で C 100 / B 200 / A 300 / S 500(単発 250 なので、1回のプロデュースで 0.5〜2 回分)。ゴールド・経験値の量は実装するときに仮の値を置く
 - 放棄・破棄したプロデュースには報酬を付けない([api-design.md](../architecture/api-design.md) 5章)
+- 試験に不合格で終わったプロデュースにも、ランクに応じて付ける(5.1.1)
 - ランク以外の報酬(初回クリアなど)は作らない
 
 ## 7. プレイヤーLv [確認]
 
-- プロデュース1回の経験値: 初級 10〜20、中級・上級 30〜50(中間不合格 / 最終不合格 / 最終合格で変わる)。
+- プロデュース1回の経験値: 初級 10〜20、中級・上級 30〜50(中間不合格 / 最終不合格 / 最終合格で変わる。区分は 5.1.1)。
 - 必要経験値はレベルごとの表で持つ(例: Lv2まで40、Lv10まで累計6,130、Lv20まで累計34,530。Lv55以降は1レベル70,000)。
 - 機能の解放: Lv5 相談での強化、Lv10 再抽選+1、Lv15 相談での削除、Lv65 除去+1。
 - カード・ドリンクもレベルで解放される(カードの `unlockLv`)。
@@ -465,16 +484,21 @@ updated: 2026-10-31
 
 受け付けた操作だけを、受け付けた順に記録する。拒否した操作は記録しない。
 
-| 局面 | 操作 | 引数 |
-|---|---|---|
-| 週 | 行動を選ぶ | 行動の枠番号、選択肢の番号(授業・おでかけ)、パラメータ(レッスン) |
-| 相談 | 交換する / 強化する / 削除する / 終える | 品の番号 / カードのインスタンス ID |
-| カードの選択肢 | 選ぶ / 再抽選 / 除去 / 受け取らない | 選択肢の番号 |
-| ドリンク | 捨てる | ドリンクの枠番号 |
-| 試験 | 再挑戦する / しない | — |
-| レッスン・試験 | カードを使う | カードのインスタンス ID |
-| レッスン・試験 | ドリンクを使う | ドリンクの枠番号 |
-| レッスン・試験 | スキップ | — |
+| 局面 | 操作 | 引数 | 担当の RPC |
+|---|---|---|---|
+| 週の選択 | 行動を選ぶ | 行動の枠番号、選択肢の番号(授業・おでかけ)、パラメータ(レッスン) | `ChooseWeekActionAsync` |
+| 相談中 | 交換する / 強化する / 削除する / 終える | 品の番号 / カードのインスタンス ID | `ExecuteConsultActionAsync` |
+| カードの選択肢 | 選ぶ / 再抽選 / 除去 / 受け取らない | 選択肢の番号 | `ResolveCardOfferAsync` |
+| ドリンクの整理 | 捨てる | ドリンクの枠番号(0〜3。3 は受け取ろうとしたドリンク) | `DiscardDrinkAsync` |
+| 終了以外の入力待ち | ドリンクを捨てる(3.6 の「いつでも捨てられる」) | ドリンクの枠番号(0〜2) | `DiscardDrinkAsync` |
+| 試験の結果 | 再挑戦する / しない | — | `DecideExamRetryAsync` |
+| レッスン・試験 | カードを使う | カードのインスタンス ID | `ExecuteLessonActionAsync` |
+| レッスン・試験 | ドリンクを使う | ドリンクの枠番号 | `ExecuteLessonActionAsync` |
+| レッスン・試験 | スキップ | — | `ExecuteLessonActionAsync` |
+| 終了以外 | 放棄する | — | `AbandonAsync`(記録しない。[api-design.md](../architecture/api-design.md) 5章) |
+
+- 局面は 10.5 の「進行」の局面。**ドリンクの整理**は、ドリンクを3つ持っているときに4つ目を受け取ったときの入力待ちで、4つから1つ捨てるまで先へ進まない [決定。2026-10-31]。**試験の結果**は、不合格で再挑戦が残るときの入力待ち(5.1.1)
+- 要求の局面が今の局面と違えば拒否する(`PRODUCE_UNEXPECTED_PHASE`)。DTO は API案のとおり
 
 1件の記録: `操作番号(0 から連番)`、`操作の種類(enum)`、`週番号`、`挑戦回数`、`ターン番号`、`引数(int × 2)`。
 
@@ -491,7 +515,7 @@ updated: 2026-10-31
 | 形式 | 状態の形式のバージョン |
 | 開始時の入力 | セッション ID、ユーザー ID、シナリオ・難易度、**育成アイドルとサポートカード6枚の開始時点の性能**(トレーニング・覚醒・レベル・上限解放。レンタル枠を含む)、マスタの版、ルールの版、マスターシード |
 | 乱数 | 使用中のストリームごとに、種類・キーと `xoshiro256**` の状態(64 ビット × 4)、引いた回数(調査用) |
-| 進行 | 局面(週の選択 / 相談中 / カードの選択肢 / レッスン / 試験 / 終了)、週番号、確定した週構成、その週に提示した内容(10.3 で引いたもの)、相談の残り回数と費用 |
+| 進行 | 局面(週の選択 / 相談中 / カードの選択肢 / ドリンクの整理 / レッスン / 試験 / 試験の結果 / 終了)、試験の開始直前の状態(再挑戦の戻り先。5.1.1)、週番号、確定した週構成、その週に提示した内容(10.3 で引いたもの)、相談の残り回数と費用 |
 | 育成 | パラメータ3種、体力・最大体力、育成pt、デッキ(インスタンス ID・カード ID・強化済みか)、ドリンク(最大3)、育成アイテム(残り回数)、再抽選・除去の残り回数、除去したカード、試験の再挑戦の残り回数、中間試験の結果、回数制限のあるアビリティの使用回数 |
 | レッスン中だけ | レッスンの種類・挑戦回数・ターン・目標、試験なら審査ターンの列とスコア、山札(**並び順を含む**)・手札・捨札・除外、レッスン中強化のフラグ、元気、各ステータス(値・ターン数・初付与のフェーズ。lesson-card.md 11章)、上昇量増加のリスト、発動予約、持続効果、このターンの残り使用数 |
 | 記録 | 操作の記録(10.4) |
@@ -508,25 +532,50 @@ updated: 2026-10-31
 
 ### 10.7 この章の未決事項
 
-- 試験の再挑戦で、体力・デッキを試験の開始前に戻すか(参考作品の挙動は未調査)
 - 先頭ターンを2番目にする確率(「1〜2割」の具体値。マスタで持つ)
 - スキルカードサポートの判定のタイミング(10.3 では T4 の直後を仮置き)
 
-## API案(名前は仮)
+## API案 [決定。2026-10-31／型の名前は実装時に変えてよい]
 
-RPC の分け方は [api-design.md](../architecture/api-design.md) 1章が正(2026-10-27 決定)。
+RPC の分け方は [api-design.md](../architecture/api-design.md) 1章が正。**局面ごとに RPC を1つ**にし、同じ局面の操作は Request の「操作の種類」(enum)で分ける。1つの汎用の「操作」RPC に全部の引数を詰めないのは、DTO の型で局面と引数の組み合わせを縛り、使わない引数が混ざらないようにするため。
 
 ```csharp
-// shared/Uta.Shared に置く想定。名前・引数は仮
+// shared/Uta.Shared に置く
 public interface IProduceService : IService<IProduceService>
 {
     UnaryResult<RentalCandidatesResponse> GetRentalCandidatesAsync();
-    UnaryResult<ProduceStateResponse> StartAsync(StartProduceRequest request);                  // idolId, supportCardIds, rentalId
-    UnaryResult<ProduceStateResponse> ChooseWeekActionAsync(ChooseWeekActionRequest request);    // 次の操作番号, 週番号, 行動・選択肢(10.4)
-    UnaryResult<ProduceStateResponse> ExecuteLessonActionAsync(ExecuteLessonActionRequest request);  // 次の操作番号, ターン番号, カード使用 / ドリンク / スキップ
-    UnaryResult<ProduceStateResponse> GetStateAsync();                                           // 再開用
+    UnaryResult<ProduceStateResponse> StartAsync(StartProduceRequest request);
+    UnaryResult<ProduceStateResponse> ChooseWeekActionAsync(ChooseWeekActionRequest request);
+    UnaryResult<ProduceStateResponse> ExecuteConsultActionAsync(ExecuteConsultActionRequest request);
+    UnaryResult<ProduceStateResponse> ResolveCardOfferAsync(ResolveCardOfferRequest request);
+    UnaryResult<ProduceStateResponse> DiscardDrinkAsync(DiscardDrinkRequest request);
+    UnaryResult<ProduceStateResponse> DecideExamRetryAsync(DecideExamRetryRequest request);
+    UnaryResult<ProduceStateResponse> ExecuteLessonActionAsync(ExecuteLessonActionRequest request);
+    UnaryResult<ProduceStateResponse> GetStateAsync();      // 再開用。[NoSideEffects]
+    UnaryResult<ProduceResultResponse> AbandonAsync();      // 進行中のセッションは1つなので引数なし
 }
 ```
+
+Request のフィールド。操作の RPC はすべて、先頭に共通の2つを持つ:
+
+| フィールド | 型 | 内容 |
+|---|---|---|
+| `OperationNumber` | `int` | 次の操作番号(10.4)。サーバーと違えば拒否 |
+| `Week` | `int` | 週番号。今の週と違えば `PRODUCE_STALE_TURN` |
+
+| Request | フィールド(共通の2つの後) |
+|---|---|
+| `StartProduceRequest` | `IdolId`(`int`)、`SupportCardUids`(`string[]`、所持ID 5つ。[idol-support.md](idol-support.md) 2.2.1)、`RentalCandidateId`(`int`)、`ScenarioId`(`int`)、`Difficulty`(enum)。共通の2つは持たない |
+| `ChooseWeekActionRequest` | `SlotIndex`(`int`)、`OptionIndex`(`int`。無いとき -1)、`Param`(`ParamKind`。レッスン以外は無視) |
+| `ExecuteConsultActionRequest` | `Kind`(enum `ConsultActionKind`: `Exchange` / `Enhance` / `Remove` / `Finish`)、`ItemIndex`(`int`。`Exchange` のみ)、`CardInstanceId`(`int`。`Enhance` / `Remove` のみ) |
+| `ResolveCardOfferRequest` | `Kind`(enum `CardOfferActionKind`: `Pick` / `Reroll` / `Remove` / `Decline`)、`OfferIndex`(`int`。`Pick` / `Remove` のみ) |
+| `DiscardDrinkRequest` | `SlotIndex`(`int`) |
+| `DecideExamRetryRequest` | `Retry`(`bool`) |
+| `ExecuteLessonActionRequest` | `Attempt`(`int`。挑戦回数)、`Turn`(`int`)、`Kind`(enum `LessonActionKind`: `UseCard` / `UseDrink` / `Skip`)、`CardInstanceId`(`int`。`UseCard` のみ)、`DrinkSlotIndex`(`int`。`UseDrink` のみ) |
+
+- 使わないフィールドは 0(`OptionIndex` は -1)を送り、サーバーは見ない
+- Response: `ProduceStateResponse` は `GetState` で返すもの(10.5 の「`GetState` で返さないもの」を除いた状態)。`ProduceResultResponse` は `produce_results` の行(終わり方・試験の結果・評価値・ランク・付与した報酬)。終了の局面に入った操作の `ProduceStateResponse` にも、同じ結果を入れる
+- エラー: `PRODUCE_STALE_TURN`(週・ターン・挑戦回数が古い)、`PRODUCE_STALE_OPERATION`(操作番号が違う)、`PRODUCE_UNEXPECTED_PHASE`(局面が違う)、`PRODUCE_INVALID_ARGUMENT`(範囲外の番号・ID、使えない操作)、`PRODUCE_NO_RETRY_LEFT`、`PRODUCE_NOT_IN_PROGRESS`
 
 ## 未決事項
 

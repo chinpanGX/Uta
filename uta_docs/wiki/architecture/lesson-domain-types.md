@@ -1,7 +1,7 @@
 ---
 title: レッスンの共有ドメインの型（Uta.Domain）
 status: draft
-updated: 2026-10-28
+updated: 2026-10-31
 ---
 
 # レッスンの共有ドメインの型（Uta.Domain）
@@ -17,7 +17,7 @@ updated: 2026-10-28
 
 - netstandard2.1、C# 9。`record`・`init`・nullable の注釈・リフレクションは使わない。コンストラクタと読み取り専用プロパティ、`switch` での切り替えで組む
 - `float` / `double` を使わない。倍率はパーセントの整数、確率は万分率の整数。計算の途中は `long` の分子と分母で持ち、最後に1回だけ丸める（lesson-card.md 9.6 の「整数の固定小数点」を採る）
-- 効果はマスタと同じ汎用の形（`Op`・`Value`・`Arg1`〜`Arg3`・参照先のカード ID）で持つ（[masterdata-pipeline.md](masterdata-pipeline.md) 3章）
+- 効果はマスタの `Effect` の行と同じ形（`Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3`・参照先のカード ID）で持つ。enum の名前・数値と列の対応は [lesson-enums.md](lesson-enums.md) が正 [決定。2026-10-31]
 - マスタの生成物には依存しない。カード定義はポート `ICardCatalog` 越しに受け取る
 - 表示用のイベント列（演出に使う「何が起きたか」の記録）は後回し
 - 単体テストは `shared/Uta.Domain.Tests/`（xUnit v3、.NET 10）
@@ -39,7 +39,7 @@ updated: 2026-10-28
 | `CardFace` | コスト・使用条件・効果の配列（記載順） |
 | `CostDef` / `CostKind` | コスト（readonly struct）。種類は 5章の7種 |
 | `ConditionDef` / `ConditionSubject` / `Comparator` | 条件 `{対象, 比較, 値}`（readonly struct）。使用条件と効果内条件の両方に使う |
-| `EffectDef` / `EffectOp` | 効果。`Op`・`Value`・`Arg1`〜`Arg3`・`RefCardId`・効果内条件・子の効果（発動予約と持続効果の中身） |
+| `EffectDef` / `EffectOp` | 効果。`Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3`・`RefCardId`・効果内条件・子の効果（発動予約と持続効果の中身） |
 | `StatusKind` | 8章のステータスの enum |
 | `PersistentTrigger` | 持続効果が反応するタイミングの enum |
 | `ICardCatalog` | ID からカード定義を返すポート |
@@ -47,26 +47,14 @@ updated: 2026-10-28
 | `LessonSetup` | 1回のレッスンに渡す値（種類・ターン数・目標・対象のパラメータ） |
 | `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。15.1） |
 
-### 2.1 `Op` ごとの引数 [Uta案]
+### 2.1 `Op` ごとの引数
 
-| Op | Value | Arg1 | Arg2 | Arg3 | 子 |
-|---|---|---|---|---|---|
-| `Param` | 上昇量 | 回数（0 は 1） | 集中の倍率%（0 は 100） | 好調の倍率%（0 は 100） | |
-| `ParamByRatio` | 倍率% | 参照先（`RatioSource`） | | | |
-| `ParamBonus` | % | ターン数 | | | |
-| `AddGenki` / `AddFixedGenki` / `RecoverHp` | 量 | | | | |
-| `ScaleResource` / `SetResource` | % / 値 | 対象（`ResourceKind`） | | | |
-| `AddTurns` / `AddStack` | 量 | `StatusKind` | | | |
-| `AddPercent` | % | `StatusKind` | ターン数 | | |
-| `Draw` / `AddUses` | 枚数 / 回数 | | | | |
-| `ReplaceHand` / `EnhanceHand` | | | | | |
-| `CreateCard` | 枚数 | 置き場 | | | （`RefCardId` にカード） |
-| `Schedule` | | 何ターン後 | | | 発動する効果 |
-| `Persistent` | | `PersistentTrigger` | ターン数（0 は無制限） | 回数（0 は無制限） | 発動する効果 |
+[lesson-enums.md](lesson-enums.md) 1章が正（2026-10-31 に、ここにあった [Uta案] の表から移した）。
 
+- `EffectDef` は `Status`（`StatusKind`）と `Trigger`（`PersistentTrigger`）を型付きのプロパティで持つ。`Arg1`〜`Arg3` に enum を数値で入れない
 - 持続効果の「アクティブ使用時」「メンタル使用時」は、`PersistentTrigger` の種類で区別する（`OnActiveCardUse` など）
-- 持続効果の発動の条件は、子の効果の効果内条件で表す
-- 「Nターンごと」（10章 T7）は、使うカード・アイテムを採用するときに引数を決める
+- `AddPersistent` の効果内条件は、付与するかどうかの条件（ほかの `Op` と同じ）。発動のたびに見る条件は、子の効果の効果内条件で表す
+- コードはまだ古い名前・数値のまま。直す手順は [実装計画](../../plans/2026-10-31-lesson-enums-rename.md)
 
 ## 3. 状態（lesson-card.md 4章・8章・11章）
 
@@ -120,7 +108,7 @@ updated: 2026-10-28
 
 | 区分 | 範囲 |
 |---|---|
-| 効果 | `Param`、`ParamByRatio`、`AddGenki`、`AddTurns`、`AddStack`、`Draw`、`AddUses`、`Persistent` |
+| 効果 | `GainParam`、`GainParamByImpression`、`AddGenki`、`AddStatus`、`DrawCards`、`AddCardUses`、`AddPersistent`（名前は [lesson-enums.md](lesson-enums.md)） |
 | コスト | 全種類（ステータスを払うコストは仕組みが同じなので先に入れる） |
 | 条件 | 全種類（同上） |
 | 対象外 | 試験、ドリンク、育成アイテム、サポートアビリティ、上の表にない `Op` |

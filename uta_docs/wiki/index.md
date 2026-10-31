@@ -37,6 +37,7 @@ updated: 2026-10-31
 - [architecture/api-design.md](architecture/api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [architecture/screen-design.md](architecture/screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
 - [architecture/lesson-domain-types.md](architecture/lesson-domain-types.md) — レッスンの共有ドメインの型（`Uta.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
+- [architecture/lesson-enums.md](architecture/lesson-enums.md) — レッスンの効果・トリガー・ステータス・コスト・条件の enum の名前・数値と、効果の列の対応（マスタとコードの正）
 - （未作成）ビルド・CI
 
 ## 決定記録（ADR）
