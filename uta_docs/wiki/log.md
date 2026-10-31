@@ -9,6 +9,7 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | lint | wiki の機械的な点検のスキル linting-wiki（lint_wiki.py）を追加。main で実行してエラー 0 件。警告は未作成のパス（masterdata/・shared/Uta.Shared・server/Uta.Server/Domain/）を指すチェックリストの 4 件で、CLAUDE.md の構成図に未作成と明記した
 - 2026-10-31 | adr | ADR 0014（設計は厚く書き、実装は Sonnet のサブエージェントに任せる）を proposed で起票。実装計画の置き場 `uta_docs/plans/` と書式（plans/README.md）、設計書レビューのスキル requesting-design-review を追加。main へのマージで ADR 0012（DbUp）・0013 と番号が重なったため 0014 に改番
 - 2026-10-31 | lint | claude/uta-design-continuation（10/28 の未決事項の決定、ADR 0012・0013）を main にマージ。同じ日に main で決めた内容と食い違う3点は main を正にした（テストは `shared/Uta.Domain.Tests`、乱数は用途・場面ごとのストリーム、操作の記録は状態の1列の中で `produce_actions` テーブルは作らない）。produce.md 10章に「1ユーザー1セッション」「アプリのバージョンが違えば破棄」を反映し、10.7 から外した。api-design.md 3.1 を produce.md 10章に合わせ、repository-layout.md・CLAUDE.md の `tests/` を削除
 - 2026-10-31 | impl | external/VolTech-MagicOnion を a65980e に更新（RPC ごとの設定を、共有インターフェース（`ServiceBase<T>` の `T`）の属性だけから読む。`[SkipAuth]` はクラスに付けられず、冪等性の対象にもならない。予約エラーの既定の action を基盤の仕様に表で置く）

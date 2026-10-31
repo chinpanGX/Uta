@@ -24,6 +24,7 @@
 | コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`） |
 | 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0014](uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)） |
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
+| wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・index 登録・frontmatter・ADR の番号をスクリプトで点検） |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
@@ -49,7 +50,7 @@ uta/
 ├─ CLAUDE.md
 ├─ .editorconfig / .gitattributes / .gitignore  # .editorconfig は client/・server/・shared/ にも置く
 ├─ external/      # Git サブモジュール（自作の共通パッケージ・サーバー基盤）
-├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）
+├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）。未作成
 ├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
 │  ├─ plans/      # 実装計画（どのファイルに何を書くか。書式は plans/README.md）
@@ -61,16 +62,16 @@ uta/
 │     ├─ systems/       # produce / gacha（live は保留）
 │     ├─ architecture/  # 実装設計書（共通・基盤 / マスター / API / 画面）、サーバー基盤
 │     └─ decisions/     # ADR
-├─ server/        # ASP.NET Core + MagicOnion
+├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Domain（共有ドメイン）・Uta.Shared（サービスIF・DTO）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Domain（共有ドメイン）・Uta.Shared（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
 
 1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら `index.md` と `log.md` を更新する。
 2. **Query**: 設計・実装の根拠は wiki から引く。wiki に無いことは推測で実装せず、先に wiki へ起こす。
-3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・index 未登録ページを点検して修正する。
+3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・index 未登録ページを点検して修正する。機械的に調べられるもの（リンク切れ・index 登録・frontmatter・ADR の番号）は `linting-wiki` のスクリプトで、矛盾・古い記述は `requesting-design-review` の整合性の観点で見る。
 
 ## 実装前のルール（ドキュメント駆動）
 
@@ -145,6 +146,7 @@ uta/
 
 - `shared/Uta.Domain` のビルド: `dotnet build shared/Uta.Domain`
 - `shared/Uta.Domain` の単体テスト: `dotnet test --project shared/Uta.Domain.Tests`（.NET 10 SDK。実行方式はルートの `global.json` で Microsoft.Testing.Platform を指定）
+- wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
 
 ## 用語集
 
