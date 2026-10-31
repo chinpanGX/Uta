@@ -43,9 +43,9 @@ updated: 2026-10-31
 | `StatusKind` | 8章のステータスの enum |
 | `PersistentTrigger` | 持続効果が反応するタイミングの enum |
 | `ICardCatalog` | ID からカード定義を返すポート |
-| `LessonRules` | lesson-card.md 4.1 の値 |
+| `LessonRules` | lesson-card.md 4.1 の値（`Uta.Domain` の定数） |
 | `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。試験なら `ExamSetup` も持つ |
-| `ExamSetup` | 試験に渡す値(フェーズ 6。lesson-card.md 9.5): 審査ターンの列(各ターンの `ParamKind` と審査比率の何番目か 1〜3)、試験の開始時の 3 パラメータの値、スコアボーナスの係数 `APerThousand` と `B[3]`、早期終了スコア(0 ＝なし) |
+| `ExamSetup` | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int singing, int rhythm, int expression, int aPerThousand, int bFirst, int bSecond, int bThird, int earlyEndScore)`: 審査ターンの列、試験の開始時の 3 パラメータの値、スコアボーナスの係数(5.2 の a と、審査比率の 1〜3 番目の b)、早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int rank)` は 1 ターン分(`rank` は審査比率の何番目か 1〜3)。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
 | `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。15.1） |
 
 ### 2.1 `Op` ごとの引数
@@ -92,7 +92,7 @@ updated: 2026-10-31
 | `LessonFormulas` | 9.1 最終消費量、9.2 パラメータ上昇値、9.3 元気、9.4 好印象（9.5 試験スコアは試験の実装時） |
 | `LessonCommand` | カードを使う / ドリンクを使う / スキップ |
 | `UseCheckResult` / `LessonApplyResult` | 使用可否と、操作を受け付けたか |
-| `LessonResult` / `LessonEndReason` | レッスンの出力(lesson-card.md 10.1): 得たパラメータ(試験ならスコア)、終わったターンの番号、終了理由、体力。フェーズ 6 で足す |
+| `LessonResult` / `LessonEndReason` | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す |
 | `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。クライアントの予測にも使う）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
 | `EffectExecutor` | `Op` ごとの `switch` で効果を処理する |
 | `ConditionEvaluator` | 条件の判定（P1・P2） |

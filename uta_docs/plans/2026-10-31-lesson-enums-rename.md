@@ -74,6 +74,7 @@ public EffectDef(
 
 - 動かせる `Op`（旧 15〜22行目の一覧）: `GainParam`・`GainParamByImpression`・`AddGenki`・`AddStatus`・`DrawCards`・`AddCardUses`・`AddPersistent`。それ以外（`None` を含む）は「未対応の効果です」のエラー
 - `AddStatus`: `Status` が `GoodCondition`〜`DebuffGuard` の範囲で、かつ `FocusBoost`・`ImpressionBoost` でないこと。`Trigger` が `None` であること
+- 効果ごとの境界（[lesson-enums.md](../wiki/architecture/lesson-enums.md) 1章）: どの `Op` も `Value`・`Arg` が負ならエラー。`AddStatus`・`DrawCards` は `Value` が 1 以上。`ScaleGenki` は 0〜100（動かせる `Op` に入ったとき）。`AddStatusPercent` は「未対応の効果です」のエラー（lesson-card.md 9.2）
 - `AddPersistent`: `Trigger` が `LessonStart`〜`TurnEnd` の範囲で、かつ `EveryNTurns` でないこと（未実装）。`Arg1`・`Arg2` が 0 以上。`Status` が `None`。子が 1 つ以上
 - `AddStatus`・`AddPersistent` 以外の `Op` で `Status` または `Trigger` が `None` でなければエラー（「使わない列が埋まっている」）
 - コスト・条件（今は検証していないので足す）: 通常版・強化版の各面のコストの `Kind` が `Consume`〜`Motivation` の範囲外なら `prefix + "コストの種類が不正"`、使用条件と効果内条件の `Subject` が `GoodConditionTurns`〜`ClearTargetPercent`、`Comparator` が `GreaterOrEqual`〜`Equal` の範囲外なら `prefix + "条件が不正"` をエラーに足す。範囲の確かめ方は既存の `IsDefined` と同じ形の private メソッドにする

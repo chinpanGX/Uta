@@ -57,7 +57,7 @@ updated: 2026-10-31
   - `ExecuteConsultActionAsync`: 相談中の操作（交換・強化・削除・終える）
   - `ResolveCardOfferAsync`: スキルカードの選択肢への操作（選ぶ・再抽選・除去・受け取らない）
   - `DiscardDrinkAsync`: ドリンクを捨てる（ドリンクの整理の局面と、終了以外の入力待ち）
-  - `DecideExamRetryAsync`: 試験に不合格で再挑戦が残るときに、再挑戦するかを選ぶ
+  - `DecideExamRetryAsync`: 試験の後、再挑戦が残るときに（合否にかかわらず）、再挑戦するかを選ぶ
   - `ExecuteLessonActionAsync`: レッスン・試験の中の操作（カードを使う、スキップ、ドリンクを使う。PRD-03〜08）。試験もレッスンと同じ RPC で扱う
   - 局面と操作・RPC の対応は [produce.md](../systems/produce.md) 10.4、Request のフィールドは同じページの API案が正（2026-10-31 決定）。要求の局面が今の局面と違えば `PRODUCE_UNEXPECTED_PHASE`
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
@@ -72,9 +72,9 @@ updated: 2026-10-31
 | RPC | Request | Response |
 |---|---|---|
 | `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
-| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum: `New` / `Duplicate`）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
+| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。`ItemKind` とともに名前と数値の正は [gacha.md](../systems/gacha.md) 3.1）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
-| `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件、`ExchangePoints` |
+| `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
 
 ### 1.2 サポートカードの DTO [決定。2026-10-31]
 
@@ -96,7 +96,7 @@ updated: 2026-10-31
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
 | `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
-| `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_INVALID_ARGUMENT`、`PRODUCE_INVALID_FORMATION`、`PRODUCE_NO_RETRY_LEFT`、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
+| `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_INVALID_ARGUMENT`、`PRODUCE_INVALID_FORMATION`、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
 
 - エラーコードは `shared/Uta.Shared` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（基盤の仕様）
 - 上の表が MVP の reason の一覧。ゴールド不足は共通の `PLAYER_NOT_ENOUGH_GOLD`。MVP の後の機能の reason は、その機能を実装するときに足す
@@ -121,6 +121,7 @@ updated: 2026-10-31
 - 端末とプレイヤーは1対多にする（基盤の端末テーブルがプレイヤーを指す）。MVP は引き継ぎを作らないが、あとで引き継ぎコードを足せる形にしておく（[game-spec.md](../overview/game-spec.md)）
 - 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`
 - 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（基盤の仕様）
+- **所持品・通貨を変える RPC は、トランザクションの最初に `players` の行を更新またはロックする**（`SELECT ... FROM players WHERE player_id = @id FOR UPDATE`。最初の処理が `players` の条件付き更新なら、それでよい）[決定。2026-10-31]。対象は `DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`StartAsync` と、報酬を付与するプロデュースの操作。同じプレイヤーの要求が直列になり、二重払い・重複の判定のずれ・ロックの順の違いによるデッドロックが起きない
 - 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha.md](../systems/gacha.md) 6.1）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
 - インデックスは、実装するときに検索の形に合わせて付ける
 

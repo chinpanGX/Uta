@@ -57,7 +57,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - **ガチャ → プロデュース**: 育成アイドルとサポートカードを介して接続。編成は育成アイドル1人+サポートカード6枚（自分の5枚+サーバーのマスタから借りるレンタル1枚）（[idol-support.md](../systems/idol-support.md)）。MVP はレンタルなしの自分の 0〜5 枚
 - **プロデュース → 報酬**: 最終評価のランクに応じて、ガチャ通貨・ゴールド・サポート強化pt・プレイヤー経験値を付与する（決定。2026-10-28、強化pt は 2026-10-31。[produce.md](../systems/produce.md) 6.1）
 - **通貨**: 課金は実装しない。ガチャ通貨は無償の1種類だけ（決定。[gacha.md](../systems/gacha.md)）。入手は初期付与とプロデュースの報酬（[gacha.md](../systems/gacha.md) 8章）。ほかに持つ値はゴールドとサポート強化pt（報酬で得て、サポートカードの強化に使う）。交換メダルは MVP では作らない
-- **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の最初の `SyncAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500（マスタの値。初期値）を付与する。置き場のマスタは [idol-support.md](../systems/idol-support.md) 6章。これでガチャを引かなくても最初のプロデュースを始められる
+- **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の最初の `SyncAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500・ゴールド 10,000・サポート強化pt 10,000（どれもマスタの値。初期値。ゴールドと強化pt は、最初のプロデュースの前に強化を試せるように置く [仮]）を付与する。置き場のマスタは [idol-support.md](../systems/idol-support.md) 6章。これでガチャを引かなくても最初のプロデュースを始められる
 - **認証**: MVP は基盤の匿名デバイス認証だけで、引き継ぎは作らない（決定。2026-10-28）。アンインストールや機種変更でデータは失われる。プレイヤーと端末は1対多のテーブルにして、あとで引き継ぎコードを足せる形にしておく（[api-design.md](../architecture/api-design.md) 3章）
 
 ## 最小実装範囲（MVP）[決定。2026-10-31]
@@ -66,18 +66,20 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 ### 完了条件
 
-上から順に確かめる。技術検証で一番不確かなもの（Unity 7 の上での MagicOnion・IL2CPP）を先に置く。
+0〜5 は上から順に確かめる。6・7 は client/ の最初の実装計画から並行して進める。技術検証で一番不確かなもの（Unity 7 の上での MagicOnion・IL2CPP）を先に置くため、条件 0 は Uta のサーバーの実装を待たずに確かめられる形にしている。
+
+- **Unity 7（Alpha）の不具合で詰まったとき** [決定。2026-10-31]: 条件 0 が通らなければ [ADR 0006](../decisions/0006-adopt-unity-7-early.md) の見直しを起こし、Unity に依存しない条件 1〜5 はサーバーだけで先に進める。条件 7 が Android で通らなければ、Windows の IL2CPP スタンドアロンで代え、Android は iOS と同じ別の項目に回す
 
 | # | 条件 | 確かめ方 |
 |---|---|---|
-| 0 | Unity 7 のクライアントから、MagicOnion の Unary でローカルのサーバーへ `SyncAsync` → `GetPlayerAsync` が通る | Unity Editor と Windows のビルドで手で確かめる。結果は `architecture/unity7-evaluation.md`（未作成。ここで作る）に残す |
+| 0 | Unity 7 のクライアントから、MagicOnion の Unary で、ローカルのサーバーの基盤の RPC（端末の登録 `RegisterAsync` → トークンの発行）が通る。Uta の RPC は使わない | Unity Editor（Mono）と Windows の IL2CPP スタンドアロンで手で確かめる。結果は `architecture/unity7-evaluation.md`（未作成。ここで作る）に残す。Uta の RPC（`SyncAsync` → `GetPlayerAsync`）が通ることは条件 6 で確かめる |
 | 1 | 匿名デバイス認証でプレイヤーを作り、初期の所持品を付与して保存できる | サーバーの結合テスト（Testcontainers の PostgreSQL。[repository-layout.md](../architecture/repository-layout.md) 10.4） |
-| 2 | ガチャを引いて所持品が更新される（単発・10 連・確定枠・天井の交換・重複のかけらとサポート強化pt への変換） | サーバーの結合テスト。天井は交換pt をマスタで小さくして確かめる |
-| 3 | サポートカードのレベル上げ・上限解放ができ、次のプロデュースの開始時の性能に反映される | サーバーの結合テスト |
-| 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件） |
+| 2 | ガチャを引いて所持品が更新される（単発・10 連・確定枠・天井の交換・重複のかけらとサポート強化pt への変換） | サーバーの結合テスト。天井は、テストが `gacha_exchange_points` の行を直接入れて前提を作る（マスタは変えない） |
+| 3 | サポートカードのレベル上げ・上限解放ができ、次のプロデュースの開始時の性能に反映される | サーバーの結合テスト。残高は初期の所持品で足りる。上限解放の素材は、テストが `player_support_cards` の行を直接入れて用意する |
+| 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件）。最短シナリオで通らない局面（授業・支給・休む・スキルカードの選択肢・中間試験・再挑戦・不合格での終了）は、`Uta.Domain` の単体テストで、初級のシナリオを操作列から回して確かめる（[produce.md](../systems/produce.md) 10.6） |
 | 5 | 途中で中断しても再開できる | 結合テストで途中に `GetStateAsync` を呼んで続ける。状態の再生は `Uta.Domain` の単体テスト（[produce.md](../systems/produce.md) 10.6） |
-| 6 | Windows のクライアントで、起動 → ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
-| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる（[lesson-card.md](../systems/lesson-card.md) 15.8） | 手動。CLAUDE.md の「モバイル実機ビルドを早期・継続的に通す」に合わせ、client/ の最初の実装計画から並行して通す |
+| 6 | Windows のクライアントで、起動（`SyncAsync` → `GetPlayerAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
+| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-card.md](../systems/lesson-card.md) 15.8: 固定のシードと操作列で `Uta.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 
 - iOS の実機ビルドは、Unity 7 の対応状況（[ADR 0006](../decisions/0006-adopt-unity-7-early.md)）次第の別の項目（`architecture/unity7-evaluation.md` に書く）
 - dev 環境（Cloud Run + Cloud SQL）へのデプロイは MVP の条件に含めない別の項目（[repository-layout.md](../architecture/repository-layout.md) 11章）。ローカルの `server/compose.yaml` の PostgreSQL は、条件 6・7 で手で動かすときに使う
@@ -95,6 +97,18 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 - 感性プランを残すのは、9.2 の式（好調・集中）全体をカードで確かめるため。フェーズ 3・4 はカード定義とテストを足すだけで済む（[lesson-card.md](../systems/lesson-card.md) 15.1）
 - 試験の再挑戦を残すのは、局面の遷移と状態の巻き戻しの技術検証の題材にするため。マスタの `RetryCount` を 0 にすれば、コードを変えずに無効にできる
+
+### 実装計画の単位と順 [決定。2026-10-31]
+
+| 順 | 実装計画 | 受け持つ完了条件 | 待つもの |
+|---|---|---|---|
+| 1 | client/ の通信の土台（Unity 7 に MagicOnion・MessagePack を入れ、基盤の RPC を呼ぶ） | 0 | 基盤（`external/VolTech-MagicOnion`）のタグ |
+| 2 | masterdata の最初の計画（定義・CSV・生成。MVP の最小のコンテンツの行） | — | なし |
+| 3 | `Uta.Domain` のレッスン（[lesson-card.md](../systems/lesson-card.md) 15章のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
+| 4 | `Uta.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
+| 5 | server/ の土台とプレイヤー・ガチャ・強化 | 1・2・3 | 基盤のタグ、2 |
+| 6 | server/ のプロデュース | 4・5 | 4・5 |
+| 7 | client/ の画面 | 6・7 | 1・6 |
 
 ### MVP の最小のコンテンツ
 
@@ -118,13 +132,15 @@ MVP で作る画面（[screen-design.md](../architecture/screen-design.md) 2章�
 | ガチャ（確率の表示と結果を含む） | 6・7 |
 | 所持一覧・サポートカードの詳細（レベル上げ・上限解放） | 6 |
 | 編成（シナリオの選択を含む） | 6 |
-| 週の行動選択、レッスン・試験、スキルカードの選択肢、試験結果、プロデュース結果 | 6 |
+| 週の行動選択、授業・支給、レッスン・試験、スキルカードの選択肢、試験結果、プロデュース結果 | 6 |
 
 作らない画面: 天井の交換（条件 2 は結合テストで確かめる）、育成アイドルの強化、抽選履歴、設定・お知らせ、相談・おでかけ。
 
 ## 未決事項
 
 - Uta のキャラクターのステータス・サポートカードの値（masterdata の最初の実装計画で仮の値を置く）
+- ガチャ 1 本の中身（masterdata の最初の実装計画で決める）: 排出テーブルの重みの割り振り（レア・種類の比は [gacha.md](../systems/gacha.md) 3.1）、確定枠のテーブル、天井の交換対象（`GachaCeilingItem`。SSR の 2 種を候補にする）。初期付与の R 5 種も通常枠から出る
+- スキルカードの `unlockLv`（参考作品の値を masterdata の最初の実装計画で入れる。[lesson-card.md](../systems/lesson-card.md) 14章）
 - オリジナル名称（プロデュース等の仮称、キャラ、世界観の最小設定）。MVP は仮称のままで進められる
 - マスタを Addressables によるダウンロードに移す時期（いまは同梱。[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 6章）。MVP は同梱のままで進められる
 

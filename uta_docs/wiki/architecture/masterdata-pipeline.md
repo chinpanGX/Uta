@@ -100,7 +100,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - グループの見出しテーブル（`EffectGroup` / `ConditionGroup`）を置くのは、参照列に `[Exists(typeof(EffectGroup))]` を付けて、存在を属性で検証するため（複合キーの子テーブルは `Exists` の参照先にしにくい。推測）
 - グループの ID も、マスタの ID の方針どおり**採番の規則は作らない**（[repository-layout.md](repository-layout.md) 10.1）。手で振る
 - コストはカードにしかない（ドリンク・育成アイテムはコストを持たない）ので、グループにせず `CardCost` のままにする
-- メリット: 入れ子の深さに制限がなく、効果内条件を複数持てる。同じ `Effect` / `Condition` を育成アイテム・ドリンク（[lesson-card.md](../systems/lesson-card.md) 15.6）、アビリティ（[idol-support.md](../systems/idol-support.md)）からも使える
+- メリット: 入れ子の深さに制限がなく、効果内条件を複数持てる。同じ `Effect` / `Condition` を育成アイテム・ドリンク（[lesson-card.md](../systems/lesson-card.md) 15.6）からも使える。アビリティの枠 1 は専用のテーブルにした（[idol-support.md](../systems/idol-support.md) 2.3）。枠 2〜6 で流用するかは idol-support.md の未決事項
 - デメリット: 1枚のカードが CSV の複数の表に分かれ、読みにくい。代替の「カードごとの表に `ParentOrder` と条件の列を足す」案は、効果内条件が1つに限られ、アイテム・アビリティで同じ表を作り直すことになるため採らない
 
 - **効果は汎用列＋型付きの列で表す** [決定]
@@ -117,7 +117,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
   - 解析は読み込みのたびに行わず、マスタを読むラッパーで一度だけ解析して持つ
 - 代替の「`Op` ごとにテーブルを分ける」案は、テーブルが効果の種類だけ増え、記載順に処理するための結合も重くなるため採らない（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - 効果は「記載順に処理する」ので、`Order` を必ず持つ
-- 同じ構造が週構成（[produce.md](../systems/produce.md) 3.1）、アイドル・サポートカードのアビリティ・イベント（[idol-support.md](../systems/idol-support.md)）にも出る。先に1つ（カード）で型を決め、他へ流用する
+- 似た構造が、アイドル・サポートカードのアビリティ・イベント（[idol-support.md](../systems/idol-support.md)）にも出る。先に1つ（カード）で型を決める。流用するかは、それぞれを作るときに決める（アビリティの枠 1 は専用のテーブル、週構成の行動の効果は効果グループを使わない。[produce.md](../systems/produce.md) 3.1）
 
 ### 3.1 効果の `Op` 一覧と enum
 

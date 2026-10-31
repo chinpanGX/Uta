@@ -158,6 +158,8 @@ MVP で作る範囲は 4章の「必須」([game-spec.md](../overview/game-spec.
   4. 同じ所持IDが 2 回ある
   5. 同じカード ID のカードが 2 枚以上ある(所持IDが別でも)
   6. 育成アイドルのプランと違うプランのカードがある(プラン区分が共通のカードはどのアイドルでも選べる)
+  7. `RentalCandidateId` が 0 でない(MVP はレンタル枠を作らない)。この項目だけ `PRODUCE_INVALID_ARGUMENT`
+- 検証の置き場: 1〜4(所持の解決)はサーバーが DB を引いて行う。解決したカード(カード ID・プラン・レベル・上限解放回数)の列と育成アイドルを受けて、5・6 を `Uta.Domain` の関数で判定する。クライアントは所持一覧から同じ関数で編成の可否を表示する
 
 ### 2.2 レベルと上限解放 [確認]
 
@@ -177,19 +179,19 @@ MVP で作る範囲は 4章の「必須」([game-spec.md](../overview/game-spec.
 
 - 所持しているサポートカードは、**1枚ずつ ULID(所持ID)で持つ**。ガチャで引くたびに1行増える。レベルと上限解放回数は所持IDごとに持つ([api-design.md](../architecture/api-design.md) 3章)。増えた行はレベル 1・上限解放 0(初期付与の 5 枚も同じ)
 - この持ち方を選んだ理由: 同じカードは編成に 1 枚までなので、プレイヤーにとっての利点は小さい。それでも、サーバーが発行する ID(ULID)で所持品を持つことと、2 つの行をまたいで更新する RPC(上限解放)の技術検証の題材にするため、この形にする(ユーザーの判断。2026-10-31)。代わりの案(カード ID ごとに 1 行・引いたときに自動で上限解放)のほうが単純だが、検証の題材が減る
-- **レベル上げ**は、所持ID と**目標のレベル**を指定して `LevelUpAsync` で確定する。今のレベルから目標までの必要量をまとめて払う。一部だけ上げることはしない。手順(1 つのトランザクション):
+- **レベル上げ**は、所持ID と**目標のレベル**を指定して `LevelUpAsync` で確定する。今のレベルから目標までの必要量をまとめて払う。一部だけ上げることはしない。手順(1 つのトランザクション。最初に `players` の行をロックする: [api-design.md](../architecture/api-design.md) 3章):
   1. 所持IDが自分の所持でなければ `SUPPORT_NOT_OWNED`
   2. 目標が今のレベル以下、または上限解放で決まる上限を超えれば `SUPPORT_INVALID_TARGET_LEVEL`
   3. 必要量(強化pt・ゴールド)を `SupportLevelCost` の行から合計する
   4. `UPDATE players SET support_points = support_points - @p, gold = gold - @g WHERE player_id = @id AND support_points >= @p AND gold >= @g` の 1 文で払う。0 行なら残高を読み直し、強化pt が足りなければ `SUPPORT_NOT_ENOUGH_POINTS`、そうでなければ `PLAYER_NOT_ENOUGH_GOLD`(強化pt を先に見る)
   5. 所持IDの行のレベルを目標にする
 - 上限解放は**手動**。プレイヤーが「解放するカード」と「素材にするカード」(同じカードIDの別の所持ID)を1枚ずつ選び、`LimitBreakAsync` で確定する。素材にしたカードは消え、解放するカードの上限解放回数が1増える
-  - 手順(1 つのトランザクション。検証はこの順):
+  - 手順(1 つのトランザクション。検証はこの順。最初に `players` の行をロックする: [api-design.md](../architecture/api-design.md) 3章):
     1. 解放するカードが自分の所持でなければ `SUPPORT_NOT_OWNED`
     2. 素材が解放するカードと同じ所持ID なら `SUPPORT_INVALID_MATERIAL`
     3. 素材を消す: `DELETE FROM player_support_cards WHERE support_card_uid = @m AND player_id = @id AND card_id = @c`。0 行(無い・他人の・別のカード)なら `SUPPORT_INVALID_MATERIAL`
     4. 解放する: `UPDATE player_support_cards SET limit_break = limit_break + 1 WHERE support_card_uid = @t AND player_id = @id AND limit_break < 4`。0 行なら `SUPPORT_MAX_LIMIT_BREAK`(トランザクションごと取り消すので、3 の削除も戻る)
-    5. 4 で上限解放が 4 回(完凸)になったら、同じプレイヤーの同じカード ID の残りの所持ID(上限解放 0〜3 のもの)を、すべて強化pt に変換して消す(量は 3章。完凸の後は使い道がないため)
+  - 完凸した後も、同じカード ID の残りの所持ID(上限解放 0〜3 のもの)は消さずに残す [決定。2026-10-31]。素材にはできない(解放するカードが完凸のため)が、編成とレベル上げはできる。自動で強化pt に変換しないのは、レベルを上げた行の投資を確認なしに消さないため。強化pt に変換するのは、完凸の後にガチャで引いた分だけ(下)
   - 同時に同じ素材を使う要求が来ても、3・4 が 1 文の条件付きの更新なので、片方が 0 行になって失敗する。再送は `x-request-id` で冪等に扱う(基盤)
   - 素材のレベルに使った強化pt・ゴールドは戻らない。画面で素材のレベルが1より大きいときは確認ダイアログに出す
   - 上限解放4回のカードはそれ以上解放できない(`SUPPORT_MAX_LIMIT_BREAK`)。素材が解放するカードと同じ所持ID、別のカードID、他人の所持なら拒否する
@@ -224,7 +226,8 @@ MVP で作る範囲は 4章の「必須」([game-spec.md](../overview/game-spec.
 - 特別レッスン発生率は**パラメータ別**(例: 歌唱の特別レッスン発生率)。判定の順は [produce.md](produce.md) 10.3 [決定。2026-10-31]
 - **MVP で作るのは枠 1(開始時の効果: 初期パラメータ・パラメータボーナス・最大体力)だけ** [決定。2026-10-31]。プロデュース開始時に 1 回、編成の順に適用する。枠 3・6 はスキルカードサポート・サポートイベント(MVP では作らない)にかかる。ほかのトリガー(レッスン終了時・スキルカード・行動選択時・試験終了時)は次点
 - **枠 1 の持ち方** [決定。2026-10-31]: マスタ `SupportAbility`(6章)の行で持つ。1 枚に複数の行(効果)を持てる。各行は効果の種類(`InitialParam` / `ParamBonus` / `MaxHp`)、対象のパラメータ(`ParamKind`。最大体力では使わない。3 つ全部に効くものは 3 行にする)、Lv1 の値、最大レベル(完凸時の上限レベル)の値を持つ。Lv1 から有効
-  - レベル L の値 = `Lv1の値 + floor((最大の値 − Lv1の値) × (L − 1) / (最大レベル − 1))`(整数の線形補間)
+  - レベル L の値 = `Lv1の値 + floor((最大の値 − Lv1の値) × (L − 1) / (最大レベル − 1))`(整数の線形補間)。最大レベルは、同じレアの `SupportLevelCap` の `LimitBreak` = 4 の `MaxLevel`。L は 1 以上・最大レベル以下(レベル上げの検証で保証される)
+  - 開始時のパラメータ = 育成アイドルの初期値(`Initial*`) + 枠 1 の `InitialParam`(パラメータごとの合計)。足すときは [produce.md](produce.md) 4.3 の「パラメータの加算の関数」を通す(上限で止まる)
   - 最大体力の加算は開始時の最大体力に足す。プロデュースの開始時の体力は最大体力と同じ([produce.md](produce.md) 10.5)
 - 単位: パラメータボーナスは千分率(1.2)、発生率は万分率、パラメータ・体力は整数
 
@@ -277,7 +280,7 @@ MVP で作る範囲は 4章の「必須」([game-spec.md](../overview/game-spec.
 | IDL-02 | トレーニング6段階と覚醒4段階で、ステータス・アビリティ・固有カードが変化する | 次点 |
 | IDL-03 | パラメータボーナスがレッスン終了時に適用される | 必須 |
 | IDL-04 | プロデュース開始時に、おすすめ効果に応じた初期デッキが作られる | 必須 |
-| IDL-05 | アカウント作成時に R の育成アイドル全員(マスタの `Rarity` が R の行。トレーニング 0・覚醒 0・かけら 0)と初期サポートカード(`InitialSupportCard`。カード ID はすべて別)を付与する。最初の `SyncAsync` の 1 トランザクションの中で行う | 必須 |
+| IDL-05 | アカウント作成時に R の育成アイドル全員(マスタの `Rarity` が R の行。トレーニング 0・覚醒 0・かけら 0)と初期サポートカード(`InitialSupportCard`。カード ID はすべて別)、`InitialSetting` のガチャ通貨・ゴールド・強化pt を付与する。最初の `SyncAsync` の 1 トランザクションの中で行う | 必須 |
 | SUP-01 | サポートカードのマスタ(タイプ、プラン、レア、アビリティの枠 1)を定義できる | 必須(枠 2〜6 とイベントは、表し方を決めてから。次点) |
 | SUP-02 | レベル上げと上限解放ができる | 必須 |
 | SUP-03 | サポートアビリティがプロデュース中のトリガーで発動する | 必須(枠 1 の開始時だけ。ほかは次点) |
@@ -293,33 +296,35 @@ MVP で作る範囲は 4章の「必須」([game-spec.md](../overview/game-spec.
 |---|---|
 | 育成アイドル・サポートカードのマスタ(ステータス、アビリティ、レベルごとの必要量) | Common マスタ |
 | レンタル候補 | ServerOnly マスタ |
-| レベル・上限解放 → 性能(アビリティの値)の計算、編成の検証、開始時の効果の合算、パラメータボーナスの計算、初期デッキの組み立て | 共有ドメイン(`Uta.Domain`)。クライアントは強化後の予測と編成の可否の表示に使う |
+| レベル・上限解放 → 性能(アビリティの値)の計算、編成の検証の 5・6(2.1)、開始時の効果の合算、パラメータボーナスの計算、初期デッキの組み立て | 共有ドメイン(`Uta.Domain`)。クライアントは強化後の予測と編成の可否の表示に使う |
+| 編成の検証の 1〜4(所持の解決。2.1) | サーバー |
 | 強化の消費・付与、初期付与、ガチャの重複の処理 | サーバー |
 
 ## 6. マスタの表 [決定。2026-10-31。名前は仮]
 
-列の型は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章の規約(`int` / `long` / `string` / `bool` / enum。enum の 0 は `None`)。MVP で使うものだけを書く。具体の行は masterdata の最初の実装計画で作る([game-spec.md](../overview/game-spec.md) MVP の最小のコンテンツ)。
+列の型は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章の規約(`int` / `long` / `string` / `bool` / enum)。新しく作る enum(`Recommend`・`Type`・`Kind`)は 0 を `None` にする。`Rarity`・`Plan`・`ParamKind` は既にある `Uta.Domain` の enum をそのまま使い、0 が有効な値(`N`・`Free`・`Singing`)なので「0 は `None`」の規則の外([lesson-enums.md](../architecture/lesson-enums.md) 1章)。そのため空欄を検証で弾けない列は `IValidatable` で別に見る: `Idol.Plan` は `Free` 以外、`Idol.Rarity`・`SupportCard.Rarity` は R 以上。`SupportAbility` の `MaxHp` の行の `Param` は `Singing`(0)を入れ、読まない。MVP で使うものだけを書く。具体の行は masterdata の最初の実装計画で作る([game-spec.md](../overview/game-spec.md) MVP の最小のコンテンツ)。
 
 | テーブル | 主キー | 列 | 区分 |
 |---|---|---|---|
-| `Idol` | `IdolId` | `Name`、`Rarity`(enum)、`Plan`(enum)、`Recommend`(enum: `GoodCondition` / `Focus` / `Impression` / `Motivation`)、`MaxHp`、`InitialSinging` / `InitialRhythm` / `InitialExpression`、`BonusSingingPerThousand` / `BonusRhythmPerThousand` / `BonusExpressionPerThousand`、`ExamPatternId`、`FirstParam` / `SecondParam` / `ThirdParam`(`ParamKind`。審査比率の 1〜3 番)、`UniqueCardId` | Common |
+| `Idol` | `IdolId` | `Name`、`Rarity`(enum)、`Plan`(enum)、`Recommend`(enum: `None` / `GoodCondition` / `Focus` / `Impression` / `Motivation`)、`MaxHp`、`InitialSinging` / `InitialRhythm` / `InitialExpression`、`BonusSingingPerThousand` / `BonusRhythmPerThousand` / `BonusExpressionPerThousand`、`ExamPatternId`、`FirstParam` / `SecondParam` / `ThirdParam`(`ParamKind`。審査比率の 1〜3 番)、`UniqueCardId` | Common |
 | `IdolRecommendDeck` | `Recommend` + `Order` | `CardId`(1.3 の表。1 つのおすすめ効果に 3 行。同じカードは 2 行) | Common |
-| `SupportCard` | `SupportCardId` | `Name`、`Rarity`、`Type`(enum: `Singing` / `Rhythm` / `Expression` / `Assist`)、`Plan` | Common |
-| `SupportAbility` | `SupportCardId` + `Order` | `Kind`(enum: `InitialParam` / `ParamBonus` / `MaxHp`)、`Param`(`ParamKind`。`MaxHp` では使わない)、`ValueAtLv1`、`ValueAtMax`(`ParamBonus` は千分率) | Common |
+| `SupportCard` | `SupportCardId` | `Name`、`Rarity`、`Type`(enum: `None` / `Singing` / `Rhythm` / `Expression` / `Assist`)、`Plan` | Common |
+| `SupportAbility` | `SupportCardId` + `Order` | `Kind`(enum: `None` / `InitialParam` / `ParamBonus` / `MaxHp`)、`Param`(`ParamKind`。`MaxHp` では使わない)、`ValueAtLv1`、`ValueAtMax`(`ParamBonus` は千分率) | Common |
 | `SupportLevelCost` | `Rarity` + `Level` | `SupportPoints`、`Gold`(Level → Level+1 に要る量) | Common |
 | `SupportLevelCap` | `Rarity` + `LimitBreak` | `MaxLevel` | Common |
 | `InitialSupportCard` | `Order` | `SupportCardId` | ServerOnly |
-| `InitialSetting` | `Id`(1 行だけ) | `GachaCurrency`(初期付与。2,500) | ServerOnly |
+| `InitialSetting` | `Id`(1 行だけ) | `GachaCurrency`(初期付与。2,500)、`Gold`(10,000 [仮])、`SupportPoints`(10,000 [仮]) | ServerOnly |
+| `CommonDeckCard` | `Order` | `CardId`(初期デッキの共通の 5 枚。1.3 の F01×2・F02×1・F03×2 の 5 行) | Common |
 
 - 完凸後の重複の変換量は、ガチャの `DuplicateConversion`([gacha.md](gacha.md) 3.1)に置く
-- 初期デッキのカード ID は、14章の記号に対応するマスタのカード ID を `IdolRecommendDeck` と `UniqueCardId` に書く
+- 初期デッキのカード ID は、14章の記号に対応するマスタのカード ID を `CommonDeckCard`・`IdolRecommendDeck`・`UniqueCardId` に書く
 
 ## 未決事項
 
 - Uta の育成アイドル・サポートカードの具体的な中身(キャラクター、数値)
 - 3章の値(イベント・スキルカードサポートの確率)
 - トレーニング・覚醒の段階ごとの強化量と、育成素材の入手手段(作るとき)
-- 枠 1 以外のアビリティの表し方(`PersistentTrigger`・`EffectOp` を増やすか、アビリティ専用のテーブルにするか)と、レッスン外のトリガーの集合
+- 枠 1 以外のアビリティの表し方(カードの `Effect` / `Condition` を流用して `PersistentTrigger`・`EffectOp` を増やすか、枠 1 と同じく専用のテーブルにするか)と、レッスン外のトリガーの集合。枠 1 は専用のテーブル(2.3)と決めた
 
 ## 実装メモ
 

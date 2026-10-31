@@ -222,7 +222,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | NetArchTest が .NET 10・xunit.v3（Microsoft.Testing.Platform）で動くか。保守されているか | 3章 | サーバーのテストプロジェクトで 1 件動かす。使えなければ、保守されているフォーク（`NetArchTest.eNhancedEdition`）か ArchUnitNET に替える | サーバーのアーキテクチャテスト |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
 | `x-app-version` をハンドラーから読めるか（基盤の `ServiceContext` など） | [api-design.md](api-design.md) 5章 | 基盤の実装を読む・動かす | プロデュースの RPC |
-| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列の状態のハッシュを比べる（[lesson-card.md](../systems/lesson-card.md) 15.8） | なし（実機ビルドの手順に入れる） |
+| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列で再生した状態を項目ごとに比べる（[produce.md](../systems/produce.md) 10.6）。（[lesson-card.md](../systems/lesson-card.md) 15.8） | なし（実機ビルドの手順に入れる） |
 
 ## 9. 共通規約の参照先
 
@@ -273,7 +273,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 ### 10.4 テスト
 
 - **単体テストは専用のプロジェクト（dll）に分ける**。主な対象は `Uta.Domain`（同じシードと操作列で同じ結果になること、計算式）
-- 期待値（固定のシード・操作列の結果、状態のハッシュ、乱数の参照値）は、テストのコードに定数で書く。別ファイルにしない（今の `Uta.Domain.Tests` と同じ）
+- 期待値（固定のシード・操作列の結果、乱数の参照値）は、テストのコードに定数で書く。別ファイルにしない（今の `Uta.Domain.Tests` と同じ）
 - **サーバーは結合テストを書く**（DB を含めて、RPC から結果・保存までを確かめる）
 - **Unity 側のテストは必須にしない**
 - **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する

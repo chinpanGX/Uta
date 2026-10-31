@@ -59,12 +59,12 @@ updated: 2026-10-31
 | 週の行動選択 | ページ | PRD-02 | ChooseWeekAction、GetState | 週構成、行動 |
 | レッスン | ページ | PRD-03〜08 | ExecuteLessonAction | スキルカード、レッスンルール |
 | 試験 | ページ | PRD-06、PRD-07 | ExecuteLessonAction | 試験の設定、スコアボーナス |
-| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）・GetState | 評価の設定 |
+| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）。終わった後の `GetState` は結果を返さない（[produce.md](../systems/produce.md) API案） | 評価の設定 |
 | 設定・お知らせ | ページ／モーダル | — | — | — |
-| スキルカード獲得 [Uta案・追加] | モーダル（案） | PRD-02 | ResolveCardOffer | スキルカード |
-| 授業・おでかけ・支給 [Uta案・追加] | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
+| スキルカード獲得 | モーダル（案） | PRD-02 | ResolveCardOffer | スキルカード |
+| 授業・おでかけ・支給 | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
 | 相談 [Uta案・追加] | ページ（案） | PRD-09 | ChooseWeekAction、ExecuteConsultAction | スキルカード、ドリンク（MVP では作らない） |
-| 試験結果 [Uta案・追加] | ページ（案） | PRD-06 | DecideExamRetry | 試験の設定 |
+| 試験結果 | ページ（案） | PRD-06 | DecideExamRetry | 試験の設定 |
 
 - MVP で作る画面は [game-spec.md](../overview/game-spec.md) の「画面」が正。「次点」「後回し」の機能（PRD-09〜12、PRD-14〜17、IDL-02、SUP-04〜06、GAC-05〜07）の画面は、その機能を実装するときに足す
 - 山札・捨札の確認（PRD-08）は、レッスン中に開くモーダルとして持つ案
@@ -83,7 +83,7 @@ updated: 2026-10-31
 
 - 進行中のプロデュースがある状態でアプリを起動したら、ホームから**再開**できる（`GetStateAsync` で復元。PRD の「中断・再開」）。アプリのバージョンが変わっていたら、そのプロデュースは破棄されている（[api-design.md](api-design.md) 5章）
 - プロデュース中の画面から、確認のダイアログを経て**放棄**できる（`AbandonAsync`）
-- 試験の再挑戦（PRD-06）は、試験画面から再び同じ試験へ
+- 試験の再挑戦（PRD-06）は、試験結果の画面で選び、再び同じ試験へ（合否にかかわらず選べる。[produce.md](../systems/produce.md) 5.1.1）
 
 ## 4. 起動フロー [Uta案・推測]
 
@@ -116,7 +116,7 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - Addressables に移ったあとの、マスタの更新確認のタイミングと更新中の表示
 - 予測値をどの画面要素に出すか（カードの詳細、スコアのプレビューなど）
 - ガチャ結果の演出の範囲（3D ライブは保留。[ADR 0003](../decisions/0003-defer-3d-live.md)）
-- 追加した4画面（スキルカード獲得、授業・おでかけ・支給、相談、試験結果）を一覧に正式に入れるか、種類（ページ／モーダル／シート）をどれにするか
+- 追加した画面の種類（ページ／モーダル／シート）。スキルカード獲得・授業・支給・試験結果は MVP で作ると決めた（[game-spec.md](../overview/game-spec.md)）。相談を一覧に入れるかは、相談を作るときに決める
 
 ## 実装メモ
 
