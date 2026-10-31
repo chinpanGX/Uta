@@ -1,7 +1,7 @@
 ---
 title: プロデュース(育成)
 status: draft
-updated: 2026-10-28
+updated: 2026-10-29
 ---
 
 # プロデュース(育成)
@@ -518,7 +518,7 @@ public interface IProduceService : IService<IProduceService>
 - 途中放棄の扱い(報酬なしで破棄 / 一定期間で自動失効)
 - 報酬(評価ランクごとの通貨など)
 - 信頼度の上がり方(5.1・3.5 で使うが、増え方が未定義)
-- 画面ワイヤー(旧叩き台のものは削除。週構成・レッスン画面で描き直す)
+- 画面ワイヤーは [overview/screen-wireframes.md](../overview/screen-wireframes.md)(叩き台)
 
 ## 実装メモ
 

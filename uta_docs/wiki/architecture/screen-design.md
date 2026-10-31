@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-10-27
+updated: 2026-10-29
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -9,7 +9,7 @@ updated: 2026-10-27
 実装設計書（4編）の4編目。クライアントの Presentation 層にあたる、画面・遷移・起動フローを定める。前提は [repository-layout.md](repository-layout.md)。
 
 - 各画面は、呼ぶ API（[api-design.md](api-design.md)）と、使うマスタ（[masterdata-pipeline.md](masterdata-pipeline.md)）に機能ID付きで対応づける
-- 画面のワイヤー・見た目はこのページには書かない。[produce.md](../systems/produce.md) は旧叩き台のワイヤーを削除済みで、週構成・レッスン画面から描き直す予定。**画面名・文言は仮称**（[ADR 0001](../decisions/0001-ip-policy.md)）
+- 画面のワイヤー・見た目はこのページには書かない。[overview/screen-wireframes.md](../overview/screen-wireframes.md)（叩き台）に置く。**画面名・文言は仮称**（[ADR 0001](../decisions/0001-ip-policy.md)）
 
 ## 凡例
 
@@ -61,6 +61,10 @@ updated: 2026-10-27
 | 試験 | ページ | PRD-06、PRD-07 | ExecuteLessonAction | 試験の設定、スコアボーナス |
 | プロデュース結果 | ページ | PRD-13 | ExecuteLessonAction（最終試験の終了時）・GetState | 評価の設定 |
 | 設定・お知らせ | ページ／モーダル | — | — | — |
+| スキルカード獲得 [Uta案・追加] | モーダル（案） | PRD-02 | ChooseWeekAction | スキルカード |
+| 授業・おでかけ・支給 [Uta案・追加] | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント |
+| 相談 [Uta案・追加] | ページ（案） | PRD-09 | ChooseWeekAction | スキルカード、ドリンク |
+| 試験結果 [Uta案・追加] | ページ（案） | PRD-06 | ExecuteLessonAction | 試験の設定 |
 
 - 「次点」「後回し」の機能（PRD-09〜12、PRD-14、PRD-15、GAC-05）の画面は、その機能を実装するときに足す
 - 山札・捨札の確認（PRD-08）は、レッスン中に開くモーダルとして持つ案
@@ -110,7 +114,7 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - Addressables に移ったあとの、マスタの更新確認のタイミングと更新中の表示
 - 予測値をどの画面要素に出すか（カードの詳細、スコアのプレビューなど）
 - ガチャ結果の演出の範囲（3D ライブは保留。[ADR 0003](../decisions/0003-defer-3d-live.md)）
-- 画面ワイヤーの作成（週構成・レッスン・試験から）
+- 追加した4画面（スキルカード獲得、授業・おでかけ・支給、相談、試験結果）を一覧に正式に入れるか、種類（ページ／モーダル／シート）をどれにするか
 
 ## 実装メモ
 

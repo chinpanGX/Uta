@@ -1,7 +1,7 @@
 ---
 title: Uta wiki 目次
 status: draft
-updated: 2026-10-28
+updated: 2026-10-29
 ---
 
 # Uta wiki 目次
@@ -16,6 +16,7 @@ updated: 2026-10-28
 ## 全体仕様
 
 - [overview/game-spec.md](overview/game-spec.md) — ゲーム概要仕様：ゲームループ、システムの関係、MVP範囲、未決事項
+- [overview/screen-wireframes.md](overview/screen-wireframes.md) — 画面ワイヤー（叩き台）：ホームと10画面の見た目、screen-design の画面一覧との対応
 
 ## システム仕様
 
