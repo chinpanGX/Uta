@@ -1,7 +1,7 @@
 ---
 title: decisions（ADR）の目次
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # decisions（ADR）の目次
@@ -12,7 +12,7 @@ updated: 2026-10-31
 
 - 新しい ADR は [0000-template.md](0000-template.md) を写して書く。番号は最後の番号の次。ファイル名は `NNNN-件名.md`
 - status は proposed / accepted / superseded。accepted の ADR は書き換えない。方針を変えるときは、新しい ADR を起こし、古い ADR を superseded にして、置き換えた ADR へのリンクを足す
-- 足したら、この一覧に 1 行足し、[log.md](../log.md) に 1 行足す。一覧に書いた status と本体の status を合わせる（Lint が点検する）
+- 足したら、この一覧に 1 行足す。一覧に書いた status と本体の status を合わせる（Lint が点検する）
 
 ## 一覧
 
@@ -34,3 +34,4 @@ updated: 2026-10-31
 - [0015-reference-card-values.md](0015-reference-card-values.md) — 初期カードセットの数値は参考作品の値を使う（superseded。ADR 0016 で置き換え）
 - [0016-reference-game-values.md](0016-reference-game-values.md) — ゲームシステムの数値（カード・週構成・排出率・強化量など）は参考作品の値を使う。ADR 0015 を置き換え（accepted）
 - [0017-spec-design-plan-stages.md](0017-spec-design-plan-stages.md) — ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え（accepted）
+- [0018-change-log-from-git.md](0018-change-log-from-git.md) — 変更の記録は log.md をやめ、git log から取る。ADR 0017 の「log.md に追記する」を置き換え（accepted）
