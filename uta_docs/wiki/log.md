@@ -9,6 +9,7 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | lint | uta_docs/project-instructions.md（Claude Project 用の Custom instructions）を消した。使っていないため（ユーザーの判断）。運用ルールの正は CLAUDE.md
 - 2026-10-31 | spec | architecture/ に master/（マスタ設計）と server/（サーバーの実装設計）のフォルダを作った。masterdata-pipeline.md を master/ に、server-foundation.md と gacha-support-server.md を server/ に移した。マスタのテーブル・列・区分・検証を、systems/ の 3 ページ（produce 3.1・idol-support 6章・gacha 3.1）と masterdata-pipeline.md 3章（カードの表）から、master/ のシステムごとのページ（lesson-tables・produce-tables・idol-support-tables・gacha-tables）に移した（中身は変えていない。ユーザーの判断）。全テーブルの索引は masterdata-pipeline.md 9章から master/README.md に移した
 - 2026-10-31 | spec | wiki を整理した。ADR 0017（ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え）を追加し、CLAUDE.md の実装前のルールを直した。systems/ の実装設計を architecture/ に移した（produce.md 10章・API案 → produce-domain.md、gacha.md の抽選の実装・処理の手順と idol-support.md の強化の手順 → gacha-support-server.md、lesson-card.md 15章 → lesson-phases.md。中身は変えていない）。各フォルダに README.md（目次とフォルダの決まり。architecture は「何の正がどのページか」の表）を置き、index.md は入口だけにした。Lint のスクリプトは README への登録を点検する形に直した
 - 2026-10-31 | impl | VolTech-MagicOnion の player_id を uuid から char(26) に変えた変更（f79974d）を VolTech-MagicOnion の main に入れ、Uta のポインタを上げた。テストは 68 件すべて成功（Uta の外の作業ツリーで実行）
