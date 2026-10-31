@@ -24,7 +24,7 @@ description: Uta の設計書（uta_docs/wiki の systems/・architecture/・ove
 **必ず:**
 - 仕様ページ（`systems/`・`architecture/`）を新しく書いたとき、大きく書き直したとき
 - そのページをもとに実装計画を書く前
-- **実装計画（`uta_docs/plans/`）を `status: ready` にする前**（[ADR 0014](../../../uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)。実装を Sonnet に渡せるかの関門）
+- **実装計画（`uta_docs/plans/`）を `status: ready` にする前**（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)。実装を Sonnet に渡せるかの関門）
 - ADR を proposed で起票したとき
 
 **あると良い:**
@@ -48,7 +48,7 @@ grep -oE '\]\([^)]+\.md[^)]*\)' <対象> | sort -u   # 対象がリンクして�
 grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンクしているページ
 ```
 
-- **関係するページ**: 上のリンクと、`uta_docs/wiki/index.md` の一行要約から選ぶ。多すぎるときは、対象が直接リンクしているものと ADR を優先する。
+- **関係するページ**: 上のリンクと、各フォルダの `README.md` の一行要約と、`architecture/README.md` の「何の正がどのページか」から選ぶ。多すぎるときは、対象が直接リンクしているものと ADR を優先する。
 - **実装計画のとき**: frontmatter の `spec` に挙がった仕様ページを必ず入れる。計画が触る既存のファイルのフォルダを「関係するコード」に入れる
 - **関係するコード**: 対象が既にあるコードを説明しているなら（例: `lesson-domain-types.md` と `shared/Uta.Domain/`）、そのフォルダ。なければ「なし」。
 
@@ -61,6 +61,7 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 | 設計の批評 | [lenses/critique.md](lenses/critique.md) | 根拠のない前提、リスク、過剰な設計、もっと単純にできないか |
 
 - **既定は 3 つとも**。同じメッセージで並べて出す（並行して動く）。
+- **ゲームの仕様（`systems/`・`overview/`）は整合性だけ**。詳細は実装設計書（`architecture/`）と実装計画で決めるので、仕様のページに実装可能性・設計の批評を回さない（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)）
 - 段階で絞ってよい:
   - 構想段階（`raw/` の concept、中身がまだ箇条書きの叩き台）: 整合性と設計の批評だけ
   - 用語や書式だけ直した小さな変更: 整合性だけ
@@ -75,7 +76,7 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 | 観点 | subagent_type | model | effort | 理由 |
 |---|---|---|---|---|
 | 整合性 | `uta-goldfish-consistency` | `opus` | `high` | ADR とほかのページを何枚も突き合わせる。見落としが後で一番高くつく |
-| 実装可能性 | `uta-goldfish-readiness` | `sonnet` | `medium` | **実装を担当するモデルで読ませる。** Sonnet が質問せずに書けると判断できなければ、設計書が足りていない（[ADR 0014](../../../uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)） |
+| 実装可能性 | `uta-goldfish-readiness` | `sonnet` | `medium` | **実装を担当するモデルで読ませる。** Sonnet が質問せずに書けると判断できなければ、設計書が足りていない（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
 | 設計の批評 | `uta-goldfish-critique` | `fable` | `high` | 前提を疑い、代わりの案を出す判断が中心。ここに一番強いモデルを使う |
 
 - モデル・エフォート・使えるツール（Read・Grep・Glob と、報告のファイルを書く Write）はエージェントの定義で決まっている。Agent ツールに `model`・`effort` は渡さない。ユーザーが別の指定をしたときだけ渡す。
@@ -93,7 +94,7 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 - **未決事項を決めることになる指摘**は、勝手に決めない。選択肢を添えてユーザーに確認する（CLAUDE.md「勝手に決めない」）
 - **ADR・CLAUDE.md の方針そのものへの反対**は、勝手に直さず、ADR を見直す提案としてユーザーに確認する
 - 「判断しなかったこと」の一覧は、報告のファイルの該当の節を読んで 1 行ずつ扱いを決める。黙って捨てない
-- 直したら、frontmatter の `updated` を更新し、`log.md` に 1 行追記する。ページを足したら `index.md` も更新する
+- 直したら、frontmatter の `updated` を更新し、`log.md` に 1 行追記する。ページを足したら、そのフォルダの `README.md` も更新する
 - 実装計画は、実装可能性の判定が「はい」になり、Critical・Important と計画の「未決事項」が残っていなければ `status: ready` にする
 
 直したあとにもう一度見てもらうなら、**Critical か Important が出た観点だけ**出し直す。依頼文の `[FOCUS]` に直した節を挙げ、そこを中心に見てもらう（ページ全体を毎回読み直させると、直した部分以外から新しい指摘が出続けて終わらない）。2 回目でも同じ指摘が残るなら、3 回目を出す前にユーザーに相談する。

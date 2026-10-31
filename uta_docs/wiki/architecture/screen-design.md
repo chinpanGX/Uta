@@ -59,7 +59,7 @@ updated: 2026-10-31
 | 週の行動選択 | ページ | PRD-02 | ChooseWeekAction、GetState | 週構成、行動 |
 | レッスン | ページ | PRD-03〜08 | ExecuteLessonAction | スキルカード、レッスンルール |
 | 試験 | ページ | PRD-06、PRD-07 | ExecuteLessonAction | 試験の設定、スコアボーナス |
-| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）。終わった後の `GetState` は結果を返さない（[produce.md](../systems/produce.md) API案） | 評価の設定 |
+| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）。終わった後の `GetState` は結果を返さない（[produce-domain.md](produce-domain.md) 8章） | 評価の設定 |
 | 設定・お知らせ | ページ／モーダル | — | — | — |
 | スキルカード獲得 | モーダル（案） | PRD-02 | ResolveCardOffer | スキルカード |
 | 授業・おでかけ・支給 | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |

@@ -16,22 +16,22 @@
 
 | 作業 | 読むファイル |
 |---|---|
-| 設計・仕様を確認する、未決事項に触れる | `uta_docs/wiki/index.md` → 関連ページ（全体は `overview/game-spec.md`、各システムは `systems/`）。決定は ADR（`decisions/`）が正 |
+| 設計・仕様を確認する、未決事項に触れる | `uta_docs/wiki/index.md` → フォルダの `README.md` → 関連ページ（全体は `overview/game-spec.md`、ゲームの仕様は `systems/`、実装設計書は `architecture/`。何の正がどのページかは `architecture/README.md`）。決定は ADR（`decisions/`）が正 |
 | 技術選定・方針変更をする | `uta_docs/wiki/decisions/`（既存 ADR を確認。新規は `0000-template.md` を使う） |
 | C# のコードを書く | 下の「C# コーディング規約」と `.editorconfig` |
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
 | 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
 | コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`） |
-| 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0014](uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)） |
+| 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
-| wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・index 登録・frontmatter・ADR の番号をスクリプトで点検） |
+| wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・目次（README）への登録・frontmatter・ADR の番号をスクリプトで点検） |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
 
 - 返答・ドキュメント・コミットメッセージは日本語で書く。
 - 勝手に決めない。未決事項や、決定済みの方針（ADR）に反する変更・大きな設計変更は、ユーザーに確認する。
-- コードを変更したら、関連する仕様ページを同じ変更で更新する（手順は「実装前のルール」）。
+- コードを変更したら、関連する実装設計書（`architecture/`）を同じ変更で更新する。ゲームの挙動が変わったときは仕様（`systems/`）も更新する（手順は「実装前のルール」）。
 - 存在しないビルドコマンドやファイルを、あるものとして書かない。
 - **.NET SDK / Unity がない環境では、ビルド・テストの結果を推測で「通った」と書かない。** 確認できていないと明記し、ユーザーに実行を依頼する。
 - シークレット（接続文字列・鍵・パスワード）をリポジトリに入れない。
@@ -56,12 +56,12 @@ uta/
 │  ├─ plans/      # 実装計画（どのファイルに何を書くか。書式は plans/README.md）
 │  ├─ reviews/    # 設計書レビューの結果（実施日ごとのフォルダ。目次は各フォルダの README.md）
 │  └─ wiki/       # LLMが維持する整理済み知識
-│     ├─ index.md
+│     ├─ index.md     # 入口。ページの一覧は各フォルダの README.md
 │     ├─ log.md
 │     ├─ glossary.md
-│     ├─ overview/      # ゲーム全体の概要仕様
-│     ├─ systems/       # produce / gacha（live は保留）
-│     ├─ architecture/  # 実装設計書（共通・基盤 / マスター / API / 画面）、サーバー基盤
+│     ├─ overview/      # ゲーム全体の仕様
+│     ├─ systems/       # ゲームの仕様（produce / lesson-card / idol-support / gacha。live は保留）
+│     ├─ architecture/  # 実装設計書（共通の 4 編、サーバー基盤、機能ごとの実装設計）
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
@@ -70,24 +70,31 @@ uta/
 
 ## wiki の運用（3操作）
 
-1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら `index.md` と `log.md` を更新する。
+1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら、そのフォルダの `README.md`（ページを足した・消したとき）と `log.md` を更新する。
 2. **Query**: 設計・実装の根拠は wiki から引く。wiki に無いことは推測で実装せず、先に wiki へ起こす。
-3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・index 未登録ページを点検して修正する。機械的に調べられるもの（リンク切れ・index 登録・frontmatter・ADR の番号）は `linting-wiki` のスクリプトで、矛盾・古い記述は `requesting-design-review` の整合性の観点で見る。
+3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・目次に未登録のページを点検して修正する。機械的に調べられるもの（リンク切れ・目次（README）への登録・frontmatter・ADR の番号）は `linting-wiki` のスクリプトで、矛盾・古い記述は `requesting-design-review` の整合性の観点で見る。
 
 ## 実装前のルール（ドキュメント駆動）
 
-**設計は厚く書き、実装は Sonnet のサブエージェントに任せる**（[ADR 0014](uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)、proposed）。判断は仕様と実装計画に寄せ、実装担当に設計判断を残さない。
+**設計は厚く書き、実装は Sonnet のサブエージェントに任せる。設計書は 3 段に分け、詳細は実装設計書の段階でレビューを回して決める**（[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)。ADR 0014 を置き換え）。判断は設計書と実装計画に寄せ、実装担当に設計判断を残さない。
 
-1. 仕様ページ（`systems/` または `architecture/`）を書く、または更新する
-2. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
-3. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）
-4. 仕様と実装計画を `requesting-design-review` でレビューに出す。実装計画は、実装可能性の観点（Sonnet）が「質問せずに書ける」と判定するまで直し、`status: ready` にする
-5. 計画のタスクごとに Sonnet のサブエージェントに実装させる（Agent ツールで `model: sonnet`）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
-6. `requesting-code-review` でコードレビューに出す
-7. 実装結果と仕様のズレを wiki に反映し、計画を `status: done` にする
-8. `log.md` に1行追記する
+| 段 | 置き場 | 書くこと | レビュー |
+|---|---|---|---|
+| ゲームの仕様 | `wiki/systems/`・`wiki/overview/` | 何が起きるか（ルール・値・局面の遷移・実行要件）。実装設計書の一次情報。ゲームの仕様が変わるときだけ変える | 整合性の観点だけ |
+| 実装設計書 | `wiki/architecture/` | どう作るか（層・型・RPC・DTO・テーブル・処理の手順・乱数・状態）。仕様の節にリンクする | 3 つの観点。詳細はここで決める。ページ全体は 2 回まで |
+| 実装計画 | `uta_docs/plans/` | どのファイルに何を書くか（シグネチャ・DDL・手順・テスト） | 3 つの観点。実装可能性（Sonnet）が「質問せずに書ける」と判定するまで |
 
-仕様・実装計画を書くのはメインのセッション（Opus または Fable）。計画が要らない小さな変更（1 ファイルの修正など）は 3〜5 を飛ばしてよい。
+1. ゲームの仕様（`systems/`・`overview/`）を書く、または更新する
+2. 実装設計書（`architecture/`）を書く、または更新する。何の正がどのページかは `architecture/README.md`
+3. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
+4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）
+5. 実装設計書と実装計画を `requesting-design-review` でレビューに出す（上の表の回し方）。実装計画は、実装可能性の観点が「質問せずに書ける」と判定するまで直し、`status: ready` にする
+6. 計画のタスクごとに Sonnet のサブエージェントに実装させる（Agent ツールで `model: sonnet`）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
+7. `requesting-code-review` でコードレビューに出す
+8. 実装結果と設計書のズレを wiki に反映し（実装設計書を直す。ゲームの挙動が変わったときだけ仕様も直す）、計画を `status: done` にする
+9. `log.md` に1行追記する
+
+仕様・実装設計書・実装計画を書くのはメインのセッション（Opus または Fable）。計画が要らない小さな変更（1 ファイルの修正など）は 4〜6 を飛ばしてよい。
 
 ## wiki ページの書式
 

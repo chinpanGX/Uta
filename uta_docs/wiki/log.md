@@ -9,6 +9,7 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | spec | wiki を整理した。ADR 0017（ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え）を追加し、CLAUDE.md の実装前のルールを直した。systems/ の実装設計を architecture/ に移した（produce.md 10章・API案 → produce-domain.md、gacha.md の抽選の実装・処理の手順と idol-support.md の強化の手順 → gacha-support-server.md、lesson-card.md 15章 → lesson-phases.md。中身は変えていない）。各フォルダに README.md（目次とフォルダの決まり。architecture は「何の正がどのページか」の表）を置き、index.md は入口だけにした。Lint のスクリプトは README への登録を点検する形に直した
 - 2026-10-31 | impl | VolTech-MagicOnion の player_id を uuid から char(26) に変えた変更（f79974d）を VolTech-MagicOnion の main に入れ、Uta のポインタを上げた。テストは 68 件すべて成功（Uta の外の作業ツリーで実行）
 - 2026-10-31 | spec | architecture のレビュー（VolTech-MagicOnion・MasterMemoryAddons の実物と突き合わせ）の指摘を直した。強制アップデートは実装しないと決め、前提にしていた記述を外した。player_id は ULID（char(26)）のままにし、uuid は使わない。VolTech-MagicOnion のテーブルの player_id を char(26) に変えることを 1 番目の計画の手順に入れた。12章にサーバーの骨組み（players の最小の形、Voltech の設定、接続文字列、migrate）を足し、server-foundation.md を VolTech-MagicOnion の docs を正とする形に直した。生成ソースの init 用の IsExternalInit の置き場を決めた
 - 2026-10-31 | spec | masterdata-pipeline.md 9章に、MVP のマスタ 35 テーブルの索引（名前・主キー・区分・正のページ）を足した。列の正は各システムのページのまま。4章の「要確認」だった試験の NPC スコアを、produce.md の決定（Common）に合わせて解決済みにした

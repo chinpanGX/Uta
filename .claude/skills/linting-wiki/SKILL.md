@@ -29,15 +29,15 @@ python -I .claude/skills/linting-wiki/lint_wiki.py
 | リンク切れ | エラー | 相対リンクの行き先が実在するか。`uta_docs/raw/` の中のリンク切れは警告（raw は書き換えないため） |
 | ADR の番号の食い違い | エラー | リンクの文字（`ADR 0014` など）の番号と、行き先のファイルの番号が合うか。マージで ADR の番号を振り直したときに出やすい |
 | frontmatter | エラー | `title` / `status` / `updated` があるか。`status` がその種類で使える値か（wiki: draft / stable / deprecated / deferred、ADR: proposed / accepted / superseded、実装計画: draft / ready / in-progress / done）。`updated` が日付か。実装計画に `spec` があるか |
-| index に未登録 | エラー | `uta_docs/wiki/` のページが `index.md` からリンクされているか |
-| ADR | エラー | ファイル名の形、番号の重複、title の番号、`index.md` に書いた status と本体の status、本文の「ADR NNNN」が実在する番号か |
-| 孤立ページ | 警告 | `index.md` 以外のどのページからもリンクされていないか |
+| 目次に未登録 | エラー | フォルダの中のページが、同じフォルダの `README.md` からリンクされているか。wiki 直下のページ（log.md・glossary.md）とフォルダの `README.md` は `index.md` から |
+| ADR | エラー | ファイル名の形、番号の重複、title の番号、`decisions/README.md` に書いた status と本体の status、本文の「ADR NNNN」が実在する番号か |
+| 孤立ページ | 警告 | 目次（`index.md`・`README.md`）以外のどのページからもリンクされていないか |
 | 書かれたパスがない | 警告 | CLAUDE.md・スキル・エージェントにコード書式で書いたパス（`shared/...` など）が実在するか。同じパスは書かれた場所をまとめて 1 件にする。`.gitignore` で除外したものは見ない |
 | 確かめられなかったリンク | 警告 | 行き先が `external/` のサブモジュールの中で、サブモジュールが未初期化 |
 
 ### 3. 直す
 
-- **エラーは直す。**リンクの行き先を直す、`index.md` に登録する、frontmatter を直す。
+- **エラーは直す。**リンクの行き先を直す、目次（そのフォルダの `README.md`）に登録する、frontmatter を直す。
 - **ADR の本体（accepted のもの）は書き換えない**（CLAUDE.md）。ADR の中のリンク切れは、リンクの行き先だけを直すのにとどめ、中身に触れるならユーザーに確認する。
 - **`uta_docs/raw/` は書き換えない。**raw の中のリンク切れは警告のまま残す。
 - **警告は 1 件ずつ確かめる。**

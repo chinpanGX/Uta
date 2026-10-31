@@ -59,9 +59,9 @@ updated: 2026-10-31
   - `DiscardDrinkAsync`: ドリンクを捨てる（ドリンクの整理の局面と、終了以外の入力待ち）
   - `DecideExamRetryAsync`: 試験の後、再挑戦が残るときに（合否にかかわらず）、再挑戦するかを選ぶ
   - `ExecuteLessonActionAsync`: レッスン・試験の中の操作（カードを使う、スキップ、ドリンクを使う。PRD-03〜08）。試験もレッスンと同じ RPC で扱う
-  - 局面と操作・RPC の対応は [produce.md](../systems/produce.md) 10.4、Request のフィールドは同じページの API案が正（2026-10-31 決定）。要求の局面が今の局面と違えば `PRODUCE_UNEXPECTED_PHASE`
+  - 局面と操作・RPC の対応は [produce-domain.md](produce-domain.md) 5章、Request のフィールドは同じページの 8章が正（2026-10-31 決定）。要求の局面が今の局面と違えば `PRODUCE_UNEXPECTED_PHASE`
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
-  - どの操作の要求も、**次の操作番号**を持つ。サーバーの操作番号と合わない要求は `PRODUCE_STALE_OPERATION` で拒否する(クライアントは `GetState` で取り直す)。週・ターンは要求に持たない(サーバーの状態から分かる)。再送は `x-request-id` で冪等に扱う([produce.md](../systems/produce.md) 10.4。2026-10-31 決定)
+  - どの操作の要求も、**次の操作番号**を持つ。サーバーの操作番号と合わない要求は `PRODUCE_STALE_OPERATION` で拒否する(クライアントは `GetState` で取り直す)。週・ターンは要求に持たない(サーバーの状態から分かる)。再送は `x-request-id` で冪等に扱う([produce-domain.md](produce-domain.md) 5章。2026-10-31 決定)
 - 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（VolTech-MagicOnion の仕様）
 - **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。強制アップデートは実装しないので、マスタの版の不一致はサーバーでは扱わない（手元のアプリを入れ直す。[repository-layout.md](repository-layout.md) 10.5）
 - DTO は、サーバー専用の値（`[ServerOnly]` のマスタの値など）を含めない。レンタル候補のように、サーバーが決めた結果だけを返す
@@ -123,7 +123,7 @@ updated: 2026-10-31
 - 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`
 - 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（VolTech-MagicOnion の仕様）
 - **所持品・通貨を変える RPC は、トランザクションの最初に `players` の行を更新またはロックする**（`SELECT ... FROM players WHERE player_id = @id FOR UPDATE`。最初の処理が `players` の条件付き更新なら、それでよい）[決定。2026-10-31]。対象は `DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`StartAsync` と、報酬を付与するプロデュースの操作。同じプレイヤーの要求が直列になり、二重払い・重複の判定のずれ・ロックの順の違いによるデッドロックが起きない
-- 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha.md](../systems/gacha.md) 6.1）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
+- 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha-support-server.md](gacha-support-server.md) 2章）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
 - インデックスは、実装するときに検索の形に合わせて付ける
 
 ### 3.1 プロデュースのセッション [決定。2026-10-28]
@@ -143,7 +143,7 @@ updated: 2026-10-31
 | `version` | 楽観ロック |
 | `state` | 状態（MessagePack の `bytea`） |
 
-状態（`state`）の中身は [produce.md](../systems/produce.md) 10.5 が正。概要:
+状態（`state`）の中身は [produce-domain.md](produce-domain.md) 6章 が正。概要:
 
 - 週、体力、パラメータ、デッキ、育成アイテム、ドリンク、育成pt、編成（開始時の性能を写したもの）
 - レッスン・試験の中なら:
@@ -151,13 +151,13 @@ updated: 2026-10-31
   - ステータス（[lesson-card.md](../systems/lesson-card.md) 8章）と、ターン制ステータスの「プレイヤー操作中に初めて付与したか」の印（11章）
   - 持続効果・発動予約の一覧（発動する効果の中身を丸ごと、残りターン・回数、付与の順番）。効果グループ ID では持たない。マスタの版はアプリのバージョンと同じで、版が違うセッションは破棄される（5章）ので、中身を持っても食い違わない [決定。2026-10-31]
   - 残りの使用数、ターン番号、スコア・パラメータの途中経過
-- 乱数: **マスターシードと、使用中のストリームごとの `xoshiro256**` の現在の状態の両方を持つ**（[produce.md](../systems/produce.md) 10.2）。現在の状態があれば再開がすぐにでき、マスターシードと操作の記録があれば最初から再現できる
-- 操作の記録（[produce.md](../systems/produce.md) 10.4）
+- 乱数: **マスターシードと、使用中のストリームごとの `xoshiro256**` の現在の状態の両方を持つ**（[produce-domain.md](produce-domain.md) 3章）。現在の状態があれば再開がすぐにでき、マスターシードと操作の記録があれば最初から再現できる
+- 操作の記録（[produce-domain.md](produce-domain.md) 5章）
 - MessagePack は `[MessagePackObject]` と整数のキー（`[Key(n)]`）で書く。文字列のキーより小さく、項目の名前を変えても読める
 
 **状態の形式のバージョン（`state_version`）**: サーバーで状態の形式を変えたら上げる。MVP の間は、古い形式を新しい形式に変換するコードは書かず、**`state_version` が今のサーバーと違うセッションは、アプリのバージョン違いと同じく破棄する**（5章）。進行中のプロデュースが消えるのは、個人開発の確認用なので受け入れる。
 
-**操作の記録**: 受け付けた操作を順番に、状態の1列の中に記録する（別テーブルにはしない。[produce.md](../systems/produce.md) 10.4）。マスターシードと合わせて、最初から同じ結果を再現できる（不具合の調査、[lesson-card.md](../systems/lesson-card.md) 13章）。調査で SQL から見たくなったら、別テーブルに追記する形に移す。
+**操作の記録**: 受け付けた操作を順番に、状態の1列の中に記録する（別テーブルにはしない。[produce-domain.md](produce-domain.md) 5章）。マスターシードと合わせて、最初から同じ結果を再現できる（不具合の調査、[lesson-card.md](../systems/lesson-card.md) 13章）。調査で SQL から見たくなったら、別テーブルに追記する形に移す。
 
 ## 4. ゲームルールの置き場 [決定]
 
@@ -168,7 +168,7 @@ updated: 2026-10-31
 | カード効果の処理、ゾーンの移動、ターン処理順、計算式（[lesson-card.md](../systems/lesson-card.md) 4〜12章） | `Uta.Domain` | クライアントとサーバーで結果を一致させる（15.7）。確定はサーバー |
 | 使用可否の判定（コスト・使用条件。PRD-04） | `Uta.Domain` | クライアントでも判定と予測の表示に使う（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)） |
 | 最終評価の計算（[produce.md](../systems/produce.md) 6章） | `Uta.Domain` | 最終試験の前後で、評価の見込みを表示できる。確定はサーバー（2026-10-28 決定） |
-| 週の進行（行動の処理、選択肢の抽選、レッスン後の処理、試験の結果。[produce.md](../systems/produce.md) 3〜5章・10章） | `Uta.Domain` | 再生の検証を `Uta.Domain` の単体テストで書ける（[produce.md](../systems/produce.md) 10.6）。乱数はサーバーが渡す（2026-10-31 決定） |
+| 週の進行（行動の処理、選択肢の抽選、レッスン後の処理、試験の結果。[produce.md](../systems/produce.md) 3〜5章・10章） | `Uta.Domain` | 再生の検証を `Uta.Domain` の単体テストで書ける（[produce-domain.md](produce-domain.md) 7章）。乱数はサーバーが渡す（2026-10-31 決定） |
 | サポートカードの性能の計算、編成の検証、初期デッキ（[idol-support.md](../systems/idol-support.md) 5章） | `Uta.Domain` | 強化後の予測と編成の可否をクライアントでも表示する（2026-10-31 決定） |
 | 報酬の決定と付与 | サーバー専用 | 所持品・通貨の更新はサーバーのみ |
 | ガチャの抽選、交換pt の加算・天井の交換の確定 | サーバー専用 | 抽選はサーバー権威。表示用の排出率はマスタで公開する（GAC-02）。交換できるかの表示用の判定はクライアントもする |
@@ -176,7 +176,7 @@ updated: 2026-10-31
 | 所持品・通貨の更新 | サーバー専用 | 更新はサーバーのみ |
 
 - 最終評価の式（[produce.md](../systems/produce.md) 6章）は `2.3` や `0.15` などの小数を使う。`Uta.Domain` では `float` / `double` を使わないので、千分率の整数にする（例: `× 2.3` → `× 2300 / 1000`）。丸めの位置は式のとおり `floor` で、元の式と結果が一致することを単体テストで確かめる
-- 乱数は決定的な疑似乱数 `xoshiro256**` を `IRandom` 越しに使い、`System.Random` は使わない。シードはセッションに1つで、用途・場面ごとのストリームに分ける（[produce.md](../systems/produce.md) 10.2）
+- 乱数は決定的な疑似乱数 `xoshiro256**` を `IRandom` 越しに使い、`System.Random` は使わない。シードはセッションに1つで、用途・場面ごとのストリームに分ける（[produce-domain.md](produce-domain.md) 3章）
 - `Uta.Domain` は、`[ServerOnly]` のマスタの値に依存しない。必要な値は引数で受け取る（[repository-layout.md](repository-layout.md) 5章）
 
 ## 5. 中断・再開・破棄 [決定。2026-10-28]
@@ -189,8 +189,8 @@ updated: 2026-10-31
 | 状態の形式が違う | `state_version` が今のサーバーと違えば、同じく破棄する（3.1） |
 
 - 状態はすべてサーバーが持ち、クライアントは `GetState` で復元する（[produce.md](../systems/produce.md) 完了条件「中断・再開」）
-- 再送は `x-request-id` で冪等に扱う。次の操作番号を要求に含め、合わない操作は拒否する（[produce.md](../systems/produce.md) 10.4）
-- サーバーは入力待ちから次の入力待ちまでを1回で処理して保存するので、再開は最後の入力待ちから続けるだけになる（[produce.md](../systems/produce.md) 10.1）
+- 再送は `x-request-id` で冪等に扱う。次の操作番号を要求に含め、合わない操作は拒否する（[produce-domain.md](produce-domain.md) 5章）
+- サーバーは入力待ちから次の入力待ちまでを1回で処理して保存するので、再開は最後の入力待ちから続けるだけになる（[produce-domain.md](produce-domain.md) 2章）
 - 進行中のセッションがある間は、新しく開始できない（3章）
 
 **アプリのバージョンで破棄する理由**: `Uta.Domain` のルールやマスタは、アプリのバージョンと一緒に変わる（[repository-layout.md](repository-layout.md) 10.5）。プロデュースの途中でルールが変わると、それまでの状態と新しいルールが食い違い、クライアントの予測とサーバーの確定もずれる。バージョンが変わったら破棄すれば、1つのセッションは常に1つのルールで最後まで進む。

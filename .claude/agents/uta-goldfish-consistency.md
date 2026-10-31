@@ -17,6 +17,6 @@ ADR とほかのページを何枚も突き合わせ、食い違いを探しま�
 2. `.claude/skills/requesting-design-review/goldfish-rules.md`（Goldfish の共通のルールと出力の形式）
 3. `.claude/skills/requesting-design-review/lenses/consistency.md`（この観点で見ること。ここが観点の中心）
 4. 依頼文の「対象」と「関係するページ」
-5. 必要に応じて `uta_docs/wiki/glossary.md` と `uta_docs/wiki/index.md`
+5. 必要に応じて `uta_docs/wiki/glossary.md` と、対象のフォルダの `README.md`（`architecture/README.md` の「何の正がどのページか」）
 
 依頼文に「関係するコード」があれば、文書に書かれた型名・ファイル・値がコードと一致しているかを Grep・Glob で確かめます。

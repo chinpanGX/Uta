@@ -20,7 +20,7 @@ updated: 2026-10-31
 - **数値はこのページで固定する**。以後は値を変えず、追加は末尾に足す（マスタ・保存の値に使うため）。このページを作る前のコードの数値は、保存したデータがまだ無いので付け直す（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）
 - 参照（`RefConditionGroupId` などの効果内条件）は**どの `Op` でも同じ意味**（満たさないとその行だけ飛ばす。判定はコストの前。lesson-card.md 6.2）。`AddPersistent` でも、その行の条件は「持続効果を付与するかどうか」の条件で、例外を作らない。発動のたびに見る条件は、発動する効果（子）の効果内条件に付ける（lesson-card.md 7.5）
 - 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する
-- 「フェーズ」は**コードで処理できるようになるフェーズ**（lesson-card.md 15章）。カードで使い始めるフェーズとは限らない（使うカードがないものは合成カードで確かめる。lesson-card.md 15.1）。enum には最初から全部を定義し、まだ動かせない `Op` を使うカードは読み込み時にエラーにする（lesson-card.md 15.1）
+- 「フェーズ」は**コードで処理できるようになるフェーズ**（[lesson-phases.md](lesson-phases.md)）。カードで使い始めるフェーズとは限らない（使うカードがないものは合成カードで確かめる。[lesson-phases.md](lesson-phases.md) 1章）。enum には最初から全部を定義し、まだ動かせない `Op` を使うカードは読み込み時にエラーにする（[lesson-phases.md](lesson-phases.md) 1章）
 - lesson-card.md 7.6 の後回しのプリミティブ（`RepeatNext` / `AddLessonTurn` / `DeckManipulate`）は enum に入れず、そのカードを採用するときにこのページの末尾に足す
 
 ### 命名の規則

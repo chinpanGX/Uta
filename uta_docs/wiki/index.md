@@ -6,65 +6,22 @@ updated: 2026-10-31
 
 # Uta wiki 目次
 
-全ページの一覧と一行要約。ページを追加・削除したら必ずここを更新する。
+wiki の入口。ページの一覧と一行要約は、各フォルダの README.md に置く。ページを足した・消したら、そのフォルダの README.md を更新する。
 
-## 概要
+設計書は 3 段に分ける（[ADR 0017](decisions/0017-spec-design-plan-stages.md)）: ゲームの仕様（overview/・systems/）→ 実装設計書（architecture/）→ 実装計画（[../plans/](../plans/README.md)）。
+
+## フォルダ
+
+- [overview/README.md](overview/README.md) — 全体の仕様: ゲームの概要・MVP の範囲と完了条件、画面ワイヤー
+- [systems/README.md](systems/README.md) — ゲームの仕様: プロデュース、レッスン・カード、育成アイドル・サポートカード、ガチャ（ライブは保留）。実装設計書の一次情報
+- [architecture/README.md](architecture/README.md) — 実装設計書: 共通の 4 編、サーバー基盤、機能ごとの実装設計。「何の正がどのページか」の表もここ
+- [decisions/README.md](decisions/README.md) — 決定記録（ADR）の一覧
+
+## 全体
 
 - [log.md](log.md) — 時系列の更新履歴
 - [glossary.md](glossary.md) — 用語集(仮称を含む)
 
-## 全体仕様
-
-- [overview/game-spec.md](overview/game-spec.md) — ゲーム概要仕様：ゲームループ、システムの関係、MVP範囲、未決事項
-- [overview/screen-wireframes.md](overview/screen-wireframes.md) — 画面ワイヤー（叩き台）：ホームと10画面の見た目、screen-design の画面一覧との対応
-
-## システム仕様
-
-- [systems/produce.md](systems/produce.md) — プロデュース（育成）：週構成、行動、レッスン・試験の値、試験の結果の遷移、スコアボーナス、NPC、最終評価・報酬、プレイヤーLv、乱数・操作の記録・セッションの保存（10章）、API案
-- [systems/lesson-card.md](systems/lesson-card.md) — レッスン・試験のカードロジック：カード定義、コスト、条件、効果、計算式、ターン処理順、初期カードセット、実装フェーズ
-- [systems/idol-support.md](systems/idol-support.md) — 育成アイドル・サポートカード：ステータス、初期デッキ、トレーニング・覚醒、アビリティ、イベント、レンタル枠
-- [systems/gacha.md](systems/gacha.md) — ガチャ：排出率、天井（交換pt）、重複時の扱い、無償通貨のみ
-- [systems/live.md](systems/live.md) — 3Dライブ：**保留（MVP対象外）**
-
-## アーキテクチャ
-
-- [architecture/server-foundation.md](architecture/server-foundation.md) — サーバー基盤（.NET 10、MagicOnion + PostgreSQL）：構成、フィルター順序、エラー、認証・冪等性
-
-### 実装設計書（4編と補足・叩き台）
-
-- [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、ソリューションと NuGet の版、アセンブリと層の依存ルール、共通基盤（external/）の扱い、Shared のコードの制約、機能ID、共通の規約、環境構成とデプロイ、実装の進め方（1 番目の計画の中身）
-- [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約、全テーブルの索引（9章）
-- [architecture/api-design.md](architecture/api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
-- [architecture/screen-design.md](architecture/screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
-- [architecture/lesson-domain-types.md](architecture/lesson-domain-types.md) — レッスンの Shared.Domain の型（`Uta.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
-- [architecture/lesson-enums.md](architecture/lesson-enums.md) — レッスンの効果・トリガー・ステータス・コスト・条件の enum の名前・数値と、効果の列の対応（マスタとコードの正）
-- （未作成）ビルド・CI
-
-## 決定記録（ADR）
-
-- [decisions/0000-template.md](decisions/0000-template.md) — ADRテンプレート
-- [decisions/0001-ip-policy.md](decisions/0001-ip-policy.md) — IP方針：システムのみ模倣、素材・名称はオリジナル
-- [decisions/0002-magiconion.md](decisions/0002-magiconion.md) — 通信方式：MagicOnion（gRPC）を採用
-- [decisions/0003-defer-3d-live.md](decisions/0003-defer-3d-live.md) — 3DライブをMVPから外す（accepted）
-- [decisions/0004-server-foundation.md](decisions/0004-server-foundation.md) — サーバーは .NET 10 と C# サーバー基盤を採用（accepted）
-- [decisions/0005-foundation-submodule.md](decisions/0005-foundation-submodule.md) — 基盤と自作パッケージを `external/` に Git サブモジュールで取り込む（proposed。4 件登録済み）
-- [decisions/0006-adopt-unity-7-early.md](decisions/0006-adopt-unity-7-early.md) — Unity 7 を早期に触ることを目的に加える。Unity のバージョンは Unity 7 で確定（accepted）
-- [decisions/0007-masterdata-with-addons.md](decisions/0007-masterdata-with-addons.md) — マスタを MasterMemoryAddons でクライアント用・サーバー用に出し分ける。列の型は int/long/string/bool/enum のみ、masterdata/ は最上位、CSV が正本（accepted）
-- [decisions/0008-shared-domain-and-onion.md](decisions/0008-shared-domain-and-onion.md) — ドメイン層を共有し、クライアントはオニオンアーキテクチャにする。クライアントは判定・予測表示まで、シードは持たない（accepted）
-- [decisions/0009-client-stack.md](decisions/0009-client-stack.md) — クライアントは uGUI + UnityScreenNavigator・VContainer・UniTask・縦画面（accepted）
-- [decisions/0010-database.md](decisions/0010-database.md) — DB は PostgreSQL + Npgsql + Dapper、セッションは状態を1列にまとめて保存（accepted）
-- [decisions/0011-deploy-google-cloud.md](decisions/0011-deploy-google-cloud.md) — API サーバーをコンテナにして Google Cloud（Cloud Run + Cloud SQL）にデプロイする（accepted）
-- [decisions/0012-migration-dbup.md](decisions/0012-migration-dbup.md) — マイグレーションは DbUp、API とは別の `migrate` コマンド（dev は Cloud Run のジョブ）で流す（accepted）
-- [decisions/0013-commit-masterdata-binary.md](decisions/0013-commit-masterdata-binary.md) — マスタのバイナリもコミットする。ADR 0007 の「バイナリはコミットしない」を置き換え（accepted）
-- [decisions/0014-design-heavy-sonnet-implementation.md](decisions/0014-design-heavy-sonnet-implementation.md) — 設計は厚く書き、実装は Sonnet のサブエージェントに任せる。仕様と実装の間に実装計画（`uta_docs/plans/`）を置く（proposed）
-- [decisions/0015-reference-card-values.md](decisions/0015-reference-card-values.md) — 初期カードセットの数値は参考作品の値を使う（superseded。ADR 0016 で置き換え）
-- [decisions/0016-reference-game-values.md](decisions/0016-reference-game-values.md) — ゲームシステムの数値（カード・週構成・排出率・強化量など）は参考作品の値を使う。ADR 0015 を置き換え（accepted）
-
 ## 一次資料（raw）
 
 - [../raw/2026-10-26-reference-structure-research.md](../raw/2026-10-26-reference-structure-research.md) — 参考作品の構造調査メモ（名称・出典URLは残さない）
-
-## 未作成だが必要なページ
-
-- architecture/build-ci.md（ビルド・CI。repository-layout.md 7章の実体）
-- architecture/unity7-evaluation.md（Unity 7 検証の記録）

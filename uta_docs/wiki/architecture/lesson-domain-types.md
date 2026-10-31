@@ -6,7 +6,7 @@ updated: 2026-10-31
 
 # レッスンの Shared.Domain の型（Uta.Domain）
 
-[lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce.md](../systems/produce.md) 10.2 の乱数を、`shared/Uta.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
+[lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce-domain.md](produce-domain.md) 3章 の乱数を、`shared/Uta.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
 
 ## 凡例
 
@@ -61,7 +61,7 @@ updated: 2026-10-31
 
 | 型 | 責務 |
 |---|---|
-| `CardInstance` | インスタンス ID・カード ID・強化済みか（[produce.md](../systems/produce.md) 10.4） |
+| `CardInstance` | インスタンス ID・カード ID・強化済みか（[produce-domain.md](produce-domain.md) 5章） |
 | `Zones` | 山札・手札・捨札・除外を、インスタンス ID の並びで持つ。山札の先頭が一番上。ドロー、再シャッフル、ランダムな位置への挿入 |
 | `StatusSet` | 8章のステータスの値と、「プレイヤー操作中に初めて付与したか」の印（11章） |
 | `ParamBonusEntry` | パラメータ上昇量増加の、% と残りターンと「プレイヤー操作中に初めて付与したか」の印 |
@@ -73,7 +73,7 @@ updated: 2026-10-31
 - 「スキルカード使用数追加」はステータスにせず、残りの使用数（ターン開始で基本値に戻す）に足す [Uta案]
 - 集中強化・好印象強化の持続ターンは、フェーズ4で決める（いまは値だけ）
 
-## 4. 乱数（produce.md 10.2）
+## 4. 乱数（[produce-domain.md](produce-domain.md) 3章）
 
 | 型 | 責務 |
 |---|---|
@@ -83,7 +83,7 @@ updated: 2026-10-31
 | `Xoshiro256StarStar` | 本体。状態（64 ビット × 4）と引いた回数を出し入れできる |
 | `RandomStreamKind` / `RandomStreamKey` / `RandomStreams` | キーとマスターシードからストリームを作る |
 
-ストリームの作り方 [決定。2026-10-31。[produce.md](../systems/produce.md) 10.2 はここを正とする]: キー `(種類 << 48) | (週 << 32) | 挑戦回数` を SplitMix64 の混ぜる関数に通し、マスターシードと XOR した値を SplitMix64 の初期値にして、4回引いた値を `xoshiro256**` の状態にする。
+ストリームの作り方 [決定。2026-10-31。[produce-domain.md](produce-domain.md) 3章 はここを正とする]: キー `(種類 << 48) | (週 << 32) | 挑戦回数` を SplitMix64 の混ぜる関数に通し、マスターシードと XOR した値を SplitMix64 の初期値にして、4回引いた値を `xoshiro256**` の状態にする。
 
 ## 5. 計算と処理（lesson-card.md 9章・10章）
 
@@ -106,7 +106,7 @@ updated: 2026-10-31
 - 1ターン目のドロー枚数は `max(0, 1ターン目の最低手札枚数 − 開始時手札の枚数)`
 - スキップの体力回復は、E1 より前に行う
 
-## 6. フェーズ1で動かす範囲（lesson-card.md 15.2）
+## 6. フェーズ1で動かす範囲（[lesson-phases.md](lesson-phases.md) 2章）
 
 | 区分 | 範囲 |
 |---|---|

@@ -1,10 +1,12 @@
 ---
 title: ADR 0014 設計は厚く書き、実装は Sonnet のサブエージェントに任せる
-status: proposed
+status: superseded
 updated: 2026-10-31
 ---
 
 # ADR 0014: 設計は厚く書き、実装は Sonnet のサブエージェントに任せる
+
+> **superseded**（2026-10-31）: [ADR 0017](0017-spec-design-plan-stages.md) で置き換えた。決定は ADR 0017 に引き継ぎ、仕様・実装設計書・実装計画の 3 段に分けた。
 
 ## 状況
 
