@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Uta.Domain.Rng;
+using Uta.Shared.Domain.Rng;
 using Xunit;
 
-namespace Uta.Domain.Tests.Rng
+namespace Uta.Shared.Domain.Tests.Rng
 {
     public sealed class RandomTests
     {

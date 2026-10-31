@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>カードのインスタンス（produce.md 10.4）。インスタンス ID はセッションの中だけの連番。</summary>
     public sealed class CardInstance

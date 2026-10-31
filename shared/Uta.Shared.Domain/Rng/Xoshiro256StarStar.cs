@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Uta.Domain.Rng
+namespace Uta.Shared.Domain.Rng
 {
     /// <summary>
     /// xoshiro256**（repository-layout.md 10.3）。状態（64 ビット × 4）を出し入れでき、保存と再開に使う。

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using Uta.Domain.Lesson;
+using Uta.Shared.Domain.Lesson;
 
-namespace Uta.Domain.Tests.Lesson
+namespace Uta.Shared.Domain.Tests.Lesson
 {
     /// <summary>
     /// フェーズ1のカード（lesson-card.md 14章・15.2）。ID はテスト用の値。

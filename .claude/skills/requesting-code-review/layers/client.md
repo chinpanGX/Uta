@@ -8,8 +8,8 @@ Unity 7（`7000.0.0a12`）のクライアント。対象は Android / iOS / Wind
 - [ ] 依存が内側に向いているか。`Domain` → `Application` → `Infrastructure` / `Presentation` → `Bootstrap`
 - [ ] asmdef の参照が repository-layout.md 3章の表どおりか（新しい asmdef・参照の追加は特に見る）
 - [ ] **`Application` が UnityEngine の API を使っていないか**。asmdef では強制できない（UniTask のため `noEngineReferences` を使わない）ので、レビューで守る。`using UnityEngine`、`MonoBehaviour`、`Debug.Log`、`Time`、`PlayerPrefs` などを探す
-- [ ] `Application` が `Infrastructure`・`Presentation`・`Uta.Shared` を参照していないか。外部とのやりとりはポート（インターフェース）で定義しているか
-- [ ] `Presentation` が `Infrastructure`・`Uta.Shared`（通信 DTO）を参照していないか
+- [ ] `Application` が `Infrastructure`・`Presentation`・`Uta.Shared.Contracts` を参照していないか。外部とのやりとりはポート（インターフェース）で定義しているか
+- [ ] `Presentation` が `Infrastructure`・`Uta.Shared.Contracts`（通信 DTO）を参照していないか
 - [ ] **DTO ↔ Domain のマッピングが `Infrastructure` に閉じているか**。DTO が Presenter や View まで漏れていないか
 - [ ] マスタの生成物（`MemoryDatabase`）が `Infrastructure` に留まり、`Application` へはポート越しに必要な値だけを渡しているか
 - [ ] DI の組み立て（VContainer の登録）が `Bootstrap` にあるか。ほかの層で `new` して組み立てていないか
@@ -17,7 +17,7 @@ Unity 7（`7000.0.0a12`）のクライアント。対象は Android / iOS / Wind
 ## サーバー権威と Shared.Domain
 
 - [ ] 結果（育成の計算結果、ガチャの抽選、所持品の更新）をクライアントで**確定**していないか。確定は必ずサーバーのレスポンスで行う
-- [ ] `Uta.Domain` の使い方が「使用可否の判定と予測の表示」までか。**シードを持っていない**か。乱数が絡む結果（ドローなど）を予測していないか
+- [ ] `Uta.Shared.Domain` の使い方が「使用可否の判定と予測の表示」までか。**シードを持っていない**か。乱数が絡む結果（ドローなど）を予測していないか
 - [ ] 予測とサーバーの結果がずれても壊れないか（古いクライアントの式がずれる前提。[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 6章）
 - [ ] 結果に影響するルールを `Application` / `Presentation` に独自に書いていないか（書いたら Shared.Domain へ移すサイン。6.1）
 - [ ] 時刻の判定にクライアントの時刻を使っていないか（サーバーが正。`x-server-time`・`x-game-date`）

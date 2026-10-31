@@ -1,7 +1,7 @@
 ---
 title: マスタデータの定義・生成・配信（実装設計書 マスター設計編）
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # マスタデータの定義・生成・配信（実装設計書 マスター設計編）
@@ -57,7 +57,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - プロパティは `{ get; init; }`。テーブルの型は `class` のみ（`record` / `struct` は定義のエラー）
 - 主キーは `[PrimaryKey]`（複合キーは `keyOrder`）、検索用は `[SecondaryKey(n)]`
 - enum は C# で定義し、CSV に書く名前を `[InputName]` で付ける（名称は仮称。[glossary.md](../../glossary.md)、[ADR 0001](../../decisions/0001-ip-policy.md)）
-- **マスタの列の enum は `masterdata/Definitions` に写しを置く** [決定。2026-10-31。ユーザーの判断]: `master-gen` は `Uta.Domain` を参照できず、CSV で使う enum はすべてのメンバーに `[InputName]` が要るため（アドオンの docs）。写しは `Uta.Domain`・`Uta.Shared` の enum と**同じ名前・同じ数値**にする（名前・数値の正は、レッスンの enum は [lesson-enums.md](../lesson-enums.md)、ほかはその列を持つ `*-tables.md`）。各側の Infrastructure が数値のまま変換する（`(Uta.Domain.Rarity)(int)row.Rarity`）。ずれはサーバーのテストで、写しと元の enum の名前と数値をすべて比べて見つける（リフレクションはテストの中だけで使う）
+- **マスタの列の enum は `masterdata/Definitions` に写しを置く** [決定。2026-10-31。ユーザーの判断]: `master-gen` は `Uta.Shared.Domain` を参照できず、CSV で使う enum はすべてのメンバーに `[InputName]` が要るため（アドオンの docs）。写しは `Uta.Shared.Domain`・`Uta.Shared.Contracts` の enum と**同じ名前・同じ数値**にする（名前・数値の正は、レッスンの enum は [lesson-enums.md](../lesson-enums.md)、ほかはその列を持つ `*-tables.md`）。各側の Infrastructure が数値のまま変換する（`(Uta.Shared.Domain.Rarity)(int)row.Rarity`）。ずれはサーバーのテストで、写しと元の enum の名前と数値をすべて比べて見つける（リフレクションはテストの中だけで使う）
 - 検証は属性で書く: `[Unique]`、`[Exists(typeof(T))]`（空欄を許すなら `AllowEmpty = true`）。違反は `master-gen` が「ファイル 行 列」で報告する。生成ソースには残らない
 - Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要（Uta では `Uta.Client.Infrastructure` に置く。[repository-layout.md](../repository-layout.md) 5章）
 - 空欄は型の既定値（`0` / `false` / `""` / enum の 0）。主キーの空欄はエラー
@@ -88,9 +88,9 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 **効果と条件は「グループ」にまとめ、カードからグループを指す** [決定。2026-10-28]（テーブル・列の名前は仮）:
 
-テーブルと列は [lesson-tables.md](lesson-tables.md)（7 テーブル）。下は、この形を選んだ理由と規約。
+テーブルと列は [lesson-tables.md](lesson-tables.md)（5 テーブル）。下は、この形を選んだ理由と規約。
 
-- グループの見出しテーブル（`EffectGroup` / `ConditionGroup`）を置くのは、参照列に `[Exists(typeof(EffectGroup))]` を付けて、存在を属性で検証するため（複合キーの子テーブルは `Exists` の参照先にしにくい。推測）
+- グループの見出しテーブルは置かない。参照列は `[Exists(typeof(Effect), nameof(Effect.EffectGroupId))]` のように子テーブルの列を指して検証する（アドオンは主キー以外の列を参照できる。2026-11-01 に「見出しテーブルを置く」から直した。[lesson-tables.md](lesson-tables.md)）
 - グループの ID も、マスタの ID の方針どおり**採番の規則は作らない**（[repository-layout.md](../repository-layout.md) 10.1）。手で振る
 - コストはカードにしかない（ドリンク・育成アイテムはコストを持たない）ので、グループにせず `CardCost` のままにする
 - **入れ子の深さは 1** [決定。2026-10-31。ユーザーの判断]: 子のグループ（`AddPersistent`・`ScheduleEffect` の `RefEffectGroupId` の先）には、`AddPersistent`・`ScheduleEffect` を置かない（今のコードの `CardDefinitionValidator` と同じ）。これでグループの循環も起きない。マスタは `IValidatable` で、Domain は `CardDefinitionValidator` で検証する（[lesson-enums.md](../lesson-enums.md) 1章）
@@ -125,13 +125,13 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 | 区分 | テーブル・列の例 | 理由 |
 |---|---|---|
-| 両方（Common） | 育成アイドル・サポートカードの基本値、スキルカード（表示と判定に使う面）、週構成、ガチャの排出率・天井 | 画面で表示・確率表示（GAC-02）に使う。`Uta.Domain` が使う値も含む |
+| 両方（Common） | 育成アイドル・サポートカードの基本値、スキルカード（表示と判定に使う面）、週構成、ガチャの排出率・天井 | 画面で表示・確率表示（GAC-02）に使う。`Uta.Shared.Domain` が使う値も含む |
 | `[ClientOnly]` | アイコンのアドレス、演出の設定 | サーバーに不要 |
 | `[ServerOnly]` | レンタル候補（SUP-06）、報酬の設定、不正検知のしきい値（推測） | クライアントに渡さない |
-| （2026-10-31 に解決）試験の NPC スコア | Common（`ExamRivalScore`。[produce-tables.md](produce-tables.md)） | 試験中の順位の表示と判定を Shared.Domain で行うため |
+| （2026-10-31 に解決）試験の NPC スコア | Common（`ScenarioWeek.RivalBaseScore`。[produce-tables.md](produce-tables.md)） | 試験中の順位の表示と判定を Shared.Domain で行うため |
 
 - テーブルごとの区分は各 `*-tables.md` で決め、一覧は [README.md](README.md) にまとめる
-- レッスンルール（[lesson-card.md](../../systems/lesson-card.md) 4.1）はマスタにせず `Uta.Domain` の定数にする（[produce-tables.md](produce-tables.md)）
+- レッスンルール（[lesson-card.md](../../systems/lesson-card.md) 4.1）はマスタにせず `Uta.Shared.Domain` の定数にする（[produce-tables.md](produce-tables.md)）
 
 - `[ClientOnly]` / `[ServerOnly]` の列が `[Exists]` で別の側にだけ存在するテーブルを参照した場合の挙動は**未確認**。定義に書く前にアドオンで試す
 

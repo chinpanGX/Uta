@@ -1,4 +1,4 @@
-﻿namespace Uta.Domain.Lesson
+﻿namespace Uta.Shared.Domain.Lesson
 {
     public enum LessonCommandKind
     {

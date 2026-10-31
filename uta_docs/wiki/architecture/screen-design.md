@@ -24,7 +24,7 @@ updated: 2026-11-01
 - **画面は uGUI + `UnityScreenNavigator`** で作る [決定。[ADR 0009](../decisions/0009-client-stack.md)]
 - **DI は VContainer、非同期処理は UniTask** [決定。ADR 0009]
 - **画面は縦向き**。Windows は縦長のウィンドウで動かす [決定。ADR 0009]
-- クライアントは `Uta.Domain` を、使用可否の判定と予測の表示まで使う。シードは持たない [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
+- クライアントは `Uta.Shared.Domain` を、使用可否の判定と予測の表示まで使う。シードは持たない [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
 
 ## 1. Presentation 層の構成 [Uta案]
 
@@ -54,7 +54,7 @@ updated: 2026-11-01
 | 交換 | ページ | GAC-03 | Exchange | 交換pt の設定（MVP では作らない。天井は結合テストで確かめる） |
 | 所持一覧・詳細 | ページ | IDL-01、SUP-01 | GetPlayer | 育成アイドル、サポートカード |
 | 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定（MVP では作らない） |
-| サポートカードの強化 | ページ | SUP-02 | LevelUp、LimitBreak | 同上 |
+| サポートカードの強化 | ページ | SUP-02 | LevelUp、LimitBreak | サポートカードのレベル・上限解放の設定（`SupportLevelCost`・`SupportLevelCap`）。MVP で作る（[game-spec.md](../overview/game-spec.md)。2026-11-01） |
 | 編成 | ページ | PRD-01 | Start | アイドル、サポートカード、シナリオ（シナリオを選ぶ。レンタル枠の `GetRentalCandidates` は MVP では作らない） |
 | 週の行動選択 | ページ | PRD-02 | ChooseWeekAction、GetState | 週構成、行動 |
 | レッスン | ページ | PRD-03〜08 | ExecuteLessonAction | スキルカード、レッスンルール |
@@ -64,7 +64,7 @@ updated: 2026-11-01
 | スキルカード獲得 | モーダル | PRD-02 | ResolveCardOffer | スキルカード |
 | 授業・おでかけ・支給 | ページ | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
 | 相談 [Uta案・追加] | ページ（案） | PRD-09 | ChooseWeekAction、ExecuteConsultAction | スキルカード、ドリンク（MVP では作らない） |
-| 試験結果 | ページ | PRD-06 | DecideExamRetry | 試験の設定 |
+| 試験結果 | ページ | PRD-06 | DecideExamRetry（再挑戦が残るときだけ。残らないときは結果を出して「次へ」。試験が終わった操作のレスポンスの `ExamResult` を出す） | 試験の設定 |
 
 - MVP で作る画面は [game-spec.md](../overview/game-spec.md) の「画面」が正。「次点」「後回し」の機能（PRD-09〜12、PRD-14〜17、IDL-02、SUP-04〜06、GAC-05〜07）の画面は、その機能を実装するときに足す
 - 山札・捨札の確認（PRD-08）は、レッスン中に開くモーダルとして持つ案
@@ -106,9 +106,9 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 
 ## 6. レッスン・試験画面とドメインの関係 [決定]
 
-- レッスン・試験の画面は、`Uta.Domain` の効果エンジンで**使用可否の判定と予測値の表示**をする（PRD-04、PRD-08）。確定はサーバーの結果（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
+- レッスン・試験の画面は、`Uta.Shared.Domain` の効果エンジンで**使用可否の判定と予測値の表示**をする（PRD-04、PRD-08）。確定はサーバーの結果（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - クライアントはシードを持たないので、ドローなど乱数が絡む結果は予測しない。操作後は、サーバーのレスポンスで画面を確定させる
-- 画面（Presenter）は `Uta.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
+- 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
 
 ## 未決事項
 

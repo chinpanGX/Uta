@@ -50,7 +50,7 @@ spec: <仕様ページへの相対パス（複数なら並べる）>
 
 | 操作 | パス | 中身 |
 |---|---|---|
-| 作成 | `shared/Uta.Domain/Gacha/GachaTable.cs` | 排出テーブルの型 |
+| 作成 | `shared/Uta.Shared.Domain/Gacha/GachaTable.cs` | 排出テーブルの型 |
 | 変更 | `server/...` | ... |
 
 （表の行は例）

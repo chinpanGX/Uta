@@ -1,7 +1,7 @@
 ---
 title: ガチャ
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # ガチャ
@@ -65,7 +65,7 @@ updated: 2026-10-31
 - 排出テーブルの中身(行)を変えるときは、新しい `GachaTableId` のテーブルを作る。同じ ID のまま変えない(履歴の `gacha_table_id` から当時の確率を追えるようにする)。**この規則は公開・配布してから適用する**。MVP の開発中は、同じ ID のまま CSV を書き換え、DB を作り直してよい
 - 確定枠を別のテーブルにする理由: ピックアップ(GAC-06)で確定枠だけ重みを変えられるようにするため。MVP では通常枠の SR 以上と同じ比なので重複に見えるが、テーブルを分けておけば GAC-06 で構造を変えずに済む(ユーザーの判断。2026-10-31)。`GachaTable` を見出しとして別に置くのは、`Gacha` の 2 つの列から `[Exists]` で参照するため
 - ガチャは「通常枠のテーブル」と「確定枠のテーブル」の 2 つを指す。単発と 10 連の 1〜9 枠目は通常枠、10 連の 10 枠目は確定枠から引く。確定枠のテーブルには SR 以上のカードだけを入れる。参考作品の「10連のどこかに SR 以上 1 枚」ではなく「10 枠目を常に SR 以上」に単純化した
-- マスタのテーブル・列・`ItemKind` と `Outcome` の enum・区分・検証は [gacha-tables.md](../architecture/master/gacha-tables.md)
+- マスタのテーブル・列・`ItemKind` の enum・区分・検証は [gacha-tables.md](../architecture/master/gacha-tables.md)。`Outcome`(新規か重複か)の enum は [api-design.md](../architecture/api-design.md) 1.1
 
 ### 3.2 抽選 [決定。2026-10-31]
 

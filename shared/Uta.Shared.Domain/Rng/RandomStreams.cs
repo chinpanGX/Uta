@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Uta.Domain.Rng
+namespace Uta.Shared.Domain.Rng
 {
     /// <summary>乱数ストリームの用途（produce.md 10.2）。値はストリームの初期化に使うので変えない。</summary>
     public enum RandomStreamKind

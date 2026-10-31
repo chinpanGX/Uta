@@ -1,12 +1,12 @@
 ---
 title: レッスンの効果・条件・コストの enum と列
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # レッスンの効果・条件・コストの enum と列
 
-レッスンの効果（[lesson-card.md](../systems/lesson-card.md) 7章）・ステータス（8章）・持続効果のトリガー（10章）・コスト（5章）・条件（6章）の **enum の名前・数値と、効果の列の対応の正**。マスタ（[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章）と共有ドメイン（[lesson-domain-types.md](lesson-domain-types.md) 2章、`shared/Uta.Domain/Lesson/LessonEnums.cs`）は、どちらもこのページに合わせる。マスタの側は `masterdata/Definitions` に同じ名前・数値の写しを置き、テストでずれを見つける（[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章）。ほかのページには enum の値や列の対応を書き写さず、このページへリンクする。
+レッスンの効果（[lesson-card.md](../systems/lesson-card.md) 7章）・ステータス（8章）・持続効果のトリガー（10章）・コスト（5章）・条件（6章）の **enum の名前・数値と、効果の列の対応の正**。マスタ（[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章）と共有ドメイン（[lesson-domain-types.md](lesson-domain-types.md) 2章、`shared/Uta.Shared.Domain/Lesson/LessonEnums.cs`）は、どちらもこのページに合わせる。マスタの側は `masterdata/Definitions` に同じ名前・数値の写しを置き、テストでずれを見つける（[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章）。ほかのページには enum の値や列の対応を書き写さず、このページへリンクする。
 
 2026-10-31 の設計書レビュー（lesson-card.md の Critical C1）で、マスタの仕様とコードで名前・値・列の対応が別物になっていたため、名前を見直してここに 1 つにまとめた。
 
@@ -28,7 +28,8 @@ updated: 2026-10-31
 
 - 効果の `Op` は「動詞 + 対象」（`GainParam`、`AddStatus`、`DrawCards`）。何をするかが名前だけで分かるようにする
 - 参照元・対象が違うだけで処理が同じでも、**別の enum を引数で渡すより `Op` を分ける**（`GainParamByImpression` など）。引数の enum を減らし、列を `Status` / `Trigger` の 2 つに限るため
-- ステータス・条件の対象は、用語集（[glossary.md](../glossary.md)）の名前に対応させる。仕組みが名前で分かるもの（消費体力を半分にする → `CostHalf`）はその名前にする
+- **このページの名前が、コードの名前の正**。用語集の仮称（[glossary.md](../glossary.md)「置き換え対象の仮称」）は公開前に置き換えるが、コードの名前は変えない [決定。2026-11-01。ユーザーの判断]
+- ステータス・条件の対象は、用語集の語の意味に対応させた英語の名前にする。仮称をローマ字にしない（元気 → `Shield`。体力より先にコストを受ける役割から。2026-11-01 に `Genki` から変えた）。仕組みが名前で分かるもの（消費体力を半分にする → `CostHalf`）はその名前にする
 
 ## 1. 効果（`EffectOp`）
 
@@ -37,22 +38,22 @@ updated: 2026-10-31
 | 0 | `Nothing` | 指定なし（エラー） | — | — | — | — |
 | 1 | `GainParam` | パラメータ上昇 | 1 | — | 上昇量 | `Arg1` 連撃の回数（0 は 1）、`Arg2` 集中の倍率%（0 は 100）、`Arg3` 好調の倍率%（0 は 100） |
 | 2 | `GainParamByImpression` | 好印象の N% 分パラメータ上昇 | 1 | — | 倍率% | — |
-| 3 | `GainParamByGenki` | 元気の N% 分パラメータ上昇 | 2 | — | 倍率% | — |
+| 3 | `GainParamByShield` | 元気の N% 分パラメータ上昇 | 2 | — | 倍率% | — |
 | 4 | `GainParamByMotivation` | やる気の N% 分パラメータ上昇 | 2 | — | 倍率% | — |
-| 5 | `AddParamBonus` | パラメータ上昇量増加 | 未定 | — | 上昇量増加% | `Arg1` ターン数 |
-| 6 | `AddGenki` | 元気（やる気の影響を受ける） | 1 | — | 量 | — |
-| 7 | `AddFixedGenki` | 固定元気 | 2 | — | 量 | — |
+| 5 | `AddParamBonus` | パラメータ上昇量増加 | 採用時 | — | 上昇量増加% | `Arg1` ターン数 |
+| 6 | `AddShield` | 元気（やる気の影響を受ける） | 1 | — | 量 | — |
+| 7 | `AddFixedShield` | 固定元気 | 2 | — | 量 | — |
 | 8 | `RecoverHp` | 体力回復 | 2 | — | 量 | — |
-| 9 | `ScaleGenki` | 元気を N% にする（端数は切り捨て） | 2 | — | 倍率% | — |
-| 10 | `SetGenki` | 元気を N にする | 2 | — | 値 | — |
+| 9 | `ScaleShield` | 元気を N% にする（端数は切り捨て） | 2 | — | 倍率% | — |
+| 10 | `SetShield` | 元気を N にする | 2 | — | 値 | — |
 | 11 | `AddStatus` | ステータスを足す。単位（ターン / 値 / 回数）はステータスで決まる（3章） | 1 | `Status` | 量 | — |
-| 12 | `AddStatusPercent` | % のステータスを足す（好印象強化・集中強化） | 未定 | `Status` | % | `Arg1` ターン数（0 はレッスン中ずっと） |
+| 12 | `AddStatusPercent` | % のステータスを足す（好印象強化・集中強化） | 採用時 | `Status` | % | `Arg1` ターン数（0 はレッスン中ずっと） |
 | 13 | `DrawCards` | スキルカードを引く | 1 | — | 枚数 | — |
 | 14 | `AddCardUses` | スキルカード使用数追加 | 1 | — | 回数 | — |
-| 15 | `ReplaceHand` | 手札をすべて入れ替える | 未定 | — | — | — |
-| 16 | `EnhanceHand` | 手札をすべてレッスン中強化 | 未定 | — | — | — |
-| 17 | `CreateCard` | カードを生成する | 未定 | — | 枚数 | `RefCardId`。生成する位置の持ち方は採用時に決める |
-| 18 | `ScheduleEffect` | 発動予約（N ターン後に効果を発動） | 未定 | — | 何ターン後か（次のターン＝1） | 子の効果（マスタは `RefEffectGroupId`） |
+| 15 | `ReplaceHand` | 手札をすべて入れ替える | 採用時 | — | — | — |
+| 16 | `EnhanceHand` | 手札をすべてレッスン中強化 | 採用時 | — | — | — |
+| 17 | `CreateCard` | カードを生成する | 採用時 | — | 枚数 | `RefCardId`。生成する位置の持ち方は採用時に決める |
+| 18 | `ScheduleEffect` | 発動予約（N ターン後に効果を発動） | 採用時 | — | 何ターン後か（次のターン＝1） | 子の効果（マスタは `RefEffectGroupId`） |
 | 19 | `AddPersistent` | 持続効果を付与する | 1(トリガーは `EveryNTurns` を除く全部) | `Trigger` | `EveryNTurns` の N(ほかは空欄) | `Arg1` ターン数・`Arg2` 回数(0 は無制限)、子の効果(マスタは `RefEffectGroupId`) |
 
 - `AddStatus` に `%` のステータス（`FocusBoost`・`ImpressionBoost`）を渡したら検証で弾く（`AddStatusPercent` を使う）。逆も同じ
@@ -60,9 +61,9 @@ updated: 2026-10-31
 
 | `Op` | 境界 |
 |---|---|
-| `AddFixedGenki` | やる気の影響を受けない。元気増加無効の間は増えない(lesson-card.md 9.3) |
-| `SetGenki` | 元気増加無効のときも値を設定する(「増加」ではないため)。`Value` は 0 以上 |
-| `ScaleGenki` | `Value` は 0〜100(減らすだけ)。端数は切り捨て |
+| `AddFixedShield` | やる気の影響を受けない。元気増加無効の間は増えない(lesson-card.md 9.3) |
+| `SetShield` | 元気増加無効のときも値を設定する([lesson-card.md](../systems/lesson-card.md) 7.2)。`Value` は 0 以上 |
+| `ScaleShield` | `Value` は 0〜100(減らすだけ)。端数は切り捨て |
 | `RecoverHp` | `Value` は 1 以上。最大体力で止める |
 | `AddStatus` | `Value` は 1 以上(減らす効果はない) |
 | `DrawCards` | `Value` は 1 以上。引ける分だけ引く(lesson-card.md 4章) |
@@ -80,7 +81,7 @@ updated: 2026-10-31
 | 1 | `LessonStart` | L1 | 1 |
 | 2 | `TurnStart` | T3 | 1 |
 | 3 | `AfterTurnStart` | T5 | 1 |
-| 4 | `EveryNTurns` | T7（N は `AddPersistent` の `Value`） | 未定 |
+| 4 | `EveryNTurns` | T7（N は `AddPersistent` の `Value`） | 採用時 |
 | 5 | `OnCostHpDecrease` | P4 | 1 |
 | 6 | `OnCardUse` | P5 | 1 |
 | 7 | `OnActiveCardUse` | P5（アクティブのみ） | 1 |
@@ -93,7 +94,7 @@ updated: 2026-10-31
 
 ## 3. ステータス（`StatusKind`）
 
-元気と体力はステータスではなく、Domain では `LessonState` に持つ（[lesson-domain-types.md](lesson-domain-types.md) 3章）。元気を扱う効果は `AddGenki` などの専用の `Op` にする。
+元気と体力はステータスではなく、Domain では `LessonState` に持つ（[lesson-domain-types.md](lesson-domain-types.md) 3章）。元気を扱う効果は `AddShield` などの専用の `Op` にする。
 
 | 値 | 名前 | 用語（[glossary.md](../glossary.md)） | 単位 |
 |---|---|---|---|
@@ -108,7 +109,7 @@ updated: 2026-10-31
 | 8 | `CostHalf` | 消費体力減少（consume の消費を 50% に） | ターン |
 | 9 | `CostDouble` | 消費体力増加（consume の消費を 2 倍に） | ターン |
 | 10 | `CostReduce` | 消費体力削減（consume の消費から値を引く） | 値 |
-| 11 | `GenkiBlock` | 元気増加無効 | ターン |
+| 11 | `ShieldGainBlock` | 元気増加無効 | ターン |
 | 12 | `DebuffGuard` | 低下状態無効 | 回数 |
 
 ## 4. コスト（`CostKind`）
@@ -136,7 +137,7 @@ updated: 2026-10-31
 | 3 | `Focus` | 値 | S05 |
 | 4 | `Impression` | 値 | L02（`Impression` `GreaterOrEqual` 1） |
 | 5 | `Motivation` | 値 | |
-| 6 | `Genki` | 値（「元気が 0」は `Equal` 0） | |
+| 6 | `Shield` | 値（「元気が 0」は `Equal` 0） | |
 | 7 | `HpPercent` | 最大体力に対する% | F05（`HpPercent` `GreaterOrEqual` 50） |
 | 8 | `TurnNumber` | 何ターン目か | |
 | 9 | `ClearTargetPercent` | 得たパラメータの、クリア目標に対する% | |
@@ -177,7 +178,7 @@ updated: 2026-10-31
 ## 未決事項
 
 - `CreateCard` の生成する位置の持ち方（採用時）
-- `AddStatusPercent` の持続ターンの数え方（フェーズ 4。lesson-domain-types.md 3章）
+- `AddStatusPercent` の持続ターンの数え方（採用時。lesson-domain-types.md 3章）
 - 引数が 3 つで足りない `Op` が出たときの扱い（masterdata-pipeline.md 3章）
 
 ## 実装メモ

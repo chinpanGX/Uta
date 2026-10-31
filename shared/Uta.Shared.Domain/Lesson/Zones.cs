@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Uta.Domain.Rng;
+using Uta.Shared.Domain.Rng;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>
     /// 山札・手札・捨札・除外（lesson-card.md 4章）。カードはインスタンス ID で持つ。山札は先頭が一番上。

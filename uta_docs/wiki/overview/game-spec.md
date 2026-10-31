@@ -23,7 +23,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - 構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10。[ADR 0004](../decisions/0004-server-foundation.md)）。通信は MagicOnion（[ADR 0002](../decisions/0002-magiconion.md)）
 - サーバー権威: 育成計算、ガチャ抽選、所持品更新はサーバー。クライアントは入力と表示に加え、Shared.Domain で使用可否の判定と予測の表示まで行う。シードは持たない（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - IP方針: 模倣するのはシステム構造のみ。キャラ・名称・楽曲・UI素材・世界観はオリジナル（[ADR 0001](../decisions/0001-ip-policy.md)）。ゲームシステムの数値は参考作品の値を使う（[ADR 0016](../decisions/0016-reference-game-values.md)）
-- Shared の型は `shared/` に置く（`Uta.Domain`・`Uta.Shared`）。マスタは `masterdata/` の定義から MasterMemoryAddons でクライアント用・サーバー用に生成する（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
+- Shared の型は `shared/` に置く（`Uta.Shared.Domain`・`Uta.Shared.Contracts`）。マスタは `masterdata/` の定義から MasterMemoryAddons でクライアント用・サーバー用に生成する（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - クライアント: オニオンアーキテクチャ、uGUI + UnityScreenNavigator・VContainer・UniTask、縦画面（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)、[ADR 0009](../decisions/0009-client-stack.md)）
 - DB: PostgreSQL + Npgsql + Dapper（[ADR 0010](../decisions/0010-database.md)）。マイグレーションは DbUp（[ADR 0012](../decisions/0012-migration-dbup.md)）
 - マスタは CSV が正本で、生成したソースとバイナリもコミットする（[ADR 0007](../decisions/0007-masterdata-with-addons.md)、[ADR 0013](../decisions/0013-commit-masterdata-binary.md)）
@@ -76,10 +76,10 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 1 | 匿名デバイス認証でプレイヤーを作り、初期の所持品を付与して保存できる | サーバーの結合テスト（Testcontainers の PostgreSQL。[repository-layout.md](../architecture/repository-layout.md) 10.4） |
 | 2 | ガチャを引いて所持品が更新される（単発・10 連・確定枠・天井の交換・重複のかけらとサポート強化pt への変換） | サーバーの結合テスト。天井は、テストが `gacha_exchange_points` の行を直接入れて前提を作る（マスタは変えない） |
 | 3 | サポートカードのレベル上げ・上限解放ができ、次のプロデュースの開始時の性能に反映される | サーバーの結合テスト。残高は初期の所持品で足りる。上限解放の素材は、テストが `player_support_cards` の行を直接入れて用意する |
-| 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件）。最短シナリオで通らない局面（授業・支給・休む・スキルカードの選択肢・中間試験・再挑戦・不合格での終了）は、`Uta.Domain` の単体テストで、初級のシナリオを操作列から回して確かめる（[produce-domain.md](../architecture/produce-domain.md) 7章） |
-| 5 | 途中で中断しても再開できる | 結合テストで途中に `GetStateAsync` を呼んで続ける。状態の再生は `Uta.Domain` の単体テスト（[produce-domain.md](../architecture/produce-domain.md) 7章） |
+| 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件）。最短シナリオで通らない局面（授業・支給・休む・スキルカードの選択肢・中間試験・再挑戦・不合格での終了）は、`Uta.Shared.Domain` の単体テストで、初級のシナリオを操作列から回して確かめる（[produce-domain.md](../architecture/produce-domain.md) 7章） |
+| 5 | 途中で中断しても再開できる | 結合テストで途中に `GetStateAsync` を呼んで続ける。状態の再生は `Uta.Shared.Domain` の単体テスト（[produce-domain.md](../architecture/produce-domain.md) 7章） |
 | 6 | Windows のクライアントで、起動（`SyncAsync` → `GetPlayerAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
-| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
+| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Shared.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 
 - iOS の実機ビルドは、Unity 7 の対応状況（[ADR 0006](../decisions/0006-adopt-unity-7-early.md)）次第の別の項目（`architecture/unity7-evaluation.md` に書く）
 - dev 環境（Cloud Run + Cloud SQL）へのデプロイは MVP の条件に含めない別の項目（[repository-layout.md](../architecture/repository-layout.md) 11章）。ローカルの `server/compose.yaml` の PostgreSQL は、条件 6・7 で手で動かすときに使う
@@ -102,10 +102,10 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | 順 | 実装計画 | 受け持つ完了条件 | 待つもの |
 |---|---|---|---|
-| 1 | 通信の疎通（ソリューションと版の管理、`Uta.Shared`・`Uta.Server` の骨組み、Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。中身は [repository-layout.md](../architecture/repository-layout.md) 12章） | 0 | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
+| 1 | 通信の疎通（ソリューションと版の管理、`Uta.Shared.Contracts`・`Uta.Server` の骨組み、Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。中身は [repository-layout.md](../architecture/repository-layout.md) 12章） | 0 | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
 | 2 | masterdata の最初の計画（定義・CSV・生成。MVP の最小のコンテンツの行） | — | なし |
-| 3 | `Uta.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
-| 4 | `Uta.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
+| 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
+| 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
 | 5 | server/ のプレイヤー・ガチャ・強化（骨組みは 1 で作る） | 1・2・3 | 1、2 |
 | 6 | server/ のプロデュース | 4・5 | 4・5 |
 | 7 | client/ の画面 | 6・7 | 1・6 |

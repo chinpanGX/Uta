@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Uta.Domain.Rng
+namespace Uta.Shared.Domain.Rng
 {
     /// <summary>
     /// 乱数の取り出し方。どの実装の <see cref="IRandom"/> でも、ここを通して同じ方法で引く（produce.md 10.2）。
