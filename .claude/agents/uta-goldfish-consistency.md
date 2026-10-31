@@ -1,7 +1,7 @@
 ---
 name: uta-goldfish-consistency
-description: Uta の設計書レビューの Goldfish（整合性）。対象のページが ADR・CLAUDE.md・ほかの wiki ページ・用語集・既にあるコードと食い違っていないか、IP 方針と wiki の書式を守っているかを、会話の経緯を持たずに見る。requesting-design-review スキルから呼ぶ。読み取り専用。
-tools: Read, Grep, Glob
+description: Uta の設計書レビューの Goldfish（整合性）。対象のページが ADR・CLAUDE.md・ほかの wiki ページ・用語集・既にあるコードと食い違っていないか、IP 方針と wiki の書式を守っているかを、会話の経緯を持たずに見る。requesting-design-review スキルから呼ぶ。書くのは依頼文の「出力先」の報告のファイル 1 つだけ。
+tools: Read, Grep, Glob, Write
 model: opus
 effort: high
 color: blue

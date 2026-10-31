@@ -1,7 +1,7 @@
 ---
 name: uta-goldfish-readiness
-description: Uta の設計書レビューの Goldfish（実装可能性）。実装を担当するモデル（Sonnet）として、仕様ページや実装計画だけを読んで設計判断をせずに実装できるか（Zero-Decision Rule）を、会話の経緯を持たずに見る。requesting-design-review スキルから呼ぶ。読み取り専用。
-tools: Read, Grep, Glob
+description: Uta の設計書レビューの Goldfish（実装可能性）。実装を担当するモデル（Sonnet）として、仕様ページや実装計画だけを読んで設計判断をせずに実装できるか（Zero-Decision Rule）を、会話の経緯を持たずに見る。requesting-design-review スキルから呼ぶ。書くのは依頼文の「出力先」の報告のファイル 1 つだけ。
+tools: Read, Grep, Glob, Write
 model: sonnet
 effort: medium
 color: green
