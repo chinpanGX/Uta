@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Uta.Domain.Rng;
+using Uta.Shared.Domain.Rng;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>効果の処理（lesson-card.md 7章）。Op ごとの switch で切り替える。</summary>
     internal static class EffectExecutor

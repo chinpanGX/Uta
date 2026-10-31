@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>
     /// ステータスの値（lesson-card.md 8章）と、ターン制ステータスの数え方（11章）。

@@ -1,7 +1,7 @@
 ---
 title: 用語集
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # 用語集
@@ -112,8 +112,8 @@ updated: 2026-10-31
 | VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server/server-foundation.md) |
 | サーバー基盤 | VolTech-MagicOnion のサーバー側（`VolTech.Server`。認証・冪等性・エラー・フィルター順） | 同上 |
 | Shared | `shared/` にある、クライアントとサーバーの両方から使うコード（Shared.Domain と Shared.Contracts）。「共有」とは書かず Shared と書く（「共通」と見間違えないため） | [repository-layout](architecture/repository-layout.md) 3章・5章 |
-| Shared.Domain（`Uta.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定）。コードは `Uta.Shared.Domain` に改名する予定（未実施） | [repository-layout](architecture/repository-layout.md) 3章・6章 |
-| Shared.Contracts（`Uta.Shared`） | 通信契約。サービスIF・DTO・エラーコード。コードは `Uta.Shared.Contracts` に改名する予定（未実施） | [api-design](architecture/api-design.md) |
+| Shared.Domain（`Uta.Shared.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定）。コードも `Uta.Shared.Domain`（2026-11-01 に改名） | [repository-layout](architecture/repository-layout.md) 3章・6章 |
+| Shared.Contracts（`Uta.Shared.Contracts`） | 通信契約。サービスIF・DTO・エラーコード。コードは `Uta.Shared.Contracts`（未作成） | [api-design](architecture/api-design.md) |
 | Server.Domain | サーバー固有のルール（ガチャ抽選、天井、シード生成、報酬付与など）。`server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`） | [repository-layout](architecture/repository-layout.md) 6.1 |
 | Client.Domain | クライアント固有のルールを置く層の呼び名。**今は作らない**（クライアント固有の知識は `Application` / `Presentation` に置く）。作るときは `Uta.Client.Domain` | 同上 3章・6.1 |
 | オニオンアーキテクチャ | 依存を常に内側（Domain）へ向ける層の構成 | [ADR 0008](decisions/0008-shared-domain-and-onion.md) |
@@ -143,7 +143,7 @@ updated: 2026-10-31
 
 ## 置き換え対象の仮称（ADR 0001）
 
-次の仮称は、参考作品の語と同じか、ほぼ同じ（推測を含む）。**公開・共有の前に必ず Uta 独自の名称へ置き換える**。それまでは仕様の読みやすさを優先して、このまま使う（2026-10-28 決定）。コード上の識別子は、置き換えに備えて英語の独自名にする案（推測・コードを書くときに決める）。
+次の仮称は、参考作品の語と同じか、ほぼ同じ（推測を含む）。**公開・共有の前に必ず Uta 独自の名称へ置き換える**。それまでは仕様の読みやすさを優先して、このまま使う（2026-10-28 決定）。コード上の識別子（enum・型・メソッドの名前）は仮称ではなく、英語の独自名を [lesson-enums.md](architecture/lesson-enums.md) で決めて正とする（例: 元気 → `Shield`、元気増加無効 → `ShieldGainBlock`）。仮称を置き換えるときも、コードの名前は変えない [決定。2026-11-01。ユーザーの判断]。
 
 | 区分 | 語 |
 |---|---|

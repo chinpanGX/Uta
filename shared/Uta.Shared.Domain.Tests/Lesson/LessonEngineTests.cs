@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Uta.Domain.Lesson;
-using Uta.Domain.Rng;
+using Uta.Shared.Domain.Lesson;
+using Uta.Shared.Domain.Rng;
 using Xunit;
 
-namespace Uta.Domain.Tests.Lesson
+namespace Uta.Shared.Domain.Tests.Lesson
 {
     public sealed class LessonEngineTests
     {

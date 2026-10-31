@@ -1,7 +1,7 @@
 ---
 title: レッスン・試験のカードロジック
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # レッスン・試験のカードロジック
@@ -105,13 +105,13 @@ updated: 2026-10-31
   base:
     costs: [{ kind: hpDirect, value: 3 }]
     effects:
-      - { op: GainParamByGenki, value: 130 }  # 減少前の元気を参照
-      - { op: ScaleGenki, value: 50 }  # 元気を半分に
+      - { op: GainParamByShield, value: 130 }  # 減少前の元気を参照
+      - { op: ScaleShield, value: 50 }  # 元気を半分に
   enhanced:
     costs: [{ kind: hpDirect, value: 3 }]
     effects:
-      - { op: GainParamByGenki, value: 180 }
-      - { op: ScaleGenki, value: 50 }
+      - { op: GainParamByShield, value: 180 }
+      - { op: ScaleShield, value: 50 }
 ```
 
 L13 のように「参照してから変化させる」カードは、効果の記載順がそのまま意味になる。
@@ -145,7 +145,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 ### 4.1 レッスンルールの値 [決定]
 
-`Uta.Domain` の定数に置く(マスタにしない。[produce-tables.md](../architecture/master/produce-tables.md) の定数と同じ扱い)。
+`Uta.Shared.Domain` の定数に置く(マスタにしない。[produce-tables.md](../architecture/master/produce-tables.md) の定数と同じ扱い)。
 
 | 項目 | 値 |
 |---|---|
@@ -225,7 +225,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | op | 効果文の例 | パラメータ |
 |---|---|---|
 | GainParam | パラメータ+17 / パラメータ+4(2回) | value, hits(既定1), focusScale(既定1), goodScale(既定1) |
-| GainParamByImpression / GainParamByGenki / GainParamByMotivation | 好印象の150%分パラメータ上昇 | percent(参照元は op で分ける) |
+| GainParamByImpression / GainParamByShield / GainParamByMotivation | 好印象の150%分パラメータ上昇 | percent(参照元は op で分ける) |
 | AddParamBonus | パラメータ上昇量増加30%(1ターン) | percent, turns |
 
 - `hits` は連撃。集中は1回ごとに加算される。[確認]
@@ -236,11 +236,11 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 | op | 効果文の例 |
 |---|---|
-| AddGenki | 元気+4(やる気の影響を受ける) |
-| AddFixedGenki | 固定元気+2(やる気の影響を受けない。元気増加無効の間は増えない。9.3) |
+| AddShield | 元気+4(やる気の影響を受ける) |
+| AddFixedShield | 固定元気+2(やる気の影響を受けない。元気増加無効の間は増えない。9.3) |
 | RecoverHp | 体力回復3 |
-| ScaleGenki | 元気を半分にする。端数は切り捨て [決定] |
-| SetGenki | 元気を0にする |
+| ScaleShield | 元気を半分にする。端数は切り捨て [決定] |
+| SetShield | 元気を0にする(元気増加無効の間も、元気をその値にする。「増加」ではないため) |
 
 ### 7.3 ステータス付与系
 
@@ -302,7 +302,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 - 元気・パラメータ上昇量増加・スキルカード使用数追加は、表示のまとまりとしてこの表に載せているが、データ上はステータス(`StatusKind`)ではない。元気は状態に、上昇量増加は %・ターンの一覧で、使用数追加は残りの使用数に持つ([lesson-domain-types.md](../architecture/lesson-domain-types.md) 3章)
 
-**低下状態** [決定。2026-10-31]: 消費体力増加と元気増加無効を「低下状態」とする。低下状態無効は、この 2 つの付与を 1 回打ち消す。ほかの低下状態(消費体力の追加、パラメータ上昇量の減少など)は、使うカード・アイテムを採用するときに、8章の表と 9章の式に項を足す(7.6 と同じ扱い)。
+**低下状態** [決定。2026-10-31]: 消費体力増加と元気増加無効を「低下状態」とする。低下状態無効は、この 2 つの付与を 1 回打ち消す。打ち消しの細則: 自分のカードで付けるもの(F07 など)も打ち消す。すでに付いているものへの上乗せも打ち消す。打ち消したときは付与していないので、プレイヤー操作中の初付与の扱い(11章)にはならない。1 回打ち消すたびに低下状態無効が 1 減る [決定。2026-11-01 に lesson-phases.md から移した]。ほかの低下状態(消費体力の追加、パラメータ上昇量の減少など)は、使うカード・アイテムを採用するときに、8章の表と 9章の式に項を足す(7.6 と同じ扱い)。
 
 値の範囲 [決定]:
 
@@ -547,10 +547,10 @@ MVP で作るカードは 14章の 36 枚(F08 を除く。[game-spec.md](../over
 
 - カード・ステータスの表示名(仮称を Uta 独自の名称に置き換える)
 - 集中強化の式の検証(フェーズ4以降)
-- 集中強化・好印象強化(`AddStatusPercent`)の持続ターンの数え方(フェーズ4。[lesson-enums.md](../architecture/lesson-enums.md))
+- 集中強化・好印象強化(`AddStatusPercent`)の持続ターンの数え方(採用時。[lesson-enums.md](../architecture/lesson-enums.md))
 
 ## 実装メモ
 
-- 2026-10-28: フェーズ0・1のエンジンを `shared/Uta.Domain` に実装（型は [lesson-domain-types.md](../architecture/lesson-domain-types.md)）。試験・ドリンク・育成アイテムは未実装。仕様に無い細部（使ったカードを捨札へ移す時点、スキップの回復の時点など）は lesson-domain-types.md 5章に [Uta案] として書いた
+- 2026-10-28: フェーズ0・1のエンジンを `shared/Uta.Shared.Domain` に実装（型は [lesson-domain-types.md](../architecture/lesson-domain-types.md)）。試験・ドリンク・育成アイテムは未実装。仕様に無い細部（使ったカードを捨札へ移す時点、スキップの回復の時点など）は lesson-domain-types.md 5章に [Uta案] として書いた
 - 2026-10-31: フェーズ 1 のコストは、カードで使う 2 種だけでなく全種類を先に入れた([lesson-phases.md](../architecture/lesson-phases.md) 2章)。9章から外した低下状態の 2 項は、コードでは `LessonFormulas.FinalConsume` / `LessonFormulas.ParamGain` の引数として残り、呼び出す側(`LessonEngine`・`EffectExecutor`)が 0 を渡している。結果は変わらないので、低下状態を採用するまでそのままにする
 - 2026-10-31 時点でコードが未対応の決定: 10章の「L1 の効果はゾーンを操作しない」の読み込み時エラー(フェーズ 2)、低下状態無効の打ち消し(フェーズ 2)、10.1 の `LessonResult` と終了理由(フェーズ 6)、試験([lesson-phases.md](../architecture/lesson-phases.md) 7章)、[lesson-enums.md](../architecture/lesson-enums.md) 1章の効果ごとの境界(値が 1 以上・負の値はエラーなど。[改名の計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.4 で入れる)、`AddStatusPercent` の読み込み時エラー(9.2。同じ計画 3.4)

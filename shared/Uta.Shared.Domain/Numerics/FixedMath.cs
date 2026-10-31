@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Uta.Domain.Numerics
+namespace Uta.Shared.Domain.Numerics
 {
     /// <summary>
     /// 整数の固定小数点の計算。float / double を使わずに、丸めを1か所で決める（lesson-card.md 9.6）。

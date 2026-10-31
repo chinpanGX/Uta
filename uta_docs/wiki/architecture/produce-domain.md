@@ -1,7 +1,7 @@
 ---
 title: プロデュースの実装設計（週の進行・乱数・状態・API）
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # プロデュースの実装設計（週の進行・乱数・状態・API）
@@ -50,7 +50,7 @@ updated: 2026-10-31
   - 保存するのは、使用中のストリームの状態だけで済む
 - `Offer` を `Week` から分けるのは、再抽選の回数(プレイヤーの操作で変わる)が `Week` の引く回数に混ざらないようにするため。今の順番では同じ週で `Offer` の後に `Week` を引く場面はないので、分けなくても結果は変わらないが、行動の効果を足したときに引く順番を考えなくてよいよう、分けたままにする(実装済み)
 
-乱数の取り出し方(`Uta.Domain` に置き、同じコードで固定する):
+乱数の取り出し方(`Uta.Shared.Domain` に置き、同じコードで固定する):
 
 | 操作 | 方法 |
 |---|---|
@@ -116,6 +116,8 @@ updated: 2026-10-31
 | 試験の結果 | 再挑戦する / しない | — | `DecideExamRetryAsync` |
 | レッスン・試験 | カードを使う | カードのインスタンス ID | `ExecuteLessonActionAsync` |
 | レッスン・試験 | ドリンクを使う | ドリンクの枠番号 | `ExecuteLessonActionAsync` |
+
+- **操作の表し方は 1 つにする** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` の操作のコマンドの型(レッスンの `LessonCommand` と同じ形で、プロデュースの局面ごとの操作を表す型)を、そのまま記録の 1 件にする。記録だけの `OperationKind` は作らない。DTO(`Uta.Shared.Contracts`)からコマンドへの変換はサーバーの `Api` だけで行い、記録の保存の形(MessagePack)はサーバーの `Infrastructure` で作る
 | レッスン・試験 | スキップ | — | `ExecuteLessonActionAsync` |
 | 終了以外 | 放棄する | — | `AbandonAsync`(操作の記録には残さない。セッションが終わるため) |
 
@@ -166,17 +168,19 @@ updated: 2026-10-31
 | 記録 | 操作の記録(5章) |
 
 - 上の表は **MVP で持つもの**。MVP の後に足すもの(形式のバージョンを上げて足す。[api-design.md](api-design.md) 3.1): 局面の「相談中」「ドリンクの整理」、相談の残り回数と費用、育成pt、ドリンク(最大3)、育成アイテム(残り回数)、再抽選・除去の残り回数、除去したカード、回数制限のあるアビリティの使用回数
-- `Uta.Domain` が持つのは「開始時の入力」のうちプレイヤーLv と性能、「育成」「進行」「レッスン中だけ」の区分。「開始時の入力」のセッション ID・ユーザー ID(ULID)・マスターシードと「乱数」の区分は、サーバーが `Uta.Domain` の状態を包んで持つ([repository-layout.md](repository-layout.md) 6.1)
-- **乱数の受け渡し** [決定。2026-10-31]: `Uta.Domain` は乱数をポート `IRandomStreamSource`(`IRandom Get(RandomStreamKey key)`。`Uta.Domain.Rng` に置く)から受け取る。ドメインは週番号・挑戦回数からキーを作って求め、サーバーがポートを実装する(マスターシードと保存済みのストリームの状態から `RandomStreams.Create` で作り、要求の終わりに状態を保存する)。ドメインはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。テストと再生では、マスターシードを持つテスト用の実装を渡す
+- `Uta.Shared.Domain` が持つのは「開始時の入力」のうちプレイヤーLv と性能、「育成」「進行」「レッスン中だけ」の区分。「開始時の入力」のセッション ID・ユーザー ID(ULID)・マスターシードと「乱数」の区分は、サーバーが `Uta.Shared.Domain` の状態を包んで持つ([repository-layout.md](repository-layout.md) 6.1)
+- **乱数の受け渡し** [決定。2026-10-31]: `Uta.Shared.Domain` は乱数をポート `IRandomStreamSource`(`IRandom Get(RandomStreamKey key)`。`Uta.Shared.Domain.Rng` に置く)から受け取る。ドメインは週番号・挑戦回数からキーを作って求め、サーバーがポートを実装する(マスターシードと保存済みのストリームの状態から `RandomStreams.Create` で作り、要求の終わりに状態を保存する)。ドメインはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。テストと再生では、マスターシードを持つテスト用の実装を渡す
 
 - 開始時の性能を写して持つのは、プロデュース中にトレーニングなどをしても、進行中のセッションの結果を変えないため。
 - `GetState` で返さないもの: マスターシード、ストリームの状態、**山札の並び順**(枚数と、インスタンス ID の昇順に並べ替えた中身だけを返す。PRD-08)、まだ提示していない乱数の結果。
-- `Uta.Domain` は MessagePack に依存しない。保存の形はサーバーの `Infrastructure` で、共通の状態の型を包んで作る(ADR 0010 の「影響・リスク」、[repository-layout.md](repository-layout.md) 6.1)。
+- `Uta.Shared.Domain` は MessagePack に依存しない。保存の形はサーバーの `Infrastructure` で、共通の状態の型を包んで作る(ADR 0010 の「影響・リスク」、[repository-layout.md](repository-layout.md) 6.1)。
+- **区分の持ち主** [決定。2026-11-01。ユーザーの判断]: 「記録」(操作の記録)と「開始時の入力」のシナリオ ID も `Uta.Shared.Domain` の状態に入れる(再生の入力になるため)。サーバーだけが持つのは「形式」(状態の形式のバージョン)、セッション ID・ユーザー ID・マスターシード、「乱数」の区分
+- **状態の写しは平らなスナップショット 1 つ** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` に、状態を保存・復元するための平らな型(`ProduceSnapshot`。値と配列だけを持ち、参照を持たない)を 1 つ置き、状態からの作成と状態への復元をドメインに書く。サーバーの保存の形(MessagePack)と DTO は、このスナップショットから作る。手書きの変換の漏れは、サーバーの結合テストで「状態 → 保存 → 復元 → 状態」の往復が同じになることで見つける(比べ方は 7章)
 
 ## 7. 再現の確かめ方
 
-- 「開始時の入力+操作の記録」を最初から再生すると、保存した状態と一致する。これを `Uta.Domain` の単体テストで確かめる([lesson-phases.md](lesson-phases.md) 8章、repository-layout.md 10.4)。
-- 再生した状態の比べ方 [決定。2026-10-31]: `Uta.Domain` の単体テストでは、再生した状態と比べる状態が両方メモリにあるので、**値を項目ごとに比べる**(状態の型に、全部の値を比べる関数を置く)。**状態のハッシュは作らない**。IL2CPP との一致の確認([lesson-phases.md](lesson-phases.md) 8章)も、実機で再生した状態と、.NET で再生した状態の値を項目ごとに比べる(.NET の側の値はテストの期待値として持つ)。状態の比べ方の正はこの節
+- 「開始時の入力+操作の記録」を最初から再生すると、保存した状態と一致する。これを `Uta.Shared.Domain` の単体テストで確かめる([lesson-phases.md](lesson-phases.md) 8章、repository-layout.md 10.4)。
+- 再生した状態の比べ方 [決定。2026-10-31]: `Uta.Shared.Domain` の単体テストでは、再生した状態と比べる状態が両方メモリにあるので、**値を項目ごとに比べる**(状態の型に、全部の値を比べる関数を置く)。**状態のハッシュは作らない**。IL2CPP との一致の確認([lesson-phases.md](lesson-phases.md) 8章)も、実機で再生した状態と、.NET で再生した状態の値を項目ごとに比べる(.NET の側の値はテストの期待値として持つ)。状態の比べ方の正はこの節
 - **マスタの版・ルールの版は、アプリのバージョンと同じ**とする [決定。2026-10-31]。マスタ(サーバーの値を含む)やルールを変えたら、アプリのバージョンを上げる([repository-layout.md](repository-layout.md) 10.5)。再現を保証するのは、開始時と `app_version` が同じ場合だけ。違えばセッションは破棄される(1章)
 
 ## 8. API案 [決定。2026-10-31／型の名前は実装時に変えてよい]
@@ -184,7 +188,7 @@ updated: 2026-10-31
 RPC の分け方は [api-design.md](api-design.md) 1章が正。**局面ごとに RPC を1つ**にし、同じ局面の操作は Request の「操作の種類」(enum)で分ける。1つの汎用の「操作」RPC に全部の引数を詰めないのは、DTO の型で局面と引数の組み合わせを縛り、使わない引数が混ざらないようにするため。
 
 ```csharp
-// shared/Uta.Shared に置く。MVP で宣言するもの
+// shared/Uta.Shared.Contracts に置く。MVP で宣言するもの
 public interface IProduceService : IService<IProduceService>
 {
     UnaryResult<ProduceStateResponse> StartAsync(StartProduceRequest request);
@@ -231,11 +235,12 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 | `ClassOptions` | 配列 | 授業の週のとき: 選択肢ごとの `HpCost`・上がるパラメータ・`ParamGain` |
 | `CardOffers` | `int[]` | カードの選択肢のとき: カード ID(枠の順) |
 | `Lesson` | 型 | レッスン・試験のとき: [lesson-domain-types.md](lesson-domain-types.md) 3章の `LessonState` から山札の並びを除いたもの(手札のインスタンス ID、山札・捨札・除外の中身は ID の昇順)と、試験なら審査ターンの列・スコア・NPC のスコア |
-| `ExamResult` | 型 | 試験の結果のとき: スコア・順位・NPC のスコア・合否 |
+| `ExamResult` | 型 | 試験が終わった操作のレスポンスに入れる: スコア・順位・NPC のスコア・合否。再挑戦が残らず局面「試験の結果」を飛ばしたときも入れる(画面は結果を出してから次の局面に進む。入力は待たない) [2026-11-01] |
 | `Result` | `ProduceResultResponse` | 終了の局面に入った操作のレスポンスだけ(ほかは空) |
 
 - 進行中のセッションが無いとき(一度も始めていない・終わった・破棄した・`app_version` か `state_version` が違う)、`GetState` はエラーにせず、`Phase` が `Nothing` で、ほかの項目が空のレスポンスを返す。`PRODUCE_NOT_IN_PROGRESS` を返すのは操作の RPC と `AbandonAsync` だけ [決定。2026-10-31。ユーザーの判断]。結果は終了の局面に入った操作のレスポンスだけで返す。そのレスポンスを受け取る前にアプリが落ちたら、結果の画面は出さずにホームに戻る(報酬は付与済みで、ホームの所持品に反映されている)
 - エラーの一覧は [api-design.md](api-design.md) 2章が正。このページの操作で返すのは `PRODUCE_STALE_OPERATION`(操作番号が違う)、`PRODUCE_UNEXPECTED_PHASE`(局面が違う)、`PRODUCE_INVALID_ARGUMENT`(範囲外の番号・ID、使えない操作、`RentalCandidateId` が 0 でない)、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_INVALID_FORMATION`(idol-support.md 2.1)、`PRODUCE_ALREADY_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`(api-design.md 5章)
+- **楽観ロックに失敗したとき**(保存の `UPDATE ... WHERE version = @v` が 0 行) [決定。2026-11-01。ユーザーの判断]: `PRODUCE_STALE_OPERATION` を返す。同じプレイヤーの要求は基盤で直列になるので([api-design.md](api-design.md) 3章)ふつうは起きないが、起きたらクライアントは `GetState` で取り直す(操作番号の食い違いと同じ扱い)
 
 ## 未決事項
 

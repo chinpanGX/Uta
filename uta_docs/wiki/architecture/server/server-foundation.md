@@ -1,12 +1,12 @@
 ---
 title: サーバー基盤（MagicOnion + PostgreSQL）
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # サーバー基盤（MagicOnion + PostgreSQL）
 
-Uta のサーバーが土台にする C# サーバー基盤（VolTech-MagicOnion）の要約。**正は VolTech-MagicOnion のリポジトリの docs**（仕様は `external/VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）。このページと食い違ったら、VolTech-MagicOnion の docs とコードを正とし、このページを直す [決定。2026-10-31]。
+Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使うか**の正 [決定。2026-11-01。ユーザーの判断]。基盤そのものの仕様・構成・使い方の正は VolTech-MagicOnion のリポジトリの docs（仕様は `external/VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）で、このページは要点だけを書いてリンクする。基盤の docs と食い違ったら基盤を正とし、このページを直す。Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）はこのページが正。`Program.cs`・マイグレーション・設定の骨組みは [repository-layout.md](../repository-layout.md) 12章。
 最初の原典は設計書「C#サーバー基盤 設計書(MagicOnion + PostgreSQL)」（[Claude Docs](https://claude.ai/artifact/STu2PxLjvuAajZwaMNqURq)、2026-10-23 版）。採用の判断は [ADR 0004](../../decisions/0004-server-foundation.md)。
 
 ## 決まっていること
@@ -18,9 +18,12 @@ Uta のサーバーが土台にする C# サーバー基盤（VolTech-MagicOnion
 - DB は PostgreSQL + Npgsql（VolTech-MagicOnion は Dapper に依存しない。Uta は Dapper を使う。[ADR 0010](../../decisions/0010-database.md)）、マイグレーションは DbUp（[ADR 0012](../../decisions/0012-migration-dbup.md)）
 - テストは xUnit + Testcontainers（Uta は xunit.v3。[repository-layout.md](../repository-layout.md) 10.4）
 
-## 推奨（未確定）
+## Uta の決めごと [決定。2026-11-01。ユーザーの判断]
 
-- ログの出力: ZLogger。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める
+- **ログの出力は ZLogger**。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める。標準出力に JSON で出す（Cloud Run が Cloud Logging に送る）。`Program.cs` で `AddZLoggerConsole` を構成し、版は 1 番目の実装計画で VolTech-MagicOnion と衝突しないものを選ぶ
+- **ゲームログ（`game_logs`）は書く**。所持品・通貨を変える RPC（`DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`SyncAsync` の初期付与・プロデュースの報酬の付与）は、本体と同じトランザクションで 1 件書く。中身（種類・増減した量・関係する ID）は各 RPC の実装計画で決める
+- **プレイヤーがまだいないとき**: `AuthFilter` はプレイヤー未作成（`NotCreated`）でも RPC を通す。Uta は `Api` の共通処理で、`SyncAsync` 以外の Uta の RPC が未作成のプレイヤーから来たら `PLAYER_NOT_CREATED`（domain `uta`）を返す。クライアントは起動の流れで必ず `SyncAsync` を先に呼ぶので、ふつうは起きない
+- **SQL を書く層**: SQL（Dapper）は Infrastructure のリポジトリに置き、Application はポート（インターフェース）越しに呼ぶ。ガチャの New / Duplicate の判定などの決まりはサーバーの Domain に置く。トランザクション（VolTech-MagicOnion の `TxContext`）は Api が `RunAsync` で開き、リクエストごとのスコープでリポジトリに渡す（[repository-layout.md](../repository-layout.md) 3章の依存の表）
 
 ## プロジェクト構成
 
@@ -86,16 +89,16 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 - `[NoSideEffects]` の RPC は読み取り専用のトランザクション
 - ゲームログの出力先は DB の `game_logs` だけ（本体と同じトランザクションで書く。2026-10-31 に「標準出力（JSON）」を消した。基盤に無い選択肢だった）
 
-## Uta での扱い（推測）
+## Uta での扱い
 
-- Uta の `shared/` に置く Uta 固有のサービスIF・DTO は、VolTech-MagicOnion の `Abstractions` と同じく Unity と共有する。マスタ型は `shared/` に置かない（[ADR 0007](../../decisions/0007-masterdata-with-addons.md)）
-- 育成の操作（`ChooseWeekActionAsync` などの操作の RPC。[api-design.md](../api-design.md) 1章）やガチャは冪等性の対象
+- Uta 固有のサービスIF・DTO（`Uta.Shared.Contracts`）は、VolTech-MagicOnion の `Abstractions` と同じく Unity と共有する。マスタ型は `shared/` に置かない（[ADR 0007](../../decisions/0007-masterdata-with-addons.md)）
+- 冪等性の対象は、上の属性の規則で決まる（副作用のある Uta の RPC はすべて。一覧は [api-design.md](../api-design.md) 1章）
 
 ## 未確定事項
 
-- （2026-10-31 に解決）VolTech-MagicOnion の取り込み方 → Git サブモジュール（[ADR 0005](../../decisions/0005-foundation-submodule.md)、proposed）で `external/VolTech-MagicOnion` に置く。サーバーは `ProjectReference`、Unity は `file:` で参照し、`Uta.Shared` は `VolTech.Server.Abstractions` を参照する（[repository-layout.md](../repository-layout.md) 3章）
+- （2026-10-31 に解決）VolTech-MagicOnion の取り込み方 → Git サブモジュール（[ADR 0005](../../decisions/0005-foundation-submodule.md)、proposed）で `external/VolTech-MagicOnion` に置く。サーバーは `ProjectReference`、Unity は `file:` で参照し、`Uta.Shared.Contracts` は `VolTech.Server.Abstractions` を参照する（[repository-layout.md](../repository-layout.md) 3章）
 - （2026-10-31 に解決）MagicOnion の API が揃うか → VolTech-MagicOnion が MagicOnion 7.11.0 で実装・テスト済み
 - （2026-10-31 に解決）DB の最終決定 → [ADR 0010](../../decisions/0010-database.md)
 - （2026-10-31 に解決）`server_status.toml` と同じ設定形式にするか → 強制アップデート・メンテナンスを実装しないので不要。ゲーム日付は `Voltech` セクション
 - （2026-10-31 に解決）分岐元にする VolTech-MagicOnion のタグ → タグを待たず、サブモジュールのポインタ（コミット）で固定する。区切りで VolTech-MagicOnion の版を出す（[repository-layout.md](../repository-layout.md) 3.1）
-- Tracing（gRPC Monitor）の扱い、`StoredAccount` のシリアライズ形式
+- 基盤の機能のうち Uta で使うか未定のもの（MVP には要らない）: Tracing（gRPC の呼び出しの記録）、`StoredAccount`（クライアントが端末の資格情報を保存する形式）のシリアライズ形式

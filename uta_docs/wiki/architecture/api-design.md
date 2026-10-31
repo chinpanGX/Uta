@@ -1,7 +1,7 @@
 ---
 title: サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
@@ -20,7 +20,7 @@ updated: 2026-10-31
 ## 決まっていること
 
 - 通信は MagicOnion の Unary のみ（StreamingHub は対象外）[決定。[ADR 0002](../decisions/0002-magiconion.md)]
-- サービスIF・DTO は `shared/Uta.Shared` に置く（C# 9、Unity と共有）。`Uta.Shared` には Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する [決定。2026-10-28]
+- サービスIF・DTO は `shared/Uta.Shared.Contracts` に置く（C# 9、Unity と共有）。`Uta.Shared.Contracts` には Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する [決定。2026-10-28]
 - サーバー権威: 育成の計算、ガチャ抽選、所持品の更新はサーバー [決定。[CLAUDE.md](../../../CLAUDE.md)]
 - RPC ごとの設定（認証不要、副作用なし）は、サービスIFの属性（`[SkipAuth]` / `[NoSideEffects]`）で持つ [決定。VolTech-MagicOnion の仕様]
 - 再送は `x-request-id` と `last_responses` による冪等性に任せ、仕様側で独自の重複防止を作らない [決定。[server-foundation.md](server/server-foundation.md)]
@@ -73,7 +73,7 @@ updated: 2026-10-31
 | RPC | Request | Response |
 |---|---|---|
 | `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
-| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。`ItemKind` とともに名前と数値の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
+| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
 | `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
 
@@ -93,13 +93,13 @@ updated: 2026-10-31
 
 | 接頭辞 | 機能 | 例 |
 |---|---|---|
-| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD` |
+| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（`SyncAsync` の前に Uta の RPC が来た。[server-foundation.md](server/server-foundation.md)。2026-11-01） |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
 | `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
 | `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_INVALID_ARGUMENT`、`PRODUCE_INVALID_FORMATION`、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
 
-- エラーコードは `shared/Uta.Shared` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（VolTech-MagicOnion の仕様）
+- エラーコードは `shared/Uta.Shared.Contracts` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（VolTech-MagicOnion の仕様）
 - 上の表が MVP の reason の一覧。ゴールド不足は共通の `PLAYER_NOT_ENOUGH_GOLD`。MVP の後の機能の reason は、その機能を実装するときに足す
 
 ## 3. プレイヤーデータ（データモデル）[決定。2026-10-28／列の細部は実装時]
@@ -141,6 +141,7 @@ updated: 2026-10-31
 | `week` / `turn` | 一覧と調査のための値（古い要求の拒否には使わない。拒否は状態の中の操作番号で行う。2026-10-31） |
 | `app_version` | 開始したときの `x-app-version`（5章） |
 | `state_version` | 状態の形式のバージョン（下記） |
+| `rule_version` | 開始したときのサーバーのルールの版（`RuleVersion`。[repository-layout.md](repository-layout.md) 10.5。2026-11-01 に追加） |
 | `version` | 楽観ロック |
 | `state` | 状態（MessagePack の `bytea`） |
 
@@ -162,23 +163,23 @@ updated: 2026-10-31
 
 ## 4. ゲームルールの置き場 [決定]
 
-ルールを `shared/Uta.Domain`（両側で実行できる）と、サーバー専用（`server/Uta.Server/Domain/`）のどちらに置くか（[repository-layout.md](repository-layout.md) 6.1）。
+ルールを `shared/Uta.Shared.Domain`（両側で実行できる）と、サーバー専用（`server/Uta.Server/Domain/`）のどちらに置くか（[repository-layout.md](repository-layout.md) 6.1）。
 
 | ルール | 置き場 | 理由 |
 |---|---|---|
-| カード効果の処理、ゾーンの移動、ターン処理順、計算式（[lesson-card.md](../systems/lesson-card.md) 4〜12章） | `Uta.Domain` | クライアントとサーバーで結果を一致させる（[lesson-phases.md](lesson-phases.md) 8章）。確定はサーバー |
-| 使用可否の判定（コスト・使用条件。PRD-04） | `Uta.Domain` | クライアントでも判定と予測の表示に使う（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)） |
-| 最終評価の計算（[produce.md](../systems/produce.md) 6章） | `Uta.Domain` | 最終試験の前後で、評価の見込みを表示できる。確定はサーバー（2026-10-28 決定） |
-| 週の進行（行動の処理、選択肢の抽選、レッスン後の処理、試験の結果。[produce.md](../systems/produce.md) 3〜5章・10章） | `Uta.Domain` | 再生の検証を `Uta.Domain` の単体テストで書ける（[produce-domain.md](produce-domain.md) 7章）。乱数はサーバーが渡す（2026-10-31 決定） |
-| サポートカードの性能の計算、編成の検証、初期デッキ（[idol-support.md](../systems/idol-support.md) 5章） | `Uta.Domain` | 強化後の予測と編成の可否をクライアントでも表示する（2026-10-31 決定） |
+| カード効果の処理、ゾーンの移動、ターン処理順、計算式（[lesson-card.md](../systems/lesson-card.md) 4〜12章） | `Uta.Shared.Domain` | クライアントとサーバーで結果を一致させる（[lesson-phases.md](lesson-phases.md) 8章）。確定はサーバー |
+| 使用可否の判定（コスト・使用条件。PRD-04） | `Uta.Shared.Domain` | クライアントでも判定と予測の表示に使う（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)） |
+| 最終評価の計算（[produce.md](../systems/produce.md) 6章） | `Uta.Shared.Domain` | 最終試験の前後で、評価の見込みを表示できる。確定はサーバー（2026-10-28 決定） |
+| 週の進行（行動の処理、選択肢の抽選、レッスン後の処理、試験の結果。[produce.md](../systems/produce.md) 3〜5章・10章） | `Uta.Shared.Domain` | 再生の検証を `Uta.Shared.Domain` の単体テストで書ける（[produce-domain.md](produce-domain.md) 7章）。乱数はサーバーが渡す（2026-10-31 決定） |
+| サポートカードの性能の計算、編成の検証、初期デッキ（[idol-support.md](../systems/idol-support.md) 5章） | `Uta.Shared.Domain` | 強化後の予測と編成の可否をクライアントでも表示する（2026-10-31 決定） |
 | 報酬の決定と付与 | サーバー専用 | 所持品・通貨の更新はサーバーのみ |
 | ガチャの抽選、交換pt の加算・天井の交換の確定 | サーバー専用 | 抽選はサーバー権威。表示用の排出率はマスタで公開する（GAC-02）。交換できるかの表示用の判定はクライアントもする |
 | プロデュース開始時のシード生成、レンタル候補の決定 | サーバー専用 | 乱数・候補はクライアントを信用しない |
 | 所持品・通貨の更新 | サーバー専用 | 更新はサーバーのみ |
 
-- 最終評価の式（[produce.md](../systems/produce.md) 6章）は `2.3` や `0.15` などの小数を使う。`Uta.Domain` では `float` / `double` を使わないので、千分率の整数にする（例: `× 2.3` → `× 2300 / 1000`）。丸めの位置は式のとおり `floor` で、元の式と結果が一致することを単体テストで確かめる
+- 最終評価の式（[produce.md](../systems/produce.md) 6章）は `2.3` や `0.15` などの小数を使う。`Uta.Shared.Domain` では `float` / `double` を使わないので、千分率の整数にする（例: `× 2.3` → `× 2300 / 1000`）。丸めの位置は式のとおり `floor` で、元の式と結果が一致することを単体テストで確かめる
 - 乱数は決定的な疑似乱数 `xoshiro256**` を `IRandom` 越しに使い、`System.Random` は使わない。シードはセッションに1つで、用途・場面ごとのストリームに分ける（[produce-domain.md](produce-domain.md) 3章）
-- `Uta.Domain` は、`[ServerOnly]` のマスタの値に依存しない。必要な値は引数で受け取る（[repository-layout.md](repository-layout.md) 5章）
+- `Uta.Shared.Domain` は、`[ServerOnly]` のマスタの値に依存しない。必要な値は引数で受け取る（[repository-layout.md](repository-layout.md) 5章）
 
 ## 5. 中断・再開・破棄 [決定。2026-10-28]
 
@@ -188,20 +189,21 @@ updated: 2026-10-31
 | 放棄 | 明示の操作（`AbandonAsync`。画面で確認のダイアログを出す）。報酬はなし。`produce_results` に「放棄」で残す |
 | **アプリのバージョンが違う** | 開始したときの `x-app-version` と、今の要求の `x-app-version` が違えば、そのセッションを**破棄**する。報酬はなし。`produce_results` に「破棄」で残す |
 | 状態の形式が違う | `state_version` が今のサーバーと違えば、同じく破棄する（3.1） |
+| ルールの版が違う | `rule_version` が今のサーバーの `RuleVersion` と違えば、同じく破棄する（2026-11-01 に追加） |
 
 - 状態はすべてサーバーが持ち、クライアントは `GetState` で復元する（[produce.md](../systems/produce.md) 完了条件「中断・再開」）
 - 再送は `x-request-id` で冪等に扱う。次の操作番号を要求に含め、合わない操作は拒否する（[produce-domain.md](produce-domain.md) 5章）
 - サーバーは入力待ちから次の入力待ちまでを1回で処理して保存するので、再開は最後の入力待ちから続けるだけになる（[produce-domain.md](produce-domain.md) 2章）
 - 進行中のセッションがある間は、新しく開始できない（3章）
 
-**アプリのバージョンで破棄する理由**: `Uta.Domain` のルールやマスタは、アプリのバージョンと一緒に変わる（[repository-layout.md](repository-layout.md) 10.5）。プロデュースの途中でルールが変わると、それまでの状態と新しいルールが食い違い、クライアントの予測とサーバーの確定もずれる。バージョンが変わったら破棄すれば、1つのセッションは常に1つのルールで最後まで進む。
+**アプリのバージョンで破棄する理由**: `Uta.Shared.Domain` のルールやマスタは、アプリのバージョンと一緒に変わる（[repository-layout.md](repository-layout.md) 10.5）。プロデュースの途中でルールが変わると、それまでの状態と新しいルールが食い違い、クライアントの予測とサーバーの確定もずれる。バージョンが変わったら破棄すれば、1つのセッションは常に1つのルールで最後まで進む。
 
 - メリット: 状態の移行やルールの互換を考えなくてよい。新しいアプリで接続すれば、古いルールのセッションは残らない
 - デメリット: アプリを更新するたびに、進行中のプロデュースが消える。個人開発の確認用なので受け入れる
 
 破棄の流れ:
 
-1. `SyncAsync`（起動時）で、進行中のセッションの `app_version` と `state_version` を確かめ、違えば破棄して、レスポンスで「破棄した」ことを返す。クライアントはダイアログで知らせる
+1. `SyncAsync`（起動時）で、進行中のセッションの `app_version`・`state_version`・`rule_version`（サーバーの `RuleVersion`。[repository-layout.md](repository-layout.md) 10.5。2026-11-01 に追加）を確かめ、どれかが違えば破棄して、レスポンスで「破棄した」ことを返す。クライアントはダイアログで知らせる
 2. `GetStateAsync` は `[NoSideEffects]` なので破棄しない。違うセッションは「進行中のセッション無し」(`Phase` が `Nothing`。エラーにしない。[produce-domain.md](produce-domain.md) 8章)として返す
 4. `StartAsync` のとき、バージョンが違うセッションが残っていれば、それを破棄してから始める(`PRODUCE_ALREADY_IN_PROGRESS` にしない) [決定。2026-10-31]
 3. 起動後にアプリのバージョンが変わることはないが、`SyncAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）でも確かめる。違えば破棄して `PRODUCE_SESSION_DISCARDED` を返す

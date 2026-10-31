@@ -67,7 +67,7 @@ uta/
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Domain（Shared.Domain）・Uta.Shared（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
@@ -115,7 +115,7 @@ uta/
 ## 実装方針
 
 - サーバー権威: 育成の計算結果、ガチャ抽選、所持品の更新はすべてサーバーで行う。結果の確定は常にサーバー。
-- クライアントは表示と入力に加え、Shared.Domain（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
+- クライアントは表示と入力に加え、Shared.Domain（`shared/Uta.Shared.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
 - Shared の型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](uta_docs/wiki/decisions/0007-masterdata-with-addons.md)）。
 - 層の構成と依存ルールは [architecture/repository-layout.md](uta_docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](uta_docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](uta_docs/wiki/decisions/0010-database.md)）、マイグレーションは DbUp（[ADR 0012](uta_docs/wiki/decisions/0012-migration-dbup.md)）。デプロイ先は Google Cloud の Cloud Run + Cloud SQL（[ADR 0011](uta_docs/wiki/decisions/0011-deploy-google-cloud.md)）。
 - マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。Shared.Domain では `float` / `double` を使わない。
@@ -155,8 +155,8 @@ uta/
 
 プロジェクト（`server/`・`client/`）を作成したら、実際に動くコマンドをここに追記する。
 
-- `shared/Uta.Domain` のビルド: `dotnet build shared/Uta.Domain`
-- `shared/Uta.Domain` の単体テスト: `dotnet test --project shared/Uta.Domain.Tests`（.NET 10 SDK。実行方式はルートの `global.json` で Microsoft.Testing.Platform を指定）
+- `shared/Uta.Shared.Domain` のビルド: `dotnet build shared/Uta.Shared.Domain`
+- `shared/Uta.Shared.Domain` の単体テスト: `dotnet test --project shared/Uta.Shared.Domain.Tests`（.NET 10 SDK。実行方式はルートの `global.json` で Microsoft.Testing.Platform を指定）
 - wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
 
 ## 用語集

@@ -1,7 +1,7 @@
 ---
 title: architecture（実装設計書）の目次
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # architecture（実装設計書）の目次
@@ -20,7 +20,7 @@ updated: 2026-10-31
 | 何 | 正のページ |
 |---|---|
 | リポジトリ構成、ソリューションと版、アセンブリと層の依存、共通基盤（external/）の扱い、Shared のコードの制約、ID・時刻・乱数・テスト・アプリのバージョンの規約、環境とデプロイ、1 番目の計画の中身 | [repository-layout.md](repository-layout.md) |
-| VolTech-MagicOnion（サーバー基盤）の構成、フィルター順、エラー、ヘッダー、認証、冪等性、トランザクション | [server-foundation.md](server/server-foundation.md) |
+| サーバー基盤（VolTech-MagicOnion）の使い方の要点と、Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）。基盤そのものの正は VolTech-MagicOnion の docs | [server-foundation.md](server/server-foundation.md) |
 | マスタの定義・生成・配信、列の型と表現の規約、出し分け（Common / ServerOnly） | [master/masterdata-pipeline.md](master/masterdata-pipeline.md) |
 | マスタのテーブル・列・区分・検証、全テーブルの索引 | [master/](master/README.md) のシステムごとのページ（`*-tables.md`）。索引は master/README.md |
 | RPC の一覧、DTO、エラーの reason、プレイヤーデータのテーブル、ゲームルールの置き場（Shared.Domain / サーバー）、中断・放棄・破棄の流れ | [api-design.md](api-design.md) |
@@ -44,9 +44,9 @@ updated: 2026-10-31
 - [api-design.md](api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [screen-design.md](screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
 
-Shared.Domain（`shared/Uta.Domain`）の機能ごとの実装設計:
+Shared.Domain（`shared/Uta.Shared.Domain`）の機能ごとの実装設計:
 
-- [lesson-domain-types.md](lesson-domain-types.md) — レッスンの Shared.Domain の型（`Uta.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
+- [lesson-domain-types.md](lesson-domain-types.md) — レッスンの Shared.Domain の型（`Uta.Shared.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
 - [lesson-enums.md](lesson-enums.md) — レッスンの効果・トリガー・ステータス・コスト・条件の enum の名前・数値と、効果の列の対応（マスタとコードの正）
 - [lesson-phases.md](lesson-phases.md) — レッスンの実装フェーズ：順番、フェーズごとに変えるコード、テストのカードの置き場、完了条件
 - [produce-domain.md](produce-domain.md) — プロデュースの実装設計：処理の単位、乱数ストリームと引く順、操作の記録、保存する状態、再現の確かめ方、API案
