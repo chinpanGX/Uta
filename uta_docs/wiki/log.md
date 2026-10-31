@@ -9,6 +9,11 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | impl | VolTech-MagicOnion の player_id を uuid から char(26) に変えた変更（f79974d）を VolTech-MagicOnion の main に入れ、Uta のポインタを上げた。テストは 68 件すべて成功（Uta の外の作業ツリーで実行）
+- 2026-10-31 | spec | architecture のレビュー（VolTech-MagicOnion・MasterMemoryAddons の実物と突き合わせ）の指摘を直した。強制アップデートは実装しないと決め、前提にしていた記述を外した。player_id は ULID（char(26)）のままにし、uuid は使わない。VolTech-MagicOnion のテーブルの player_id を char(26) に変えることを 1 番目の計画の手順に入れた。12章にサーバーの骨組み（players の最小の形、Voltech の設定、接続文字列、migrate）を足し、server-foundation.md を VolTech-MagicOnion の docs を正とする形に直した。生成ソースの init 用の IsExternalInit の置き場を決めた
+- 2026-10-31 | spec | masterdata-pipeline.md 9章に、MVP のマスタ 35 テーブルの索引（名前・主キー・区分・正のページ）を足した。列の正は各システムのページのまま。4章の「要確認」だった試験の NPC スコアを、produce.md の決定（Common）に合わせて解決済みにした
+- 2026-10-31 | spec | 用語をそろえた。glossary.md に共通基盤・VolTech-MagicOnion・サーバー基盤・Shared・Shared.Domain・Shared.Contracts・Server.Domain・Client.Domain を足し、wiki・CLAUDE.md・レビューのスキルの「基盤」「共有ドメイン」「共通（Uta.Domain の意味）」を書き換えた。Uta.Domain → Uta.Shared.Domain、Uta.Shared → Uta.Shared.Contracts の改名を決めた（コードは未実施。repository-layout.md 3章）。ADR・log・raw・reviews は当時の記録なので変えていない
+- 2026-10-31 | spec | repository-layout.md に、ソリューションと NuGet の版の管理（ルートの Uta.slnx と中央管理。版は基盤に合わせる）、基盤の扱い（コミットで固定し、Uta で整えて別アプリでも使える形でリリースする）、サーバーのテストの置き場、PostgreSQL の版・ポート、1 番目の実装計画（通信の疎通）の中身を足した。基盤のプロジェクト構成を実物（VolTech.Server と Abstractions の 2 つ）に合わせて server-foundation.md も直し、game-spec.md の計画の順の「基盤のタグ待ち」を外した
 - 2026-10-31 | spec | ゲームの仕様の 2 回目の再レビューの指摘を直した。初期の所持品にゴールド・強化pt を足し、完了条件 0 を基盤の RPC の疎通に絞った。合格でも再挑戦できることにそろえ、試験の先頭ターンの判定を常に 1 回引くことにした。乱数はドメインがポートから受け取る形にし、上限解放で完凸したときの自動変換をやめた。所持品を変える RPC は最初に players の行をロックする。produce の状態とマスタを MVP の分に絞り、ProduceStateResponse の形を決めた
 - 2026-10-31 | adr | ADR 0016（ゲームシステムの数値は参考作品の値を使う。ADR 0015 を置き換え）を accepted で追加
 - 2026-10-31 | spec | ゲームの仕様 5 ページの再レビュー（15 観点）の指摘を直した。MVP の完了条件を自動テスト中心にし、Unity 7 と MagicOnion の疎通・Android 実機のスモークを足した。最小のコンテンツと画面、局面の遷移表、ガチャの処理の手順と乱数（xoshiro256** に統一）、サポートカードのマスタと上限解放の手順、試験の設定とスコアの換算、古い要求の拒否を操作番号だけにすることなどを決めた

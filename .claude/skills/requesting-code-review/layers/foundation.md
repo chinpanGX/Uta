@@ -1,6 +1,6 @@
 # foundation レイヤーのチェックリスト（`external/`）
 
-Git サブモジュールで取り込んだ自作の基盤。Uta 以外のプロジェクトでも使う前提で育てる（[ADR 0005](../../../../uta_docs/wiki/decisions/0005-foundation-submodule.md)）。
+Git サブモジュールで取り込んだ自作の共通基盤。Uta 以外のプロジェクトでも使う前提で育てる（[ADR 0005](../../../../uta_docs/wiki/decisions/0005-foundation-submodule.md)）。
 
 | サブモジュール | 中身 | そのリポジトリのルール |
 |---|---|---|
@@ -28,9 +28,9 @@ git -C external/<名前> diff <古いポインタ>..<新しいポインタ>
 - [ ] 意図しないサブモジュールのポインタが一緒に動いていないか
 - [ ] サブモジュールを追加・削除したなら、`.gitmodules` と ADR 0005 の表が更新されているか
 
-## 汎用性（基盤であること）
+## 汎用性（共通基盤であること）
 
-- [ ] **Uta 固有の知識が基盤に入っていないか**（ゲームのルール、Uta の画面名・型名、Uta のマスタのテーブル）。固有のものは Uta の `shared/`・`server/`・`client/` に置く
+- [ ] **Uta 固有の知識が共通基盤に入っていないか**（ゲームのルール、Uta の画面名・型名、Uta のマスタのテーブル）。固有のものは Uta の `shared/`・`server/`・`client/` に置く
 - [ ] 拡張点（インターフェース、設定、コールバック）で差し替えられる形になっているか。Uta の都合を直接書き込んでいないか
 - [ ] 公開 API に XML ドキュメントコメントがあるか（Supplement は CS1591 で確かめる規約）
 
@@ -65,4 +65,4 @@ git -C external/<名前> diff <古いポインタ>..<新しいポインタ>
 ## ドキュメント
 
 - [ ] サブモジュール側の docs・changelog が同じ変更で更新されているか（各リポジトリのルール）
-- [ ] Uta の wiki（server-foundation.md、masterdata-pipeline.md など）が基盤の変更を前提にしているなら、Uta 側も更新されているか
+- [ ] Uta の wiki（server-foundation.md、masterdata-pipeline.md など）が共通基盤の変更を前提にしているなら、Uta 側も更新されているか

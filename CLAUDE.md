@@ -49,7 +49,7 @@
 uta/
 ├─ CLAUDE.md
 ├─ .editorconfig / .gitattributes / .gitignore  # .editorconfig は client/・server/・shared/ にも置く
-├─ external/      # Git サブモジュール（自作の共通パッケージ・サーバー基盤）
+├─ external/      # Git サブモジュール（共通基盤: 自作の Unity・サーバーのパッケージ）
 ├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）。未作成
 ├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
@@ -65,7 +65,7 @@ uta/
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Domain（共有ドメイン）・Uta.Shared（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Domain（Shared.Domain）・Uta.Shared（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
@@ -106,11 +106,11 @@ uta/
 ## 実装方針
 
 - サーバー権威: 育成の計算結果、ガチャ抽選、所持品の更新はすべてサーバーで行う。結果の確定は常にサーバー。
-- クライアントは表示と入力に加え、共有ドメイン（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
-- 共有型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](uta_docs/wiki/decisions/0007-masterdata-with-addons.md)）。
+- クライアントは表示と入力に加え、Shared.Domain（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
+- Shared の型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](uta_docs/wiki/decisions/0007-masterdata-with-addons.md)）。
 - 層の構成と依存ルールは [architecture/repository-layout.md](uta_docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](uta_docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](uta_docs/wiki/decisions/0010-database.md)）、マイグレーションは DbUp（[ADR 0012](uta_docs/wiki/decisions/0012-migration-dbup.md)）。デプロイ先は Google Cloud の Cloud Run + Cloud SQL（[ADR 0011](uta_docs/wiki/decisions/0011-deploy-google-cloud.md)）。
-- マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。共有ドメインでは `float` / `double` を使わない。
-- ID はマスタが `int`、サーバーが発行するものは ULID。時刻はサーバーが正で JST 固定、日付の更新は 12 時。乱数は `xoshiro256**`。強制アップデートはアプリのバージョンで判定（[repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 10章）。
+- マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。Shared.Domain では `float` / `double` を使わない。
+- ID はマスタが `int`、サーバーが発行するものは ULID。時刻はサーバーが正で JST 固定、日付の更新は 12 時。乱数は `xoshiro256**`。強制アップデートは実装しない（[repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 10章）。
 - iOS（IL2CPP / AOT）制約を常に考慮する。リフレクション依存を避け、Source Generator / 事前生成を優先する。
 - モバイル実機ビルドを早期・継続的に通す。
 
@@ -135,6 +135,7 @@ uta/
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
 - コミットメッセージは日本語
 - サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
+  - 共通基盤は Uta の開発を通して整え、別のアプリでも使える形でリリースする。Uta 固有のものを共通基盤に入れない。固定はコミット（タグを待たない）。ルールは [repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 3.1
   - clone: `git clone --recurse-submodules <Uta の URL>`（済みの clone では `git submodule update --init`）
   - サブモジュール内で作業する前にブランチを切る（`git switch -c <branch>`）。detached HEAD のまま commit しない
   - 追加: `git submodule add <URL> external/<名前>`（すでに clone 済みなら、その場所を指定すれば取り込める）。追加したら ADR 0005 の表も更新する

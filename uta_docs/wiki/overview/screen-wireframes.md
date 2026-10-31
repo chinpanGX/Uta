@@ -17,7 +17,7 @@ updated: 2026-10-31
 決まっていること:
 
 - 画面は縦向き、uGUI + UnityScreenNavigator で作る。Windows は縦長のウィンドウ([ADR 0009](../decisions/0009-client-stack.md))
-- 予想値・使用可否は共有ドメインで出す表示専用の値。確定値はサーバー応答で更新する。乱数が絡む結果(ドローなど)は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md)、screen-design 6章)
+- 予想値・使用可否は Shared.Domain で出す表示専用の値。確定値はサーバー応答で更新する。乱数が絡む結果(ドローなど)は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md)、screen-design 6章)
 - 通信中は入力を受け付けない表示(ブロッカー)を出す(screen-design 5章)
 
 10/25 の叩き台から引き継ぐ操作の方針:
@@ -233,7 +233,7 @@ API の名前は [api-design.md](../architecture/api-design.md) と [produce.md]
 └──────────────────────────────┘
 ```
 
-- 予想値は、共有ドメインで計算した表示専用の値(Presenter は `Application` のユースケース越しに受け取る)。確定はサーバー応答([lesson-card](../systems/lesson-card.md) 9章、screen-design 6章)。山札の中身は枚数と並べ替えた一覧だけ表示する(並び順は返さない。produce.md 10.5)。
+- 予想値は、Shared.Domain で計算した表示専用の値(Presenter は `Application` のユースケース越しに受け取る)。確定はサーバー応答([lesson-card](../systems/lesson-card.md) 9章、screen-design 6章)。山札の中身は枚数と並べ替えた一覧だけ表示する(並び順は返さない。produce.md 10.5)。
 - ドリンク [◆] をタップ → 詳細 → 「使う」。ターンも使用数も消費しない。
 - スキップ: 確認なしで実行するか、確認を出すかは未決。
 - ターン終了時の好印象による上昇、発動予約などは、ログ表示で順に見せる(演出の粒度は未決)。

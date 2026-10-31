@@ -15,8 +15,8 @@ egm の codebase_details・structural・style の観点を Uta 向けにまと�
 
 - [ ] ADR で決めた技術・方針（MagicOnion、PostgreSQL、Cloud Run、Unity 7、uGUI + UnityScreenNavigator・VContainer・UniTask など）と違うものを前提にしていないか
 - [ ] **サーバー権威**: 育成の計算結果・ガチャ抽選・所持品の更新を、クライアントで確定させる書き方になっていないか
-- [ ] クライアントの役割が「表示・入力・共有ドメインでの使用可否の判定と予測の表示」に収まっているか。**クライアントにシードを持たせていないか**（ADR 0008）
-- [ ] マスタの列の型が `int` / `long` / `string` / `bool` / enum だけか。共有ドメインの値に `float` / `double` を使う前提になっていないか（小数は万分率などの整数）
+- [ ] クライアントの役割が「表示・入力・Shared.Domain での使用可否の判定と予測の表示」に収まっているか。**クライアントにシードを持たせていないか**（ADR 0008）
+- [ ] マスタの列の型が `int` / `long` / `string` / `bool` / enum だけか。Shared.Domain の値に `float` / `double` を使う前提になっていないか（小数は万分率などの整数）
 - [ ] ID（マスタは `int`、サーバー発行は ULID）、時刻（サーバーが正、JST 固定、日付の更新は 12 時）、乱数（`xoshiro256**`）の決まりに沿っているか
 - [ ] iOS（IL2CPP / AOT）で困る前提（リフレクション、実行時のコード生成）を置いていないか
 - [ ] 層の置き場所が repository-layout.md の依存ルールに沿っているか（マスタ型を `shared/` に置かない、など）

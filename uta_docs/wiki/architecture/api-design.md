@@ -8,7 +8,7 @@ updated: 2026-10-31
 
 実装設計書（4編）の3編目。クライアントとサーバーの間の契約（サービスIF・DTO）と、サーバーが持つプレイヤーデータ、サーバー側のゲームルールの置き場を定める。前提は [repository-layout.md](repository-layout.md)。
 
-- 認証・冪等性・エラー・ヘッダー・フィルター順序は、基盤の仕様 [server-foundation.md](server-foundation.md) が正。ここでは繰り返さず、Uta 固有の部分だけを書く
+- 認証・冪等性・エラー・ヘッダー・フィルター順序は、VolTech-MagicOnion の仕様 [server-foundation.md](server-foundation.md) が正。ここでは繰り返さず、Uta 固有の部分だけを書く
 - ゲームの仕様は [systems/](../systems/produce.md) が正
 
 ## 凡例
@@ -20,9 +20,9 @@ updated: 2026-10-31
 ## 決まっていること
 
 - 通信は MagicOnion の Unary のみ（StreamingHub は対象外）[決定。[ADR 0002](../decisions/0002-magiconion.md)]
-- サービスIF・DTO は `shared/Uta.Shared` に置く（C# 9、Unity と共有）。`Uta.Shared` には Uta 固有のものだけを置き、基盤の `Abstractions` を参照する [決定。2026-10-28]
+- サービスIF・DTO は `shared/Uta.Shared` に置く（C# 9、Unity と共有）。`Uta.Shared` には Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する [決定。2026-10-28]
 - サーバー権威: 育成の計算、ガチャ抽選、所持品の更新はサーバー [決定。[CLAUDE.md](../../../CLAUDE.md)]
-- RPC ごとの設定（認証不要、副作用なし）は、サービスIFの属性（`[SkipAuth]` / `[NoSideEffects]`）で持つ [決定。基盤の仕様]
+- RPC ごとの設定（認証不要、副作用なし）は、サービスIFの属性（`[SkipAuth]` / `[NoSideEffects]`）で持つ [決定。VolTech-MagicOnion の仕様]
 - 再送は `x-request-id` と `last_responses` による冪等性に任せ、仕様側で独自の重複防止を作らない [決定。[server-foundation.md](server-foundation.md)]
 - プロデュースの操作の RPC は、局面ごとに分ける [決定。1章、2026-10-31]
 - RPC の名前は1章の表で確定。メソッドは `Async` を付け、DTO は RPC ごとに `XxxRequest` / `XxxResponse` を1組作る [決定。2026-10-28]
@@ -36,7 +36,7 @@ updated: 2026-10-31
 
 | サービス | RPC | 機能ID | 副作用 | 冪等性の対象 |
 |---|---|---|---|---|
-| `IDeviceService`（基盤） | `RegisterAsync` / `IssueTokenAsync` | — | あり | 基盤の仕様に従う |
+| `IDeviceService`（VolTech-MagicOnion） | `RegisterAsync` / `IssueTokenAsync` | — | あり | VolTech-MagicOnion の仕様に従う |
 | `IPlayerService` | `SyncAsync`（起動時の同期。下記）、`GetPlayerAsync`（所持品・通貨・Lv） | — | `SyncAsync` はあり | `SyncAsync` |
 | `IGachaService` | `GetGachasAsync`（ガチャごとの交換pt）、`DrawAsync`（単発・10連）、`GetHistoryAsync`、`ExchangeAsync`（交換pt で天井の交換） | GAC-01〜04 | `DrawAsync`・`ExchangeAsync` はあり | `DrawAsync`・`ExchangeAsync` |
 | `IIdolService` | `TrainAsync`（トレーニング）、`AwakenAsync`（覚醒）。MVP では作らない | IDL-02 | あり | 両方 |
@@ -47,7 +47,7 @@ updated: 2026-10-31
 
 - 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は `DrawGachaRequest` / `DrawGachaResponse` のように、RPC ごとに1組作る。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる
 - **`SyncAsync`**: 起動フローでホームに入る前に1回呼ぶ（[screen-design.md](screen-design.md) 4章）。副作用のある「起動時の処理」をここにまとめる
-  - プレイヤーがまだいなければ作り、初期の所持品（R の育成アイドル全員、初期サポートカード、ガチャ通貨。[game-spec.md](../overview/game-spec.md)）を付与する。端末の登録（基盤の `RegisterAsync`）の後の最初の `SyncAsync` が作る。2 回目からは何もしない [決定。2026-10-31]
+  - プレイヤーがまだいなければ作り、初期の所持品（R の育成アイドル全員、初期サポートカード、ガチャ通貨。[game-spec.md](../overview/game-spec.md)）を付与する。端末の登録（VolTech-MagicOnion の `RegisterAsync`）の後の最初の `SyncAsync` が作る。2 回目からは何もしない [決定。2026-10-31]
   - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
   - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
   - `GetPlayerAsync` は `[NoSideEffects]`（読み取り専用のトランザクション）なので、これらを入れられない。そのため RPC を分ける
@@ -62,8 +62,8 @@ updated: 2026-10-31
   - 局面と操作・RPC の対応は [produce.md](../systems/produce.md) 10.4、Request のフィールドは同じページの API案が正（2026-10-31 決定）。要求の局面が今の局面と違えば `PRODUCE_UNEXPECTED_PHASE`
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
   - どの操作の要求も、**次の操作番号**を持つ。サーバーの操作番号と合わない要求は `PRODUCE_STALE_OPERATION` で拒否する(クライアントは `GetState` で取り直す)。週・ターンは要求に持たない(サーバーの状態から分かる)。再送は `x-request-id` で冪等に扱う([produce.md](../systems/produce.md) 10.4。2026-10-31 決定)
-- 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（基盤の仕様）
-- **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。バージョン不一致は基盤の強制アップデート・`x-app-version` で扱う
+- 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（VolTech-MagicOnion の仕様）
+- **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。強制アップデートは実装しないので、マスタの版の不一致はサーバーでは扱わない（手元のアプリを入れ直す。[repository-layout.md](repository-layout.md) 10.5）
 - DTO は、サーバー専用の値（`[ServerOnly]` のマスタの値など）を含めない。レンタル候補のように、サーバーが決めた結果だけを返す
 - DTO の ID: サーバーが発行する ID（ULID）は26文字の `string`、マスタの ID は `int`（[repository-layout.md](repository-layout.md) 10.1）
 
@@ -85,9 +85,9 @@ updated: 2026-10-31
 
 ## 2. エラー [決定。2026-10-28]
 
-- 業務エラーは `BusinessException(ErrorCode, ...)` を投げる（基盤の仕様）。クライアントは基盤の `ErrorPolicy` に従う
-- 基盤の `ErrorCode` は数値ではなく、`domain` と `reason` の2つの文字列で表す（`external/VolTech-MagicOnion` の `ErrorCode`）。そのため、以前の案の「機能ごとの番号帯」はやめた
-- **domain は `uta` の1つ**。基盤の予約エラーは domain `voltech` なので、domain は「アプリか基盤か」の区別に使い、機能では分けない
+- 業務エラーは `BusinessException(ErrorCode, ...)` を投げる（VolTech-MagicOnion の仕様）。クライアントは VolTech-MagicOnion の `ErrorPolicy` に従う
+- VolTech-MagicOnion の `ErrorCode` は数値ではなく、`domain` と `reason` の2つの文字列で表す（`external/VolTech-MagicOnion` の `ErrorCode`）。そのため、以前の案の「機能ごとの番号帯」はやめた
+- **domain は `uta` の1つ**。VolTech-MagicOnion の予約エラーは domain `voltech` なので、domain は「アプリか VolTech-MagicOnion か」の区別に使い、機能では分けない
 - **reason は、機能の接頭辞を付けた大文字スネークケース**:
 
 | 接頭辞 | 機能 | 例 |
@@ -98,7 +98,7 @@ updated: 2026-10-31
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
 | `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_INVALID_ARGUMENT`、`PRODUCE_INVALID_FORMATION`、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
 
-- エラーコードは `shared/Uta.Shared` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（基盤の仕様）
+- エラーコードは `shared/Uta.Shared` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（VolTech-MagicOnion の仕様）
 - 上の表が MVP の reason の一覧。ゴールド不足は共通の `PLAYER_NOT_ENOUGH_GOLD`。MVP の後の機能の reason は、その機能を実装するときに足す
 
 ## 3. プレイヤーデータ（データモデル）[決定。2026-10-28／列の細部は実装時]
@@ -114,13 +114,14 @@ updated: 2026-10-31
 | `gacha_histories` | `history_id`（ULID） | カード 1 枚 = 1 行。`request_id`（`DrawAsync` 1 回の束）、`player_id`、`gacha_id`、`slot`（1〜10。交換は 0）、`gacha_table_id`、`item_kind`、`item_id`、`outcome`（新規 / 重複）、`shards`、`support_points`、日時 | [gacha.md](../systems/gacha.md) 6 |
 | `produce_sessions` | `session_id` | 検索用の列と状態の1列（下記） | [produce.md](../systems/produce.md) 10 |
 | `produce_results` | `session_id` | `player_id`、終わり方（完了 / 放棄 / 破棄）、試験の結果（中間不合格 / 最終不合格 / 最終合格。完了のときだけ）、評価値、ランク、付与した報酬 | [produce.md](../systems/produce.md) 6 |
-| 基盤のテーブル | — | `last_responses`、`game_logs`、端末・トークン | [server-foundation.md](server-foundation.md) |
+| VolTech-MagicOnion のテーブル | — | `last_responses`、`game_logs`、端末・トークン | [server-foundation.md](server-foundation.md) |
 
 - **通貨は `players` の列で持つ**。汎用の所持テーブル（`種別・ID・数`）にはしない。SQL と Dapper が素直に書ける。通貨の種類を増やすときはマイグレーションが要るが、MVP では種類が少ないので受け入れる
 - かけらは育成アイドル（`idol_id` = 1 キャラ）ごとに持つ [決定。2026-10-31。[idol-support.md](../systems/idol-support.md) 1.1]
-- 端末とプレイヤーは1対多にする（基盤の端末テーブルがプレイヤーを指す）。MVP は引き継ぎを作らないが、あとで引き継ぎコードを足せる形にしておく（[game-spec.md](../overview/game-spec.md)）
+- 端末とプレイヤーは、いまは 1 対 1（VolTech-MagicOnion の `devices` の `player_id` が `UNIQUE`。端末の登録のたびに新しい `player_id` が発行される）。MVP は引き継ぎを作らない。引き継ぎを足すときは、1 人のプレイヤーに複数の端末を結べるよう VolTech-MagicOnion の `devices` を変える（[repository-layout.md](repository-layout.md) 3.1。[game-spec.md](../overview/game-spec.md)）
+- `players.player_id` は `char(26)`（ULID）。VolTech-MagicOnion のテーブルの `player_id` も `char(26)` にそろえる（[repository-layout.md](repository-layout.md) 10.1）
 - 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`
-- 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（基盤の仕様）
+- 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（VolTech-MagicOnion の仕様）
 - **所持品・通貨を変える RPC は、トランザクションの最初に `players` の行を更新またはロックする**（`SELECT ... FROM players WHERE player_id = @id FOR UPDATE`。最初の処理が `players` の条件付き更新なら、それでよい）[決定。2026-10-31]。対象は `DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`StartAsync` と、報酬を付与するプロデュースの操作。同じプレイヤーの要求が直列になり、二重払い・重複の判定のずれ・ロックの順の違いによるデッドロックが起きない
 - 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha.md](../systems/gacha.md) 6.1）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
 - インデックスは、実装するときに検索の形に合わせて付ける
@@ -194,7 +195,7 @@ updated: 2026-10-31
 
 **アプリのバージョンで破棄する理由**: `Uta.Domain` のルールやマスタは、アプリのバージョンと一緒に変わる（[repository-layout.md](repository-layout.md) 10.5）。プロデュースの途中でルールが変わると、それまでの状態と新しいルールが食い違い、クライアントの予測とサーバーの確定もずれる。バージョンが変わったら破棄すれば、1つのセッションは常に1つのルールで最後まで進む。
 
-- メリット: 状態の移行やルールの互換を考えなくてよい。強制アップデートと組み合わせれば、古いルールのセッションが残らない
+- メリット: 状態の移行やルールの互換を考えなくてよい。新しいアプリで接続すれば、古いルールのセッションは残らない
 - デメリット: アプリを更新するたびに、進行中のプロデュースが消える。個人開発の確認用なので受け入れる
 
 破棄の流れ:
@@ -203,13 +204,12 @@ updated: 2026-10-31
 2. `GetStateAsync` は `[NoSideEffects]` なので破棄しない。違うセッションは「進行中のセッション無し」として返す
 3. 起動後にアプリのバージョンが変わることはないが、`SyncAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）でも確かめる。違えば破棄して `PRODUCE_SESSION_DISCARDED` を返す
 
-- 比べるのは「違うかどうか」（新しいか古いかは見ない）。古いアプリは強制アップデートで弾かれる
+- 比べるのは「違うかどうか」（新しいか古いかは見ない）。強制アップデートは実装しないので、古いアプリで接続し直すと、新しいアプリで始めたセッションも破棄される（受け入れる。[repository-layout.md](repository-layout.md) 10.5）
 - 開発中、Unity エディターから同じ `x-app-version` で接続し続ける間は破棄されない。ルールを変えた確認のときは、バージョンを上げるか、放棄してやり直す
-- `x-app-version` をハンドラーから読む方法（基盤の `ServiceContext` から取れるか）は、基盤の実装で確かめる（推測）
+- `x-app-version` は、`Api` で MagicOnion の `Context.CallContext.RequestHeaders` から読む（VolTech-MagicOnion に読み出す関数は無い。2026-10-31 に確認。[repository-layout.md](repository-layout.md) 10.5）。整数として読めない・無いときは `PRODUCE_INVALID_ARGUMENT` にする [決定。2026-10-31]
 
 ## 未決事項
 
-- MagicOnion の使う版で、基盤の前提とする API が揃っているか（[server-foundation.md](server-foundation.md) の未確定事項）
 - 報酬の具体の値（評価ランクごとの量。[produce.md](../systems/produce.md) 6.1 は仮の値）
 
 ## 実装メモ

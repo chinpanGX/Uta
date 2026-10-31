@@ -9,8 +9,8 @@ ASP.NET Core + MagicOnion（Unary のみ）、.NET 10（C# 14）。DB は Postgr
 - [ ] アーキテクチャテスト（NetArchTest など）があるなら、新しい依存がそれに引っかからないか。ないなら、違反を目で探す
 - [ ] `Api`（MagicOnion のサービス）が薄いか。ルールを `Api` に書かず、`Application` / `Domain` に置いているか
 - [ ] サーバー固有の知識（ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与）が `server/Uta.Server/Domain/` にあり、`shared/` に漏れていないか（6.1）
-- [ ] 共通のルールを `Uta.Domain` から使わず、サーバーで別に書き直していないか（二重実装。ADR 0008）
-- [ ] 共通の型は合成で包んでいるか（継承・`partial` で `Uta.Domain` の型を広げていないか）
+- [ ] Shared.Domain のルールを `Uta.Domain` から使わず、サーバーで別に書き直していないか（二重実装。ADR 0008）
+- [ ] Shared.Domain の型は合成で包んでいるか（継承・`partial` で `Uta.Domain` の型を広げていないか）
 
 ## サーバー権威とゲームの正しさ
 
@@ -20,7 +20,7 @@ ASP.NET Core + MagicOnion（Unary のみ）、.NET 10（C# 14）。DB は Postgr
 - [ ] シードや抽選の内部状態をレスポンス・ログでクライアントに漏らしていないか
 - [ ] 時刻はサーバーの時刻で、JST 固定、日付の更新は 12:00 JST か（repository-layout.md 10.2）。`DateTime.Now` を直接使っていないか（テストで差し替えられる時刻の抽象を使うのが望ましい）
 
-## 基盤の規約（VolTech-MagicOnion）
+## VolTech-MagicOnion の規約
 
 - [ ] 業務エラーは `BusinessException(ErrorCode, …)` を投げるだけにしているか。独自に `RpcException` を作っていないか
 - [ ] 消した reason を使い回していないか（古いアプリが `UNKNOWN_ERROR` として扱う）

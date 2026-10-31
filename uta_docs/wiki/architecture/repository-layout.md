@@ -1,15 +1,15 @@
 ---
-title: リポジトリ構成・レイヤー・共通基盤（実装設計書 共通・基盤編）
+title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
 updated: 2026-10-31
 ---
 
-# リポジトリ構成・レイヤー・共通基盤（実装設計書 共通・基盤編）
+# リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 
 実装設計書（4編）の1編目。4編すべてが前提にする「どこに何を置くか」「何が何を参照してよいか」を定める。
 
 - ゲームの仕様は [systems/](../systems/produce.md) が正で、ここには書かない
-- サーバー基盤の共通機能（認証・冪等性・エラー・ヘッダー）は [server-foundation.md](server-foundation.md) が正で、ここでは繰り返さない
+- サーバー基盤の機能（認証・冪等性・エラー・ヘッダー）は [server-foundation.md](server-foundation.md) が正で、ここでは繰り返さない
 
 ## 凡例
 
@@ -21,13 +21,13 @@ updated: 2026-10-31
 
 | 編 | ページ | 対象 | 対応する主なコード |
 |---|---|---|---|
-| 共通・基盤 | 本ページ | 構成、依存ルール、共有コードの制約、機能ID | リポジトリ全体 |
+| 共通・基盤 | 本ページ | 構成、依存ルール、Shared のコードの制約、機能ID | リポジトリ全体 |
 | マスター設計 | [masterdata-pipeline.md](masterdata-pipeline.md) | マスタの定義・生成・配信 | `masterdata/`、各側の生成物 |
 | API設計 | [api-design.md](api-design.md) | サービスIF・DTO、プレイヤーデータ、ゲームルールの置き場 | `shared/Uta.Shared`、`server/` |
 | 画面設計 | [screen-design.md](screen-design.md) | 画面・遷移・クライアントの層 | `client/uta/` の Presentation |
 
 - 進め方は [CLAUDE.md](../../../CLAUDE.md) の「実装前のルール」に従う
-- **機能ID**: 仕様ページの ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）を、4編すべての見出し・表に付ける。層で分けた4編を、機能単位で横断して追うため。基盤の機能（認証など）は ID を付けず [server-foundation.md](server-foundation.md) を参照する
+- **機能ID**: 仕様ページの ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）を、4編すべての見出し・表に付ける。層で分けた4編を、機能単位で横断して追うため。VolTech-MagicOnion の機能（認証など）は ID を付けず [server-foundation.md](server-foundation.md) を参照する
 
 ## 2. リポジトリ構成
 
@@ -37,6 +37,9 @@ updated: 2026-10-31
 uta/
 ├─ CLAUDE.md
 ├─ global.json              # [決定] dotnet test の実行方式（Microsoft.Testing.Platform）
+├─ Uta.slnx                 # [決定] shared/・server/ のソリューション（2.1）（未作成）
+├─ Directory.Build.props    # [決定] .NET のプロジェクト共通の設定（2.1）（未作成）
+├─ Directory.Packages.props # [決定] NuGet の版を一か所で固定する（2.1）（未作成）
 ├─ external/                 # [決定] サブモジュール（ADR 0005）
 │  ├─ VolTech-MagicOnion/    #   サーバー基盤、Unity 側 Abstractions
 │  ├─ MasterMemoryAddons/    #   マスタのコード生成・検証・バイナリ生成
@@ -54,20 +57,23 @@ uta/
 │  └─ Uta.Domain.Tests/      # [決定] Uta.Domain の単体テスト（10.4）
 ├─ server/                   # [決定] .NET 10
 │  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）（未作成）
-│  └─ Uta.Server/            # [Uta案] 1プロジェクト。フォルダで層を分ける（未作成）
+│  ├─ Uta.Server.Tests/      # [決定] サーバーのテスト 1 プロジェクト（10.4）（未作成）
+│  └─ Uta.Server/            # [決定] 1プロジェクト。フォルダで層を分ける（未作成）
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
 │     ├─ Infrastructure/     #   DB、マスタの読み込み
 │     ├─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
 │     └─ MasterData/         #   生成物（サーバー用）: Generated/ のソースと masterdata.bytes（ADR 0013）
-└─ client/uta/               # [決定] Unity プロジェクトのルート
-   └─ Assets/Scripts/        # （未作成）
-      ├─ Application/        # [Uta案] ユースケース、ポート
-      ├─ Infrastructure/     #   API 呼び出し、マスタ、ローカル保存
-      │  └─ MasterData/Generated/   生成物（クライアント用のソース。バイナリは Assets/StreamingAssets/MasterData/。ADR 0013）
-      ├─ Presentation/       #   View、Presenter
-      └─ Bootstrap/          #   Composition Root
+└─ client/
+   ├─ Directory.Build.props  # [決定] 上の階層の設定を Unity の csproj に効かせない（2.1）（未作成）
+   └─ uta/                   # [決定] Unity プロジェクトのルート
+      └─ Assets/Scripts/     # [決定] 層ごとに asmdef（3章）（未作成）
+         ├─ Application/     #   ユースケース、ポート
+         ├─ Infrastructure/  #   API 呼び出し、マスタ、ローカル保存
+         │  └─ MasterData/Generated/   生成物（クライアント用のソース。バイナリは Assets/StreamingAssets/MasterData/。ADR 0013）
+         ├─ Presentation/    #   View、Presenter
+         └─ Bootstrap/       #   Composition Root
 ```
 
 - **マスタ型を `shared/` に置かない**。サーバー専用の列・テーブルをクライアントから見えなくするため（[ADR 0007](../decisions/0007-masterdata-with-addons.md)。ADR 0002 の当初の案から変えた）
@@ -77,34 +83,76 @@ uta/
   - `.meta` は Unity が作ったものをコミットする（CLAUDE.md の Git の規則）
   - サーバー: `ProjectReference` で参照する
 
-## 3. アセンブリと依存 [決定／アセンブリ名は Uta案]
+### 2.1 ソリューションと NuGet の版 [決定。2026-10-31]
 
-**どこで動くか・Unity と共有するかで分け、機能ごとには分けない**（MasterMemoryAddons の [構成ルール](../../../external/MasterMemoryAddons/docs/dev/structure.md)、基盤の設計書 `external/VolTech-MagicOnion/docs/design/project-structure.md` と同じ考え方）。
+VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。VolTech-MagicOnion の設計書 `external/VolTech-MagicOnion/docs/design/project-structure.md` の方式をそのまま使い、別の方式を考えない。
+
+| ファイル | 中身 |
+|---|---|
+| `Uta.slnx` | `shared/` と `server/` の全プロジェクト。VolTech-MagicOnion の `VolTech.Server`・`VolTech.Server.Abstractions` も `external` のソリューションフォルダに入れる（デバッグで VolTech-MagicOnion のコードに入るため）。Unity の csproj は入れない |
+| `Directory.Build.props` | 全プロジェクト共通の設定: `Deterministic`、`EnforceCodeStyleInBuild`（`.editorconfig` の規約をビルドの警告にする）。`Nullable`・`LangVersion` などは各 `.csproj` に書く（`shared/` は C# 9・`Nullable` 無効、`server/` は既定の C# 14・`Nullable` 有効）。`Uta.Domain` は `TreatWarningsAsErrors` なので、`EnforceCodeStyleInBuild` で既存のコードがビルドエラーになることがある。そのときは**コードを `.editorconfig` に合わせて直す**（規約を緩めない）。直すのは 12章の手順 1 の中で行う |
+| `Directory.Packages.props` | NuGet の版の中央管理（`ManagePackageVersionsCentrally`。推移的な依存も固定する）。各 `.csproj` の `PackageReference` には版を書かない |
+| `client/Directory.Build.props` | 中身が空の `<Project />`。Unity が `client/uta/` に作る csproj に、上の 2 つが効かないようにする（VolTech-MagicOnion の `Unity/Directory.Build.props` と同じ） |
+
+- **版は VolTech-MagicOnion に合わせる**: VolTech-MagicOnion と共通のパッケージ（MagicOnion・MessagePack・Grpc・Npgsql・dbup-postgresql・Ulid・Testcontainers など）は、VolTech-MagicOnion の `Directory.Packages.props` と同じ版にする。上げるときは VolTech-MagicOnion を先に上げ、ポインタを更新してから Uta を上げる（3.1）。版がずれると、VolTech-MagicOnion を `ProjectReference` したときに NuGet の版の衝突（NU1605 など）になる
+- VolTech-MagicOnion と共通でないもの（xunit.v3 など）は Uta が決める。xunit.v3 は 10.4
+- 今ある `shared/Uta.Domain.Tests` の `Version` の直書きは、最初の実装計画で `Directory.Packages.props` に移す
+
+## 3. アセンブリと依存 [決定]
+
+**どこで動くか・Unity と共有するかで分け、機能ごとには分けない**（MasterMemoryAddons の [構成ルール](../../../external/MasterMemoryAddons/docs/dev/structure.md)、VolTech-MagicOnion の設計書 `external/VolTech-MagicOnion/docs/design/project-structure.md` と同じ考え方）。
 
 - **名前** [決定。2026-10-31]: アセンブリ名とルート名前空間を同じにする。`shared/` は `Uta.Domain` / `Uta.Shared`、サーバーは `Uta.Server`（層はその下の名前空間 `Uta.Server.Api` など）、クライアントは `Uta.Client.<層>`（`UnityEngine.Application` と衝突しないよう `Uta.Client.` を付ける）
+- **層の呼び名と改名の予定** [決定。2026-10-31]: Domain は Shared とサーバー・クライアントで混ざりやすいので、設計書では次の呼び名で書く（[glossary.md](../glossary.md)）。コードもこの名前に改名するが、**改名はまだしていない**。改名するまで、設計書のパス・型名・コマンドは今の名前で書く
+
+| 呼び名 | 今のコード | 改名後 |
+|---|---|---|
+| Shared.Domain | `shared/Uta.Domain`（テストは `shared/Uta.Domain.Tests`） | `Uta.Shared.Domain`（`Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
+| Shared.Contracts | `shared/Uta.Shared`（未作成。サービスIF・DTO） | `Uta.Shared.Contracts`。パッケージ名は `com.uta.shared.contracts` |
+| Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） | 変えない |
+| Client.Domain | なし | 呼び名だけ用意する。クライアント固有の知識は今は `Application` / `Presentation` に置き（6.1）、層を作るときに `Uta.Client.Domain` にする |
+
+- 改名を実施するときは、この表・2章・下のアセンブリの表・CLAUDE.md の「ビルド・テスト・実行」を同じ変更で今の名前から改名後の名前に直す
 
 | アセンブリ | 置き場 | 形式 | 参照してよいもの |
 |---|---|---|---|
 | `Uta.Domain` | `shared/Uta.Domain` | netstandard2.1、C# 9 | なし（BCL のみ） |
-| `Uta.Shared` | `shared/Uta.Shared` | netstandard2.1、C# 9 | `Uta.Domain`、基盤の `Abstractions`、MagicOnion / MessagePack |
-| `Uta.Server` | `server/Uta.Server` | net10.0 | `Uta.Domain`、`Uta.Shared`、基盤のサーバー側（下の表）、生成したマスタ |
+| `Uta.Shared` | `shared/Uta.Shared` | netstandard2.1、C# 9 | `Uta.Domain`、VolTech-MagicOnion の `VolTech.Server.Abstractions`、MagicOnion / MessagePack |
+| `Uta.Server` | `server/Uta.Server` | net10.0 | `Uta.Domain`、`Uta.Shared`、`VolTech.Server`（下の表）、生成したマスタ |
 | `Uta.Client.Application` | `Assets/Scripts/Application` | asmdef | `Uta.Domain`、`UniTask` |
-| `Uta.Client.Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Uta.Client.Application`、`Uta.Domain`、`Uta.Shared`、基盤のクライアント側、MasterMemory と生成物、`Supplement` |
+| `Uta.Client.Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Uta.Client.Application`、`Uta.Domain`、`Uta.Shared`、VolTech-MagicOnion のクライアント、MasterMemory と生成物、`Supplement` |
 | `Uta.Client.Presentation` | `Assets/Scripts/Presentation` | asmdef | `Uta.Client.Application`、`Uta.Domain`、`UnityScreenNavigator`、`UniTask` |
 | `Uta.Client.Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて |
 
-- サーバーを1プロジェクトにするのは基盤と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは基盤の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
+- サーバーを1プロジェクトにするのは VolTech-MagicOnion と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは VolTech-MagicOnion の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
 - **Unity に入れる外部パッケージ** [決定。2026-10-31]: UniTask・VContainer・MessagePack・MagicOnion のクライアント・MasterMemory は UPM の git URL で入れ、版はタグで固定する（`manifest.json` に書く）。サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める
 
-サーバーが参照する基盤のプロジェクト（[server-foundation.md](server-foundation.md)）[決定。2026-10-31]:
+参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
 
-| 基盤のプロジェクト | 参照する側 |
+| VolTech-MagicOnion のプロジェクト・パッケージ | 参照する側 |
 |---|---|
-| `Server.Abstractions` | `Uta.Shared`（netstandard2.1。`ProjectReference`）と `Uta.Server`。Unity 側は同じソースをパッケージで参照する（基盤の方式に従う） |
-| `Server.Status`・`Server.Auth`・`Server.Transaction`・`Server.Logging`・`Server.Hosting` | `Uta.Server` が `ProjectReference` で参照する。パスは `external/VolTech-MagicOnion/` の中の `.csproj` |
+| `VolTech.Server.Abstractions`（`external/VolTech-MagicOnion/src/VolTech.Server.Abstractions/`） | `Uta.Shared` と `Uta.Server` が `ProjectReference` で参照する |
+| `VolTech.Server`（`external/VolTech-MagicOnion/src/VolTech.Server/`） | `Uta.Server` が `ProjectReference` で参照する |
+| Unity パッケージ `com.chinpangx.voltech.magiconion`（`external/VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion/`） | クライアントが `manifest.json` から `file:` で参照する。`Abstractions` のソースの実体と、クライアント（`ApiCore` など）が入っている |
 
-- 基盤のどのタグに固定するかは server-foundation.md の未確定事項。**タグが決まるまで server/ の実装計画は書かない**
+- VolTech-MagicOnion は「Unity と共有するか」だけで 2 つのプロジェクトに分け、サーバー側の関心ごと（`Auth/`・`Status/`・`Transaction/`・`Logging/`・`Hosting/`）はフォルダで分けている。Uta が参照するのは公開 API だけ（3.1）
+
+### 3.1 共通基盤（`external/`）の扱い [決定。2026-10-31]
+
+**目指す形**: Uta の開発を通して共通基盤を整え、リリースして、別のアプリでもそのまま使える構造にする。Uta は共通基盤の最初の利用者で、Uta で要るものを共通基盤に足していく。
+
+- **固定はサブモジュールのポインタ（コミット）で行い、タグを待たない**。開発を速くするため。共通基盤を更新したら、Uta でポインタを上げる（[ADR 0005](../decisions/0005-foundation-submodule.md) の手順）
+- **区切りでリリースする**: 完了条件 0（[game-spec.md](../overview/game-spec.md)。Unity から VolTech-MagicOnion の RPC が通る）が通ったときなど、共通基盤の機能が一区切りしたら、共通基盤側で版を出し（`release` スキル）、ポインタをそのタグのコミットに合わせる。その後もタグは必須にしない
+
+開発のルール（`external/` の 4 つすべてに当てはめる。主な対象は `VolTech-MagicOnion`）:
+
+1. **Uta 固有のものを共通基盤に入れない**。Uta の名前、ゲームのルール、マスタ、Uta のエラーの reason、Uta の DB のテーブルは Uta 側に置く。共通基盤は Uta を参照しない
+2. **足りない機能の置き場は「別のゲームでも同じものが要るか」で決める**。要るなら共通基盤に足す（Uta 側で回避の実装を書かない）。要らないなら Uta 側で、共通基盤の拡張点（`IPlayerResolver`、設定の `VoltechServerOptions` など）から差し込む。拡張点が足りなければ、拡張点を共通基盤に足す
+3. **Uta は共通基盤の公開 API だけを使う**。共通基盤の `InternalsVisibleTo` を Uta に向けない。`internal` に頼ると、別のアプリから使えない形のまま固まるため
+4. **共通基盤の変更は共通基盤の中で完結させる**: 共通基盤のテスト・ドキュメント・`CHANGELOG.md`（Unreleased）まで共通基盤のリポジトリで済ませ、共通基盤を push してから Uta のポインタを更新する（CLAUDE.md の Git の規則）。互換のない変更は CHANGELOG の「互換性が壊れる変更」に書く
+5. **NuGet の版は VolTech-MagicOnion が先**（2.1）
+6. Uta の実装計画で共通基盤の変更が要るときは、計画のタスクを「共通基盤の変更」と「Uta のポインタ更新と利用」に分ける
 
 サーバーの中の依存の向き [決定。2026-10-31]:
 
@@ -137,7 +185,7 @@ uta/
 - マスタの生成物（`MemoryDatabase`）は Infrastructure に置き、Application へは**ポート越しに必要な値だけ**を渡す。`Domain` / `Application` をマスタの形式から独立させるため
 - **マスタの行 → `Uta.Domain` の型の組み立て** [決定。2026-10-31]: 生成クラスはクライアント用・サーバー用で別なので、両側の Infrastructure に読み込みのコードが要る（二重になるのは受け入れる）。Infrastructure は**行の値をそのまま `Uta.Domain` の行の型（効果・条件の 1 行と同じ列を持つ型）の配列に詰めて渡すだけ**にし、グループ ID の解決と入れ子（`EffectDef` の子）の組み立ては `Uta.Domain` の関数 1 つで行う。両側で組み立てが食い違わないようにするため（[lesson-enums.md](lesson-enums.md)）
 
-## 5. 共有コード（`shared/`）の制約 [決定／一部 Uta案]
+## 5. Shared（`shared/`）のコードの制約 [決定／一部 Uta案]
 
 既存のルール（[CLAUDE.md](../../../CLAUDE.md)、`.editorconfig`）:
 
@@ -150,9 +198,10 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - **`float` / `double` を使わない**。整数または固定小数点（[lesson-card.md](../systems/lesson-card.md) 9.6）。クライアント（IL2CPP）とサーバー（.NET 10）で結果を一致させるため
 - **乱数は `IRandom` を注入し、決定的な疑似乱数 `xoshiro256**`** を使う（10.3）。`System.Random` は使わない（[lesson-card.md](../systems/lesson-card.md) 13章）。シードの生成はサーバー
 - `[ServerOnly]` の列に依存するルールは `Domain` に入れない。必要な値は引数で受け取る
-- **`init`・`record`・`required`・nullable の注釈は `shared/` で使わない** [決定。2026-10-31。[lesson-domain-types.md](lesson-domain-types.md) と同じ]。`init` を使わないので `IsExternalInit` の定義も要らない。理由: マスタの生成ソースがこれらを使えない（アドオンの制約）ので、マスタの行と `Uta.Domain` の型を同じ書き方（コンストラクタと読み取り専用プロパティ）にそろえる。nullable の値型（`int?`）は使ってよい
+- **`init`・`record`・`required`・nullable の注釈は `shared/` で使わない** [決定。2026-10-31。[lesson-domain-types.md](lesson-domain-types.md) と同じ]。コンストラクタと読み取り専用プロパティで書く。理由: `init` は netstandard2.1 では `IsExternalInit` の定義（polyfill）が要り、Shared に置くと、それを参照するアセンブリごとに定義の重複を気にすることになるため。nullable の値型（`int?`）は使ってよい
+- **マスタの生成ソースは `init` を使う**（アドオンの規約。`{ get; init; }`。[masterdata-pipeline.md](masterdata-pipeline.md) 2章）。Shared の規約とは別で、生成ソースは Shared に入らない（2章）。Unity 側の生成ソースは `Uta.Client.Infrastructure` に入るので、**`Uta.Client.Infrastructure` に `internal` の `System.Runtime.CompilerServices.IsExternalInit` を 1 つ置く**（アドオンの `samples/Client/IsExternalInit.cs` と同じ）[決定。2026-10-31]。サーバー（net10.0）には要らない
 
-## 6. Domain の共有範囲 [決定]
+## 6. Shared.Domain の範囲 [決定]
 
 `Uta.Domain` の主な中身は、[lesson-card.md](../systems/lesson-card.md) の効果エンジン（ゾーンの移動、ターン処理順、計算式）と、その状態遷移・使用条件の判定。
 
@@ -163,33 +212,33 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 - 範囲は [ADR 0008](../decisions/0008-shared-domain-and-onion.md) で決定（2026-10-27）。これに合わせて [CLAUDE.md](../../../CLAUDE.md) の実装方針と [produce.md](../systems/produce.md) 10章を更新した
 - 結果の先行表示（シードをクライアントに渡す）は、山札の引きを先読みする不正を防げないため行わない
-- **古いクライアントの計算式が、サーバーの最新の式とずれることがある**。予測の表示はずれてもよく、確定は必ずサーバーのレスポンスで行う。ずれが問題になる変更（ルールの変更）は、強制アップデート（基盤の `x-app-version`）で扱う
+- **古いクライアントの計算式が、サーバーの最新の式とずれることがある**。予測の表示はずれてもよく、確定は必ずサーバーのレスポンスで行う。強制アップデートは実装しないので（10.5）、ルールを変えたら手元のアプリを入れ直す。進行中のプロデュースは、アプリのバージョンが変われば破棄される
 - [lesson-card.md](../systems/lesson-card.md) 15.8 の「同じシードと操作列で、同じ結果になる」は、**`Uta.Domain` の単体テスト（.NET 10）**で確かめる（10.4）。本番のクライアントはシードを持たないので、IL2CPP 上で乱数の結果を再現する必要はない。乱数が絡まない予測の一致は、整数演算と同じコードを使うことで担保する
 
 ### 6.1 固有の知識の置き場 [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
 
-クライアントまたはサーバーだけが持つ知識は、**共通の `Uta.Domain` に入れず、各側の外側の層に置く**。依存は内向きなので、共通の層は固有の層を知らない。固有の層は `Uta.Domain` を参照してよく、逆は禁止。
+クライアントまたはサーバーだけが持つ知識は、**Shared.Domain に入れず、各側の層に置く**。依存は内向きなので、Shared.Domain は Server.Domain・クライアントの層を知らない。各側の層は Shared.Domain を参照してよく、逆は禁止。
 
 | 種類 | 置き場 | 例 |
 |---|---|---|
-| 共通ルール | `shared/Uta.Domain` | カード効果、ターン処理順、計算式、使用可否の判定 |
-| サーバー固有 | `server/Uta.Server/Domain/` | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与 |
-| クライアント固有 | クライアントの `Application` / `Presentation` | 表示用の整形、並び順、演出の制御、UI の状態、ローカル設定 |
+| 両側で一致させるルール | Shared.Domain（`shared/Uta.Domain`） | カード効果、ターン処理順、計算式、使用可否の判定 |
+| サーバー固有 | Server.Domain（`server/Uta.Server/Domain/`） | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与 |
+| クライアント固有 | クライアントの `Application` / `Presentation`（Client.Domain は今は作らない。3章） | 表示用の整形、並び順、演出の制御、UI の状態、ローカル設定 |
 
 置き場の判断基準（上から順に当てはめる）:
 
-1. クライアントに渡してはいけない知識（秘匿）→ サーバー固有
-2. 結果が両側で一致しなければならないルール → 共通
+1. クライアントに渡してはいけない知識（秘匿）→ Server.Domain
+2. 結果が両側で一致しなければならないルール → Shared.Domain
 3. 表示にしか関係しない → クライアント固有
 
-共通と固有が混ざるときの作法:
+Shared.Domain と固有の知識が混ざるときの作法:
 
-- 値やルールは共通の型で持ち、固有の属性は各側のエンティティが持つ（共通の型を包む＝合成）。例: サーバーのプロデュースのセッションは、共通の状態の型に、シードや乱数の位置を足して持つ
+- 値やルールは Shared.Domain の型で持ち、固有の属性は各側のエンティティが持つ（Shared.Domain の型を包む＝合成）。例: サーバーのプロデュースのセッションは、Shared.Domain の状態の型に、シードや乱数の位置を足して持つ
 - 継承や `partial` は、アセンブリをまたげないので使わない。合成と拡張メソッドを使う
 - 側ごとに実装が変わる部分は、インターフェースで差し替える（`IRandom`、検証のポリシーなど）
-- `[ServerOnly]` のマスタの値は、共通のドメインに入れず、引数で受け取る（5章）
+- `[ServerOnly]` のマスタの値は、Shared.Domain に入れず、引数で受け取る（5章）
 
-**移動のサイン**: 「クライアント固有」に置いたルールが、結果に影響し始めたら、共通へ移す。別々に実装すると食い違うため。
+**移動のサイン**: 「クライアント固有」に置いたルールが、結果に影響し始めたら、Shared.Domain へ移す。別々に実装すると食い違うため。
 
 ## 7. ビルド・CI
 
@@ -213,7 +262,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 |---|---|---|---|
 | `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く | client/ の最初の実装計画 |
 | MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
-| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | server/・client/ の最初の実装計画 |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認 | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | server/・client/ の最初の実装計画 |
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル | マスタの定義 |
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド | client/ の最初の実装計画 |
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
@@ -221,7 +270,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | `Application` の asmdef を `noEngineReferences: true` にしたまま UniTask を参照できるか | 3章 | Unity でのコンパイル | client/ の最初の実装計画 |
 | NetArchTest が .NET 10・xunit.v3（Microsoft.Testing.Platform）で動くか。保守されているか | 3章 | サーバーのテストプロジェクトで 1 件動かす。使えなければ、保守されているフォーク（`NetArchTest.eNhancedEdition`）か ArchUnitNET に替える | サーバーのアーキテクチャテスト |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
-| `x-app-version` をハンドラーから読めるか（基盤の `ServiceContext` など） | [api-design.md](api-design.md) 5章 | 基盤の実装を読む・動かす | プロデュースの RPC |
+| Cloud SQL で PostgreSQL 18 を選べるか | 11.4 | 公式の対応表を見る。選べなければ選べる最新の版に、Compose と Testcontainers もそろえる | dev へのデプロイ |
 | `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列で再生した状態を項目ごとに比べる（[produce.md](../systems/produce.md) 10.6）。（[lesson-card.md](../systems/lesson-card.md) 15.8） | なし（実機ビルドの手順に入れる） |
 
 ## 9. 共通規約の参照先
@@ -250,7 +299,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | 場所 | 型 | 理由 |
 |---|---|---|
 | サーバーの中 | Cysharp の `Ulid` | 生成・比較・変換がそろっている |
-| DB | 26 文字の `char(26)` | DTO・ログ・DB が同じ表現になり、辞書順が時刻順になる。TypeHandler は文字列との変換だけ。容量が問題になったら `uuid` に移す（2026-10-31 に `uuid` から変更） |
+| DB | 26 文字の `char(26)` | DTO・ログ・DB が同じ表現になり、辞書順が時刻順になる。TypeHandler は文字列との変換だけ（2026-10-31 に `uuid` から変更）。**`uuid` は使わない**（2026-10-31 決定）。VolTech-MagicOnion のテーブル（`devices`・`last_responses`・`game_logs`）の `player_id` も `char(26)`（2026-10-31 に VolTech-MagicOnion を変更済み。コミット `f79974d`） |
 | DTO（`Uta.Shared`） | 26文字の `string` | クライアントが Ulid のライブラリに依存しない。ログでもそのまま読める。受け取ったら解析して検証する |
 | `Uta.Domain` | 持たない | `Uta.Domain` を外部ライブラリから独立させる。ID はアプリ層のエンティティが持つ（6.1 の合成） |
 
@@ -278,20 +327,22 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - **Unity 側のテストは必須にしない**
 - **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する
 - **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）。`server/compose.yaml` の PostgreSQL でも足りるが、テストごとにまっさらな DB を作れることと、技術先行で触る目的で採る
-- テストプロジェクトはテスト対象の隣に置く。`Uta.Domain` は `shared/Uta.Domain.Tests/`（2026-10-28 決定）。サーバーの置き場はサーバーの作成時に決める
+- テストプロジェクトはテスト対象の隣に置く。`Uta.Domain` は `shared/Uta.Domain.Tests/`（2026-10-28 決定）
+- サーバーは `server/Uta.Server.Tests/` の 1 プロジェクトに、単体テスト・アーキテクチャテスト（NetArchTest。3章）・結合テスト（Testcontainers）をまとめ、フォルダで分ける（2026-10-31 決定。VolTech-MagicOnion の `VolTech.Server.Tests` と同じ形）。Docker が無いと結合テストは通らない
 - 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
 
-### 10.5 バージョンと強制アップデート
+### 10.5 アプリのバージョン
 
-- **強制アップデートは、アプリのバージョンで判定する**（基盤の `x-app-version`。[server-foundation.md](server-foundation.md)）
-- マスタのスキーマ（定義）を変えたときや、`Uta.Domain` のルールを変えたときも、新しいアプリのバージョンを出して強制アップデートで揃える。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）
+- **強制アップデートは実装しない** [決定。2026-10-31]。VolTech-MagicOnion もサーバー側の判定を持たない（予約エラー `UPDATE_REQUIRED` は定義だけで返さない。`external/VolTech-MagicOnion/docs/spec/index.md`）。サーバーは古いアプリを弾かない。個人開発の確認用で、配布したアプリが手元にしかないため。要るようになったら、3.1 のルールで VolTech-MagicOnion に判定を足す
+- マスタのスキーマ（定義）や `Uta.Domain` のルールを変えたら、新しいアプリのバージョンを出し、手元のアプリを入れ直してそろえる。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。古いアプリのまま接続すると、予測の表示がずれたり、DTO が読めずに失敗したりする（確定はサーバーなので、所持品が壊れることはない）
+- `x-app-version` は、クライアントがすべての要求に付ける（VolTech-MagicOnion のクライアントが付ける）。サーバーはプロデュースの破棄の判定（下）にだけ使う。VolTech-MagicOnion に読み出す関数は無いので、Uta の `Api` で MagicOnion の `Context.CallContext.RequestHeaders` から読む（2026-10-31 に VolTech-MagicOnion のコードで確認）
 - 進行中のプロデュースは、開始したときとアプリのバージョンが違えば破棄する（2026-10-28 決定。[api-design.md](api-design.md) 5章）。1つのセッションを、常に1つのルールで最後まで進めるため
 - **マスタの版・ルールの版は、アプリのバージョンと同じ** [決定。2026-10-31]。サーバーのマスタの値だけを変えるときも、アプリのバージョンを上げる。別の版の番号は持たない（[produce.md](../systems/produce.md) 10.6）
-- **アプリのバージョンの持ち方** [決定。2026-10-31]: クライアントの `x-app-version` は `Uta.Client.Bootstrap` の定数 1 か所に置き、`Uta.Domain`・マスタ・DTO を変えたコミットで上げる。サーバーが受け付ける最低のバージョンは環境変数で渡す（Secret Manager と同じ経路。11.4）
+- **アプリのバージョンの持ち方** [決定。2026-10-31]: クライアントの `x-app-version` は `Uta.Client.Bootstrap` の定数 1 か所に置き、`Uta.Domain`・マスタ・DTO を変えたコミットで上げる。値は整数（VolTech-MagicOnion のヘッダーの規約）
 
 ### 10.6 クライアントのローカル保存
 
-- **共通基盤（`external/Supplement`）の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](../../../external/Supplement/docs/features/messagepack-save-data.md)）
+- **共通基盤の Supplement（`external/Supplement`）の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](../../../external/Supplement/docs/features/messagepack-save-data.md)）
 - MessagePack は通信とマスタでも使うので、Supplement が参照する MessagePack の版を、MagicOnion・MasterMemory とそろえる（8章の要検証）
 - 何を保存するか（認証トークン、設定など）は、**実装するときに決める**
 
@@ -315,7 +366,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 1. **ローカルで確かめる**: テスト（CLAUDE.md の「ビルド・テスト・実行」のコマンド。単体テストと結合テスト）を通し、Unity エディターと実機から操作して確かめる
 2. **イメージを作る**: `dotnet publish /t:PublishContainer` で API のイメージを作り、Artifact Registry に登録する。サーバー用のマスタのバイナリもイメージに含める
-3. **マイグレーションを流す**: DbUp でスキーマを更新する。API と同じイメージの `migrate` コマンドを、Cloud Run のジョブとして流す（ローカルでは `dotnet run --project server/Uta.Server -- migrate`。[ADR 0012](../decisions/0012-migration-dbup.md)）
+3. **マイグレーションを流す**: DbUp でスキーマを更新する。API と同じイメージの `migrate` コマンドを、Cloud Run のジョブとして流す（ローカルでは `dotnet run --project server/Uta.Server -- migrate`。[ADR 0012](../decisions/0012-migration-dbup.md)）。`migrate` は、VolTech-MagicOnion のテーブル（`VoltechDatabase.Migrate()`）を先に、Uta のテーブル（`Migrations/`）を後に流す。VolTech-MagicOnion のテーブルと Uta のテーブルの履歴は分ける（3.1 の 1）
 4. **デプロイする**: Cloud Run のサービスを、新しいイメージで更新する
 5. **確かめる**: ヘルスチェックと、実機から「ログイン → ガチャを1回引く」までのスモークテスト
 6. **問題があれば前に進めて直す**: dev 環境ではロールバックしない。DbUp はマイグレーションを戻せず、手順 3 でスキーマは進んでいるため、古い API に戻すと新しいスキーマと合わない。直したイメージを作って手順 2 からやり直す [決定。2026-10-31]。本番環境は持たない（11.1）ので、これで足りる
@@ -337,13 +388,46 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | Cloud SQL への接続 | Cloud Run 組み込みの Cloud SQL 接続（Unix ソケット）と、パスワード認証（パスワードは Secret Manager） | 設定が最小 / IAM 認証よりパスワードの管理が要る。プライベート IP は VPC の費用がかかるので採らない |
 | マイグレーション | DbUp。`migrate` コマンドを Cloud Run のジョブで流す（[ADR 0012](../decisions/0012-migration-dbup.md)） | 複数のインスタンスで同時に流れない / デプロイの手順が1つ増える |
 | Compose のファイル | `server/compose.yaml` | サーバー専用だと分かる / 最上位から起動するときはパスを指定する |
+| PostgreSQL の版 [2026-10-31] | 18（イメージは `postgres:18-alpine`）。Compose と Testcontainers でそろえる | VolTech-MagicOnion のテストと同じ版 / Cloud SQL で 18 を選べるかは要確認（8章） |
+| ローカルの DB [2026-10-31] | ポート 5432、DB 名 `uta`。パスワードは `server/.env`（`.gitignore` に入れる）から読み、リポジトリに入れない | 標準のポートで設定が要らない / ほかの PostgreSQL がポート 5432 を使っていると衝突する |
 | ヘルスチェック | gRPC のヘルスチェック（`grpc.health.v1`、`Grpc.AspNetCore.HealthChecks`）。DB の確認は含めない | HTTP/2 だけで受ける構成に合う。Cloud SQL を止めても API が再起動を繰り返さない / Cloud Run のプローブの設定は要確認（8章） |
 
 - 料金は作る前に公式の料金表で確認する（11.3）
 
+## 12. 実装の進め方 [決定。2026-10-31]
+
+実装計画の単位と順は [game-spec.md](../overview/game-spec.md) の「実装計画の単位と順」が正。ここでは、その 1 番目の計画（**通信の疎通**）に何を入れるかを決める。
+
+**方針**: 手をつけやすく、後で問題が出ない順にする。後で問題になりやすいのは、Unity 7（アルファ版）・IL2CPP・HTTP/2 まわりの、動くか分からないもの（8章）。これをゲームの機能を書く前に、最小の構成で通しておく。ゲームの機能（プロデュース・ガチャ）の計画は、1 番目の計画が通るまで始めない（`Uta.Domain` とマスタの計画は、通信に関係しないので並行してよい）。
+
+1 番目の計画に入れるもの:
+
+| 順 | 中身 | 確かめること（8章の要検証のうち、ここで潰すもの） |
+|---|---|---|
+| 1 | 2.1 のファイル（`Uta.slnx`・`Directory.Build.props`・`Directory.Packages.props`・`client/Directory.Build.props`）。`Uta.Domain.Tests` の版を中央管理へ移す | `dotnet build Uta.slnx` と既存のテストが通る |
+| 2 | `shared/Uta.Shared`（中身は空でよい。`VolTech.Server.Abstractions` を参照するだけ） | 版の衝突が出ない |
+| 3 | **（2026-10-31 に済み）VolTech-MagicOnion の変更**（3.1 の 6）: `devices`・`last_responses`・`game_logs` の `player_id` を `uuid` から `char(26)` に変えた（10.1。VolTech-MagicOnion の `f79974d`、Uta のポインタも更新済み）。VolTech-MagicOnion のテスト・CHANGELOG（互換性が壊れる変更）まで済ませて push し、Uta のポインタを上げる | VolTech-MagicOnion のテストが通る |
+| 4 | `server/Uta.Server`（下の「サーバーの骨組み」。Uta の RPC は無し）、`server/compose.yaml`、`server/Uta.Server.Tests`（アーキテクチャテスト 1 件と、VolTech-MagicOnion の端末登録の結合テスト 1 件） | NetArchTest が xunit.v3 で動く。ローカルで VolTech-MagicOnion の端末登録が通る |
+| 5 | Unity 側: 外部パッケージ（UniTask・VContainer・MessagePack・MagicOnion のクライアント）と `com.chinpangx.voltech.magiconion`・`com.uta.domain`・`com.uta.shared` を `manifest.json` に入れ、3章の asmdef を作る | `shared/` の `file:` 取り込み、`noEngineReferences` と UniTask、各パッケージが Unity 7 で動く、版が揃う |
+| 6 | Unity から VolTech-MagicOnion の端末登録（`RegisterAsync` → トークン）を呼ぶ最小の画面または起動処理 | 完了条件 0（Editor と Windows の IL2CPP）。結果は `architecture/unity7-evaluation.md` に書く |
+
+**サーバーの骨組み**（手順 4。VolTech-MagicOnion の `docs/guide/server.md` の形に従う）[決定。2026-10-31]:
+
+- `Program.cs`: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
+- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、5 番目の計画（プレイヤー・ガチャ・強化）で別のマイグレーションとして足す。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
+- **設定**（`appsettings.json`）: `Voltech:GameDay:ResetHour` は `12`、`Voltech:GameDay:TimeZone` は `"Asia/Tokyo"`（10.2。既定は 0 時・UTC なので必ず書く）。`Voltech:AccessTokenLifetime` は既定の 1 時間のまま
+- **接続文字列**は `ConnectionStrings:Default`（VolTech-MagicOnion のガイドと同じ名前）。リポジトリに入れない。ローカルは `dotnet user-secrets`、Cloud Run は環境変数 `ConnectionStrings__Default`（Secret Manager から渡す。11.4）。`server/.env` は Compose の PostgreSQL のパスワードだけに使う
+- **`migrate`**: 最初の引数が `migrate` なら、Web ホストを起動せずに、`VoltechDatabase.Migrate(接続文字列)` → Uta の DbUp（`Migrations/*.sql` を埋め込みリソースにし、記録は DbUp の既定の `schemaversions`）の順に流して、終了コード 0 で終わる。失敗したら 0 以外。ほかの引数は取らない（接続文字列は上と同じ経路）
+- `x-app-version` を読む処理はこの段階では作らない（プロデュースの計画で、10.5 の方法で作る）
+
+- UnityScreenNavigator・Supplement・MasterMemory は、使う計画（画面・ローカル保存・マスタ）で入れる。1 番目の計画には入れない
+- 共通基盤の変更が要るとわかったら、3.1 のルールで共通基盤の側に足す
+
 ## 未決事項
 
 - ビルド・CI の実体（`architecture/build-ci.md` として起こす予定。手動の手順を書き留めてから GitHub Actions に移す。11.2）
-- server/ の中身（ソリューションファイルの名前と置き場、サーバーのテストプロジェクトの名前と置き場、`compose.yaml` の PostgreSQL の版・ポート・DB 名、`migrate` の引数、NuGet の版の一覧）。server/ の最初の実装計画で決める
+- NuGet・UPM の具体の版。1 番目の実装計画（12章）で決める（VolTech-MagicOnion と共通のものは 2.1 のとおり VolTech-MagicOnion に合わせる）
 
-（2026-10-28 に解決: `Uta.Shared` は Uta 固有のものだけを置き、基盤の `Abstractions` を参照する（[api-design.md](api-design.md)）。`Application` は `noEngineReferences` で守る（3章）。アーキテクチャテストは NetArchTest（3章）。ULID の持ち方（10.1）。テストの置き場（10.4）。デプロイの構成（11.4））
+（2026-10-31 に解決: ソリューションと版の管理（2.1）、共通基盤の固定と扱い（3.1）、サーバーのテストの置き場（10.4）、PostgreSQL の版・ポート・DB 名（11.4））
+
+（2026-10-28 に解決: `Uta.Shared` は Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する（[api-design.md](api-design.md)）。`Application` は `noEngineReferences` で守る（3章）。アーキテクチャテストは NetArchTest（3章）。ULID の持ち方（10.1）。テストの置き場（10.4）。デプロイの構成（11.4））

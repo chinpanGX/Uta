@@ -32,11 +32,11 @@ updated: 2026-10-31
 
 ### 実装設計書（4編と補足・叩き台）
 
-- [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、アセンブリと層の依存ルール、共有コードの制約、機能ID、共通の規約、環境構成とデプロイ
-- [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約
+- [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、ソリューションと NuGet の版、アセンブリと層の依存ルール、共通基盤（external/）の扱い、Shared のコードの制約、機能ID、共通の規約、環境構成とデプロイ、実装の進め方（1 番目の計画の中身）
+- [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約、全テーブルの索引（9章）
 - [architecture/api-design.md](architecture/api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [architecture/screen-design.md](architecture/screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
-- [architecture/lesson-domain-types.md](architecture/lesson-domain-types.md) — レッスンの共有ドメインの型（`Uta.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
+- [architecture/lesson-domain-types.md](architecture/lesson-domain-types.md) — レッスンの Shared.Domain の型（`Uta.Domain`）：カード定義・状態・乱数・計算式・エンジンの型と責務、フェーズ1の範囲
 - [architecture/lesson-enums.md](architecture/lesson-enums.md) — レッスンの効果・トリガー・ステータス・コスト・条件の enum の名前・数値と、効果の列の対応（マスタとコードの正）
 - （未作成）ビルド・CI
 

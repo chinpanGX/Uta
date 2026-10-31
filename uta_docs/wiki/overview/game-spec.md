@@ -21,14 +21,14 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 ## 決まっていること
 
 - 構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10。[ADR 0004](../decisions/0004-server-foundation.md)）。通信は MagicOnion（[ADR 0002](../decisions/0002-magiconion.md)）
-- サーバー権威: 育成計算、ガチャ抽選、所持品更新はサーバー。クライアントは入力と表示に加え、共有ドメインで使用可否の判定と予測の表示まで行う。シードは持たない（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
+- サーバー権威: 育成計算、ガチャ抽選、所持品更新はサーバー。クライアントは入力と表示に加え、Shared.Domain で使用可否の判定と予測の表示まで行う。シードは持たない（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - IP方針: 模倣するのはシステム構造のみ。キャラ・名称・楽曲・UI素材・世界観はオリジナル（[ADR 0001](../decisions/0001-ip-policy.md)）。ゲームシステムの数値は参考作品の値を使う（[ADR 0016](../decisions/0016-reference-game-values.md)）
-- 共有型は `shared/` に置く（`Uta.Domain`・`Uta.Shared`）。マスタは `masterdata/` の定義から MasterMemoryAddons でクライアント用・サーバー用に生成する（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
+- Shared の型は `shared/` に置く（`Uta.Domain`・`Uta.Shared`）。マスタは `masterdata/` の定義から MasterMemoryAddons でクライアント用・サーバー用に生成する（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - クライアント: オニオンアーキテクチャ、uGUI + UnityScreenNavigator・VContainer・UniTask、縦画面（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)、[ADR 0009](../decisions/0009-client-stack.md)）
 - DB: PostgreSQL + Npgsql + Dapper（[ADR 0010](../decisions/0010-database.md)）。マイグレーションは DbUp（[ADR 0012](../decisions/0012-migration-dbup.md)）
 - マスタは CSV が正本で、生成したソースとバイナリもコミットする（[ADR 0007](../decisions/0007-masterdata-with-addons.md)、[ADR 0013](../decisions/0013-commit-masterdata-binary.md)）
 - デプロイ: API はコンテナにして Google Cloud の Cloud Run、DB は Cloud SQL（[ADR 0011](../decisions/0011-deploy-google-cloud.md)）
-- 実装設計書は4編（[共通・基盤](../architecture/repository-layout.md) / [マスター](../architecture/masterdata-pipeline.md) / [API](../architecture/api-design.md) / [画面](../architecture/screen-design.md)）。補足のページ: [サーバー基盤](../architecture/server-foundation.md)、[レッスンの共有ドメインの型](../architecture/lesson-domain-types.md)、[レッスンの enum](../architecture/lesson-enums.md)、[画面ワイヤー](screen-wireframes.md)
+- 実装設計書は4編（[共通・基盤](../architecture/repository-layout.md) / [マスター](../architecture/masterdata-pipeline.md) / [API](../architecture/api-design.md) / [画面](../architecture/screen-design.md)）。補足のページ: [サーバー基盤](../architecture/server-foundation.md)、[レッスンの Shared.Domain の型](../architecture/lesson-domain-types.md)、[レッスンの enum](../architecture/lesson-enums.md)、[画面ワイヤー](screen-wireframes.md)
 
 ## ゲームループ [決定。骨格は ADR 0003、報酬は 2026-10-28、強化は 2026-10-31]
 
@@ -47,7 +47,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | システム | 主な実行場所 | 入力 | 出力 | 詳細 |
 |---|---|---|---|---|
-| プロデュース | サーバー（計算・確定）＋クライアント（表示、共有ドメインで使用可否の判定と予測） | 編成、各ターンの行動選択 | 育成結果、最終評価、報酬 | [produce.md](../systems/produce.md) |
+| プロデュース | サーバー（計算・確定）＋クライアント（表示、Shared.Domain で使用可否の判定と予測） | 編成、各ターンの行動選択 | 育成結果、最終評価、報酬 | [produce.md](../systems/produce.md) |
 | ガチャ | サーバー | 排出テーブル、ガチャ通貨 | 所持品の追加、かけら、サポート強化pt、交換pt、抽選履歴 | [gacha.md](../systems/gacha.md) |
 | 育成アイドル・サポートカード | サーバー（確定）＋クライアント（強化後の予測、編成の可否） | ガチャの結果、ゴールド・サポート強化pt | 編成に使うカード、強化状態 | [idol-support.md](../systems/idol-support.md) |
 | 3Dライブ | （保留） | — | — | [live.md](../systems/live.md) |
@@ -58,7 +58,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - **プロデュース → 報酬**: 最終評価のランクに応じて、ガチャ通貨・ゴールド・サポート強化pt・プレイヤー経験値を付与する（決定。2026-10-28、強化pt は 2026-10-31。[produce.md](../systems/produce.md) 6.1）
 - **通貨**: 課金は実装しない。ガチャ通貨は無償の1種類だけ（決定。[gacha.md](../systems/gacha.md)）。入手は初期付与とプロデュースの報酬（[gacha.md](../systems/gacha.md) 8章）。ほかに持つ値はゴールドとサポート強化pt（報酬で得て、サポートカードの強化に使う）。交換メダルは MVP では作らない
 - **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の最初の `SyncAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500・ゴールド 10,000・サポート強化pt 10,000（どれもマスタの値。初期値。ゴールドと強化pt は、最初のプロデュースの前に強化を試せるように置く [仮]）を付与する。置き場のマスタは [idol-support.md](../systems/idol-support.md) 6章。これでガチャを引かなくても最初のプロデュースを始められる
-- **認証**: MVP は基盤の匿名デバイス認証だけで、引き継ぎは作らない（決定。2026-10-28）。アンインストールや機種変更でデータは失われる。プレイヤーと端末は1対多のテーブルにして、あとで引き継ぎコードを足せる形にしておく（[api-design.md](../architecture/api-design.md) 3章）
+- **認証**: MVP は VolTech-MagicOnion の匿名デバイス認証だけで、引き継ぎは作らない（決定。2026-10-28）。アンインストールや機種変更でデータは失われる。プレイヤーと端末は1対多のテーブルにして、あとで引き継ぎコードを足せる形にしておく（[api-design.md](../architecture/api-design.md) 3章）
 
 ## 最小実装範囲（MVP）[決定。2026-10-31]
 
@@ -72,7 +72,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | # | 条件 | 確かめ方 |
 |---|---|---|
-| 0 | Unity 7 のクライアントから、MagicOnion の Unary で、ローカルのサーバーの基盤の RPC（端末の登録 `RegisterAsync` → トークンの発行）が通る。Uta の RPC は使わない | Unity Editor（Mono）と Windows の IL2CPP スタンドアロンで手で確かめる。結果は `architecture/unity7-evaluation.md`（未作成。ここで作る）に残す。Uta の RPC（`SyncAsync` → `GetPlayerAsync`）が通ることは条件 6 で確かめる |
+| 0 | Unity 7 のクライアントから、MagicOnion の Unary で、ローカルのサーバーの VolTech-MagicOnion の RPC（端末の登録 `RegisterAsync` → トークンの発行）が通る。Uta の RPC は使わない | Unity Editor（Mono）と Windows の IL2CPP スタンドアロンで手で確かめる。結果は `architecture/unity7-evaluation.md`（未作成。ここで作る）に残す。Uta の RPC（`SyncAsync` → `GetPlayerAsync`）が通ることは条件 6 で確かめる |
 | 1 | 匿名デバイス認証でプレイヤーを作り、初期の所持品を付与して保存できる | サーバーの結合テスト（Testcontainers の PostgreSQL。[repository-layout.md](../architecture/repository-layout.md) 10.4） |
 | 2 | ガチャを引いて所持品が更新される（単発・10 連・確定枠・天井の交換・重複のかけらとサポート強化pt への変換） | サーバーの結合テスト。天井は、テストが `gacha_exchange_points` の行を直接入れて前提を作る（マスタは変えない） |
 | 3 | サポートカードのレベル上げ・上限解放ができ、次のプロデュースの開始時の性能に反映される | サーバーの結合テスト。残高は初期の所持品で足りる。上限解放の素材は、テストが `player_support_cards` の行を直接入れて用意する |
@@ -102,11 +102,11 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | 順 | 実装計画 | 受け持つ完了条件 | 待つもの |
 |---|---|---|---|
-| 1 | client/ の通信の土台（Unity 7 に MagicOnion・MessagePack を入れ、基盤の RPC を呼ぶ） | 0 | 基盤（`external/VolTech-MagicOnion`）のタグ |
+| 1 | 通信の疎通（ソリューションと版の管理、`Uta.Shared`・`Uta.Server` の骨組み、Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。中身は [repository-layout.md](../architecture/repository-layout.md) 12章） | 0 | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
 | 2 | masterdata の最初の計画（定義・CSV・生成。MVP の最小のコンテンツの行） | — | なし |
 | 3 | `Uta.Domain` のレッスン（[lesson-card.md](../systems/lesson-card.md) 15章のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
 | 4 | `Uta.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
-| 5 | server/ の土台とプレイヤー・ガチャ・強化 | 1・2・3 | 基盤のタグ、2 |
+| 5 | server/ のプレイヤー・ガチャ・強化（骨組みは 1 で作る） | 1・2・3 | 1、2 |
 | 6 | server/ のプロデュース | 4・5 | 4・5 |
 | 7 | client/ の画面 | 6・7 | 1・6 |
 

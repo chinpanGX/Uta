@@ -89,8 +89,8 @@ updated: 2026-10-31
 
 `Bootstrap` が行う。詳細は [server-foundation.md](server-foundation.md) と [masterdata-pipeline.md](masterdata-pipeline.md) 6章。
 
-1. 認証: 端末の登録・トークンの発行（`IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（基盤の仕様）
-2. サーバーの状態: メンテナンス・強制アップデートの判定（基盤が返すエラー）。画面に告知を出す
+1. 認証: 端末の登録・トークンの発行（`IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
+2. （サーバーの状態の判定は無い）強制アップデートとメンテナンスは実装しない（[repository-layout.md](repository-layout.md) 10.5）。VolTech-MagicOnion のクライアントは `UPDATE_REQUIRED`・`MAINTENANCE` の受け口を持つが、サーバーは返さないので、Uta の画面は作らない
 3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
 4. 同期: `IPlayerService.SyncAsync` を呼ぶ（初回のプレイヤー作成と初期付与、バージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる
 5. ホームへ遷移する
@@ -99,8 +99,8 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 
 ## 5. 通信とエラーの画面側の扱い [Uta案]
 
-- 基盤のクライアント側（`ApiCore`: 順番待ち、再認証、進行中通知、エラーハンドラー）を使う。画面は `ErrorPolicy` に従って、再試行・ダイアログ・タイトルへ戻る、を出し分ける（基盤の設計書「クライアント側」）
-- 通信中は入力を受け付けない表示（ブロッカー）を出す。進行中通知の受け口は基盤のものを使う
+- VolTech-MagicOnion のクライアント（`ApiCore`: 順番待ち、再認証、進行中通知、エラーハンドラー）を使う。画面は `ErrorPolicy` に従って、再試行・ダイアログ・タイトルへ戻る、を出し分ける（VolTech-MagicOnion の設計書「クライアント側」）
+- 通信中は入力を受け付けない表示（ブロッカー）を出す。進行中通知の受け口は VolTech-MagicOnion のものを使う
 - 通信の失敗後の再送は、同じ `x-request-id` で行う。画面側で独自の重複防止はしない
 
 ## 6. レッスン・試験画面とドメインの関係 [決定]

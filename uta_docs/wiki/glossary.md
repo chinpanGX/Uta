@@ -108,17 +108,23 @@ updated: 2026-10-31
 
 | 用語 | 定義 | 備考 |
 |---|---|---|
-| 共有ドメイン（`Uta.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定） | [repository-layout](architecture/repository-layout.md) 6章 |
-| 通信契約（`Uta.Shared`） | サービスIF・DTO・エラーコード | [api-design](architecture/api-design.md) |
+| 共通基盤 | `external/` に Git サブモジュールで取り込んだ自作のリポジトリ 4 つ（VolTech-MagicOnion・Supplement・UnityScreenNavigator・MasterMemoryAddons）の総称。Uta 以外のアプリでも使う前提で育てる。「共通」はこの意味でだけ使う | [repository-layout](architecture/repository-layout.md) 3.1。1 つを指すときはリポジトリ名で書き、「基盤」とだけ書かない |
+| VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server-foundation.md) |
+| サーバー基盤 | VolTech-MagicOnion のサーバー側（`VolTech.Server`。認証・冪等性・エラー・フィルター順） | 同上 |
+| Shared | `shared/` にある、クライアントとサーバーの両方から使うコード（Shared.Domain と Shared.Contracts）。「共有」とは書かず Shared と書く（「共通」と見間違えないため） | [repository-layout](architecture/repository-layout.md) 3章・5章 |
+| Shared.Domain（`Uta.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定）。コードは `Uta.Shared.Domain` に改名する予定（未実施） | [repository-layout](architecture/repository-layout.md) 3章・6章 |
+| Shared.Contracts（`Uta.Shared`） | 通信契約。サービスIF・DTO・エラーコード。コードは `Uta.Shared.Contracts` に改名する予定（未実施） | [api-design](architecture/api-design.md) |
+| Server.Domain | サーバー固有のルール（ガチャ抽選、天井、シード生成、報酬付与など）。`server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`） | [repository-layout](architecture/repository-layout.md) 6.1 |
+| Client.Domain | クライアント固有のルールを置く層の呼び名。**今は作らない**（クライアント固有の知識は `Application` / `Presentation` に置く）。作るときは `Uta.Client.Domain` | 同上 3章・6.1 |
 | オニオンアーキテクチャ | 依存を常に内側（Domain）へ向ける層の構成 | [ADR 0008](decisions/0008-shared-domain-and-onion.md) |
 | ポート | `Application` が定義し、`Infrastructure` が実装するインターフェース | |
 | Composition Root | すべての層を組み立てる場所。クライアントでは `Bootstrap` | |
-| 予測の表示 | クライアントが共有ドメインで出す、確定前の値（使用可否・スコアの見込みなど）。確定はサーバー | シードは使わない |
+| 予測の表示 | クライアントが Shared.Domain で出す、確定前の値（使用可否・スコアの見込みなど）。確定はサーバー | シードは使わない |
 | 機能ID | 仕様の機能に付ける ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）。設計書4編の横断に使う | |
 | `[ClientOnly]` / `[ServerOnly]` | マスタ定義に付け、クライアント用・サーバー用のどちらの出力に残すかを決める属性 | MasterMemoryAddons |
 | 正本 | 他のものを生成する元になる、手で編集するデータ（マスタの定義・CSV） | `masterdata/` |
 | スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/masterdata-pipeline.md) 6章 |
-| `Op`（`EffectOp`） | マスタと共有ドメインの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える。名前・数値・列の対応は lesson-enums が正 | [lesson-enums](architecture/lesson-enums.md) |
+| `Op`（`EffectOp`） | マスタと Shared.Domain の効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える。名前・数値・列の対応は lesson-enums が正 | [lesson-enums](architecture/lesson-enums.md) |
 | 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
 | 中断 / 放棄 / 破棄 | プロデュースの止め方。中断はアプリの終了で、いつでも再開できる。放棄はプレイヤーの明示の操作。破棄はアプリのバージョン（または状態の形式）が開始時と違うときにサーバーが行う。放棄・破棄は報酬なし | [api-design](architecture/api-design.md) 5章 |
 | 同期（`SyncAsync`） | 起動時に1回呼ぶ、副作用のある RPC。プレイヤーの作成と初期付与（初回だけ）、バージョン違いのプロデュースの破棄をまとめて行う | [api-design](architecture/api-design.md) 1章 |
@@ -127,7 +133,7 @@ updated: 2026-10-31
 | Testcontainers | テストのときに Docker でコンテナ（PostgreSQL など）を立ち上げるライブラリ。サーバーの結合テストに使う | [repository-layout](architecture/repository-layout.md) 10.4 |
 | dev 環境 | Google Cloud にデプロイした確認用の環境（Cloud Run + Cloud SQL）。本番環境は分けない | [repository-layout](architecture/repository-layout.md) 11章 |
 | マスタの日時 | `string` の `yyyy-MM-dd HH:mm:ss`（JST） | 同 10.2 |
-| `xoshiro256**` | 共有ドメインで使う決定的な疑似乱数（64 ビット。xorshift の後継） | 同 10.3 |
+| `xoshiro256**` | Shared.Domain で使う決定的な疑似乱数（64 ビット。xorshift の後継） | 同 10.3 |
 | 万分率 / 千分率 / パーセント表記 | 小数を整数で持つための単位。確率は万分率、カードの効果の倍率はパーセント、0.1% 刻みが要る値（評価・スコアボーナスの係数、パラメータボーナス）は千分率（2026-10-31） | マスタは小数を扱わない |
 | マスターシード | プロデュースのセッションに1つ持つ乱数のシード。ここから用途・場面ごとのストリームを作る | [produce](systems/produce.md) 10.2 |
 | 乱数ストリーム | 用途（週構成・週・カードの選択肢・レッスン）と場面（週番号・挑戦回数）ごとに独立した乱数の列 | 同 10.2 |

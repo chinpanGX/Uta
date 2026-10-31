@@ -23,7 +23,7 @@ updated: 2026-10-31
 ## 完了条件(基礎部分)
 
 - [ ] 育成開始 → 週の行動 → レッスン・試験 → 最終評価・報酬付与 が サーバー経由で動く(確かめ方: サーバーの結合テストで、最短シナリオ([game-spec.md](../overview/game-spec.md))を RPC だけで最後まで進め、`produce_results` と報酬の付与を確かめる)
-- [ ] 結果の確定・乱数はすべてサーバー。クライアントは入力と表示に加え、共有ドメインで使用可否の判定と予測の表示まで([ADR 0008](../decisions/0008-shared-domain-and-onion.md))(確かめ方: レビュー。クライアントの `Infrastructure` が乱数とシードを持たないこと)
+- [ ] 結果の確定・乱数はすべてサーバー。クライアントは入力と表示に加え、Shared.Domain で使用可否の判定と予測の表示まで([ADR 0008](../decisions/0008-shared-domain-and-onion.md))(確かめ方: レビュー。クライアントの `Infrastructure` が乱数とシードを持たないこと)
 - [ ] 中断・再開ができる(状態がサーバーに保存されている)(確かめ方: 結合テストで、途中で `GetStateAsync` を呼んで続きの操作ができること)
 - [ ] 同一シード+同一操作列で結果が再現できる(確かめ方: `Uta.Domain` の単体テストで、再生した状態が項目ごとに一致すること。10.6)
 
@@ -458,7 +458,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 
 ### 10.0 前提 [決定]
 
-- サーバー権威。結果の確定は常にサーバー。クライアントはシードと乱数を持たず、共有ドメインで使用可否の判定と予測の表示までを行う。乱数が絡む結果は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))
+- サーバー権威。結果の確定は常にサーバー。クライアントはシードと乱数を持たず、Shared.Domain で使用可否の判定と予測の表示までを行う。乱数が絡む結果は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))
 - 乱数は `xoshiro256**`。`System.Random` は使わない。シードはサーバーが生成する([repository-layout.md](../architecture/repository-layout.md) 10.3)
 - `float` / `double` を使わない([lesson-card.md](lesson-card.md) 9.6)
 - セッションは検索用の列と、状態を丸ごと入れた1列(MessagePack の `bytea`)に分け、バージョン列で楽観ロックをかける([ADR 0010](../decisions/0010-database.md)、[api-design.md](../architecture/api-design.md) 3章)

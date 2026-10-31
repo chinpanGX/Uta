@@ -58,7 +58,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - 主キーは `[PrimaryKey]`（複合キーは `keyOrder`）、検索用は `[SecondaryKey(n)]`
 - enum は C# で定義し、CSV に書く名前を `[InputName]` で付ける（名称は仮称。[glossary.md](../glossary.md)、[ADR 0001](../decisions/0001-ip-policy.md)）
 - 検証は属性で書く: `[Unique]`、`[Exists(typeof(T))]`（空欄を許すなら `AllowEmpty = true`）。違反は `master-gen` が「ファイル 行 列」で報告する。生成ソースには残らない
-- Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要
+- Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要（Uta では `Uta.Client.Infrastructure` に置く。[repository-layout.md](repository-layout.md) 5章）
 - 空欄は型の既定値（`0` / `false` / `""` / enum の 0）。主キーの空欄はエラー
 - `IValidatable<T>` は使えるが、検証のコードがクライアント用の出力にも入る。**`[ServerOnly]` の列・テーブルを参照する検証は書けない**。できるだけ属性で書く
 
@@ -134,7 +134,9 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 | 両方（Common） | 育成アイドル・サポートカードの基本値、スキルカード（表示と判定に使う面）、週構成、レッスンルール、ガチャの排出率・天井 | 画面で表示・確率表示（GAC-02）に使う。`Uta.Domain` が使う値も含む |
 | `[ClientOnly]` | アイコンのアドレス、表示名、演出の設定 | サーバーに不要 |
 | `[ServerOnly]` | レンタル候補（SUP-06）、報酬の設定、不正検知のしきい値（推測） | クライアントに渡さない |
-| 要確認 | 試験の NPC スコア（[produce.md](../systems/produce.md) 5.3） | 画面に出すなら両方、出さないなら `[ServerOnly]` |
+| （2026-10-31 に解決）試験の NPC スコア | Common（`ExamRivalScore`。[produce.md](../systems/produce.md) 3.1） | 試験中の順位の表示と判定を Shared.Domain で行うため |
+
+- テーブルごとの区分は 9章の索引にまとめる
 
 - `[ClientOnly]` / `[ServerOnly]` の列が `[Exists]` で別の側にだけ存在するテーブルを参照した場合の挙動は**未確認**。定義に書く前にアドオンで試す
 
@@ -211,9 +213,85 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 - 列の型（`int` / `long` / `string` / `bool` / enum のみ）は**改善の対象にしない**。Uta の確定事項（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 
+## 9. テーブルの索引 [索引。2026-10-31 時点]
+
+MVP で使うマスタのテーブルの一覧。**列と検証の正は「正のページ」の表**で、ここは名前・主キー・区分だけを引くための索引（列はここに書かない。二重管理しないため）。テーブル・列の名前は、どれも正のページで「名前は仮」。テーブルを足す・消す・名前を変えるときは、正のページと同じ変更でここも直す。
+
+区分の Common は両側に出すもの、ServerOnly はサーバーだけに出すもの（4章）。
+
+### 9.1 レッスン・カード（7 テーブル）
+
+正のページ: 3章「難所: カード定義の入れ子」（列）、[lesson-enums.md](lesson-enums.md)（enum と効果の列の対応）、[lesson-card.md](../systems/lesson-card.md) 3章（カード定義の考え方）
+
+| テーブル | 主キー | 区分 | 中身 |
+|---|---|---|---|
+| `Card` | `CardId` | Common | スキルカードの見出し（プラン、種別、レアリティ、解放 Lv など） |
+| `CardFace` | `CardId` + `Face` | Common | 通常 / 強化の面。効果・使用条件のグループを指す |
+| `CardCost` | `CardId` + `Face` + `Order` | Common | コスト |
+| `EffectGroup` | `EffectGroupId` | Common | 効果のグループの見出し |
+| `Effect` | `EffectGroupId` + `Order` | Common | 効果の 1 行（`Op` と引数） |
+| `ConditionGroup` | `ConditionGroupId` | Common | 条件のグループの見出し |
+| `Condition` | `ConditionGroupId` + `Order` | Common | 条件の 1 行（AND） |
+
+- 区分は 4章の Uta案（スキルカードは表示と判定に使うので Common）。テーブルごとには決めていない
+
+### 9.2 プロデュース（14 テーブル）
+
+正のページ: [produce.md](../systems/produce.md) 3.1「マスタの表」
+
+| テーブル | 主キー | 区分 | 中身 |
+|---|---|---|---|
+| `Scenario` | `ScenarioId` | Common | シナリオ（難易度、週の数、パラメータ上限、再挑戦の回数など） |
+| `ScenarioWeek` | `ScenarioId` + `Week` | Common | 週の種類と、その週のレッスン・試験の設定 |
+| `WeekActionSlot` | `ScenarioId` + `Week` + `Order` | Common | 週の行動の枠 |
+| `LessonSetting` | `LessonSettingId` | Common | レッスン・試験のターン数と目標 |
+| `ClassOption` | `ScenarioId` + `Week` + `Order` | Common | 授業の選択肢 |
+| `ExamRivalScore` | `ScenarioId` + `Week` | Common | 試験の NPC のスコア |
+| `ExamPattern` | `ExamPatternId` | Common | 審査比率と試験のターン配分 |
+| `ExamRankReward` | `ExamKind` + `Rank` | Common | 試験の順位ごとのパラメータ上昇 |
+| `ScoreBonusSetting` | `Id`（1 行） | Common | スコアボーナスの係数 |
+| `EvaluationScoreBand` | `Order` | Common | 最終評価のスコア分の帯 |
+| `EvaluationRank` | `Rank` | Common | 評価値ごとのランク |
+| `EvaluationRankReward` | `Rank` | **ServerOnly** | ランクごとの報酬 |
+| `OfferRarityWeight` | `Rarity` | Common | カードの選択肢のレアリティの重み |
+| `PlayerLevelExp` | `Level` | Common | プレイヤー Lv に要る経験値 |
+
+### 9.3 育成アイドル・サポートカード（9 テーブル）
+
+正のページ: [idol-support.md](../systems/idol-support.md) 6章「マスタの表」
+
+| テーブル | 主キー | 区分 | 中身 |
+|---|---|---|---|
+| `Idol` | `IdolId` | Common | 育成アイドル（レアリティ、プラン、ステータス、ボーナス、固有スキルカードなど） |
+| `IdolRecommendDeck` | `Recommend` + `Order` | Common | おすすめ効果ごとの初期デッキのカード |
+| `CommonDeckCard` | `Order` | Common | 初期デッキの共通の 5 枚 |
+| `SupportCard` | `SupportCardId` | Common | サポートカード（レアリティ、タイプ、プラン） |
+| `SupportAbility` | `SupportCardId` + `Order` | Common | サポートカードのアビリティ |
+| `SupportLevelCost` | `Rarity` + `Level` | Common | レベル上げに要る強化pt・ゴールド |
+| `SupportLevelCap` | `Rarity` + `LimitBreak` | Common | 上限解放の回数ごとの最大レベル |
+| `InitialSupportCard` | `Order` | **ServerOnly** | 初期付与のサポートカード |
+| `InitialSetting` | `Id`（1 行） | **ServerOnly** | 初期付与の通貨・ゴールド・強化pt |
+
+### 9.4 ガチャ（5 テーブル）
+
+正のページ: [gacha.md](../systems/gacha.md) 2章「マスタの表」（`ItemKind` の enum の正もここ）
+
+| テーブル | 主キー | 区分 | 中身 |
+|---|---|---|---|
+| `Gacha` | `GachaId` | Common | ガチャ（価格、通常枠・確定枠のテーブル、天井の交換pt） |
+| `GachaTable` | `GachaTableId` | Common | 排出テーブルの見出し |
+| `GachaTableEntry` | `GachaTableId` + `Order` | Common | 排出テーブルの 1 行（`ItemKind` + `ItemId` と重み） |
+| `GachaCeilingItem` | `GachaId` + `Order` | Common | 天井で交換できるもの |
+| `DuplicateConversion` | `ItemKind` + `Rarity` | Common | 重複したときの変換量 |
+
+### 9.5 索引から見えること
+
+- 合計 35 テーブル。ServerOnly は 3 つ（`EvaluationRankReward`・`InitialSupportCard`・`InitialSetting`）。`[ClientOnly]` のテーブル・列はまだ無い（表示名・アイコンは未定義）
+- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（ServerOnly → Common。例: `InitialSupportCard.SupportCardId` → `SupportCard`）はある。両側に出すテーブルを指すので問題にならない見込み（推測。8章の `[Exists]` の確認で確かめる）
+
 ## 未決事項
 
-- 区分が「要確認」のテーブル（4章）、`Exists` が別の側のテーブルを参照した場合の挙動
+- `Exists` が別の側のテーブルを参照した場合の挙動
 - クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
 - MasterMemory・MessagePack・MagicOnion のバージョン整合
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか

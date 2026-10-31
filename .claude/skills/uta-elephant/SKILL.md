@@ -47,7 +47,7 @@ egm のテンプレート（Overview / Goals / Open Questions / CUJs / Technical
 - 文書・チャットでの返答は**日本語**で書く（egm のテンプレートの見出しも日本語にしてよい）。
 - **IP方針**: キャラクター・名称・楽曲・UI 素材・ロゴ・世界観・シナリオはすべてオリジナル。既存作品の名称や固有の表現を、brief・design・レビューの指摘に入れない。
 - **勝手に決めない**: 未決事項や、ADR に反する案は、決定として書かずにユーザーに確認する。egm の承認ゲート（各セクションの確認）では、ADR との関係を添えて聞く。
-- 実装方針（サーバー権威、共有ドメインでは `float` / `double` を使わない、iOS の AOT 制約、乱数は `xoshiro256**` など）は CLAUDE.md の「実装方針」に従う。
+- 実装方針（サーバー権威、Shared.Domain では `float` / `double` を使わない、iOS の AOT 制約、乱数は `xoshiro256**` など）は CLAUDE.md の「実装方針」に従う。
 - .NET SDK / Unity で実行していない検証を「通った」と書かない。Verification Plan には実際にあるコマンドだけを書く（CLAUDE.md の「ビルド・テスト・実行」）。
 
 ## レビュー

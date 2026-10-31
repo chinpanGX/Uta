@@ -1,10 +1,10 @@
 ---
-title: レッスンの共有ドメインの型（Uta.Domain）
+title: レッスンの Shared.Domain の型（Uta.Domain）
 status: draft
 updated: 2026-10-31
 ---
 
-# レッスンの共有ドメインの型（Uta.Domain）
+# レッスンの Shared.Domain の型（Uta.Domain）
 
 [lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce.md](../systems/produce.md) 10.2 の乱数を、`shared/Uta.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
 

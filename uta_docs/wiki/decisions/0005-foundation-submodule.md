@@ -52,7 +52,7 @@ updated: 2026-10-26
 
 ## 未決事項
 
-- 固定するタグ／コミット（登録時点では各リポジトリの先頭を参照している。リリース済みのタグがあるのは Supplement のみ）
+- 固定するタグ／コミット（登録時点では各リポジトリの先頭を参照している。リリース済みのタグがあるのは Supplement のみ）→ 2026-10-31: タグを待たずコミットで固定し、区切りで基盤の版を出すと決めた（[repository-layout.md](../architecture/repository-layout.md) 3.1）
 - URL の形式の統一（`Supplement`・`UnityScreenNavigator` は SSH、`VolTech-MagicOnion`・`MasterMemoryAddons` は HTTPS。CI や別環境での認証に影響する）
 - サブモジュール内の `.git` はディレクトリのまま（`git submodule absorbgitdirs` は未実施）
 - `Supplement`・`UnityScreenNavigator` は Unity プロジェクトごと入る。Uta の `client` からはローカルパス参照にする想定（推測）。参照方法は実機ビルドで確認する
