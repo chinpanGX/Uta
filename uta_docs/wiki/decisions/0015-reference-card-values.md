@@ -1,10 +1,12 @@
 ---
 title: ADR 0015 初期カードセットの数値は参考作品の値を使う
-status: accepted
+status: superseded
 updated: 2026-10-31
 ---
 
 # ADR 0015: 初期カードセットの数値は参考作品の値を使う
+
+> 注記（2026-10-31）: [ADR 0016](0016-reference-game-values.md) で置き換えた（範囲をゲームシステムの数値全般に広げた）。この ADR の決定は ADR 0016 に含まれる。
 
 ## 状況
 

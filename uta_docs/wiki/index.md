@@ -57,7 +57,8 @@ updated: 2026-10-31
 - [decisions/0012-migration-dbup.md](decisions/0012-migration-dbup.md) — マイグレーションは DbUp、API とは別の `migrate` コマンド（dev は Cloud Run のジョブ）で流す（accepted）
 - [decisions/0013-commit-masterdata-binary.md](decisions/0013-commit-masterdata-binary.md) — マスタのバイナリもコミットする。ADR 0007 の「バイナリはコミットしない」を置き換え（accepted）
 - [decisions/0014-design-heavy-sonnet-implementation.md](decisions/0014-design-heavy-sonnet-implementation.md) — 設計は厚く書き、実装は Sonnet のサブエージェントに任せる。仕様と実装の間に実装計画（`uta_docs/plans/`）を置く（proposed）
-- [decisions/0015-reference-card-values.md](decisions/0015-reference-card-values.md) — 初期カードセットの数値は参考作品の値を使う。ADR 0001 の「抽出データを入れない」をカードの数値に限って置き換え（accepted）
+- [decisions/0015-reference-card-values.md](decisions/0015-reference-card-values.md) — 初期カードセットの数値は参考作品の値を使う（superseded。ADR 0016 で置き換え）
+- [decisions/0016-reference-game-values.md](decisions/0016-reference-game-values.md) — ゲームシステムの数値（カード・週構成・排出率・強化量など）は参考作品の値を使う。ADR 0015 を置き換え（accepted）
 
 ## 一次資料（raw）
 

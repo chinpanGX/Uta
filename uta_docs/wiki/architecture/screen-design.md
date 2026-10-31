@@ -51,22 +51,22 @@ updated: 2026-10-31
 | ガチャ（一覧） | ページ | GAC-01 | GetGachas | ガチャ、排出率 |
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
 | ガチャ（結果） | ページ／モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
-| 交換 | ページ | GAC-03 | Exchange | 交換pt の設定 |
+| 交換 | ページ | GAC-03 | Exchange | 交換pt の設定（MVP では作らない。天井は結合テストで確かめる） |
 | 所持一覧・詳細 | ページ | IDL-01、SUP-01 | GetPlayer | 育成アイドル、サポートカード |
-| 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定 |
+| 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定（MVP では作らない） |
 | サポートカードの強化 | ページ | SUP-02 | LevelUp、LimitBreak | 同上 |
-| 編成 | ページ | PRD-01、SUP-06 | GetRentalCandidates | アイドル、サポートカード |
+| 編成 | ページ | PRD-01 | Start | アイドル、サポートカード、シナリオ（シナリオを選ぶ。レンタル枠の `GetRentalCandidates` は MVP では作らない） |
 | 週の行動選択 | ページ | PRD-02 | ChooseWeekAction、GetState | 週構成、行動 |
 | レッスン | ページ | PRD-03〜08 | ExecuteLessonAction | スキルカード、レッスンルール |
 | 試験 | ページ | PRD-06、PRD-07 | ExecuteLessonAction | 試験の設定、スコアボーナス |
-| プロデュース結果 | ページ | PRD-13 | ExecuteLessonAction（最終試験の終了時）・GetState | 評価の設定 |
+| プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）・GetState | 評価の設定 |
 | 設定・お知らせ | ページ／モーダル | — | — | — |
-| スキルカード獲得 [Uta案・追加] | モーダル（案） | PRD-02 | ChooseWeekAction | スキルカード |
-| 授業・おでかけ・支給 [Uta案・追加] | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント |
-| 相談 [Uta案・追加] | ページ（案） | PRD-09 | ChooseWeekAction | スキルカード、ドリンク |
-| 試験結果 [Uta案・追加] | ページ（案） | PRD-06 | ExecuteLessonAction | 試験の設定 |
+| スキルカード獲得 [Uta案・追加] | モーダル（案） | PRD-02 | ResolveCardOffer | スキルカード |
+| 授業・おでかけ・支給 [Uta案・追加] | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
+| 相談 [Uta案・追加] | ページ（案） | PRD-09 | ChooseWeekAction、ExecuteConsultAction | スキルカード、ドリンク（MVP では作らない） |
+| 試験結果 [Uta案・追加] | ページ（案） | PRD-06 | DecideExamRetry | 試験の設定 |
 
-- 「次点」「後回し」の機能（PRD-09〜12、PRD-14、PRD-15、GAC-05）の画面は、その機能を実装するときに足す
+- MVP で作る画面は [game-spec.md](../overview/game-spec.md) の「画面」が正。「次点」「後回し」の機能（PRD-09〜12、PRD-14〜17、IDL-02、SUP-04〜06、GAC-05〜07）の画面は、その機能を実装するときに足す
 - 山札・捨札の確認（PRD-08）は、レッスン中に開くモーダルとして持つ案
 
 ## 3. 画面遷移 [Uta案]
@@ -78,7 +78,7 @@ updated: 2026-10-31
                         └─▶ 編成 ─▶ 週の行動選択 ─┬─▶ レッスン ─┐
                                       ▲           └─▶ 試験    ─┤
                                       └──────────────────────┘
-                                      （最終試験の後）─▶ プロデュース結果 ─▶ ホーム
+                                      （最終試験の後、または不合格で終わったとき）─▶ プロデュース結果 ─▶ ホーム
 ```
 
 - 進行中のプロデュースがある状態でアプリを起動したら、ホームから**再開**できる（`GetStateAsync` で復元。PRD の「中断・再開」）。アプリのバージョンが変わっていたら、そのプロデュースは破棄されている（[api-design.md](api-design.md) 5章）

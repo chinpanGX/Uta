@@ -76,7 +76,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 | 同じ列を型違いで使いたい | enum で種別を持ち、値は `int` の汎用列にする | 効果の種別 + 引数 |
 | 真偽・有無 | `bool` / enum。nullable は使わない（空欄＝既定値） | |
 | ID | `int`（[repository-layout.md](repository-layout.md) 10.1） | |
-| 日時 | `string`。形式は `yyyy-MM-dd HH:mm:ss`、JST として解釈する（[repository-layout.md](repository-layout.md) 10.2） | ガチャの開催期間 |
+| 日時 | `string`。形式は `yyyy-MM-dd HH:mm:ss`、JST として解釈する（[repository-layout.md](repository-layout.md) 10.2） | お知らせの掲載期間など（MVP のガチャは期間を持たない） |
 
 - 計算は整数または固定小数点（[lesson-card.md](../systems/lesson-card.md) 9.6）。この規約は同じ理由（クライアントとサーバーで結果を一致させる）による
 - [lesson-card.md](../systems/lesson-card.md) 3.2 の YAML 例には `focusScale: 1.5` のような小数がある。マスタに移すときは `150`（パーセント）のように整数にする

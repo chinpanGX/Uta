@@ -52,14 +52,14 @@ updated: 2026-10-31
 | 16 | `EnhanceHand` | 手札をすべてレッスン中強化 | 未定 | — | — | — |
 | 17 | `CreateCard` | カードを生成する | 未定 | — | 枚数 | `RefCardId`。生成する位置の持ち方は採用時に決める |
 | 18 | `ScheduleEffect` | 発動予約（N ターン後に効果を発動） | 未定 | — | 何ターン後か（次のターン＝1） | 子の効果（マスタは `RefEffectGroupId`） |
-| 19 | `AddPersistent` | 持続効果を付与する | 1（使用時） | `Trigger` | `EveryNTurns` の N（ほかは空欄） | `Arg1` ターン数・`Arg2` 回数（0 は無制限）、子の効果（マスタは `RefEffectGroupId`） |
+| 19 | `AddPersistent` | 持続効果を付与する | 1(トリガーは `EveryNTurns` を除く全部) | `Trigger` | `EveryNTurns` の N(ほかは空欄) | `Arg1` ターン数・`Arg2` 回数(0 は無制限)、子の効果(マスタは `RefEffectGroupId`) |
 
 - `AddStatus` に `%` のステータス（`FocusBoost`・`ImpressionBoost`）を渡したら検証で弾く（`AddStatusPercent` を使う）。逆も同じ
 - 効果ごとの境界 [決定。2026-10-31]:
 
 | `Op` | 境界 |
 |---|---|
-| `AddFixedGenki` | やる気・元気増加無効の影響を受けない(lesson-card.md 9.3) |
+| `AddFixedGenki` | やる気の影響を受けない。元気増加無効の間は増えない(lesson-card.md 9.3) |
 | `SetGenki` | 元気増加無効のときも値を設定する(「増加」ではないため)。`Value` は 0 以上 |
 | `ScaleGenki` | `Value` は 0〜100(減らすだけ)。端数は切り捨て |
 | `RecoverHp` | `Value` は 1 以上。最大体力で止める |
@@ -117,9 +117,9 @@ updated: 2026-10-31
 | 0 | `None` | 指定なし（エラー） | — |
 | 1 | `Consume` | 元気 → 体力の順に払う。補正を受ける | 1 |
 | 2 | `HpDirect` | 体力から直接払う。補正を受けない | 1 |
-| 3 | `GoodConditionTurns` | 好調のターン | 3 |
-| 4 | `ExcellentTurns` | 絶好調のターン | 3 |
-| 5 | `Focus` | 集中 | 4 |
+| 3 | `GoodConditionTurns` | 好調のターン | 1(実装済み。使うカードはフェーズ 3 だが無いので合成カードで確かめる) |
+| 4 | `ExcellentTurns` | 絶好調のターン | 1(同上) |
+| 5 | `Focus` | 集中 | 1(同上) |
 | 6 | `Impression` | 好印象 | 使うカードを採用したとき |
 | 7 | `Motivation` | やる気 | 使うカードを採用したとき |
 

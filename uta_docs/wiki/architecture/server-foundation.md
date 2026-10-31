@@ -1,7 +1,7 @@
 ---
 title: サーバー基盤（MagicOnion + PostgreSQL）
 status: draft
-updated: 2026-10-25
+updated: 2026-10-31
 ---
 
 # サーバー基盤（MagicOnion + PostgreSQL）
@@ -81,8 +81,8 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 
 ## Uta での扱い（推測）
 
-- Uta の `shared/` に置く Uta 固有のサービスIF・DTO・マスタ型は、基盤の `Abstractions` と同じく Unity と共有するので **C# 9 の範囲**に収める（[CLAUDE.md](../../../CLAUDE.md)）
-- 育成の操作（`ChooseWeekAction` / `ExecuteLessonAction`。[api-design.md](api-design.md) 1章）やガチャは冪等性の対象にする。再送の判定は `x-request-id` + `last_responses` に任せ、仕様側で独自の重複防止を作らない
+- Uta の `shared/` に置く Uta 固有のサービスIF・DTO は、基盤の `Abstractions` と同じく Unity と共有する。マスタ型は `shared/` に置かない（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
+- 育成の操作（`ChooseWeekActionAsync` などの操作の RPC。[api-design.md](api-design.md) 1章）やガチャは冪等性の対象
 
 ## 未確定事項
 

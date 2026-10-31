@@ -43,7 +43,7 @@ updated: 2026-10-31
 | `ISupportService` | `LevelUpAsync`（所持IDと目標のレベル。強化pt とゴールドを使う）、`LimitBreakAsync`（解放する所持IDと素材の所持ID。[idol-support.md](../systems/idol-support.md) 2.2.1） | SUP-02 | あり | 両方 |
 | `IProduceService` | `GetRentalCandidatesAsync`、`StartAsync`、`ChooseWeekActionAsync`、`ExecuteConsultActionAsync`、`ResolveCardOfferAsync`、`DiscardDrinkAsync`、`DecideExamRetryAsync`、`ExecuteLessonActionAsync`、`GetStateAsync`、`AbandonAsync` | PRD-01〜14、IDL-03・04、SUP-03〜06 | `GetRentalCandidatesAsync`・`GetStateAsync` 以外あり | 副作用ありのすべて |
 
-- MVP で作らない RPC: `IIdolService` の 2 つ、`GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`、`GetHistoryAsync`（履歴を見る画面を MVP に置かないため。履歴の保存はする）（[game-spec.md](../overview/game-spec.md) 最小実装範囲）
+- MVP で作らない RPC(インターフェースにも宣言しない。作るときに足す): `IIdolService` の 2 つ、`GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`、`GetHistoryAsync`（履歴を見る画面を MVP に置かないため。履歴の保存はする）（[game-spec.md](../overview/game-spec.md) 最小実装範囲）
 
 - 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は `DrawGachaRequest` / `DrawGachaResponse` のように、RPC ごとに1組作る。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる
 - **`SyncAsync`**: 起動フローでホームに入る前に1回呼ぶ（[screen-design.md](screen-design.md) 4章）。副作用のある「起動時の処理」をここにまとめる
@@ -61,7 +61,7 @@ updated: 2026-10-31
   - `ExecuteLessonActionAsync`: レッスン・試験の中の操作（カードを使う、スキップ、ドリンクを使う。PRD-03〜08）。試験もレッスンと同じ RPC で扱う
   - 局面と操作・RPC の対応は [produce.md](../systems/produce.md) 10.4、Request のフィールドは同じページの API案が正（2026-10-31 決定）。要求の局面が今の局面と違えば `PRODUCE_UNEXPECTED_PHASE`
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
-  - どの操作の要求も、**ターン番号**（週の行動なら週番号）と**次の操作番号**を持つ。古いターンへの操作や、サーバーの操作番号と合わない要求は拒否する（クライアントは `GetState` で取り直す）。再送は `x-request-id` で冪等に扱う。操作番号は同じターンに複数の操作をするときの区別に使う（[produce.md](../systems/produce.md) 10.4。2026-10-28 決定）
+  - どの操作の要求も、**次の操作番号**を持つ。サーバーの操作番号と合わない要求は `PRODUCE_STALE_OPERATION` で拒否する(クライアントは `GetState` で取り直す)。週・ターンは要求に持たない(サーバーの状態から分かる)。再送は `x-request-id` で冪等に扱う([produce.md](../systems/produce.md) 10.4。2026-10-31 決定)
 - 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（基盤の仕様）
 - **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。バージョン不一致は基盤の強制アップデート・`x-app-version` で扱う
 - DTO は、サーバー専用の値（`[ServerOnly]` のマスタの値など）を含めない。レンタル候補のように、サーバーが決めた結果だけを返す
@@ -74,7 +74,7 @@ updated: 2026-10-31
 | `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
 | `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum: `New` / `Duplicate`）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
-| `ExchangeAsync` | `GachaId`、`CeilingItemIndex`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件、`ExchangePoints` |
+| `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件、`ExchangePoints` |
 
 ### 1.2 サポートカードの DTO [決定。2026-10-31]
 
@@ -94,9 +94,9 @@ updated: 2026-10-31
 |---|---|---|
 | `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD` |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
-| `IDOL_` | 育成アイドル（IDL） | `IDOL_NOT_ENOUGH_SHARDS` |
-| `SUPPORT_` | サポートカード（SUP） | `SUPPORT_MAX_LEVEL`（目標が上限を超える・今のレベル以下）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード） |
-| `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_TURN`、`PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_INVALID_ARGUMENT`、`PRODUCE_INVALID_FORMATION`、`PRODUCE_NO_RETRY_LEFT`、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
+| `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
+| `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
+| `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_INVALID_ARGUMENT`、`PRODUCE_INVALID_FORMATION`、`PRODUCE_NO_RETRY_LEFT`、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
 
 - エラーコードは `shared/Uta.Shared` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（基盤の仕様）
 - 上の表が MVP の reason の一覧。ゴールド不足は共通の `PLAYER_NOT_ENOUGH_GOLD`。MVP の後の機能の reason は、その機能を実装するときに足す
@@ -121,7 +121,7 @@ updated: 2026-10-31
 - 端末とプレイヤーは1対多にする（基盤の端末テーブルがプレイヤーを指す）。MVP は引き継ぎを作らないが、あとで引き継ぎコードを足せる形にしておく（[game-spec.md](../overview/game-spec.md)）
 - 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`
 - 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（基盤の仕様）
-- 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする（[gacha.md](../systems/gacha.md) 6章）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
+- 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha.md](../systems/gacha.md) 6.1）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
 - インデックスは、実装するときに検索の形に合わせて付ける
 
 ### 3.1 プロデュースのセッション [決定。2026-10-28]
@@ -134,8 +134,8 @@ updated: 2026-10-31
 |---|---|
 | `session_id` | ULID |
 | `player_id` | ULID |
-| `status` | 進行中 / 完了 / 放棄 / 破棄 |
-| `week` / `turn` | 古いターンへの操作の拒否に使う |
+| `status` | 進行中 / 完了 / 放棄 / 破棄（放棄は `AbandonAsync` で、`produce_results` の終わり方と同じ値にする） |
+| `week` / `turn` | 一覧と調査のための値（古い要求の拒否には使わない。拒否は状態の中の操作番号で行う。2026-10-31） |
 | `app_version` | 開始したときの `x-app-version`（5章） |
 | `state_version` | 状態の形式のバージョン（下記） |
 | `version` | 楽観ロック |
@@ -169,7 +169,7 @@ updated: 2026-10-31
 | 週の進行（行動の処理、選択肢の抽選、レッスン後の処理、試験の結果。[produce.md](../systems/produce.md) 3〜5章・10章） | `Uta.Domain` | 再生の検証を `Uta.Domain` の単体テストで書ける（[produce.md](../systems/produce.md) 10.6）。乱数はサーバーが渡す（2026-10-31 決定） |
 | サポートカードの性能の計算、編成の検証、初期デッキ（[idol-support.md](../systems/idol-support.md) 5章） | `Uta.Domain` | 強化後の予測と編成の可否をクライアントでも表示する（2026-10-31 決定） |
 | 報酬の決定と付与 | サーバー専用 | 所持品・通貨の更新はサーバーのみ |
-| ガチャの抽選、交換pt の加算・天井の判定 | サーバー専用 | 抽選はサーバー権威。表示用の排出率はマスタで公開する（GAC-02） |
+| ガチャの抽選、交換pt の加算・天井の交換の確定 | サーバー専用 | 抽選はサーバー権威。表示用の排出率はマスタで公開する（GAC-02）。交換できるかの表示用の判定はクライアントもする |
 | プロデュース開始時のシード生成、レンタル候補の決定 | サーバー専用 | 乱数・候補はクライアントを信用しない |
 | 所持品・通貨の更新 | サーバー専用 | 更新はサーバーのみ |
 
@@ -187,7 +187,7 @@ updated: 2026-10-31
 | 状態の形式が違う | `state_version` が今のサーバーと違えば、同じく破棄する（3.1） |
 
 - 状態はすべてサーバーが持ち、クライアントは `GetState` で復元する（[produce.md](../systems/produce.md) 完了条件「中断・再開」）
-- 再送は `x-request-id` で冪等に扱う。ターン番号と次の操作番号を要求に含め、合わない操作は拒否する（[produce.md](../systems/produce.md) 10.4）
+- 再送は `x-request-id` で冪等に扱う。次の操作番号を要求に含め、合わない操作は拒否する（[produce.md](../systems/produce.md) 10.4）
 - サーバーは入力待ちから次の入力待ちまでを1回で処理して保存するので、再開は最後の入力待ちから続けるだけになる（[produce.md](../systems/produce.md) 10.1）
 - 進行中のセッションがある間は、新しく開始できない（3章）
 

@@ -164,7 +164,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - 範囲は [ADR 0008](../decisions/0008-shared-domain-and-onion.md) で決定（2026-10-27）。これに合わせて [CLAUDE.md](../../../CLAUDE.md) の実装方針と [produce.md](../systems/produce.md) 10章を更新した
 - 結果の先行表示（シードをクライアントに渡す）は、山札の引きを先読みする不正を防げないため行わない
 - **古いクライアントの計算式が、サーバーの最新の式とずれることがある**。予測の表示はずれてもよく、確定は必ずサーバーのレスポンスで行う。ずれが問題になる変更（ルールの変更）は、強制アップデート（基盤の `x-app-version`）で扱う
-- [lesson-card.md](../systems/lesson-card.md) 15.7 の「同じシードと操作列で、同じ結果になる」は、**`Uta.Domain` の単体テスト（.NET 10）**で確かめる（10.4）。本番のクライアントはシードを持たないので、IL2CPP 上で乱数の結果を再現する必要はない。乱数が絡まない予測の一致は、整数演算と同じコードを使うことで担保する
+- [lesson-card.md](../systems/lesson-card.md) 15.8 の「同じシードと操作列で、同じ結果になる」は、**`Uta.Domain` の単体テスト（.NET 10）**で確かめる（10.4）。本番のクライアントはシードを持たないので、IL2CPP 上で乱数の結果を再現する必要はない。乱数が絡まない予測の一致は、整数演算と同じコードを使うことで担保する
 
 ### 6.1 固有の知識の置き場 [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
 
@@ -222,7 +222,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | NetArchTest が .NET 10・xunit.v3（Microsoft.Testing.Platform）で動くか。保守されているか | 3章 | サーバーのテストプロジェクトで 1 件動かす。使えなければ、保守されているフォーク（`NetArchTest.eNhancedEdition`）か ArchUnitNET に替える | サーバーのアーキテクチャテスト |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
 | `x-app-version` をハンドラーから読めるか（基盤の `ServiceContext` など） | [api-design.md](api-design.md) 5章 | 基盤の実装を読む・動かす | プロデュースの RPC |
-| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列の状態のハッシュを比べる（[lesson-card.md](../systems/lesson-card.md) 15.7） | なし（実機ビルドの手順に入れる） |
+| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列の状態のハッシュを比べる（[lesson-card.md](../systems/lesson-card.md) 15.8） | なし（実機ビルドの手順に入れる） |
 
 ## 9. 共通規約の参照先
 
@@ -268,6 +268,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - マスターシードはサーバーが暗号用の乱数（.NET の `RandomNumberGenerator`）で生成する [決定。2026-10-31]。マスターシードと、使用中のストリームごとの `xoshiro256**` の状態（と引いた回数）を、プロデュースのセッションに保存する（[api-design.md](api-design.md) 3.1、[produce.md](../systems/produce.md) 10.2・10.5）
 - シードから用途・場面ごとのストリームを SplitMix64 で作る。範囲内の整数は棄却法、シャッフルは Fisher–Yates。ストリームの一覧と引く順番は [produce.md](../systems/produce.md) 10.2・10.3（2026-10-28 決定）
 - `System.Random` は使わない
+- ガチャも `xoshiro256**` を使う。要求ごとに暗号用の乱数でシードを作り、保存しない（再現は求めない。[gacha.md](../systems/gacha.md) 3.2）
 
 ### 10.4 テスト
 
