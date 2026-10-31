@@ -35,7 +35,7 @@ Unity 7（`7000.0.0a12`）のクライアント。対象は Android / iOS / Wind
 
 - [ ] `async void` を使っていないか（`UniTaskVoid` / `Forget()` を意図して使っているか）
 - [ ] `CancellationToken` を受け取り、画面を閉じたら止まるか（`destroyCancellationToken` など）
-- [ ] 例外が握りつぶされていないか。通信エラー（`UNAUTHENTICATED` の再送1回、`DATE_CHANGED`）の扱いが VolTech-MagicOnion の規約どおりか（[server-foundation.md](../../../../uta_docs/wiki/architecture/server-foundation.md)）
+- [ ] 例外が握りつぶされていないか。通信エラー（`UNAUTHENTICATED` の再送1回、`DATE_CHANGED`）の扱いが VolTech-MagicOnion の規約どおりか（[server-foundation.md](../../../../uta_docs/wiki/architecture/server/server-foundation.md)）
 
 ## 画面（uGUI + UnityScreenNavigator）
 

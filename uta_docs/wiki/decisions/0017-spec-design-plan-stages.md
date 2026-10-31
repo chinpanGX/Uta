@@ -55,7 +55,7 @@ ADR 0014 から引き継ぐもの（変えない）:
 ## 影響・リスク
 
 - 2026-10-31 に、`systems/` の実装設計を `architecture/` に移した: produce.md の 10章と API案 → `architecture/produce-domain.md`、gacha.md の抽選の実装・処理の手順と idol-support.md の強化の手順 → `architecture/gacha-support-server.md`、lesson-card.md の 15章 → `architecture/lesson-phases.md`。中身は変えていない
-- `systems/` のマスタの表（列の定義）は、[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 9章の索引が「列の正は各システムのページ」としているので、今は動かさない。仕様と実装設計の境目にあるもので、動かすかは別に決める
+- `systems/` のマスタの表（列の定義）は、[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 9章の索引が「列の正は各システムのページ」としているので、今は動かさない。仕様と実装設計の境目にあるもので、動かすかは別に決める
 - 線の引き方で迷うものが出る（乱数の引く順は結果の値を変えるが、仕様ではなく作り方とする、など）。迷ったら `architecture/README.md` の「何の正がどのページか」の表に足して決める
 - ページの置き場（目次）は各フォルダの `README.md` に置く（index.md は入口だけにした）
 

@@ -6,7 +6,7 @@ updated: 2026-10-31
 
 # レッスンの効果・条件・コストの enum と列
 
-レッスンの効果（[lesson-card.md](../systems/lesson-card.md) 7章）・ステータス（8章）・持続効果のトリガー（10章）・コスト（5章）・条件（6章）の **enum の名前・数値と、効果の列の対応の正**。マスタ（[masterdata-pipeline.md](masterdata-pipeline.md) 3章）と共有ドメイン（[lesson-domain-types.md](lesson-domain-types.md) 2章、`shared/Uta.Domain/Lesson/LessonEnums.cs`）は、どちらもこのページに合わせる。ほかのページには enum の値や列の対応を書き写さず、このページへリンクする。
+レッスンの効果（[lesson-card.md](../systems/lesson-card.md) 7章）・ステータス（8章）・持続効果のトリガー（10章）・コスト（5章）・条件（6章）の **enum の名前・数値と、効果の列の対応の正**。マスタ（[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章）と共有ドメイン（[lesson-domain-types.md](lesson-domain-types.md) 2章、`shared/Uta.Domain/Lesson/LessonEnums.cs`）は、どちらもこのページに合わせる。ほかのページには enum の値や列の対応を書き写さず、このページへリンクする。
 
 2026-10-31 の設計書レビュー（lesson-card.md の Critical C1）で、マスタの仕様とコードで名前・値・列の対応が別物になっていたため、名前を見直してここに 1 つにまとめた。
 
@@ -16,7 +16,7 @@ updated: 2026-10-31
 - 対象のステータスは `Status`（`StatusKind`）、持続効果のトリガーは `Trigger`（`PersistentTrigger`）という**型付きの列**に入れる。`Arg` に enum を数値で入れない。CSV に名前で書け、`master-gen` が名前を検証できるため
 - `Value` は効果の**主な量**（パラメータ、倍率、ターン数、枚数など）。`Arg1`〜`Arg3` は補助の値。どちらも `int`
 - 倍率・回数の `Arg` は **0（空欄）を既定値**として扱う（連撃 0 → 1回、倍率 0 → 100%、持続の制限 0 → 無制限）
-- **このページの enum（効果・トリガー・ステータス・コスト・条件）と、これから新しく作る列の enum は、0 を `None` にする**。空欄（0）を「指定なし」と区別し、必須の列が空のときに検証で弾くため。既にある `Plan`・`CardType`・`Rarity`・`ParamKind`・`LessonKind`・`LessonPhase` は 0 が有効な値のまま変えない（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.1）。これらを列に使うテーブルは、空欄を `IValidatable` で別に弾く（例: `Card` のレアリティ、[idol-support.md](../systems/idol-support.md) 6章）
+- **このページの enum（効果・トリガー・ステータス・コスト・条件）と、これから新しく作る列の enum は、0 を `None` にする**。空欄（0）を「指定なし」と区別し、必須の列が空のときに検証で弾くため。既にある `Plan`・`CardType`・`Rarity`・`ParamKind`・`LessonKind`・`LessonPhase` は 0 が有効な値のまま変えない（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.1）。これらを列に使うテーブルは、空欄を `IValidatable` で別に弾く（例: `Card` のレアリティ、[idol-support-tables.md](master/idol-support-tables.md)）
 - **数値はこのページで固定する**。以後は値を変えず、追加は末尾に足す（マスタ・保存の値に使うため）。このページを作る前のコードの数値は、保存したデータがまだ無いので付け直す（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）
 - 参照（`RefConditionGroupId` などの効果内条件）は**どの `Op` でも同じ意味**（満たさないとその行だけ飛ばす。判定はコストの前。lesson-card.md 6.2）。`AddPersistent` でも、その行の条件は「持続効果を付与するかどうか」の条件で、例外を作らない。発動のたびに見る条件は、発動する効果（子）の効果内条件に付ける（lesson-card.md 7.5）
 - 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する

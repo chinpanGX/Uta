@@ -14,7 +14,7 @@ updated: 2026-10-31
 - 乱数は `xoshiro256**`。`System.Random` は使わない。シードはサーバーが生成する([repository-layout.md](repository-layout.md) 10.3)
 - `float` / `double` を使わない([lesson-card.md](../systems/lesson-card.md) 9.6)
 - セッションは検索用の列と、状態を丸ごと入れた1列(MessagePack の `bytea`)に分け、バージョン列で楽観ロックをかける([ADR 0010](../decisions/0010-database.md)、[api-design.md](api-design.md) 3章)
-- 操作の RPC は局面ごとに分ける(8章)。再送は `x-request-id` + `last_responses` に任せる([api-design.md](api-design.md) 1章、[server-foundation](server-foundation.md))
+- 操作の RPC は局面ごとに分ける(8章)。再送は `x-request-id` + `last_responses` に任せる([api-design.md](api-design.md) 1章、[server-foundation](server/server-foundation.md))
 - 同じシードと同じ操作列で、同じ結果を再現できる(完了条件)
 - 1ユーザーにつき進行中のセッションは1つ [決定。[api-design.md](api-design.md) 3章]
 - 中断(アプリの終了)は期限なしで再開できる。放棄は明示の操作で、報酬なし。**開始したときとアプリのバージョン(または状態の形式のバージョン)が違えば、進行中のセッションを破棄する**(報酬なし) [決定。2026-10-28。[api-design.md](api-design.md) 5章]

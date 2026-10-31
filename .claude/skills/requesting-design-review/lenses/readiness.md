@@ -1,7 +1,7 @@
 # 実装可能性のチェックリスト
 
 このページ（と関係するページ）だけを読んだ人が、**設計判断をせずに**実装を始められるかを見る。あなたは、このページをもとに明日コードを書く担当者として読む。
-根拠: CLAUDE.md の「実装方針」「実装前のルール」、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)、[masterdata-pipeline.md](../../../../uta_docs/wiki/architecture/masterdata-pipeline.md)、[lesson-domain-types.md](../../../../uta_docs/wiki/architecture/lesson-domain-types.md)。
+根拠: CLAUDE.md の「実装方針」「実装前のルール」、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)、[masterdata-pipeline.md](../../../../uta_docs/wiki/architecture/master/masterdata-pipeline.md)、[lesson-domain-types.md](../../../../uta_docs/wiki/architecture/lesson-domain-types.md)。
 egm の implementation_readiness・comprehension の観点を Uta 向けにまとめたもの。
 
 **この観点は、実装を担当するモデル（Sonnet）で回す。** Uta は設計書の段階で実装の中身まで決め、コーディングは Sonnet のサブエージェントに任せることを目指している。あなた自身がその実装担当だと考えて読む。

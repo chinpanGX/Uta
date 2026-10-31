@@ -9,7 +9,7 @@ updated: 2026-10-31
 実装設計書（4編）の1編目。4編すべてが前提にする「どこに何を置くか」「何が何を参照してよいか」を定める。
 
 - ゲームの仕様は [systems/](../systems/produce.md) が正で、ここには書かない
-- サーバー基盤の機能（認証・冪等性・エラー・ヘッダー）は [server-foundation.md](server-foundation.md) が正で、ここでは繰り返さない
+- サーバー基盤の機能（認証・冪等性・エラー・ヘッダー）は [server-foundation.md](server/server-foundation.md) が正で、ここでは繰り返さない
 
 ## 凡例
 
@@ -22,12 +22,12 @@ updated: 2026-10-31
 | 編 | ページ | 対象 | 対応する主なコード |
 |---|---|---|---|
 | 共通・基盤 | 本ページ | 構成、依存ルール、Shared のコードの制約、機能ID | リポジトリ全体 |
-| マスター設計 | [masterdata-pipeline.md](masterdata-pipeline.md) | マスタの定義・生成・配信 | `masterdata/`、各側の生成物 |
+| マスター設計 | [masterdata-pipeline.md](master/masterdata-pipeline.md) | マスタの定義・生成・配信 | `masterdata/`、各側の生成物 |
 | API設計 | [api-design.md](api-design.md) | サービスIF・DTO、プレイヤーデータ、ゲームルールの置き場 | `shared/Uta.Shared`、`server/` |
 | 画面設計 | [screen-design.md](screen-design.md) | 画面・遷移・クライアントの層 | `client/uta/` の Presentation |
 
 - 進め方は [CLAUDE.md](../../../CLAUDE.md) の「実装前のルール」に従う
-- **機能ID**: 仕様ページの ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）を、4編すべての見出し・表に付ける。層で分けた4編を、機能単位で横断して追うため。VolTech-MagicOnion の機能（認証など）は ID を付けず [server-foundation.md](server-foundation.md) を参照する
+- **機能ID**: 仕様ページの ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）を、4編すべての見出し・表に付ける。層で分けた4編を、機能単位で横断して追うため。VolTech-MagicOnion の機能（認証など）は ID を付けず [server-foundation.md](server/server-foundation.md) を参照する
 
 ## 2. リポジトリ構成
 
@@ -128,7 +128,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
 - **Unity に入れる外部パッケージ** [決定。2026-10-31]: UniTask・VContainer・MessagePack・MagicOnion のクライアント・MasterMemory は UPM の git URL で入れ、版はタグで固定する（`manifest.json` に書く）。サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める
 
-参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
+参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server/server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
 
 | VolTech-MagicOnion のプロジェクト・パッケージ | 参照する側 |
 |---|---|
@@ -199,7 +199,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - **乱数は `IRandom` を注入し、決定的な疑似乱数 `xoshiro256**`** を使う（10.3）。`System.Random` は使わない（[lesson-card.md](../systems/lesson-card.md) 13章）。シードの生成はサーバー
 - `[ServerOnly]` の列に依存するルールは `Domain` に入れない。必要な値は引数で受け取る
 - **`init`・`record`・`required`・nullable の注釈は `shared/` で使わない** [決定。2026-10-31。[lesson-domain-types.md](lesson-domain-types.md) と同じ]。コンストラクタと読み取り専用プロパティで書く。理由: `init` は netstandard2.1 では `IsExternalInit` の定義（polyfill）が要り、Shared に置くと、それを参照するアセンブリごとに定義の重複を気にすることになるため。nullable の値型（`int?`）は使ってよい
-- **マスタの生成ソースは `init` を使う**（アドオンの規約。`{ get; init; }`。[masterdata-pipeline.md](masterdata-pipeline.md) 2章）。Shared の規約とは別で、生成ソースは Shared に入らない（2章）。Unity 側の生成ソースは `Uta.Client.Infrastructure` に入るので、**`Uta.Client.Infrastructure` に `internal` の `System.Runtime.CompilerServices.IsExternalInit` を 1 つ置く**（アドオンの `samples/Client/IsExternalInit.cs` と同じ）[決定。2026-10-31]。サーバー（net10.0）には要らない
+- **マスタの生成ソースは `init` を使う**（アドオンの規約。`{ get; init; }`。[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章）。Shared の規約とは別で、生成ソースは Shared に入らない（2章）。Unity 側の生成ソースは `Uta.Client.Infrastructure` に入るので、**`Uta.Client.Infrastructure` に `internal` の `System.Runtime.CompilerServices.IsExternalInit` を 1 つ置く**（アドオンの `samples/Client/IsExternalInit.cs` と同じ）[決定。2026-10-31]。サーバー（net10.0）には要らない
 
 ## 6. Shared.Domain の範囲 [決定]
 
@@ -261,9 +261,9 @@ Shared.Domain と固有の知識が混ざるときの作法:
 | 項目 | 関係するページ | 確かめ方 | ブロックする作業 |
 |---|---|---|---|
 | `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く | client/ の最初の実装計画 |
-| MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
-| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認 | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | server/・client/ の最初の実装計画 |
-| `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル | マスタの定義 |
+| MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認 | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | server/・client/ の最初の実装計画 |
+| `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](master/masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル | マスタの定義 |
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド | client/ の最初の実装計画 |
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
 | Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 | dev へのデプロイ |
@@ -277,10 +277,10 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 | 項目 | 参照先 |
 |---|---|
-| エラー、ヘッダー、認証、冪等性、トランザクション、フィルター順 | [server-foundation.md](server-foundation.md) |
+| エラー、ヘッダー、認証、冪等性、トランザクション、フィルター順 | [server-foundation.md](server/server-foundation.md) |
 | コード規約、言語バージョン、Git 運用 | [CLAUDE.md](../../../CLAUDE.md)、`.editorconfig` |
 | サブモジュールの扱い | [ADR 0005](../decisions/0005-foundation-submodule.md) |
-| マスタの定義・生成・配信 | [masterdata-pipeline.md](masterdata-pipeline.md) |
+| マスタの定義・生成・配信 | [masterdata-pipeline.md](master/masterdata-pipeline.md) |
 | 用語 | [glossary.md](../glossary.md) |
 
 ## 10. 共通の規約 [決定]
@@ -291,7 +291,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 | 対象 | 型 | 備考 |
 |---|---|---|
-| マスタの ID（カード、アイドル、ガチャなど） | `int` | マスタの列の型の制約（[masterdata-pipeline.md](masterdata-pipeline.md)）に合う。**採番の規則は作らない**（2026-10-27 決定） |
+| マスタの ID（カード、アイドル、ガチャなど） | `int` | マスタの列の型の制約（[masterdata-pipeline.md](master/masterdata-pipeline.md)）に合う。**採番の規則は作らない**（2026-10-27 決定） |
 | サーバーが発行する ID（ユーザー、プロデュースのセッション、ガチャ履歴など） | ULID | 時刻順に並び、サーバーを分けても衝突しない |
 
 - **ULID の持ち方** [決定。2026-10-28]:
@@ -308,7 +308,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 - **時刻はサーバーが正**。クライアントの時刻で判定しない
 - **タイムゾーンは JST 固定**
 - **日付の更新は 12 時**（12:00 JST）。日ごとの区切り（日替わりの処理など）はこの時刻を境にする
-- **マスタの日時は `string` で持つ**。形式は `yyyy-MM-dd HH:mm:ss` で、JST として解釈する（オフセットは書かない。例: `2026-11-01 12:00:00`）。読むときは `DateTime.ParseExact`（`CultureInfo.InvariantCulture`）で厳密に読み、JST の `DateTimeOffset` にする（[masterdata-pipeline.md](masterdata-pipeline.md) 3章）
+- **マスタの日時は `string` で持つ**。形式は `yyyy-MM-dd HH:mm:ss` で、JST として解釈する（オフセットは書かない。例: `2026-11-01 12:00:00`）。読むときは `DateTime.ParseExact`（`CultureInfo.InvariantCulture`）で厳密に読み、JST の `DateTimeOffset` にする（[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章）
 
 ### 10.3 乱数
 
@@ -334,7 +334,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 ### 10.5 アプリのバージョン
 
 - **強制アップデートは実装しない** [決定。2026-10-31]。VolTech-MagicOnion もサーバー側の判定を持たない（予約エラー `UPDATE_REQUIRED` は定義だけで返さない。`external/VolTech-MagicOnion/docs/spec/index.md`）。サーバーは古いアプリを弾かない。個人開発の確認用で、配布したアプリが手元にしかないため。要るようになったら、3.1 のルールで VolTech-MagicOnion に判定を足す
-- マスタのスキーマ（定義）や `Uta.Domain` のルールを変えたら、新しいアプリのバージョンを出し、手元のアプリを入れ直してそろえる。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。古いアプリのまま接続すると、予測の表示がずれたり、DTO が読めずに失敗したりする（確定はサーバーなので、所持品が壊れることはない）
+- マスタのスキーマ（定義）や `Uta.Domain` のルールを変えたら、新しいアプリのバージョンを出し、手元のアプリを入れ直してそろえる。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。古いアプリのまま接続すると、予測の表示がずれたり、DTO が読めずに失敗したりする（確定はサーバーなので、所持品が壊れることはない）
 - `x-app-version` は、クライアントがすべての要求に付ける（VolTech-MagicOnion のクライアントが付ける）。サーバーはプロデュースの破棄の判定（下）にだけ使う。VolTech-MagicOnion に読み出す関数は無いので、Uta の `Api` で MagicOnion の `Context.CallContext.RequestHeaders` から読む（2026-10-31 に VolTech-MagicOnion のコードで確認）
 - 進行中のプロデュースは、開始したときとアプリのバージョンが違えば破棄する（2026-10-28 決定。[api-design.md](api-design.md) 5章）。1つのセッションを、常に1つのルールで最後まで進めるため
 - **マスタの版・ルールの版は、アプリのバージョンと同じ** [決定。2026-10-31]。サーバーのマスタの値だけを変えるときも、アプリのバージョンを上げる。別の版の番号は持たない（[produce-domain.md](produce-domain.md) 7章）

@@ -8,7 +8,7 @@ updated: 2026-10-31
 
 実装設計書（4編）の4編目。クライアントの Presentation 層にあたる、画面・遷移・起動フローを定める。前提は [repository-layout.md](repository-layout.md)。
 
-- 各画面は、呼ぶ API（[api-design.md](api-design.md)）と、使うマスタ（[masterdata-pipeline.md](masterdata-pipeline.md)）に機能ID付きで対応づける
+- 各画面は、呼ぶ API（[api-design.md](api-design.md)）と、使うマスタ（[masterdata-pipeline.md](master/masterdata-pipeline.md)）に機能ID付きで対応づける
 - 画面のワイヤー・見た目はこのページには書かない。[overview/screen-wireframes.md](../overview/screen-wireframes.md)（叩き台）に置く。**画面名・文言は仮称**（[ADR 0001](../decisions/0001-ip-policy.md)）
 
 ## 凡例
@@ -87,11 +87,11 @@ updated: 2026-10-31
 
 ## 4. 起動フロー [Uta案・推測]
 
-`Bootstrap` が行う。詳細は [server-foundation.md](server-foundation.md) と [masterdata-pipeline.md](masterdata-pipeline.md) 6章。
+`Bootstrap` が行う。詳細は [server-foundation.md](server/server-foundation.md) と [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章。
 
 1. 認証: 端末の登録・トークンの発行（`IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
 2. （サーバーの状態の判定は無い）強制アップデートとメンテナンスは実装しない（[repository-layout.md](repository-layout.md) 10.5）。VolTech-MagicOnion のクライアントは `UPDATE_REQUIRED`・`MAINTENANCE` の受け口を持つが、サーバーは返さないので、Uta の画面は作らない
-3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
+3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
 4. 同期: `IPlayerService.SyncAsync` を呼ぶ（初回のプレイヤー作成と初期付与、バージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる
 5. ホームへ遷移する
 

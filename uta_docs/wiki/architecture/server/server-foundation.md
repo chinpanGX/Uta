@@ -7,16 +7,16 @@ updated: 2026-10-31
 # サーバー基盤（MagicOnion + PostgreSQL）
 
 Uta のサーバーが土台にする C# サーバー基盤（VolTech-MagicOnion）の要約。**正は VolTech-MagicOnion のリポジトリの docs**（仕様は `external/VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）。このページと食い違ったら、VolTech-MagicOnion の docs とコードを正とし、このページを直す [決定。2026-10-31]。
-最初の原典は設計書「C#サーバー基盤 設計書(MagicOnion + PostgreSQL)」（[Claude Docs](https://claude.ai/artifact/STu2PxLjvuAajZwaMNqURq)、2026-10-23 版）。採用の判断は [ADR 0004](../decisions/0004-server-foundation.md)。
+最初の原典は設計書「C#サーバー基盤 設計書(MagicOnion + PostgreSQL)」（[Claude Docs](https://claude.ai/artifact/STu2PxLjvuAajZwaMNqURq)、2026-10-23 版）。採用の判断は [ADR 0004](../../decisions/0004-server-foundation.md)。
 
 ## 決まっていること
 
 - サーバーは **.NET 10**（C# 14 が使える）
 - 確定: MasterMemory、MagicOnion、MessagePack（MasterMemory と MagicOnion が前提にする）
-- 通信は Unary のみ（StreamingHub は対象外。[ADR 0002](../decisions/0002-magiconion.md)）
+- 通信は Unary のみ（StreamingHub は対象外。[ADR 0002](../../decisions/0002-magiconion.md)）
 - シャーディングは実装しない（VolTech-MagicOnion のスコープ外。`IShardResolver` は今の VolTech-MagicOnion に無い）
-- DB は PostgreSQL + Npgsql（VolTech-MagicOnion は Dapper に依存しない。Uta は Dapper を使う。[ADR 0010](../decisions/0010-database.md)）、マイグレーションは DbUp（[ADR 0012](../decisions/0012-migration-dbup.md)）
-- テストは xUnit + Testcontainers（Uta は xunit.v3。[repository-layout.md](repository-layout.md) 10.4）
+- DB は PostgreSQL + Npgsql（VolTech-MagicOnion は Dapper に依存しない。Uta は Dapper を使う。[ADR 0010](../../decisions/0010-database.md)）、マイグレーションは DbUp（[ADR 0012](../../decisions/0012-migration-dbup.md)）
+- テストは xUnit + Testcontainers（Uta は xunit.v3。[repository-layout.md](../repository-layout.md) 10.4）
 
 ## 推奨（未確定）
 
@@ -32,14 +32,14 @@ Uta のサーバーが土台にする C# サーバー基盤（VolTech-MagicOnion
 | `VolTech.Server` | フォルダ `Status/`（サーバー時刻・日付変更）、`Auth/`（`DeviceService`・トークン・`AuthFilter`・`IPlayerResolver`）、`Transaction/`（`ITransactions`・冪等性・ゲームログ・基盤のテーブルのマイグレーション）、`Logging/`（`RpcLogFilter`）、`Hosting/`（`AddVoltechServer()`。フィルターの順序を固定する） | しない（net10.0） |
 
 - Unity から参照するのは `Abstractions` とクライアント（Unity パッケージ）だけ。サーバー専用の依存（Npgsql など）を Unity に入れないため
-- アプリは `VolTech.Server` を参照し、`AddVoltechServer()` で組み立てる。Uta からの参照のしかたと VolTech-MagicOnion の扱いは [repository-layout.md](repository-layout.md) 3章・3.1
+- アプリは `VolTech.Server` を参照し、`AddVoltechServer()` で組み立てる。Uta からの参照のしかたと VolTech-MagicOnion の扱いは [repository-layout.md](../repository-layout.md) 3章・3.1
 
 ## フィルターの順序（外側から）
 
 VolTech-MagicOnion の `docs/spec/processing-order.md` が正。
 
 1. `RpcLogFilter`: RPC ごとのログ。例外を一元変換する（`BusinessException` → `FAILED_PRECONDITION` + ErrorInfo、想定外 → `INTERNAL`）
-2. `ServerTimeFilter`: レスポンスに `x-server-time` と `x-game-date` を付ける。DB は使わない。**強制アップデートとメンテナンスの判定は持たない**（VolTech-MagicOnion のスコープ外。Uta も実装しない。[repository-layout.md](repository-layout.md) 10.5）
+2. `ServerTimeFilter`: レスポンスに `x-server-time` と `x-game-date` を付ける。DB は使わない。**強制アップデートとメンテナンスの判定は持たない**（VolTech-MagicOnion のスコープ外。Uta も実装しない。[repository-layout.md](../repository-layout.md) 10.5）
 3. `AuthFilter`: Bearer を検証して `AuthContext`（端末 ID・プレイヤー ID・プレイヤーを作ったか）を入れる。`[SkipAuth]` の RPC は検証を省く
 4. `DateChangeFilter`: `x-game-date` が今のゲーム内の日付と違えば `DATE_CHANGED`
 5. ハンドラー: 本体を `ITransactions.RunAsync` で包む
@@ -76,23 +76,23 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 
 - 認証: `DeviceService`（Register / IssueToken、`[SkipAuth]`）。トークンの有効期限は既定 1 時間。無効・期限切れは `UNAUTHENTICATED` で、クライアントがトークンを取り直して 1 回だけ再送する
 - プレイヤー状態: `IPlayerResolver`（NotCreated / Active）をアプリが実装し、`players` の行があるかで返す。アカウント停止は持たない（`ACCOUNT_SUSPENDED` は定義だけ）
-- 端末の登録（`RegisterAsync`）は `player_id`（ULID）を発行するだけで、プレイヤーの行はアプリが作る（Uta では `SyncAsync`。[api-design.md](api-design.md) 1章）
-- 設定は `appsettings.json` の `Voltech` セクション（`GameDay.ResetHour`・`GameDay.TimeZone`・`AccessTokenLifetime`）。Uta の値は [repository-layout.md](repository-layout.md) 12章
-- VolTech-MagicOnion のテーブル（`devices`・`access_tokens`・`last_responses`・`game_logs`）は `VoltechDatabase.Migrate()` が作る。記録は `_voltech_migrations` で、アプリのマイグレーションとは別。`player_id` は `char(26)`（ULID の文字列。2026-10-31 に `uuid` から変更。[repository-layout.md](repository-layout.md) 10.1・12章）
+- 端末の登録（`RegisterAsync`）は `player_id`（ULID）を発行するだけで、プレイヤーの行はアプリが作る（Uta では `SyncAsync`。[api-design.md](../api-design.md) 1章）
+- 設定は `appsettings.json` の `Voltech` セクション（`GameDay.ResetHour`・`GameDay.TimeZone`・`AccessTokenLifetime`）。Uta の値は [repository-layout.md](../repository-layout.md) 12章
+- VolTech-MagicOnion のテーブル（`devices`・`access_tokens`・`last_responses`・`game_logs`）は `VoltechDatabase.Migrate()` が作る。記録は `_voltech_migrations` で、アプリのマイグレーションとは別。`player_id` は `char(26)`（ULID の文字列。2026-10-31 に `uuid` から変更。[repository-layout.md](../repository-layout.md) 10.1・12章）
 - 冪等性: 対象の RPC は同じ `x-request-id` の再送で本体を呼ばず、保存済みのレスポンスを返す。保存先は `last_responses(player_id, request_id, rpc, response)` で、本体と同じトランザクションで書く
 - `[NoSideEffects]` の RPC は読み取り専用のトランザクション
 - ゲームログの出力先は DB の `game_logs` か標準出力（JSON）
 
 ## Uta での扱い（推測）
 
-- Uta の `shared/` に置く Uta 固有のサービスIF・DTO は、VolTech-MagicOnion の `Abstractions` と同じく Unity と共有する。マスタ型は `shared/` に置かない（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
-- 育成の操作（`ChooseWeekActionAsync` などの操作の RPC。[api-design.md](api-design.md) 1章）やガチャは冪等性の対象
+- Uta の `shared/` に置く Uta 固有のサービスIF・DTO は、VolTech-MagicOnion の `Abstractions` と同じく Unity と共有する。マスタ型は `shared/` に置かない（[ADR 0007](../../decisions/0007-masterdata-with-addons.md)）
+- 育成の操作（`ChooseWeekActionAsync` などの操作の RPC。[api-design.md](../api-design.md) 1章）やガチャは冪等性の対象
 
 ## 未確定事項
 
-- （2026-10-31 に解決）VolTech-MagicOnion の取り込み方 → Git サブモジュール（[ADR 0005](../decisions/0005-foundation-submodule.md)、proposed）で `external/VolTech-MagicOnion` に置く。サーバーは `ProjectReference`、Unity は `file:` で参照し、`Uta.Shared` は `VolTech.Server.Abstractions` を参照する（[repository-layout.md](repository-layout.md) 3章）
+- （2026-10-31 に解決）VolTech-MagicOnion の取り込み方 → Git サブモジュール（[ADR 0005](../../decisions/0005-foundation-submodule.md)、proposed）で `external/VolTech-MagicOnion` に置く。サーバーは `ProjectReference`、Unity は `file:` で参照し、`Uta.Shared` は `VolTech.Server.Abstractions` を参照する（[repository-layout.md](../repository-layout.md) 3章）
 - （2026-10-31 に解決）MagicOnion の API が揃うか → VolTech-MagicOnion が MagicOnion 7.11.0 で実装・テスト済み
-- （2026-10-31 に解決）DB の最終決定 → [ADR 0010](../decisions/0010-database.md)
+- （2026-10-31 に解決）DB の最終決定 → [ADR 0010](../../decisions/0010-database.md)
 - （2026-10-31 に解決）`server_status.toml` と同じ設定形式にするか → 強制アップデート・メンテナンスを実装しないので不要。ゲーム日付は `Voltech` セクション
-- （2026-10-31 に解決）分岐元にする VolTech-MagicOnion のタグ → タグを待たず、サブモジュールのポインタ（コミット）で固定する。区切りで VolTech-MagicOnion の版を出す（[repository-layout.md](repository-layout.md) 3.1）
+- （2026-10-31 に解決）分岐元にする VolTech-MagicOnion のタグ → タグを待たず、サブモジュールのポインタ（コミット）で固定する。区切りで VolTech-MagicOnion の版を出す（[repository-layout.md](../repository-layout.md) 3.1）
 - Tracing（gRPC Monitor）の扱い、`StoredAccount` のシリアライズ形式

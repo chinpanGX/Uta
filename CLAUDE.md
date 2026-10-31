@@ -9,7 +9,7 @@
 - 目的: 育成（プロデュース）・ガチャのゲームシステム基礎部分を実装する、技術先行の個人開発プロジェクト（3Dライブは保留: [ADR 0003](uta_docs/wiki/decisions/0003-defer-3d-live.md)）
 - 目的（追加）: Unity 7 を早期段階で触る。Unity のバージョンは Unity 7 で確定（2026-10-27。現在 `7000.0.0a12`）。クライアント基盤・サーバー基盤も Unity 7 で試す（[ADR 0006](uta_docs/wiki/decisions/0006-adopt-unity-7-early.md)、accepted）。Unity 7 Preview は 12 月予定
 - 対象プラットフォーム: Android / iOS / Windows
-- 技術構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10）、通信は MagicOnion（gRPC）。サーバーの土台は [architecture/server-foundation.md](uta_docs/wiki/architecture/server-foundation.md)
+- 技術構成: Unity クライアント + ASP.NET Core サーバー（C#、.NET 10）、通信は MagicOnion（gRPC）。サーバーの土台は [architecture/server-foundation.md](uta_docs/wiki/architecture/server/server-foundation.md)
 - 開発体制: 個人開発
 
 ## 作業に応じて読むファイル
@@ -61,7 +61,9 @@ uta/
 │     ├─ glossary.md
 │     ├─ overview/      # ゲーム全体の仕様
 │     ├─ systems/       # ゲームの仕様（produce / lesson-card / idol-support / gacha。live は保留）
-│     ├─ architecture/  # 実装設計書（共通の 4 編、サーバー基盤、機能ごとの実装設計）
+│     ├─ architecture/  # 実装設計書（共通の編、Shared.Domain の機能ごとの設計）
+│     │  ├─ master/     # マスタ設計（定義・生成・配信、システムごとのテーブルと列）
+│     │  └─ server/     # サーバーの実装設計（サーバー基盤、ガチャ・強化の処理）
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）

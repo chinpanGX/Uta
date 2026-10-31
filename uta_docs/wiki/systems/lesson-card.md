@@ -76,7 +76,7 @@ updated: 2026-10-31
 | useConditions | 使用条件の配列(6章)。すべて満たすと使用可 |
 | effects | 効果の配列(7章)。**記載順に上から処理** [確認] |
 
-強化で変わるのは数値だけでなく、コスト種別・効果の追加・条件の変化もある。そのため通常版と強化版は差分ではなく丸ごと別定義で持つ。[決定。マスタでは `CardFace`（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章）]
+強化で変わるのは数値だけでなく、コスト種別・効果の追加・条件の変化もある。そのため通常版と強化版は差分ではなく丸ごと別定義で持つ。[決定。マスタでは `CardFace`（[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 3章）]
 
 ### 3.2 表現例(YAML)
 
@@ -145,7 +145,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 ### 4.1 レッスンルールの値 [決定]
 
-`Uta.Domain` の定数に置く(マスタにしない。[produce.md](produce.md) 3.1 の定数と同じ扱い)。
+`Uta.Domain` の定数に置く(マスタにしない。[produce-tables.md](../architecture/master/produce-tables.md) の定数と同じ扱い)。
 
 | 項目 | 値 |
 |---|---|
@@ -206,7 +206,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | Nターン目以降 | |
 | レッスンのクリア目標のN%以下 | |
 
-条件は `{ subject, comparator, value }` の汎用形で表す。複数の条件はグループにまとめ、すべて満たすと真(AND)。使用条件と効果内条件で同じ形を使う。[決定。2026-10-28。マスタでの表し方は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章・3.1]
+条件は `{ subject, comparator, value }` の汎用形で表す。複数の条件はグループにまとめ、すべて満たすと真(AND)。使用条件と効果内条件で同じ形を使う。[決定。2026-10-28。マスタでの表し方は [masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 3章・3.1]
 
 ### 6.2 判定タイミング [確認]
 
@@ -230,7 +230,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 - `hits` は連撃。集中は1回ごとに加算される。[確認]
 - `focusScale` は「集中効果をN倍適用」、`goodScale` は「好調効果をN倍適用」。[確認]
-- マスタに移すときは、小数を整数（パーセント）にする（`focusScale: 1.5` → `150`）。効果は `Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3` と参照列で表す（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章、[lesson-enums.md](../architecture/lesson-enums.md)、[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。`hits`・`focusScale`・`goodScale` の既定値は、マスタでは 0（空欄）で表す
+- マスタに移すときは、小数を整数（パーセント）にする（`focusScale: 1.5` → `150`）。効果は `Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3` と参照列で表す（[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 3章、[lesson-enums.md](../architecture/lesson-enums.md)、[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。`hits`・`focusScale`・`goodScale` の既定値は、マスタでは 0（空欄）で表す
 
 ### 7.2 リソース系
 

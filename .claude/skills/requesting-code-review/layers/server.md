@@ -1,7 +1,7 @@
 # server レイヤーのチェックリスト（`server/`）
 
 ASP.NET Core + MagicOnion（Unary のみ）、.NET 10（C# 14）。DB は PostgreSQL（Npgsql + Dapper）、デプロイ先は Cloud Run + Cloud SQL。
-根拠: CLAUDE.md、[ADR 0002](../../../../uta_docs/wiki/decisions/0002-magiconion.md)・[0004](../../../../uta_docs/wiki/decisions/0004-server-foundation.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)・[0010](../../../../uta_docs/wiki/decisions/0010-database.md)・[0011](../../../../uta_docs/wiki/decisions/0011-deploy-google-cloud.md)、[server-foundation.md](../../../../uta_docs/wiki/architecture/server-foundation.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜4章・10〜11章。
+根拠: CLAUDE.md、[ADR 0002](../../../../uta_docs/wiki/decisions/0002-magiconion.md)・[0004](../../../../uta_docs/wiki/decisions/0004-server-foundation.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)・[0010](../../../../uta_docs/wiki/decisions/0010-database.md)・[0011](../../../../uta_docs/wiki/decisions/0011-deploy-google-cloud.md)、[server-foundation.md](../../../../uta_docs/wiki/architecture/server/server-foundation.md)、[api-design.md](../../../../uta_docs/wiki/architecture/api-design.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜4章・10〜11章。
 
 ## 層と依存
 

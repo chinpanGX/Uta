@@ -109,7 +109,7 @@ updated: 2026-10-31
 | 用語 | 定義 | 備考 |
 |---|---|---|
 | 共通基盤 | `external/` に Git サブモジュールで取り込んだ自作のリポジトリ 4 つ（VolTech-MagicOnion・Supplement・UnityScreenNavigator・MasterMemoryAddons）の総称。Uta 以外のアプリでも使う前提で育てる。「共通」はこの意味でだけ使う | [repository-layout](architecture/repository-layout.md) 3.1。1 つを指すときはリポジトリ名で書き、「基盤」とだけ書かない |
-| VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server-foundation.md) |
+| VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server/server-foundation.md) |
 | サーバー基盤 | VolTech-MagicOnion のサーバー側（`VolTech.Server`。認証・冪等性・エラー・フィルター順） | 同上 |
 | Shared | `shared/` にある、クライアントとサーバーの両方から使うコード（Shared.Domain と Shared.Contracts）。「共有」とは書かず Shared と書く（「共通」と見間違えないため） | [repository-layout](architecture/repository-layout.md) 3章・5章 |
 | Shared.Domain（`Uta.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定）。コードは `Uta.Shared.Domain` に改名する予定（未実施） | [repository-layout](architecture/repository-layout.md) 3章・6章 |
@@ -123,9 +123,9 @@ updated: 2026-10-31
 | 機能ID | 仕様の機能に付ける ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）。設計書4編の横断に使う | |
 | `[ClientOnly]` / `[ServerOnly]` | マスタ定義に付け、クライアント用・サーバー用のどちらの出力に残すかを決める属性 | MasterMemoryAddons |
 | 正本 | 他のものを生成する元になる、手で編集するデータ（マスタの定義・CSV） | `masterdata/` |
-| スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/masterdata-pipeline.md) 6章 |
+| スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/master/masterdata-pipeline.md) 6章 |
 | `Op`（`EffectOp`） | マスタと Shared.Domain の効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える。名前・数値・列の対応は lesson-enums が正 | [lesson-enums](architecture/lesson-enums.md) |
-| 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
+| 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/master/masterdata-pipeline.md) 3章 |
 | 中断 / 放棄 / 破棄 | プロデュースの止め方。中断はアプリの終了で、いつでも再開できる。放棄はプレイヤーの明示の操作。破棄はアプリのバージョン（または状態の形式）が開始時と違うときにサーバーが行う。放棄・破棄は報酬なし | [api-design](architecture/api-design.md) 5章 |
 | 同期（`SyncAsync`） | 起動時に1回呼ぶ、副作用のある RPC。プレイヤーの作成と初期付与（初回だけ）、バージョン違いのプロデュースの破棄をまとめて行う | [api-design](architecture/api-design.md) 1章 |
 | ULID | 時刻順に並ぶ一意な ID。サーバーが発行する ID に使う（マスタの ID は `int`） | [repository-layout](architecture/repository-layout.md) 10.1 |

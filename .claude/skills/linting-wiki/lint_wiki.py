@@ -213,8 +213,11 @@ def check_index_and_orphans(root, inbound, report):
         if resolved == index:
             continue
         sources = inbound.get(resolved, set())
-        if path.parent == wiki or path.name == "README.md":
+        if path.parent == wiki or (path.name == "README.md" and path.parent.parent == wiki):
             registry, where = index, "index.md"
+        elif path.name == "README.md":
+            # 入れ子のフォルダ（architecture/master/ など）の README は、親のフォルダの README から
+            registry, where = (path.parent.parent / "README.md").resolve(), f"{path.parent.parent.name}/README.md"
         else:
             registry, where = (path.parent / "README.md").resolve(), f"{path.parent.name}/README.md"
         if registry not in sources:
@@ -227,6 +230,8 @@ def check_adrs(root, report):
     decisions = root / "uta_docs" / "wiki" / "decisions"
     numbers = {}
     for path in sorted(decisions.glob("*.md")):
+        if path.name == "README.md":
+            continue
         match = ADR_FILE_RE.match(path.name)
         if not match:
             report.add("エラー", "ADR", rel(root, path), "ファイル名が NNNN-件名.md でない")

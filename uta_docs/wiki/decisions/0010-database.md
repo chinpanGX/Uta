@@ -8,7 +8,7 @@ updated: 2026-10-27
 
 ## 状況
 
-プレイヤーデータ（所持品、通貨、ガチャ履歴、プロデュースのセッションなど）を保存する DB を決める必要がある。サーバー基盤（[ADR 0004](0004-server-foundation.md)、[architecture/server-foundation.md](../architecture/server-foundation.md)）は PostgreSQL + Npgsql + Dapper を推奨している。プロデュースのセッションは、レッスン中の山札・手札・ステータスなど構造が大きく、仕様の変更で形も変わる。
+プレイヤーデータ（所持品、通貨、ガチャ履歴、プロデュースのセッションなど）を保存する DB を決める必要がある。サーバー基盤（[ADR 0004](0004-server-foundation.md)、[architecture/server-foundation.md](../architecture/server/server-foundation.md)）は PostgreSQL + Npgsql + Dapper を推奨している。プロデュースのセッションは、レッスン中の山札・手札・ステータスなど構造が大きく、仕様の変更で形も変わる。
 
 ## 決定
 

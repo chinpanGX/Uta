@@ -90,14 +90,14 @@ updated: 2026-10-31
 | 区分 | 範囲 |
 |---|---|
 | 計算 | [lesson-card.md](../systems/lesson-card.md) 9.5 のスコア、[produce.md](../systems/produce.md) 5.2 のスコアボーナス(信頼度は 0 固定) |
-| 入力 | `ExamSetup`([lesson-domain-types.md](../architecture/lesson-domain-types.md) 2章)。審査ターンの列は外から渡されたものをそのまま使う。列を作る処理(先頭の判定・シャッフル)は週の進行の実装で行う([produce.md](../systems/produce.md) 5.1、[produce-domain.md](../architecture/produce-domain.md) 4章) |
+| 入力 | `ExamSetup`([lesson-domain-types.md](lesson-domain-types.md) 2章)。審査ターンの列は外から渡されたものをそのまま使う。列を作る処理(先頭の判定・シャッフル)は週の進行の実装で行う([produce.md](../systems/produce.md) 5.1、[produce-domain.md](produce-domain.md) 4章) |
 | 出力 | `LessonResult`([lesson-card.md](../systems/lesson-card.md) 10.1) |
 | 終了 | 規定ターン数、中間試験の早期終了([lesson-card.md](../systems/lesson-card.md) 9.5) |
 
 ## 8. 完了条件 [決定。2026-10-31]
 
 - そのフェーズの全カードについて、[lesson-card.md](../systems/lesson-card.md) 9章の式から出した期待値のユニットテストが通る。期待値は、初期状態 → 操作 → 期待値の具体例を実装計画に 3〜5 個書き、計算の途中も計画に書く(実装と同じ丸め方を実装担当が選ばないようにする)
-- 同じシードと操作列で、再生した状態が一致する(`Uta.Domain` の単体テスト。比べ方は [produce-domain.md](../architecture/produce-domain.md) 7章: 値を項目ごとに比べる。比べる関数はテストの共通クラスに置き、今の `LessonEngineTests` の `Summarize` はそれに置き換える。含める項目は `LessonState` の全部(`NextGrantOrder` などの内部の値を含む))
-- IL2CPP との一致は、実機ビルドのときに 1 回確かめる: 固定のシードと操作列で再生した状態を .NET 側で求めてテストに埋め込み、**IL2CPP でビルドした実行物**(Android の実機。または Windows の IL2CPP スタンドアロン)で同じ再生を走らせて比べる。Unity Editor は Mono で動くので、IL2CPP の確認にならない。比べ方は [produce-domain.md](../architecture/produce-domain.md) 7章(項目ごと。ハッシュは作らない)。入口は Unity Test Runner の実機実行。本番のクライアントはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。この確認は実機ビルドの手順に入れる([game-spec.md](../overview/game-spec.md) 完了条件 7)
+- 同じシードと操作列で、再生した状態が一致する(`Uta.Domain` の単体テスト。比べ方は [produce-domain.md](produce-domain.md) 7章: 値を項目ごとに比べる。比べる関数はテストの共通クラスに置き、今の `LessonEngineTests` の `Summarize` はそれに置き換える。含める項目は `LessonState` の全部(`NextGrantOrder` などの内部の値を含む))
+- IL2CPP との一致は、実機ビルドのときに 1 回確かめる: 固定のシードと操作列で再生した状態を .NET 側で求めてテストに埋め込み、**IL2CPP でビルドした実行物**(Android の実機。または Windows の IL2CPP スタンドアロン)で同じ再生を走らせて比べる。Unity Editor は Mono で動くので、IL2CPP の確認にならない。比べ方は [produce-domain.md](produce-domain.md) 7章(項目ごと。ハッシュは作らない)。入口は Unity Test Runner の実機実行。本番のクライアントはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。この確認は実機ビルドの手順に入れる([game-spec.md](../overview/game-spec.md) 完了条件 7)
 
 ---

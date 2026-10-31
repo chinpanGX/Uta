@@ -1,7 +1,7 @@
 # 設計の批評のチェックリスト
 
 設計そのものを疑ってかかる。根拠のない前提、扱われていないリスク、必要のない複雑さを探し、もっと単純にできないかを問う。
-根拠: CLAUDE.md の「プロジェクト概要」（技術先行の個人開発。育成・ガチャの基礎部分）と「実装方針」、[game-spec.md](../../../../uta_docs/wiki/overview/game-spec.md) の MVP 範囲、[ADR](../../../../uta_docs/wiki/decisions/)。
+根拠: CLAUDE.md の「プロジェクト概要」（技術先行の個人開発。育成・ガチャの基礎部分）と「実装方針」、[game-spec.md](../../../../uta_docs/wiki/overview/game-spec.md) の MVP 範囲、[ADR](../../../../uta_docs/wiki/decisions)。
 egm の design_critic・zoom_out の観点を Uta 向けにまとめたもの。
 
 **Uta の前提:** 個人開発で、目的はゲームシステムの基礎部分を作ることと Unity 7 を早く触ること。運用規模の大きなサービスを前提にした仕組み（大量アクセス、複数チーム、細かい権限）は、要るという根拠がなければ過剰と見る。

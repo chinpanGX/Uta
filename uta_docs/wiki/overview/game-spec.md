@@ -28,7 +28,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - DB: PostgreSQL + Npgsql + Dapper（[ADR 0010](../decisions/0010-database.md)）。マイグレーションは DbUp（[ADR 0012](../decisions/0012-migration-dbup.md)）
 - マスタは CSV が正本で、生成したソースとバイナリもコミットする（[ADR 0007](../decisions/0007-masterdata-with-addons.md)、[ADR 0013](../decisions/0013-commit-masterdata-binary.md)）
 - デプロイ: API はコンテナにして Google Cloud の Cloud Run、DB は Cloud SQL（[ADR 0011](../decisions/0011-deploy-google-cloud.md)）
-- 実装設計書は4編（[共通・基盤](../architecture/repository-layout.md) / [マスター](../architecture/masterdata-pipeline.md) / [API](../architecture/api-design.md) / [画面](../architecture/screen-design.md)）。補足のページ: [サーバー基盤](../architecture/server-foundation.md)、[レッスンの Shared.Domain の型](../architecture/lesson-domain-types.md)、[レッスンの enum](../architecture/lesson-enums.md)、[画面ワイヤー](screen-wireframes.md)
+- 実装設計書は4編（[共通・基盤](../architecture/repository-layout.md) / [マスター](../architecture/master/masterdata-pipeline.md) / [API](../architecture/api-design.md) / [画面](../architecture/screen-design.md)）。補足のページ: [サーバー基盤](../architecture/server/server-foundation.md)、[レッスンの Shared.Domain の型](../architecture/lesson-domain-types.md)、[レッスンの enum](../architecture/lesson-enums.md)、[画面ワイヤー](screen-wireframes.md)
 
 ## ゲームループ [決定。骨格は ADR 0003、報酬は 2026-10-28、強化は 2026-10-31]
 
@@ -57,7 +57,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - **ガチャ → プロデュース**: 育成アイドルとサポートカードを介して接続。編成は育成アイドル1人+サポートカード6枚（自分の5枚+サーバーのマスタから借りるレンタル1枚）（[idol-support.md](../systems/idol-support.md)）。MVP はレンタルなしの自分の 0〜5 枚
 - **プロデュース → 報酬**: 最終評価のランクに応じて、ガチャ通貨・ゴールド・サポート強化pt・プレイヤー経験値を付与する（決定。2026-10-28、強化pt は 2026-10-31。[produce.md](../systems/produce.md) 6.1）
 - **通貨**: 課金は実装しない。ガチャ通貨は無償の1種類だけ（決定。[gacha.md](../systems/gacha.md)）。入手は初期付与とプロデュースの報酬（[gacha.md](../systems/gacha.md) 8章）。ほかに持つ値はゴールドとサポート強化pt（報酬で得て、サポートカードの強化に使う）。交換メダルは MVP では作らない
-- **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の最初の `SyncAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500・ゴールド 10,000・サポート強化pt 10,000（どれもマスタの値。初期値。ゴールドと強化pt は、最初のプロデュースの前に強化を試せるように置く [仮]）を付与する。置き場のマスタは [idol-support.md](../systems/idol-support.md) 6章。これでガチャを引かなくても最初のプロデュースを始められる
+- **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の最初の `SyncAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500・ゴールド 10,000・サポート強化pt 10,000（どれもマスタの値。初期値。ゴールドと強化pt は、最初のプロデュースの前に強化を試せるように置く [仮]）を付与する。置き場のマスタは [idol-support-tables.md](../architecture/master/idol-support-tables.md)。これでガチャを引かなくても最初のプロデュースを始められる
 - **認証**: MVP は VolTech-MagicOnion の匿名デバイス認証だけで、引き継ぎは作らない（決定。2026-10-28）。アンインストールや機種変更でデータは失われる。プレイヤーと端末は1対多のテーブルにして、あとで引き継ぎコードを足せる形にしておく（[api-design.md](../architecture/api-design.md) 3章）
 
 ## 最小実装範囲（MVP）[決定。2026-10-31]
@@ -142,7 +142,7 @@ MVP で作る画面（[screen-design.md](../architecture/screen-design.md) 2章�
 - ガチャ 1 本の中身（masterdata の最初の実装計画で決める）: 排出テーブルの重みの割り振り（レア・種類の比は [gacha.md](../systems/gacha.md) 3.1）、確定枠のテーブル、天井の交換対象（`GachaCeilingItem`。SSR の 2 種を候補にする）。初期付与の R 5 種も通常枠から出る
 - スキルカードの `unlockLv`（参考作品の値を masterdata の最初の実装計画で入れる。[lesson-card.md](../systems/lesson-card.md) 14章）
 - オリジナル名称（プロデュース等の仮称、キャラ、世界観の最小設定）。MVP は仮称のままで進められる
-- マスタを Addressables によるダウンロードに移す時期（いまは同梱。[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 6章）。MVP は同梱のままで進められる
+- マスタを Addressables によるダウンロードに移す時期（いまは同梱。[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 6章）。MVP は同梱のままで進められる
 
 ## 更新が必要になるページ
 

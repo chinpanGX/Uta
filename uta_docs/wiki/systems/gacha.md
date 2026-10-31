@@ -65,26 +65,13 @@ updated: 2026-10-31
 - 排出テーブルの中身(行)を変えるときは、新しい `GachaTableId` のテーブルを作る。同じ ID のまま変えない(履歴の `gacha_table_id` から当時の確率を追えるようにする)。**この規則は公開・配布してから適用する**。MVP の開発中は、同じ ID のまま CSV を書き換え、DB を作り直してよい
 - 確定枠を別のテーブルにする理由: ピックアップ(GAC-06)で確定枠だけ重みを変えられるようにするため。MVP では通常枠の SR 以上と同じ比なので重複に見えるが、テーブルを分けておけば GAC-06 で構造を変えずに済む(ユーザーの判断。2026-10-31)。`GachaTable` を見出しとして別に置くのは、`Gacha` の 2 つの列から `[Exists]` で参照するため
 - ガチャは「通常枠のテーブル」と「確定枠のテーブル」の 2 つを指す。単発と 10 連の 1〜9 枠目は通常枠、10 連の 10 枠目は確定枠から引く。確定枠のテーブルには SR 以上のカードだけを入れる。参考作品の「10連のどこかに SR 以上 1 枚」ではなく「10 枠目を常に SR 以上」に単純化した
-- マスタの表(名前は仮。[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) の規約に従う):
-
-| テーブル | 主キー | 列 |
-|---|---|---|
-| `Gacha` | `GachaId` | `SingleCost`、`TenCost`、`NormalTableId`、`GuaranteedTableId`、`CeilingPoints`(交換に要る交換pt) |
-| `GachaTable` | `GachaTableId` | (見出し) |
-| `GachaTableEntry` | `GachaTableId` + `Order` | `ItemKind`(enum。下)、`ItemId`、`Weight`(1 以上) |
-| `GachaCeilingItem` | `GachaId` + `Order` | `ItemKind`、`ItemId` |
-| `DuplicateConversion` | `ItemKind` + `Rarity` | `Amount`(育成アイドルはかけらの量、サポートカードは完凸後の強化pt の量。5章・[idol-support.md](idol-support.md) 3章の値) |
-
-- **`ItemKind` と `Outcome` の正はここ** [決定。2026-10-31]: `ItemKind` は `None` = 0 / `Idol` = 1 / `SupportCard` = 2、`Outcome` は `None` = 0 / `New` = 1 / `Duplicate` = 2。マスタの enum(masterdata から生成)と DTO の enum(`Uta.Shared`)は同じ名前・同じ数値で別に定義し、DB の `item_kind`・`outcome` には数値(`smallint`)を入れる。`None` はマスタ・DTO・履歴のどこにも入れない(検証で弾く)
-- 区分: どれもクライアントで確率を表示するので Common(クライアントにも出す)。`DuplicateConversion` も、結果の画面で量を見せるので Common
-- 育成アイドルとサポートカードを 1 つの列 `ItemId` で指す(専用の参照列にしない)のは、DTO と履歴の形(`ItemKind` + `ItemId`)にそろえるため。存在の検証は `[Exists]` ではなく `IValidatable` で、`ItemKind` ごとのマスタを引いて行う
-- 検証(`IValidatable`): `ItemKind` が `None` でない、重みが 1 以上、テーブルごとの重みの合計が `int.MaxValue` 以下(`RandomOps.WeightedIndex` の制約)、テーブルが空でない、`ItemId` が存在する、確定枠のテーブルに R がない(`ItemId` のマスタの `Rarity` を見る)
+- マスタのテーブル・列・`ItemKind` と `Outcome` の enum・区分・検証は [gacha-tables.md](../architecture/master/gacha-tables.md)
 
 ### 3.2 抽選 [決定。2026-10-31]
 
 - 1 枠につき 1 回、テーブルの重みでテーブルから 1 行を選ぶ。レア → カードのような 2 段階には分けない
 - 10 連は 1 枠目から順に引き、所持品への反映(5章)も枠の順に行う
-- 乱数・抽選の関数の置き場・テストの方法は [gacha-support-server.md](../architecture/gacha-support-server.md) 1章
+- 乱数・抽選の関数の置き場・テストの方法は [gacha-support-server.md](../architecture/server/gacha-support-server.md) 1章
 
 ## 4. 天井(交換pt)
 
@@ -140,7 +127,7 @@ updated: 2026-10-31
 |---|---|
 | 確率の表示と実際の一致 | 3.1 の重みから表示と抽選の両方を作る |
 | API | RPC・DTO・エラーは [api-design.md](../architecture/api-design.md) 1・2章 |
-| 処理の手順 | 記録・同時実行・所持品の書き込み・RPC ごとの手順は [gacha-support-server.md](../architecture/gacha-support-server.md) 2章 |
+| 処理の手順 | 記録・同時実行・所持品の書き込み・RPC ごとの手順は [gacha-support-server.md](../architecture/server/gacha-support-server.md) 2章 |
 
 ## 7. Uta で決めること(参考作品で未公開)
 
@@ -155,7 +142,7 @@ updated: 2026-10-31
 
 ## 未決事項
 
-- `request_id` に入れる `x-request-id` をハンドラーで読む手段(VolTech-MagicOnion の `ServiceContext.Items` などで渡せるか。[server-foundation.md](../architecture/server-foundation.md) の未確認の項目)。サーバーのガチャの実装計画は、この確認を待つ
+- `request_id` に入れる `x-request-id` をハンドラーで読む手段(VolTech-MagicOnion の `ServiceContext.Items` などで渡せるか。[server-foundation.md](../architecture/server/server-foundation.md) の未確認の項目)。サーバーのガチャの実装計画は、この確認を待つ
 - 期間・ピックアップを作るとき、またはガチャ ID を替えるとき(1章)の、古い ID に残った交換pt の扱い(交換メダルへの変換・新しい ID への引き継ぎ・リセット)。MVP の間はガチャ ID を替えない
 
 

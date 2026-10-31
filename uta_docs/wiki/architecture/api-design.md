@@ -8,7 +8,7 @@ updated: 2026-10-31
 
 実装設計書（4編）の3編目。クライアントとサーバーの間の契約（サービスIF・DTO）と、サーバーが持つプレイヤーデータ、サーバー側のゲームルールの置き場を定める。前提は [repository-layout.md](repository-layout.md)。
 
-- 認証・冪等性・エラー・ヘッダー・フィルター順序は、VolTech-MagicOnion の仕様 [server-foundation.md](server-foundation.md) が正。ここでは繰り返さず、Uta 固有の部分だけを書く
+- 認証・冪等性・エラー・ヘッダー・フィルター順序は、VolTech-MagicOnion の仕様 [server-foundation.md](server/server-foundation.md) が正。ここでは繰り返さず、Uta 固有の部分だけを書く
 - ゲームの仕様は [systems/](../systems/produce.md) が正
 
 ## 凡例
@@ -23,7 +23,7 @@ updated: 2026-10-31
 - サービスIF・DTO は `shared/Uta.Shared` に置く（C# 9、Unity と共有）。`Uta.Shared` には Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する [決定。2026-10-28]
 - サーバー権威: 育成の計算、ガチャ抽選、所持品の更新はサーバー [決定。[CLAUDE.md](../../../CLAUDE.md)]
 - RPC ごとの設定（認証不要、副作用なし）は、サービスIFの属性（`[SkipAuth]` / `[NoSideEffects]`）で持つ [決定。VolTech-MagicOnion の仕様]
-- 再送は `x-request-id` と `last_responses` による冪等性に任せ、仕様側で独自の重複防止を作らない [決定。[server-foundation.md](server-foundation.md)]
+- 再送は `x-request-id` と `last_responses` による冪等性に任せ、仕様側で独自の重複防止を作らない [決定。[server-foundation.md](server/server-foundation.md)]
 - プロデュースの操作の RPC は、局面ごとに分ける [決定。1章、2026-10-31]
 - RPC の名前は1章の表で確定。メソッドは `Async` を付け、DTO は RPC ごとに `XxxRequest` / `XxxResponse` を1組作る [決定。2026-10-28]
 - Uta 固有のエラーは、domain `uta`、reason は機能の接頭辞付きの大文字スネークケース [決定。2026-10-28。2章]
@@ -63,7 +63,7 @@ updated: 2026-10-31
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
   - どの操作の要求も、**次の操作番号**を持つ。サーバーの操作番号と合わない要求は `PRODUCE_STALE_OPERATION` で拒否する(クライアントは `GetState` で取り直す)。週・ターンは要求に持たない(サーバーの状態から分かる)。再送は `x-request-id` で冪等に扱う([produce-domain.md](produce-domain.md) 5章。2026-10-31 決定)
 - 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（VolTech-MagicOnion の仕様）
-- **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。強制アップデートは実装しないので、マスタの版の不一致はサーバーでは扱わない（手元のアプリを入れ直す。[repository-layout.md](repository-layout.md) 10.5）
+- **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。強制アップデートは実装しないので、マスタの版の不一致はサーバーでは扱わない（手元のアプリを入れ直す。[repository-layout.md](repository-layout.md) 10.5）
 - DTO は、サーバー専用の値（`[ServerOnly]` のマスタの値など）を含めない。レンタル候補のように、サーバーが決めた結果だけを返す
 - DTO の ID: サーバーが発行する ID（ULID）は26文字の `string`、マスタの ID は `int`（[repository-layout.md](repository-layout.md) 10.1）
 
@@ -72,7 +72,7 @@ updated: 2026-10-31
 | RPC | Request | Response |
 |---|---|---|
 | `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
-| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。`ItemKind` とともに名前と数値の正は [gacha.md](../systems/gacha.md) 3.1）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
+| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。`ItemKind` とともに名前と数値の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
 | `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
 
@@ -114,7 +114,7 @@ updated: 2026-10-31
 | `gacha_histories` | `history_id`（ULID） | カード 1 枚 = 1 行。`request_id`（`DrawAsync` 1 回の束）、`player_id`、`gacha_id`、`slot`（1〜10。交換は 0）、`gacha_table_id`、`item_kind`、`item_id`、`outcome`（新規 / 重複）、`shards`、`support_points`、日時 | [gacha.md](../systems/gacha.md) 6 |
 | `produce_sessions` | `session_id` | 検索用の列と状態の1列（下記） | [produce.md](../systems/produce.md) 10 |
 | `produce_results` | `session_id` | `player_id`、終わり方（完了 / 放棄 / 破棄）、試験の結果（中間不合格 / 最終不合格 / 最終合格。完了のときだけ）、評価値、ランク、付与した報酬 | [produce.md](../systems/produce.md) 6 |
-| VolTech-MagicOnion のテーブル | — | `last_responses`、`game_logs`、端末・トークン | [server-foundation.md](server-foundation.md) |
+| VolTech-MagicOnion のテーブル | — | `last_responses`、`game_logs`、端末・トークン | [server-foundation.md](server/server-foundation.md) |
 
 - **通貨は `players` の列で持つ**。汎用の所持テーブル（`種別・ID・数`）にはしない。SQL と Dapper が素直に書ける。通貨の種類を増やすときはマイグレーションが要るが、MVP では種類が少ないので受け入れる
 - かけらは育成アイドル（`idol_id` = 1 キャラ）ごとに持つ [決定。2026-10-31。[idol-support.md](../systems/idol-support.md) 1.1]
@@ -123,7 +123,7 @@ updated: 2026-10-31
 - 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`
 - 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（VolTech-MagicOnion の仕様）
 - **所持品・通貨を変える RPC は、トランザクションの最初に `players` の行を更新またはロックする**（`SELECT ... FROM players WHERE player_id = @id FOR UPDATE`。最初の処理が `players` の条件付き更新なら、それでよい）[決定。2026-10-31]。対象は `DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`StartAsync` と、報酬を付与するプロデュースの操作。同じプレイヤーの要求が直列になり、二重払い・重複の判定のずれ・ロックの順の違いによるデッドロックが起きない
-- 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha-support-server.md](gacha-support-server.md) 2章）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
+- 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha-support-server.md](server/gacha-support-server.md) 2章）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
 - インデックスは、実装するときに検索の形に合わせて付ける
 
 ### 3.1 プロデュースのセッション [決定。2026-10-28]
