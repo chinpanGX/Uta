@@ -55,6 +55,18 @@ updated: 2026-10-31
 | 19 | `AddPersistent` | 持続効果を付与する | 1（使用時） | `Trigger` | `EveryNTurns` の N（ほかは空欄） | `Arg1` ターン数・`Arg2` 回数（0 は無制限）、子の効果（マスタは `RefEffectGroupId`） |
 
 - `AddStatus` に `%` のステータス（`FocusBoost`・`ImpressionBoost`）を渡したら検証で弾く（`AddStatusPercent` を使う）。逆も同じ
+- 効果ごとの境界 [決定。2026-10-31]:
+
+| `Op` | 境界 |
+|---|---|
+| `AddFixedGenki` | やる気・元気増加無効の影響を受けない(lesson-card.md 9.3) |
+| `SetGenki` | 元気増加無効のときも値を設定する(「増加」ではないため)。`Value` は 0 以上 |
+| `ScaleGenki` | `Value` は 0〜100(減らすだけ)。端数は切り捨て |
+| `RecoverHp` | `Value` は 1 以上。最大体力で止める |
+| `AddStatus` | `Value` は 1 以上(減らす効果はない) |
+| `DrawCards` | `Value` は 1 以上。引ける分だけ引く(lesson-card.md 4章) |
+| どの `Op` も | 負の値は読み込み時にエラー(`CardDefinitionValidator`) |
+
 - 好調・絶好調・消費体力減少などの「ターン」のステータスも、集中・好印象などの「値」のステータスも、`AddStatus` 1 つで足す。足し方の違い（11章の「プレイヤー操作中に初めて付与した」印）は `StatusKind` で決まる
 
 ## 2. 持続効果のトリガー（`PersistentTrigger`）

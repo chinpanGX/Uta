@@ -82,7 +82,7 @@ updated: 2026-10-31
 | `Xoshiro256StarStar` | 本体。状態（64 ビット × 4）と引いた回数を出し入れできる |
 | `RandomStreamKind` / `RandomStreamKey` / `RandomStreams` | キーとマスターシードからストリームを作る |
 
-ストリームの作り方 [Uta案]: キー `(種類 << 48) | (週 << 32) | 挑戦回数` を SplitMix64 の混ぜる関数に通し、マスターシードと XOR した値を SplitMix64 の初期値にして、4回引いた値を `xoshiro256**` の状態にする。
+ストリームの作り方 [決定。2026-10-31。[produce.md](../systems/produce.md) 10.2 はここを正とする]: キー `(種類 << 48) | (週 << 32) | 挑戦回数` を SplitMix64 の混ぜる関数に通し、マスターシードと XOR した値を SplitMix64 の初期値にして、4回引いた値を `xoshiro256**` の状態にする。
 
 ## 5. 計算と処理（lesson-card.md 9章・10章）
 
@@ -118,6 +118,7 @@ updated: 2026-10-31
 - `LessonState` を保存の形へ変換する型（サーバーの `Infrastructure`。サーバーの実装時）
 - 状態のハッシュ（produce.md 10.6）
 - 表示用のイベント列
+- マスタの行を受け取る型（効果・条件の 1 行と同じ列）と、グループ ID を解決して `CardDefinition` を組み立てる関数（[repository-layout.md](repository-layout.md) 4章。マスタを作るとき）
 
 ## 実装メモ
 

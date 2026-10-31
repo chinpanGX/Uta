@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-10-29
+updated: 2026-10-31
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -92,7 +92,7 @@ updated: 2026-10-29
 1. 認証: 端末の登録・トークンの発行（`IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（基盤の仕様）
 2. サーバーの状態: メンテナンス・強制アップデートの判定（基盤が返すエラー）。画面に告知を出す
 3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
-4. 同期: `IPlayerService.SyncAsync` を呼ぶ（交換pt の変換、バージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる
+4. 同期: `IPlayerService.SyncAsync` を呼ぶ（初回のプレイヤー作成と初期付与、バージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる
 5. ホームへ遷移する
 
 Addressables に移ったあとの、更新確認のタイミングは未決。

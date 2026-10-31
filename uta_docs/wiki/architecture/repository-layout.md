@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通基盤（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-10-28
+updated: 2026-10-31
 ---
 
 # リポジトリ構成・レイヤー・共通基盤（実装設計書 共通・基盤編）
@@ -26,12 +26,12 @@ updated: 2026-10-28
 | API設計 | [api-design.md](api-design.md) | サービスIF・DTO、プレイヤーデータ、ゲームルールの置き場 | `shared/Uta.Shared`、`server/` |
 | 画面設計 | [screen-design.md](screen-design.md) | 画面・遷移・クライアントの層 | `client/uta/` の Presentation |
 
-- 進め方は [CLAUDE.md](../../../CLAUDE.md) の「実装前のルール」に従う（仕様 → 本編 → ADR → 実装 → ズレを反映 → `log.md`）
+- 進め方は [CLAUDE.md](../../../CLAUDE.md) の「実装前のルール」に従う
 - **機能ID**: 仕様ページの ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）を、4編すべての見出し・表に付ける。層で分けた4編を、機能単位で横断して追うため。基盤の機能（認証など）は ID を付けず [server-foundation.md](server-foundation.md) を参照する
 
 ## 2. リポジトリ構成
 
-[CLAUDE.md](../../../CLAUDE.md) の構成に、`shared/`・`server/`・`client/` の中身を足したもの。`masterdata/` の最上位への配置は [決定]（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。
+[CLAUDE.md](../../../CLAUDE.md) の構成に、`shared/`・`server/`・`client/` の中身を足したもの。`masterdata/` の最上位への配置は [決定]（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。[決定] / [Uta案] は「決めたか」の印で、「あるか」は「（未作成）」で示す（2026-10-31 時点）。
 
 ```
 uta/
@@ -42,17 +42,17 @@ uta/
 │  ├─ Supplement/            #   Unity 補助パッケージ
 │  └─ UnityScreenNavigator/  #   画面遷移
 ├─ uta_docs/
-├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない
+├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない（未作成）
 │  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）
 │  ├─ csv/                   #   スプレッドシートから書き出した CSV
 │  └─ masterdata.yaml        #   出力先の設定
 ├─ shared/                   # [決定] Unity・サーバー共有。C# 9 の範囲（.editorconfig）
-│  ├─ Uta.Domain/            # [Uta案] 純粋なゲームルール
-│  ├─ Uta.Shared/            # [Uta案] サービスIF・DTO（通信契約）
+│  ├─ Uta.Domain/            # [決定] 純粋なゲームルール（ADR 0008）
+│  ├─ Uta.Shared/            # [決定] サービスIF・DTO（通信契約。ADR 0008）（未作成）
 │  └─ Uta.Domain.Tests/      # [決定] Uta.Domain の単体テスト（10.4）
 ├─ server/                   # [決定] .NET 10
-│  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）
-│  └─ Uta.Server/            # [Uta案] 1プロジェクト。フォルダで層を分ける
+│  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）（未作成）
+│  └─ Uta.Server/            # [Uta案] 1プロジェクト。フォルダで層を分ける（未作成）
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
@@ -60,7 +60,7 @@ uta/
 │     ├─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
 │     └─ MasterData/Generated/   生成物（サーバー用）
 └─ client/uta/               # [決定] Unity プロジェクトのルート
-   └─ Assets/Scripts/
+   └─ Assets/Scripts/        # （未作成）
       ├─ Application/        # [Uta案] ユースケース、ポート
       ├─ Infrastructure/     #   API 呼び出し、マスタ、ローカル保存
       │  └─ MasterData/Generated/   生成物（クライアント用）
@@ -69,24 +69,53 @@ uta/
 ```
 
 - **マスタ型を `shared/` に置かない**のが、ADR 0002 / CLAUDE.md からの変更点。サーバー専用の列・テーブルをクライアントから見えなくするため（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
-- `shared/` の取り込み方（Unity: ローカルパッケージの `file:` 参照、サーバー: `Compile Include` または `ProjectReference`）は、基盤の「ソースで共有する」方式（[server-foundation.md](server-foundation.md)、基盤の設計書）に合わせる想定。サブモジュール外のパスを Unity から参照できるか、実機ビルドを含めて確認が必要（推測。ADR 0005 の未決事項と同じ）
+- **`shared/` の取り込み方** [決定。2026-10-31。動作は 8章で確かめる]:
+  - Unity: `shared/Uta.Domain/` と `shared/Uta.Shared/` の直下に `package.json` と asmdef を置き、`client/uta/Packages/manifest.json` から `file:` で参照する。`package.json` の `name` は `com.uta.domain` / `com.uta.shared`、asmdef の名前はアセンブリ名と同じ（`Uta.Domain` / `Uta.Shared`）。`manifest.json` の行は `"com.uta.domain": "file:../../../shared/Uta.Domain"`
+  - `dotnet build` の出力が Unity に読まれないよう、`.csproj` の `BaseOutputPath` / `BaseIntermediateOutputPath` を `bin~/` / `obj~/` にする（Unity は `~` で終わるフォルダを読まない）。`Uta.Domain.Tests/` はパッケージの外（`shared/` の直下で別フォルダ）なので取り込まれない
+  - `.meta` は Unity が作ったものをコミットする（CLAUDE.md の Git の規則）
+  - サーバー: `ProjectReference` で参照する
 
 ## 3. アセンブリと依存 [決定／アセンブリ名は Uta案]
 
-**どこで動くか・Unity と共有するかで分け、機能ごとには分けない**（MasterMemoryAddons の [構成ルール](../../../external/MasterMemoryAddons/docs/dev/structure.md)、基盤の設計書の「2つに分ける理由」と同じ考え方）。
+**どこで動くか・Unity と共有するかで分け、機能ごとには分けない**（MasterMemoryAddons の [構成ルール](../../../external/MasterMemoryAddons/docs/dev/structure.md)、基盤の設計書 `external/VolTech-MagicOnion/docs/design/project-structure.md` と同じ考え方）。
+
+- **名前** [決定。2026-10-31]: アセンブリ名とルート名前空間を同じにする。`shared/` は `Uta.Domain` / `Uta.Shared`、サーバーは `Uta.Server`（層はその下の名前空間 `Uta.Server.Api` など）、クライアントは `Uta.Client.<層>`（`UnityEngine.Application` と衝突しないよう `Uta.Client.` を付ける）
 
 | アセンブリ | 置き場 | 形式 | 参照してよいもの |
 |---|---|---|---|
 | `Uta.Domain` | `shared/Uta.Domain` | netstandard2.1、C# 9 | なし（BCL のみ） |
 | `Uta.Shared` | `shared/Uta.Shared` | netstandard2.1、C# 9 | `Uta.Domain`、基盤の `Abstractions`、MagicOnion / MessagePack |
-| `Uta.Server` | `server/Uta.Server` | net10.0 | `Uta.Domain`、`Uta.Shared`、基盤のサーバー側、生成したマスタ |
-| クライアント `Application` | `Assets/Scripts/Application` | asmdef | `Uta.Domain`、UniTask |
-| クライアント `Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Application`、`Uta.Domain`、`Uta.Shared`、基盤のクライアント側、MasterMemory と生成物、`Supplement` |
-| クライアント `Presentation` | `Assets/Scripts/Presentation` | asmdef | `Application`、`Uta.Domain`、`UnityScreenNavigator`、UniTask |
-| クライアント `Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて |
+| `Uta.Server` | `server/Uta.Server` | net10.0 | `Uta.Domain`、`Uta.Shared`、基盤のサーバー側（下の表）、生成したマスタ |
+| `Uta.Client.Application` | `Assets/Scripts/Application` | asmdef | `Uta.Domain`、`UniTask` |
+| `Uta.Client.Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Uta.Client.Application`、`Uta.Domain`、`Uta.Shared`、基盤のクライアント側、MasterMemory と生成物、`Supplement` |
+| `Uta.Client.Presentation` | `Assets/Scripts/Presentation` | asmdef | `Uta.Client.Application`、`Uta.Domain`、`UnityScreenNavigator`、`UniTask` |
+| `Uta.Client.Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて |
 
 - サーバーを1プロジェクトにするのは基盤と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは基盤の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
+- **Unity に入れる外部パッケージ** [決定。2026-10-31]: UniTask・VContainer・MessagePack・MagicOnion のクライアント・MasterMemory は UPM の git URL で入れ、版はタグで固定する（`manifest.json` に書く）。サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める
+
+サーバーが参照する基盤のプロジェクト（[server-foundation.md](server-foundation.md)）[決定。2026-10-31]:
+
+| 基盤のプロジェクト | 参照する側 |
+|---|---|
+| `Server.Abstractions` | `Uta.Shared`（netstandard2.1。`ProjectReference`）と `Uta.Server`。Unity 側は同じソースをパッケージで参照する（基盤の方式に従う） |
+| `Server.Status`・`Server.Auth`・`Server.Transaction`・`Server.Logging`・`Server.Hosting` | `Uta.Server` が `ProjectReference` で参照する。パスは `external/VolTech-MagicOnion/` の中の `.csproj` |
+
+- 基盤のどのタグに固定するかは server-foundation.md の未確定事項。**タグが決まるまで server/ の実装計画は書かない**
+
+サーバーの中の依存の向き [決定。2026-10-31]:
+
+| フォルダ（名前空間） | 参照してよいもの | 禁止 |
+|---|---|---|
+| `Api` | `Application`、`Uta.Shared`（DTO）、`Uta.Domain` | `Infrastructure` |
+| `Application` | `Domain`、`Uta.Domain` | `Api`、`Infrastructure`、`Uta.Shared` |
+| `Domain` | `Uta.Domain` | `Api`、`Application`、`Infrastructure`、`Uta.Shared`、Npgsql・Dapper |
+| `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Domain`、生成したマスタ | `Api` |
+
+- DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
+- 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
+- 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする
 - クライアントの `Application` の asmdef は **`noEngineReferences: true`** にし、UnityEngine の API を使えないことをコンパイル時に強制する [決定。2026-10-28]。UniTask を参照したまま有効にできるかは要検証（8章）。できなければ、レビューで守る
 - DI は VContainer、非同期処理は UniTask [決定。[ADR 0009](../decisions/0009-client-stack.md)]
 
@@ -104,6 +133,7 @@ uta/
 
 - **DTO ↔ Domain のマッピングは Infrastructure に閉じる** [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]。DTO は enum とプリミティブ型で組み、マッピングを薄く保つ
 - マスタの生成物（`MemoryDatabase`）は Infrastructure に置き、Application へは**ポート越しに必要な値だけ**を渡す。`Domain` / `Application` をマスタの形式から独立させるため
+- **マスタの行 → `Uta.Domain` の型の組み立て** [決定。2026-10-31]: 生成クラスはクライアント用・サーバー用で別なので、両側の Infrastructure に読み込みのコードが要る（二重になるのは受け入れる）。Infrastructure は**行の値をそのまま `Uta.Domain` の行の型（効果・条件の 1 行と同じ列を持つ型）の配列に詰めて渡すだけ**にし、グループ ID の解決と入れ子（`EffectDef` の子）の組み立ては `Uta.Domain` の関数 1 つで行う。両側で組み立てが食い違わないようにするため（[lesson-enums.md](lesson-enums.md)）
 
 ## 5. 共有コード（`shared/`）の制約 [決定／一部 Uta案]
 
@@ -118,8 +148,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - **`float` / `double` を使わない**。整数または固定小数点（[lesson-card.md](../systems/lesson-card.md) 9.6）。クライアント（IL2CPP）とサーバー（.NET 10）で結果を一致させるため
 - **乱数は `IRandom` を注入し、決定的な疑似乱数 `xoshiro256**`** を使う（10.3）。`System.Random` は使わない（[lesson-card.md](../systems/lesson-card.md) 13章）。シードの生成はサーバー
 - `[ServerOnly]` の列に依存するルールは `Domain` に入れない。必要な値は引数で受け取る
-- `init` を使う場合は `IsExternalInit` の定義が必要（MasterMemoryAddons の docs で確認。置き方は、各アセンブリに `internal` で置く案。推測・要確認）
-- `record`・`required`・nullable の値型（`int?` など）は、マスタの生成ソースでは使えない（アドオンの制約）。`shared/` でも同じ制約にそろえる [Uta案]
+- **`init`・`record`・`required`・nullable の注釈は `shared/` で使わない** [決定。2026-10-31。[lesson-domain-types.md](lesson-domain-types.md) と同じ]。`init` を使わないので `IsExternalInit` の定義も要らない。理由: マスタの生成ソースがこれらを使えない（アドオンの制約）ので、マスタの行と `Uta.Domain` の型を同じ書き方（コンストラクタと読み取り専用プロパティ）にそろえる。nullable の値型（`int?`）は使ってよい
 
 ## 6. Domain の共有範囲 [決定]
 
@@ -160,9 +189,11 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 **移動のサイン**: 「クライアント固有」に置いたルールが、結果に影響し始めたら、共通へ移す。別々に実装すると食い違うため。
 
-## 7. ビルド・CI（未実装）
+## 7. ビルド・CI
 
-CLAUDE.md のとおり、実際に動くコマンドはまだない。作ったら CLAUDE.md にも追記する。入れたい検証:
+**今あるもの**: `Uta.Domain` のビルドと単体テスト、wiki の点検。コマンドは [CLAUDE.md](../../../CLAUDE.md) の「ビルド・テスト・実行」。
+
+**これから作るもの**（CI は未実装。作ったら CLAUDE.md にも追記する）:
 
 - `master-gen --check`（CSV の検証と、生成ソースが古くないかの検出。バイナリの古さの検出は、アドオンの改善待ち。[ADR 0013](../decisions/0013-commit-masterdata-binary.md)）
 - マスタのバイナリを `MemoryDatabase` で読めること（クライアント用・サーバー用の両方）
@@ -176,20 +207,20 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 
 決定の前提になっているが、まだ動作を確かめていないもの。確かめたら結果を該当ページに書き、ここから消す。
 
-| 項目 | 関係するページ | 確かめ方 |
-|---|---|---|
-| `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド |
-| MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` |
-| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド |
-| `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル |
-| UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド |
-| Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 |
-| Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 |
-| `IsExternalInit` の置き方（5章） | 5章 | Unity と .NET 10 の両方でのビルド |
-| `Application` の asmdef を `noEngineReferences: true` にしたまま UniTask を参照できるか | 3章 | Unity でのコンパイル |
-| Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 |
-| `x-app-version` をハンドラーから読めるか（基盤の `ServiceContext` など） | [api-design.md](api-design.md) 5章 | 基盤の実装を読む・動かす |
-| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 任意。実機で予測値とサーバーの結果を見比べる（Unity 側のテストは必須にしない） |
+| 項目 | 関係するページ | 確かめ方 | ブロックする作業 |
+|---|---|---|---|
+| `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く | client/ の最初の実装計画 |
+| MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか | [masterdata-pipeline.md](masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | server/・client/ の最初の実装計画 |
+| `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル | マスタの定義 |
+| UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド | client/ の最初の実装計画 |
+| Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
+| Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 | dev へのデプロイ |
+| `Application` の asmdef を `noEngineReferences: true` にしたまま UniTask を参照できるか | 3章 | Unity でのコンパイル | client/ の最初の実装計画 |
+| NetArchTest が .NET 10・xunit.v3（Microsoft.Testing.Platform）で動くか。保守されているか | 3章 | サーバーのテストプロジェクトで 1 件動かす。使えなければ、保守されているフォーク（`NetArchTest.eNhancedEdition`）か ArchUnitNET に替える | サーバーのアーキテクチャテスト |
+| Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
+| `x-app-version` をハンドラーから読めるか（基盤の `ServiceContext` など） | [api-design.md](api-design.md) 5章 | 基盤の実装を読む・動かす | プロデュースの RPC |
+| `Uta.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列の状態のハッシュを比べる（[lesson-card.md](../systems/lesson-card.md) 15.7） | なし（実機ビルドの手順に入れる） |
 
 ## 9. 共通規約の参照先
 
@@ -217,7 +248,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 | 場所 | 型 | 理由 |
 |---|---|---|
 | サーバーの中 | Cysharp の `Ulid` | 生成・比較・変換がそろっている |
-| DB | `uuid`（16 バイト） | インデックスが小さい。Dapper の TypeHandler で `Ulid` と相互に変換する |
+| DB | 26 文字の `char(26)` | DTO・ログ・DB が同じ表現になり、辞書順が時刻順になる。TypeHandler は文字列との変換だけ。容量が問題になったら `uuid` に移す（2026-10-31 に `uuid` から変更） |
 | DTO（`Uta.Shared`） | 26文字の `string` | クライアントが Ulid のライブラリに依存しない。ログでもそのまま読める。受け取ったら解析して検証する |
 | `Uta.Domain` | 持たない | `Uta.Domain` を外部ライブラリから独立させる。ID はアプリ層のエンティティが持つ（6.1 の合成） |
 
@@ -227,7 +258,6 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **タイムゾーンは JST 固定**
 - **日付の更新は 12 時**（12:00 JST）。日ごとの区切り（日替わりの処理など）はこの時刻を境にする
 - **マスタの日時は `string` で持つ**。形式は `yyyy-MM-dd HH:mm:ss` で、JST として解釈する（オフセットは書かない。例: `2026-11-01 12:00:00`）。読むときは `DateTime.ParseExact`（`CultureInfo.InvariantCulture`）で厳密に読み、JST の `DateTimeOffset` にする（[masterdata-pipeline.md](masterdata-pipeline.md) 3章）
-- ガチャの期間終了時の、交換pt から交換メダルへの変換（[gacha.md](../systems/gacha.md)）も、サーバーの時刻で行う
 
 ### 10.3 乱数
 
@@ -252,6 +282,8 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 - **強制アップデートは、アプリのバージョンで判定する**（基盤の `x-app-version`。[server-foundation.md](server-foundation.md)）
 - マスタのスキーマ（定義）を変えたときや、`Uta.Domain` のルールを変えたときも、新しいアプリのバージョンを出して強制アップデートで揃える。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）
 - 進行中のプロデュースは、開始したときとアプリのバージョンが違えば破棄する（2026-10-28 決定。[api-design.md](api-design.md) 5章）。1つのセッションを、常に1つのルールで最後まで進めるため
+- **マスタの版・ルールの版は、アプリのバージョンと同じ** [決定。2026-10-31]。サーバーのマスタの値だけを変えるときも、アプリのバージョンを上げる。別の版の番号は持たない（[produce.md](../systems/produce.md) 10.6）
+- **アプリのバージョンの持ち方** [決定。2026-10-31]: クライアントの `x-app-version` は `Uta.Client.Bootstrap` の定数 1 か所に置き、`Uta.Domain`・マスタ・DTO を変えたコミットで上げる。サーバーが受け付ける最低のバージョンは環境変数で渡す（Secret Manager と同じ経路。11.4）
 
 ### 10.6 クライアントのローカル保存
 
@@ -282,7 +314,7 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 3. **マイグレーションを流す**: DbUp でスキーマを更新する。API と同じイメージの `migrate` コマンドを、Cloud Run のジョブとして流す（ローカルでは `dotnet run -- migrate`。[ADR 0012](../decisions/0012-migration-dbup.md)）
 4. **デプロイする**: Cloud Run のサービスを、新しいイメージで更新する
 5. **確かめる**: ヘルスチェックと、実機から「ログイン → ガチャを1回引く」までのスモークテスト
-6. **問題があれば戻す**: Cloud Run の1つ前のリビジョンにトラフィックを戻す（推測。マイグレーションを戻す必要があるかは変更による）
+6. **問題があれば前に進めて直す**: dev 環境ではロールバックしない。DbUp はマイグレーションを戻せず、手順 3 でスキーマは進んでいるため、古い API に戻すと新しいスキーマと合わない。直したイメージを作って手順 2 からやり直す [決定。2026-10-31]。本番環境は持たない（11.1）ので、これで足りる
 
 **CI は、最初は上の工程を手動で流し、手順が固まったら GitHub Actions で自動化する**（2026-10-28 決定）。手動の間に、コマンドと順番を `architecture/build-ci.md`（7章の実体）に書き留め、それを Actions のワークフローに移す。どこまで自動化するか（テストだけか、デプロイまでか）は、移すときに決める。
 
@@ -308,5 +340,6 @@ CLAUDE.md のとおり、実際に動くコマンドはまだない。作った�
 ## 未決事項
 
 - ビルド・CI の実体（`architecture/build-ci.md` として起こす予定。手動の手順を書き留めてから GitHub Actions に移す。11.2）
+- server/ の中身（ソリューションファイルの名前と置き場、サーバーのテストプロジェクトの名前と置き場、`compose.yaml` の PostgreSQL の版・ポート・DB 名、`migrate` の引数、NuGet の版の一覧）。server/ の最初の実装計画で決める
 
 （2026-10-28 に解決: `Uta.Shared` は Uta 固有のものだけを置き、基盤の `Abstractions` を参照する（[api-design.md](api-design.md)）。`Application` は `noEngineReferences` で守る（3章）。アーキテクチャテストは NetArchTest（3章）。ULID の持ち方（10.1）。テストの置き場（10.4）。デプロイの構成（11.4））

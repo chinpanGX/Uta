@@ -9,6 +9,7 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | spec | 設計書レビューの Important 86 件を直した（reviews/2026-10-31-design-review/important-proposals.md の推奨どおり。D14 だけはユーザーの判断で初期カードの数値を参考作品のまま残す）。MVP を初級だけに絞り、ガチャを 1 本・期間なし・交換メダルなしにし、初期の所持品・報酬の表・週構成のマスタ・レッスン後の処理の順・操作の記録の enum・ガチャとサポートの DTO・サーバーの依存の向きなどを決めた
 - 2026-10-31 | spec | 設計書レビューの Critical 6 件を直した。lesson-card: enum と効果の列の正を architecture/lesson-enums.md に新設して名前を見直し、持続効果の条件は付与時の効果内条件に統一（コードの変更は plans/2026-10-31-lesson-enums-rename.md）。idol-support: レベル上げは強化pt＋ゴールド、サポートカードは1枚ずつ所持ID（ULID）で持ち上限解放は手動。produce: 試験の結果の遷移（不合格でも評価・報酬あり、再挑戦は開始直前に戻す）と、局面ごとの RPC・Request のフィールドを決定
 - 2026-10-31 | lint | wiki の機械的な点検のスキル linting-wiki（lint_wiki.py）を追加。main で実行してエラー 0 件。警告は未作成のパス（masterdata/・shared/Uta.Shared・server/Uta.Server/Domain/）を指すチェックリストの 4 件で、CLAUDE.md の構成図に未作成と明記した
 - 2026-10-31 | adr | ADR 0014（設計は厚く書き、実装は Sonnet のサブエージェントに任せる）を proposed で起票。実装計画の置き場 `uta_docs/plans/` と書式（plans/README.md）、設計書レビューのスキル requesting-design-review を追加。main へのマージで ADR 0012（DbUp）・0013 と番号が重なったため 0014 に改番
