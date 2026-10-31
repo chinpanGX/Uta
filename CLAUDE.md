@@ -24,6 +24,7 @@
 | コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`） |
 | 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0014](uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)） |
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
+| wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・index 登録・frontmatter・ADR の番号をスクリプトで点検） |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
@@ -70,7 +71,7 @@ uta/
 
 1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら `index.md` と `log.md` を更新する。
 2. **Query**: 設計・実装の根拠は wiki から引く。wiki に無いことは推測で実装せず、先に wiki へ起こす。
-3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・index 未登録ページを点検して修正する。
+3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・index 未登録ページを点検して修正する。機械的に調べられるもの（リンク切れ・index 登録・frontmatter・ADR の番号）は `linting-wiki` のスクリプトで、矛盾・古い記述は `requesting-design-review` の整合性の観点で見る。
 
 ## 実装前のルール（ドキュメント駆動）
 
@@ -145,6 +146,7 @@ uta/
 
 - `shared/Uta.Domain` のビルド: `dotnet build shared/Uta.Domain`
 - `shared/Uta.Domain` の単体テスト: `dotnet test --project shared/Uta.Domain.Tests`（.NET 10 SDK。実行方式はルートの `global.json` で Microsoft.Testing.Platform を指定）
+- wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
 
 ## 用語集
 
