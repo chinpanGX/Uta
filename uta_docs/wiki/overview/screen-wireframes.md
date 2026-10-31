@@ -1,7 +1,7 @@
 ---
 title: 画面ワイヤー(叩き台)
 status: draft
-updated: 2026-10-29
+updated: 2026-10-31
 ---
 
 # 画面ワイヤー(叩き台)
@@ -38,10 +38,10 @@ updated: 2026-10-29
 | 1. 編成 | 編成 | PRD-01、SUP-06 | GetRentalCandidates、Start |
 | 2. 週の行動選択 | 週の行動選択 | PRD-02 | ChooseWeekAction |
 | 3. レッスン・試験 | レッスン / 試験 | PRD-03〜08 | ExecuteLessonAction |
-| 4. スキルカード獲得 | (一覧に未掲載。追加を提案) | PRD-02 | ChooseWeekAction |
+| 4. スキルカード獲得 | (一覧に未掲載。追加を提案) | PRD-02 | ResolveCardOffer |
 | 5. 授業・おでかけ・支給 | (一覧に未掲載。追加を提案) | PRD-02 | ChooseWeekAction |
-| 6. 相談 | (一覧に未掲載。PRD-09 は次点) | PRD-09 | ChooseWeekAction |
-| 7. 試験結果 | (一覧に未掲載。追加を提案) | PRD-06 | ExecuteLessonAction(再挑戦する / しない) |
+| 6. 相談 | (一覧に未掲載。PRD-09 は次点) | PRD-09 | ChooseWeekAction(相談に入る)、ExecuteConsultAction |
+| 7. 試験結果 | (一覧に未掲載。追加を提案) | PRD-06 | DecideExamRetry(再挑戦する / しない) |
 | 8. 最終評価 | プロデュース結果 | PRD-13 | GetState |
 | 9. ガチャ | ガチャ(一覧・排出率・結果)、交換 | GAC-01〜04 | GetGachas、Draw、Exchange |
 | 10. 一覧・強化 | 所持一覧・詳細、育成アイドルの強化、サポートカードの強化 | IDL-01・02、SUP-01・02 | GetPlayer、Train、Awaken、LevelUp、LimitBreak |
@@ -349,8 +349,8 @@ API の名前は [api-design.md](../architecture/api-design.md) と [produce.md]
 ```
 
 - 再挑戦: 確認ダイアログ → 試験の最初からやり直す。残り回数は中間・最終の合計で3回。山札の並びは前回と変わる(produce.md 10.2)。
-- 再挑戦のとき体力・デッキを試験前に戻すかは未決(produce.md 10.7)。戻さない場合は、確認ダイアログで今の体力を見せる。
-- 4位以下のときは「次へ」の代わりに「再挑戦」か「プロデュース終了」。
+- 再挑戦は、体力・デッキ・ドリンクなどを試験の開始直前の状態に戻してやり直す(produce.md 5.1.1)。
+- 4位以下のときは「次へ」の代わりに「再挑戦」か「プロデュース終了」。プロデュース終了でも最終評価(8.)へ進み、評価と報酬が出る(produce.md 5.1.1)。再挑戦が残っていなければ「再挑戦」は出さない。
 - 中間試験の合格時は、育成アイテムの選択(または獲得)画面を挟む(選択式かは未決)。
 - 最終試験の後は 8 へ。
 
@@ -470,7 +470,8 @@ API の名前は [api-design.md](../architecture/api-design.md) と [produce.md]
 │ ＜ 名前(SSR)  歌唱 / 共通       │
 ├──────────────────────────────┤
 │ Lv 42 / 50   上限解放 ●●○○     │
-│ 強化pt 5,140 → Lv43  [ +1 ] [ +5 ]│
+│ 強化pt 5,140 / G 1,200 → Lv43 [+1][+5]│
+│ 上限解放 [ 素材を選ぶ ](同じカード)│
 ├──────────────────────────────┤
 │ アビリティ(6枠)                 │
 │ 1 初期歌唱 +49                  │

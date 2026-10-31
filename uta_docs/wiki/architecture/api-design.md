@@ -1,7 +1,7 @@
 ---
 title: サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
 status: draft
-updated: 2026-10-28
+updated: 2026-10-31
 ---
 
 # サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
@@ -40,8 +40,8 @@ updated: 2026-10-28
 | `IPlayerService` | `SyncAsync`（起動時の同期。下記）、`GetPlayerAsync`（所持品・通貨・Lv） | — | `SyncAsync` はあり | `SyncAsync` |
 | `IGachaService` | `GetGachasAsync`、`DrawAsync`（単発・10連）、`GetHistoryAsync`、`ExchangeAsync`（交換pt） | GAC-01〜04 | `DrawAsync`・`ExchangeAsync` はあり | `DrawAsync`・`ExchangeAsync` |
 | `IIdolService` | `TrainAsync`（トレーニング）、`AwakenAsync`（覚醒） | IDL-02 | あり | 両方 |
-| `ISupportService` | `LevelUpAsync`、`LimitBreakAsync` | SUP-02 | あり | 両方 |
-| `IProduceService` | `GetRentalCandidatesAsync`、`StartAsync`、`ChooseWeekActionAsync`、`ExecuteLessonActionAsync`、`GetStateAsync`、`AbandonAsync` | PRD-01〜14、SUP-06 | `GetRentalCandidatesAsync`・`GetStateAsync` 以外あり | 副作用ありのすべて |
+| `ISupportService` | `LevelUpAsync`（所持IDとレベル数。強化pt とゴールドを使う）、`LimitBreakAsync`（解放する所持IDと素材の所持ID。[idol-support.md](../systems/idol-support.md) 2.2.1） | SUP-02 | あり | 両方 |
+| `IProduceService` | `GetRentalCandidatesAsync`、`StartAsync`、`ChooseWeekActionAsync`、`ExecuteConsultActionAsync`、`ResolveCardOfferAsync`、`DiscardDrinkAsync`、`DecideExamRetryAsync`、`ExecuteLessonActionAsync`、`GetStateAsync`、`AbandonAsync` | PRD-01〜14、SUP-06 | `GetRentalCandidatesAsync`・`GetStateAsync` 以外あり | 副作用ありのすべて |
 
 - 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は `DrawGachaRequest` / `DrawGachaResponse` のように、RPC ごとに1組作る。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる
 - **`SyncAsync`**: 起動フローでホームに入る前に1回呼ぶ（[screen-design.md](screen-design.md) 4章）。副作用のある「起動時の処理」をここにまとめる
@@ -52,7 +52,12 @@ updated: 2026-10-28
   - 起動時に呼ばれなかった場合（アクセスの無いユーザー）は、変換されないまま残る。表示にしか影響しないので受け入れる
 - **操作の RPC は局面ごとに分ける** [決定]
   - `ChooseWeekActionAsync`: 週の行動を選ぶ（レッスン、おでかけ、相談など。PRD-02）
+  - `ExecuteConsultActionAsync`: 相談中の操作（交換・強化・削除・終える）
+  - `ResolveCardOfferAsync`: スキルカードの選択肢への操作（選ぶ・再抽選・除去・受け取らない）
+  - `DiscardDrinkAsync`: ドリンクを捨てる（ドリンクの整理の局面と、終了以外の入力待ち）
+  - `DecideExamRetryAsync`: 試験に不合格で再挑戦が残るときに、再挑戦するかを選ぶ
   - `ExecuteLessonActionAsync`: レッスン・試験の中の操作（カードを使う、スキップ、ドリンクを使う。PRD-03〜08）。試験もレッスンと同じ RPC で扱う
+  - 局面と操作・RPC の対応は [produce.md](../systems/produce.md) 10.4、Request のフィールドは同じページの API案が正（2026-10-31 決定）。要求の局面が今の局面と違えば `PRODUCE_UNEXPECTED_PHASE`
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
   - どの操作の要求も、**ターン番号**（週の行動なら週番号）と**次の操作番号**を持つ。古いターンへの操作や、サーバーの操作番号と合わない要求は拒否する（クライアントは `GetState` で取り直す）。再送は `x-request-id` で冪等に扱う。操作番号は同じターンに複数の操作をするときの区別に使う（[produce.md](../systems/produce.md) 10.4。2026-10-28 決定）
 - 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（基盤の仕様）
@@ -72,8 +77,8 @@ updated: 2026-10-28
 | `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD` |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_OUT_OF_PERIOD` |
 | `IDOL_` | 育成アイドル（IDL） | `IDOL_NOT_ENOUGH_SHARDS` |
-| `SUPPORT_` | サポートカード（SUP） | `SUPPORT_MAX_LEVEL` |
-| `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_TURN`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
+| `SUPPORT_` | サポートカード（SUP） | `SUPPORT_MAX_LEVEL`、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK` |
+| `PRODUCE_` | プロデュース（PRD） | `PRODUCE_STALE_TURN`、`PRODUCE_STALE_OPERATION`、`PRODUCE_UNEXPECTED_PHASE`、`PRODUCE_SESSION_DISCARDED`、`PRODUCE_ALREADY_IN_PROGRESS` |
 
 - エラーコードは `shared/Uta.Shared` に `static readonly ErrorCode` の定数として置き、消した reason は再利用しない（基盤の仕様）
 - 個々の reason は、その機能を実装するときに足す
@@ -84,13 +89,13 @@ updated: 2026-10-28
 
 | テーブル | 主キー | 主な列 | 元の仕様 |
 |---|---|---|---|
-| `players` | `player_id` | プレイヤーLv、経験値、ゴールド、ガチャ通貨、交換メダル、作成日時 | [produce.md](../systems/produce.md) 7、[gacha.md](../systems/gacha.md) |
+| `players` | `player_id` | プレイヤーLv、経験値、ゴールド、サポート強化pt、ガチャ通貨、交換メダル、作成日時 | [produce.md](../systems/produce.md) 7、[gacha.md](../systems/gacha.md) |
 | `player_idols` | `player_id` + `idol_id` | トレーニング段階、覚醒段階、かけら | [idol-support.md](../systems/idol-support.md) 1、[gacha.md](../systems/gacha.md) 5 |
-| `player_support_cards` | `player_id` + `card_id` | レベル、上限解放回数 | [idol-support.md](../systems/idol-support.md) 2 |
+| `player_support_cards` | `support_card_uid`（所持ID。ULID） | `player_id`、`card_id`、レベル、上限解放回数、入手日時。同じカードを引くたびに1行増える（2026-10-31 決定） | [idol-support.md](../systems/idol-support.md) 2.2.1 |
 | `gacha_exchange_points` | `player_id` + `gacha_id` | 交換pt、変換済みか | [gacha.md](../systems/gacha.md) 4 |
 | `gacha_histories` | `history_id` | `player_id`、`gacha_id`、何がどの確率テーブルから出たか、日時 | [gacha.md](../systems/gacha.md) 6 |
 | `produce_sessions` | `session_id` | 検索用の列と状態の1列（下記） | [produce.md](../systems/produce.md) 10 |
-| `produce_results` | `session_id` | `player_id`、終わり方（完了 / 放棄 / 破棄）、評価値、ランク、付与した報酬 | [produce.md](../systems/produce.md) 6 |
+| `produce_results` | `session_id` | `player_id`、終わり方（完了 / 放棄 / 破棄）、試験の結果（中間不合格 / 最終不合格 / 最終合格。完了のときだけ）、評価値、ランク、付与した報酬 | [produce.md](../systems/produce.md) 6 |
 | 基盤のテーブル | — | `last_responses`、`game_logs`、端末・トークン | [server-foundation.md](server-foundation.md) |
 
 - **通貨は `players` の列で持つ**。汎用の所持テーブル（`種別・ID・数`）にはしない。SQL と Dapper が素直に書ける。通貨の種類を増やすときはマイグレーションが要るが、MVP では種類が少ないので受け入れる

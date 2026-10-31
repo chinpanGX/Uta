@@ -1,7 +1,7 @@
 ---
 title: レッスン・試験のカードロジック
 status: draft
-updated: 2026-10-28
+updated: 2026-10-31
 ---
 
 # レッスン・試験のカードロジック
@@ -101,11 +101,11 @@ updated: 2026-10-28
   base:
     costs: [{ kind: consume, value: 4 }]
     effects:
-      - { op: param, value: 17, focusScale: 1.5 }
+      - { op: GainParam, value: 17, focusScale: 1.5 }
   enhanced:
     costs: [{ kind: consume, value: 4 }]
     effects:
-      - { op: param, value: 23, focusScale: 2.0 }
+      - { op: GainParam, value: 23, focusScale: 2.0 }
 
 - id: 102   # L13(値は例)
   plan: logic
@@ -116,13 +116,13 @@ updated: 2026-10-28
   base:
     costs: [{ kind: hpDirect, value: 3 }]
     effects:
-      - { op: paramByRatio, source: genki, percent: 130 }  # 減少前の元気を参照
-      - { op: scaleResource, target: genki, percent: 50 }  # 元気を半分に
+      - { op: GainParamByGenki, value: 130 }  # 減少前の元気を参照
+      - { op: ScaleGenki, value: 50 }  # 元気を半分に
   enhanced:
     costs: [{ kind: hpDirect, value: 3 }]
     effects:
-      - { op: paramByRatio, source: genki, percent: 180 }
-      - { op: scaleResource, target: genki, percent: 50 }
+      - { op: GainParamByGenki, value: 180 }
+      - { op: ScaleGenki, value: 50 }
 ```
 
 L13 のように「参照してから変化させる」カードは、効果の記載順がそのまま意味になる。
@@ -223,64 +223,65 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 ## 7. 効果プリミティブ [決定。2026-10-28]
 
-下の op をマスタの `Op` enum にする。op ごとの列(`Status` / `Trigger` / `Value` / `Arg1`〜`Arg3` / 参照列)の対応と、ステータス・トリガー・コスト・条件の enum は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3.1 が正。効果はグループにまとめ、持続効果・発動予約は中身の効果のグループを指す。どの効果にも効果内条件(条件のグループ)を付けられる。
+下の op をマスタと共有ドメインの `EffectOp` enum にする。op の名前・数値、op ごとの列(`Status` / `Trigger` / `Value` / `Arg1`〜`Arg3` / 参照列)の対応と、ステータス・トリガー・コスト・条件の enum は [lesson-enums.md](../architecture/lesson-enums.md) が正 [決定。2026-10-31]。この章の表は効果の意味だけを書く。効果はグループにまとめ、持続効果・発動予約は中身の効果のグループを指す。どの効果にも効果内条件(条件のグループ)を付けられる。
 
 ### 7.1 パラメータ系
 
 | op | 効果文の例 | パラメータ |
 |---|---|---|
-| param | パラメータ+17 / パラメータ+4(2回) | value, hits(既定1), focusScale(既定1), goodScale(既定1) |
-| paramByRatio | 好印象の150%分パラメータ上昇 | source(impression / genki / motivation), percent |
-| paramBonus | パラメータ上昇量増加30%(1ターン) | percent, turns |
+| GainParam | パラメータ+17 / パラメータ+4(2回) | value, hits(既定1), focusScale(既定1), goodScale(既定1) |
+| GainParamByImpression / GainParamByGenki / GainParamByMotivation | 好印象の150%分パラメータ上昇 | percent(参照元は op で分ける) |
+| AddParamBonus | パラメータ上昇量増加30%(1ターン) | percent, turns |
 
 - `hits` は連撃。集中は1回ごとに加算される。[確認]
 - `focusScale` は「集中効果をN倍適用」、`goodScale` は「好調効果をN倍適用」。[確認]
-- マスタに移すときは、小数を整数（パーセント）にする（`focusScale: 1.5` → `150`）。効果は `Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3` と参照列で表す（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章・3.1、[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。`hits`・`focusScale`・`goodScale` の既定値は、マスタでは 0（空欄）で表す
+- マスタに移すときは、小数を整数（パーセント）にする（`focusScale: 1.5` → `150`）。効果は `Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3` と参照列で表す（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章、[lesson-enums.md](../architecture/lesson-enums.md)、[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。`hits`・`focusScale`・`goodScale` の既定値は、マスタでは 0（空欄）で表す
 
 ### 7.2 リソース系
 
 | op | 効果文の例 |
 |---|---|
-| addGenki | 元気+4(やる気の影響を受ける) |
-| addFixedGenki | 固定元気+2(強化・低下状態の影響を受けない) |
-| recoverHp | 体力回復3 |
-| scaleResource | 元気を半分にする。端数は切り捨て [決定] |
-| setResource | 元気を0にする |
+| AddGenki | 元気+4(やる気の影響を受ける) |
+| AddFixedGenki | 固定元気+2(強化・低下状態の影響を受けない) |
+| RecoverHp | 体力回復3 |
+| ScaleGenki | 元気を半分にする。端数は切り捨て [決定] |
+| SetGenki | 元気を0にする |
 
 ### 7.3 ステータス付与系
 
 | op | 効果文の例 |
 |---|---|
-| addTurns | 好調2ターン / 絶好調3ターン / 消費体力減少2ターン / 元気増加無効2ターン |
-| addStack | 集中+2 / 好印象+3 / やる気+2 / 消費体力削減1 / 低下状態無効1回 |
-| addPercent | 好印象強化+10% / 集中強化20%(3ターン) |
+| AddStatus | 好調2ターン / 絶好調3ターン / 消費体力減少2ターン / 元気増加無効2ターン / 集中+2 / 好印象+3 / やる気+2 / 消費体力削減1 / 低下状態無効1回 |
+| AddStatusPercent | 好印象強化+10% / 集中強化20%(3ターン) |
 
 ### 7.4 カード操作系
 
 | op | 効果文の例 |
 |---|---|
-| draw | スキルカードを引く / 2枚引く |
-| addUses | スキルカード使用数追加+1 |
-| replaceHand | 手札をすべて入れ替える |
-| enhanceHand | 手札をすべてレッスン中強化 |
-| createCard | 不調カードを山札のランダムな位置に生成 |
+| DrawCards | スキルカードを引く / 2枚引く |
+| AddCardUses | スキルカード使用数追加+1 |
+| ReplaceHand | 手札をすべて入れ替える |
+| EnhanceHand | 手札をすべてレッスン中強化 |
+| CreateCard | 不調カードを山札のランダムな位置に生成 |
 
 ### 7.5 時間差・常駐系
 
 | op | 効果文の例 |
 |---|---|
-| schedule | 次のターン、パラメータ+32 / 2ターン後、スキルカードを引く |
-| persistent | 以降、アクティブスキルカード使用時、集中+1 / 以降の3ターンの間、ターン開始時、パラメータ+5 |
+| ScheduleEffect | 次のターン、パラメータ+32 / 2ターン後、スキルカードを引く |
+| AddPersistent | 以降、アクティブスキルカード使用時、集中+1 / 以降の3ターンの間、ターン開始時、パラメータ+5 |
 
-`schedule` は `{ delayTurns, effects[] }`、`persistent` は `{ trigger, condition?, effects[], duration? }`。`duration` はターン制限と回数制限の2種。
+`ScheduleEffect` は `{ delayTurns, effects[] }`、`AddPersistent` は `{ trigger, condition?, effects[], duration? }`。`duration` はターン制限と回数制限の2種。
+
+`AddPersistent` の `condition` は、ほかの op と同じ**効果内条件**で、持続効果を**付与するかどうか**の条件 [決定。2026-10-31]。発動のたびに見る条件は、発動する効果(`effects[]`)の側の効果内条件に付ける。例は [lesson-enums.md](../architecture/lesson-enums.md) 6章。
 
 ### 7.6 後回しにするプリミティブ(そのカードを採用するときに実装)
 
 | op | 内容 | 理由 |
 |---|---|---|
-| repeatNext | 次に使うカードの効果をもう1回発動 | 再発動時にトリガーを再誘発しない等の細則が多い |
-| addLessonTurn | レッスン・試験のターンを1追加 | 試験の審査ターン決定ルールと絡む |
-| deckManipulate | 特定のカードを山札の一番上へ | 使用頻度が低い |
+| RepeatNext | 次に使うカードの効果をもう1回発動 | 再発動時にトリガーを再誘発しない等の細則が多い |
+| AddLessonTurn | レッスン・試験のターンを1追加 | 試験の審査ターン決定ルールと絡む |
+| DeckManipulate | 特定のカードを山札の一番上へ | 使用頻度が低い |
 
 ---
 
@@ -339,7 +340,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 ```
 
 - 連撃は1回ごとに計算して加算する。
-- paramByRatio の「スキルカードのパラメータ」は `ceil(参照値 × 倍率)`。
+- `GainParamBy*` の「スキルカードのパラメータ」は `ceil(参照値 × 倍率)`。
 - 丸めは式の最後に1回だけ行う。
 - 集中強化の式は仮実装。フェーズ4以降に検証する。[決定(仮)] 初期カードセットには集中強化を持つカードを入れない。
 
@@ -530,7 +531,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | 区分 | 範囲 |
 |---|---|
 | ステータス | 好印象、元気(肩代わりのみ)、消費体力減少、消費体力削減、使用数追加 |
-| プリミティブ | param、paramByRatio(好印象)、addGenki、addTurns、addStack、draw、addUses、persistent(使用時) |
+| プリミティブ | GainParam、GainParamByImpression、AddGenki、AddStatus、DrawCards、AddCardUses、AddPersistent(使用時) |
 | コスト | consume、hpDirect |
 | カード | F01〜F06、L01、L02、L04、L07、L10、L14、L15 |
 
@@ -539,7 +540,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | 区分 | 追加する範囲 |
 |---|---|
 | ステータス | やる気、元気増加無効、消費体力増加 |
-| プリミティブ | paramByRatio(元気・やる気)、scaleResource、setResource、addFixedGenki、recoverHp |
+| プリミティブ | GainParamByGenki、GainParamByMotivation、ScaleGenki、SetGenki、AddFixedGenki、RecoverHp |
 | カード | F07、L03、L05、L06、L08、L09、L11、L12、L13 |
 
 ### 15.4 フェーズ3: 好調(感性)
@@ -547,7 +548,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | 区分 | 追加する範囲 |
 |---|---|
 | ステータス | 好調、絶好調 |
-| プリミティブ | param の goodScale |
+| プリミティブ | GainParam の goodScale |
 | コスト | goodConditionTurns、excellentTurns |
 | カード | S01、S04、S06、S07、S11 |
 
@@ -556,7 +557,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | 区分 | 追加する範囲 |
 |---|---|
 | ステータス | 集中 |
-| プリミティブ | param の hits、focusScale |
+| プリミティブ | GainParam の hits、focusScale |
 | コスト | focus |
 | カード | S02、S03、S05、S08、S09、S10、S12、S13、S14 |
 

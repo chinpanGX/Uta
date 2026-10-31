@@ -1,7 +1,7 @@
 ---
 title: 用語集
 status: draft
-updated: 2026-10-28
+updated: 2026-10-31
 ---
 
 # 用語集
@@ -64,7 +64,9 @@ updated: 2026-10-28
 | 交換メダル | 余ったかけら・交換pt から変換する交換用の通貨 |
 | ガチャ通貨 | ガチャに使う無償通貨（課金なし） |
 | 交換pt | ガチャ1回で1pt。200pt でピックアップと交換（天井） |
-| ゴールド | 汎用のゲーム内通貨 |
+| ゴールド | 汎用のゲーム内通貨。トレーニングとサポートカードのレベル上げに使う |
+| サポート強化pt | サポートカードのレベル上げに使う素材（ゴールドと一緒に使う）。完凸後の重複からも得る |
+| 所持ID | 所持しているサポートカード1枚ごとに振る ULID。同じカードでも引くたびに別の所持IDになる（[idol-support](systems/idol-support.md) 2.2.1） |
 
 ## 技術・設計
 
@@ -80,7 +82,7 @@ updated: 2026-10-28
 | `[ClientOnly]` / `[ServerOnly]` | マスタ定義に付け、クライアント用・サーバー用のどちらの出力に残すかを決める属性 | MasterMemoryAddons |
 | 正本 | 他のものを生成する元になる、手で編集するデータ（マスタの定義・CSV） | `masterdata/` |
 | スキーマの ID / スキーマのハッシュ | マスタ定義から作る識別子。ハッシュは暗号化の鍵を兼ねるので外に出さず、外にはスキーマの ID を使う | [masterdata-pipeline](architecture/masterdata-pipeline.md) 6章 |
-| `Op` | マスタの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3.1 |
+| `Op`（`EffectOp`） | マスタと共有ドメインの効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える。名前・数値・列の対応は lesson-enums が正 | [lesson-enums](architecture/lesson-enums.md) |
 | 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/masterdata-pipeline.md) 3章 |
 | 中断 / 放棄 / 破棄 | プロデュースの止め方。中断はアプリの終了で、いつでも再開できる。放棄はプレイヤーの明示の操作。破棄はアプリのバージョン（または状態の形式）が開始時と違うときにサーバーが行う。放棄・破棄は報酬なし | [api-design](architecture/api-design.md) 5章 |
 | 同期（`SyncAsync`） | 起動時に1回呼ぶ、副作用のある RPC。交換pt の変換とプロデュースの破棄をまとめて行う | [api-design](architecture/api-design.md) 1章 |
