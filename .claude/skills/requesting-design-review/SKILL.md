@@ -119,7 +119,7 @@ head -6 uta_docs/wiki/systems/gacha.md → status: draft
 [subagent_type: uta-goldfish-consistency]
   TARGET: uta_docs/wiki/systems/gacha.md
   PURPOSE: ガチャの仕様。天井と交換pt を書き直した。次にサーバーの抽選を実装する
-  CONTEXT_PAGES: systems/idol-support.md、architecture/api-design.md、architecture/masterdata-pipeline.md、
+  CONTEXT_PAGES: systems/idol-support.md、architecture/api-design.md、architecture/master/masterdata-pipeline.md、
                  decisions/0001・0007・0008・0010、glossary.md
   CODE: なし
   FOCUS: 交換pt の持ち越しの扱い
