@@ -10,14 +10,14 @@ updated: 2026-10-31
 
 ## 1. テーブルと列 [決定。2026-10-31。名前は仮]
 
-列の型は [masterdata-pipeline.md](masterdata-pipeline.md) 3章の規約(`int` / `long` / `string` / `bool` / enum)。新しく作る enum(`Recommend`・`Type`・`Kind`)は 0 を `None` にする。`Rarity`・`Plan`・`ParamKind` は既にある `Uta.Domain` の enum をそのまま使い、0 が有効な値(`N`・`Free`・`Singing`)なので「0 は `None`」の規則の外([lesson-enums.md](../lesson-enums.md) 1章)。そのため空欄を検証で弾けない列は `IValidatable` で別に見る: `Idol.Plan` は `Free` 以外、`Idol.Rarity`・`SupportCard.Rarity` は R 以上。`SupportAbility` の `MaxHp` の行の `Param` は `Singing`(0)を入れ、読まない。MVP で使うものだけを書く。具体の行は masterdata の最初の実装計画で作る([game-spec.md](../../overview/game-spec.md) MVP の最小のコンテンツ)。
+列の型は [masterdata-pipeline.md](masterdata-pipeline.md) 3章の規約(`int` / `long` / `string` / `bool` / enum)。enum はすべて 0 を `Nothing` にする([lesson-enums.md](../lesson-enums.md)「決まっていること」)。`Rarity`・`Plan`・`ParamKind` は `Uta.Domain` の enum の写しを `masterdata/Definitions` に置く([masterdata-pipeline.md](masterdata-pipeline.md) 2章。2026-10-31 に「`Uta.Domain` の enum をそのまま使う」から直した)。空欄は `Nothing` になるので、必須の列は `Nothing` でないことを検証する。そのうえで `Idol.Plan` は `Free` 以外、`Idol.Rarity`・`SupportCard.Rarity` は R 以上。`SupportAbility` の `MaxHp` の行の `Param` は `Nothing` にする(ほかの `Kind` では `Nothing` 以外)。MVP で使うものだけを書く。具体の行は masterdata の最初の実装計画で作る([game-spec.md](../../overview/game-spec.md) MVP の最小のコンテンツ)。
 
 | テーブル | 主キー | 列 | 区分 |
 |---|---|---|---|
-| `Idol` | `IdolId` | `Name`、`Rarity`(enum)、`Plan`(enum)、`Recommend`(enum: `None` / `GoodCondition` / `Focus` / `Impression` / `Motivation`)、`MaxHp`、`InitialSinging` / `InitialRhythm` / `InitialExpression`、`BonusSingingPerThousand` / `BonusRhythmPerThousand` / `BonusExpressionPerThousand`、`ExamPatternId`、`FirstParam` / `SecondParam` / `ThirdParam`(`ParamKind`。審査比率の 1〜3 番)、`UniqueCardId` | Common |
+| `Idol` | `IdolId` | `Name`、`Rarity`(enum)、`Plan`(enum)、`Recommend`(enum: `Nothing` / `GoodCondition` / `Focus` / `Impression` / `Motivation`)、`MaxHp`、`InitialSinging` / `InitialRhythm` / `InitialExpression`、`BonusSingingPerThousand` / `BonusRhythmPerThousand` / `BonusExpressionPerThousand`、`ExamPatternId`、`FirstParam` / `SecondParam` / `ThirdParam`(`ParamKind`。審査比率の 1〜3 番)、`UniqueCardId` | Common |
 | `IdolRecommendDeck` | `Recommend` + `Order` | `CardId`([idol-support.md](../../systems/idol-support.md) 1.3 の表。1 つのおすすめ効果に 3 行。同じカードは 2 行) | Common |
-| `SupportCard` | `SupportCardId` | `Name`、`Rarity`、`Type`(enum: `None` / `Singing` / `Rhythm` / `Expression` / `Assist`)、`Plan` | Common |
-| `SupportAbility` | `SupportCardId` + `Order` | `Kind`(enum: `None` / `InitialParam` / `ParamBonus` / `MaxHp`)、`Param`(`ParamKind`。`MaxHp` では使わない)、`ValueAtLv1`、`ValueAtMax`(`ParamBonus` は千分率) | Common |
+| `SupportCard` | `SupportCardId` | `Name`、`Rarity`、`Type`(enum: `Nothing` / `Singing` / `Rhythm` / `Expression` / `Assist`)、`Plan` | Common |
+| `SupportAbility` | `SupportCardId` + `Order` | `Kind`(enum: `Nothing` / `InitialParam` / `ParamBonus` / `MaxHp`)、`Param`(`ParamKind`。`MaxHp` では使わない)、`ValueAtLv1`、`ValueAtMax`(`ParamBonus` は千分率) | Common |
 | `SupportLevelCost` | `Rarity` + `Level` | `SupportPoints`、`Gold`(Level → Level+1 に要る量) | Common |
 | `SupportLevelCap` | `Rarity` + `LimitBreak` | `MaxLevel` | Common |
 | `InitialSupportCard` | `Order` | `SupportCardId` | ServerOnly |

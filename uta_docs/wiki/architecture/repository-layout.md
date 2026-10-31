@@ -126,7 +126,12 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 
 - サーバーを1プロジェクトにするのは VolTech-MagicOnion と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは VolTech-MagicOnion の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
-- **Unity に入れる外部パッケージ** [決定。2026-10-31]: UniTask・VContainer・MessagePack・MagicOnion のクライアント・MasterMemory は UPM の git URL で入れ、版はタグで固定する（`manifest.json` に書く）。サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める
+- **Unity に入れる外部パッケージ** [決定。2026-10-31]: VolTech-MagicOnion の利用ガイド（[getting-started.md](../../../external/VolTech-MagicOnion/docs/guide/getting-started.md)「使う版」）に合わせる。何をどう入れるかの正はこのガイドで、Uta はそれに足すものだけを書く
+  - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`）は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
+  - UPM にあるもの（NuGetForUnity・UniTask・VContainer・`MagicOnion.Client.Unity`・`MessagePack.Unity`・YetAnotherHttpHandler）は UPM の git URL で入れ、版はタグで固定する（`manifest.json`）
+  - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く
+  - MasterMemory の実行時ライブラリの入れ方は未決（[masterdata-pipeline.md](master/masterdata-pipeline.md) の未決事項）
+  - サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
 
 参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server/server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
 
@@ -166,7 +171,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
 - 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
 - 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする
-- クライアントの `Application` の asmdef は **`noEngineReferences: true`** にし、UnityEngine の API を使えないことをコンパイル時に強制する [決定。2026-10-28]。UniTask を参照したまま有効にできるかは要検証（8章）。できなければ、レビューで守る
+- クライアントの `Application` の asmdef は **`noEngineReferences` を使わない**。UniTask を参照するため（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)・[ADR 0009](../decisions/0009-client-stack.md)）。UnityEngine の API を使わないことは、コードレビュー（[layers/client.md](../../../.claude/skills/requesting-code-review/layers/client.md)）で守る [決定。2026-10-31。2026-10-28 の「`true` にする」は ADR と食い違っていたので戻した]
 - DI は VContainer、非同期処理は UniTask [決定。[ADR 0009](../decisions/0009-client-stack.md)]
 
 ## 4. 層の依存ルール [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
@@ -176,7 +181,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 | 層 | 責務 | 禁止 |
 |---|---|---|
 | Domain | ゲームルール（計算式、状態遷移、検証）、値オブジェクト、enum、ID 型 | UnityEngine、MasterMemory とその生成物、MagicOnion、MessagePack、DB、`float` / `double` |
-| Application | ユースケース。外部とのやりとりは**ポート（インターフェース）**で定義する。UniTask は使ってよい | UnityEngine の API（asmdef の `noEngineReferences` で強制する。3章）、Infrastructure・Presentation・`Uta.Shared` への参照 |
+| Application | ユースケース。外部とのやりとりは**ポート（インターフェース）**で定義する。UniTask は使ってよい | UnityEngine の API（コードレビューで守る。3章）、Infrastructure・Presentation・`Uta.Shared` への参照 |
 | Infrastructure | ポートの実装（API 呼び出し、マスタ読み込み、ローカル保存）。DTO ↔ Domain のマッピングはここで行う | Presentation への参照 |
 | Presentation | View（表示）と Presenter（Application を呼ぶ） | Infrastructure・`Uta.Shared`（通信 DTO）への参照 |
 | Bootstrap | 起動、DI の組み立て（Composition Root）。すべてを参照してよい | — |
@@ -251,7 +256,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 - `Uta.Domain` の単体テスト（同じシードと操作列で同じ結果になること）と、サーバーの結合テスト（10.4）
 - サーバーの依存方向のアーキテクチャテスト
 - `git clone --recurse-submodules` での初期化（CI も同様）
-- クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` は `noEngineReferences` で強制。3章）
+- クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` が UnityEngine を使わないことは asmdef では強制しない。3章）
 - （手で回す）Windows / Android / iOS の実機ビルド（早期・継続的に）。ほかの項目は CI で回す
 
 ## 8. 実装前に確かめること（要検証）
@@ -267,7 +272,6 @@ Shared.Domain と固有の知識が混ざるときの作法:
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド | client/ の最初の実装計画 |
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
 | Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 | dev へのデプロイ |
-| `Application` の asmdef を `noEngineReferences: true` にしたまま UniTask を参照できるか | 3章 | Unity でのコンパイル | client/ の最初の実装計画 |
 | NetArchTest が .NET 10・xunit.v3（Microsoft.Testing.Platform）で動くか。保守されているか | 3章 | サーバーのテストプロジェクトで 1 件動かす。使えなければ、保守されているフォーク（`NetArchTest.eNhancedEdition`）か ArchUnitNET に替える | サーバーのアーキテクチャテスト |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
 | Cloud SQL で PostgreSQL 18 を選べるか | 11.4 | 公式の対応表を見る。選べなければ選べる最新の版に、Compose と Testcontainers もそろえる | dev へのデプロイ |
@@ -408,7 +412,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 | 2 | `shared/Uta.Shared`（中身は空でよい。`VolTech.Server.Abstractions` を参照するだけ） | 版の衝突が出ない |
 | 3 | **（2026-10-31 に済み）VolTech-MagicOnion の変更**（3.1 の 6）: `devices`・`last_responses`・`game_logs` の `player_id` を `uuid` から `char(26)` に変えた（10.1。VolTech-MagicOnion の `f79974d`、Uta のポインタも更新済み）。VolTech-MagicOnion のテスト・CHANGELOG（互換性が壊れる変更）まで済ませて push し、Uta のポインタを上げる | VolTech-MagicOnion のテストが通る |
 | 4 | `server/Uta.Server`（下の「サーバーの骨組み」。Uta の RPC は無し）、`server/compose.yaml`、`server/Uta.Server.Tests`（アーキテクチャテスト 1 件と、VolTech-MagicOnion の端末登録の結合テスト 1 件） | NetArchTest が xunit.v3 で動く。ローカルで VolTech-MagicOnion の端末登録が通る |
-| 5 | Unity 側: 外部パッケージ（UniTask・VContainer・MessagePack・MagicOnion のクライアント）と `com.chinpangx.voltech.magiconion`・`com.uta.domain`・`com.uta.shared` を `manifest.json` に入れ、3章の asmdef を作る | `shared/` の `file:` 取り込み、`noEngineReferences` と UniTask、各パッケージが Unity 7 で動く、版が揃う |
+| 5 | Unity 側: 外部パッケージを 3章の入れ方（NuGetForUnity と UPM）で入れ、`com.chinpangx.voltech.magiconion`・`com.uta.domain`・`com.uta.shared` を `manifest.json` に入れ、3章の asmdef を作る | `shared/` の `file:` 取り込み、各パッケージが Unity 7 で動く、版が揃う、IL2CPP のビルドが通る（`Microsoft.Bcl.AsyncInterfaces`） |
 | 6 | Unity から VolTech-MagicOnion の端末登録（`RegisterAsync` → トークン）を呼ぶ最小の画面または起動処理 | 完了条件 0（Editor と Windows の IL2CPP）。結果は `architecture/unity7-evaluation.md` に書く |
 
 **サーバーの骨組み**（手順 4。VolTech-MagicOnion の `docs/guide/server.md` の形に従う）[決定。2026-10-31]:
@@ -430,4 +434,4 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 （2026-10-31 に解決: ソリューションと版の管理（2.1）、共通基盤の固定と扱い（3.1）、サーバーのテストの置き場（10.4）、PostgreSQL の版・ポート・DB 名（11.4））
 
-（2026-10-28 に解決: `Uta.Shared` は Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する（[api-design.md](api-design.md)）。`Application` は `noEngineReferences` で守る（3章）。アーキテクチャテストは NetArchTest（3章）。ULID の持ち方（10.1）。テストの置き場（10.4）。デプロイの構成（11.4））
+（2026-10-28 に解決: `Uta.Shared` は Uta 固有のものだけを置き、VolTech-MagicOnion の `Abstractions` を参照する（[api-design.md](api-design.md)）。`Application` は `noEngineReferences` で守る（3章。2026-10-31 に ADR 0008・0009 に合わせて「使わない」に戻した）。アーキテクチャテストは NetArchTest（3章）。ULID の持ち方（10.1）。テストの置き場（10.4）。デプロイの構成（11.4））

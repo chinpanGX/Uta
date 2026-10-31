@@ -53,6 +53,7 @@ VolTech-MagicOnion の `docs/spec/processing-order.md` が正。
 | 業務エラー | `FAILED_PRECONDITION` | アプリのエラーはアプリの domain、VolTech-MagicOnion の予約エラーは domain `voltech` |
 | サーバー内部エラー | `INTERNAL` | `voltech` / `INTERNAL_ERROR`。詳細はログにだけ出す |
 | 認証エラー | `UNAUTHENTICATED` | なし |
+| 要求の形の誤り | `INVALID_ARGUMENT` | `x-request-id` が無い・形が違う・別の RPC で使い回した（冪等性の対象の RPC）、端末の登録の引数が不正。VolTech-MagicOnion の `Transactions`・`DeviceService` が返す |
 
 - `google.rpc.Status` の details に `ErrorInfo` を入れ、トレーラー `grpc-status-details-bin` で返す
 - ハンドラーとフィルターは `BusinessException(ErrorCode, message, metadata?)` を投げるだけにする
@@ -79,9 +80,11 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 - 端末の登録（`RegisterAsync`）は `player_id`（ULID）を発行するだけで、プレイヤーの行はアプリが作る（Uta では `SyncAsync`。[api-design.md](../api-design.md) 1章）
 - 設定は `appsettings.json` の `Voltech` セクション（`GameDay.ResetHour`・`GameDay.TimeZone`・`AccessTokenLifetime`）。Uta の値は [repository-layout.md](../repository-layout.md) 12章
 - VolTech-MagicOnion のテーブル（`devices`・`access_tokens`・`last_responses`・`game_logs`）は `VoltechDatabase.Migrate()` が作る。記録は `_voltech_migrations` で、アプリのマイグレーションとは別。`player_id` は `char(26)`（ULID の文字列。2026-10-31 に `uuid` から変更。[repository-layout.md](../repository-layout.md) 10.1・12章）
-- 冪等性: 対象の RPC は同じ `x-request-id` の再送で本体を呼ばず、保存済みのレスポンスを返す。保存先は `last_responses(player_id, request_id, rpc, response)` で、本体と同じトランザクションで書く
+- 冪等性: 対象の RPC は、共有インターフェースのメソッドに `[NoSideEffects]` も `[SkipAuth]` も付かないもの。同じ `x-request-id` の再送では本体を呼ばず、保存済みのレスポンスを返す。保存先は `last_responses(player_id, request_id, rpc, response)` で、本体と同じトランザクションで書く
+  - `last_responses` は `player_id` が主キーで、**プレイヤーごとに直前の 1 件だけ**を持つ。本体の前にその行を `FOR UPDATE` でロックするので、同じプレイヤーの副作用のある要求は直列になる（Uta はこれに頼り、`players` を明示的にロックしない。[api-design.md](../api-design.md) 3章）
+  - 直前の 1 件しか見ないので、クライアントは要求を 1 つずつ順に送る（VolTech-MagicOnion の `ApiCore` の順番待ち）。Uta の RPC は `ApiCore` を通してだけ呼ぶ
 - `[NoSideEffects]` の RPC は読み取り専用のトランザクション
-- ゲームログの出力先は DB の `game_logs` か標準出力（JSON）
+- ゲームログの出力先は DB の `game_logs` だけ（本体と同じトランザクションで書く。2026-10-31 に「標準出力（JSON）」を消した。基盤に無い選択肢だった）
 
 ## Uta での扱い（推測）
 

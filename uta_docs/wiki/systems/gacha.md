@@ -142,7 +142,6 @@ updated: 2026-10-31
 
 ## 未決事項
 
-- `request_id` に入れる `x-request-id` をハンドラーで読む手段(VolTech-MagicOnion の `ServiceContext.Items` などで渡せるか。[server-foundation.md](../architecture/server/server-foundation.md) の未確認の項目)。サーバーのガチャの実装計画は、この確認を待つ
 - 期間・ピックアップを作るとき、またはガチャ ID を替えるとき(1章)の、古い ID に残った交換pt の扱い(交換メダルへの変換・新しい ID への引き継ぎ・リセット)。MVP の間はガチャ ID を替えない
 
 

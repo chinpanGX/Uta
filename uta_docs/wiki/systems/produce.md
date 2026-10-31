@@ -229,7 +229,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 5. パーフェクトで終わったとき: 体力を `残りターン数 × 2` 回復。残りターン数は「規定のターン数 − 終わったターンの番号」(終わったターンは含めない)
 6. 仕上げレッスンなら、最大体力の 70%(切り捨て)を回復
 
-- **パラメータの加算の関数は 1 つ**にする。どのパラメータの増加(レッスン、授業、試験の順位報酬、サポートアビリティ)もこれを通す。中で `ParamCap`(3.1)を上限に止める。上限で止めて捨てた分はどこにも残さない
+- **パラメータの加算の関数は 1 つ**にする。どのパラメータの増加(レッスン、授業、試験の順位報酬、サポートアビリティ)もこれを通す。中で `ParamCap`([produce-tables.md](../architecture/master/produce-tables.md) の `Scenario`)を上限に止める。上限で止めて捨てた分はどこにも残さない
 - 体力の回復も 1 つの関数を通し、最大体力で止める
 - **レッスン・試験の間の体力の正は `LessonState`** [決定。2026-10-31]。「育成」の体力はレッスンの開始時の値のまま触らず、終わったら `LessonResult` の体力で上書きする(試験も同じ。合否にかかわらず)。`GetState` はレッスン・試験の間は `LessonState` の体力を返す
 - レッスン終了時のサポートアビリティ(idol-support.md 2.3)は MVP では作らない。作るときは 2 の後に置く
@@ -470,7 +470,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 - 中級・上級の週構成の表し方(アイドルごと・パターン抽選)
 - 画面ワイヤーは [overview/screen-wireframes.md](../overview/screen-wireframes.md)(叩き台)
 
-(2026-10-28 に解決: 操作の記録・再開時の保存内容 → 10章。放棄・破棄 → [api-design.md](../architecture/api-design.md) 5章。報酬の流れ → 6.1。マスタの形式と配信 → [masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md)。DB → [ADR 0010](../decisions/0010-database.md))
+(2026-10-28 に解決: 操作の記録・再開時の保存内容 → [produce-domain.md](../architecture/produce-domain.md) 5・6章。放棄・破棄 → [api-design.md](../architecture/api-design.md) 5章。報酬の流れ → 6.1。マスタの形式と配信 → [masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md)。DB → [ADR 0010](../decisions/0010-database.md))
 
 ## 実装メモ
 

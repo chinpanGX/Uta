@@ -14,17 +14,17 @@ updated: 2026-10-31
 
 | テーブル | 主キー | 列 |
 |---|---|---|
-| `Scenario` | `ScenarioId` | `Name`、`Difficulty`(enum: `None` / `Beginner` / `Intermediate` / `Advanced`)、`WeekCount`、`ParamCap`(パラメータ上限)、`RetryCount`(再挑戦の回数。3) |
-| `ScenarioWeek` | `ScenarioId` + `Week` | `Kind`(enum: `None` / `Action` / `Finishing` / `MidExam` / `FinalExam`)、`LessonSettingId`(その週のレッスン・試験の設定。0 ＝なし。`Action` の週でレッスンの枠がないときは 0) |
-| `WeekActionSlot` | `ScenarioId` + `Week` + `Order` | `Kind`(enum `ActionKind`: `None` / `Lesson` / `Class` / `Supply` / `Outing` / `Consult`)。週の行動の枠(画面の並び)。休むは枠に書かない(下) |
+| `Scenario` | `ScenarioId` | `Name`、`Difficulty`(enum: `Nothing` / `Beginner` / `Intermediate` / `Advanced`)、`WeekCount`、`ParamCap`(パラメータ上限)、`RetryCount`(再挑戦の回数。3) |
+| `ScenarioWeek` | `ScenarioId` + `Week` | `Kind`(enum: `Nothing` / `Action` / `Finishing` / `MidExam` / `FinalExam`)、`LessonSettingId`(その週のレッスン・試験の設定。0 ＝なし。`Action` の週でレッスンの枠がないときは 0) |
+| `WeekActionSlot` | `ScenarioId` + `Week` + `Order` | `Kind`(enum `ActionKind`: `Nothing` / `Lesson` / `Class` / `Supply` / `Outing` / `Consult`)。週の行動の枠(画面の並び)。休むは枠に書かない(下) |
 | `LessonSetting` | `LessonSettingId` | `TurnsSense`、`TurnsLogic`(育成アイドルのプランで使い分ける。共通プランのアイドルはいない。試験は 0)、`ClearTarget`、`PerfectTarget`(どちらも試験は 0)、`ExamEarlyEndScore`(中間試験の早期終了。0 ＝なし) |
 | `ClassOption` | `ScenarioId` + `Week` + `Order` | `HpCost`(0＝コストなし)、`ParamGain`、`GivesCard`(`bool`) |
 | `ExamRivalScore` | `ScenarioId` + `Week` | `BaseScore`([produce.md](../../systems/produce.md) 5.3 の R。中間の R は早期終了スコアと同じ値を入れるが、[produce.md](../../systems/produce.md) 8章で別々に調整できるよう列を分ける) |
 | `ExamPattern` | `ExamPatternId` | `FirstPercent` / `SecondPercent` / `ThirdPercent`(審査比率。表示だけに使い、計算では読まない)、`MidFirstTurns` / `MidSecondTurns` / `MidThirdTurns`、`FinalSenseFirstTurns`…(最終・感性の 3 つ)、`FinalLogicFirstTurns`…(最終・理論の 3 つ)、`FirstTurnSecondRatePerTenThousand`(先頭のターンを 2 番目にする確率。[produce.md](../../systems/produce.md) 5.1。1 番目の比率が 45% 以上の型は 0) |
-| `ExamRankReward` | `ExamKind`(enum: `None` / `Mid` / `Final`) + `Rank`(1〜3) | `ParamAll`(全パラメータに足す量) |
+| `ExamRankReward` | `ExamKind`(enum: `Nothing` / `Mid` / `Final`) + `Rank`(1〜3) | `ParamAll`(全パラメータに足す量) |
 | `ScoreBonusSetting` | `Id`(1 行だけ) | `APerThousand`([produce.md](../../systems/produce.md) 5.2 の a)、`BFirst` / `BSecond` / `BThird`([produce.md](../../systems/produce.md) 5.2 の b) |
 | `EvaluationScoreBand` | `Order` | `MinScore`(この値以上)、`ScalePerThousand`、`Fixed`([produce.md](../../systems/produce.md) 6章のスコア分の表) |
-| `EvaluationRank` | `Rank`(enum: `None` / `F` … `SSPlus`) | `MinValue`(この評価値以上) |
+| `EvaluationRank` | `Rank`(enum: `Nothing` / `F` … `SSPlus`) | `MinValue`(この評価値以上) |
 | `EvaluationRankReward` | `Rank` | `GachaCurrency`、`Gold`、`SupportPoints`、`Exp`([produce.md](../../systems/produce.md) 6.1 の報酬) |
 | `OfferRarityWeight` | `Rarity` | `Weight`([produce.md](../../systems/produce.md) 8章) |
 | `PlayerLevelExp` | `Level` | `RequiredExp`(Level → Level+1 に要る経験値。[produce.md](../../systems/produce.md) 7章) |

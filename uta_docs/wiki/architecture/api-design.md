@@ -45,11 +45,12 @@ updated: 2026-10-31
 
 - MVP で作らない RPC(インターフェースにも宣言しない。作るときに足す): `IIdolService` の 2 つ、`GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`、`GetHistoryAsync`（履歴を見る画面を MVP に置かないため。履歴の保存はする）（[game-spec.md](../overview/game-spec.md) 最小実装範囲）
 
-- 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は `DrawGachaRequest` / `DrawGachaResponse` のように、RPC ごとに1組作る。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる
+- 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は RPC ごとに1組作り、名前は RPC 名から `Async` を除いて `Request` / `Response` を付ける（`DrawAsync` → `DrawRequest` / `DrawResponse`）。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる。例外は 2 つ [決定。2026-10-31]: 引数の無い RPC（`GetStateAsync`・`AbandonAsync`・`GetGachasAsync` など）は Request を作らない。プロデュースの操作の RPC は、共通の `ProduceStateResponse` を返す（[produce-domain.md](produce-domain.md) 8章）
 - **`SyncAsync`**: 起動フローでホームに入る前に1回呼ぶ（[screen-design.md](screen-design.md) 4章）。副作用のある「起動時の処理」をここにまとめる
-  - プレイヤーがまだいなければ作り、初期の所持品（R の育成アイドル全員、初期サポートカード、ガチャ通貨。[game-spec.md](../overview/game-spec.md)）を付与する。端末の登録（VolTech-MagicOnion の `RegisterAsync`）の後の最初の `SyncAsync` が作る。2 回目からは何もしない [決定。2026-10-31]
+  - プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。端末の登録（VolTech-MagicOnion の `RegisterAsync`）の後の最初の `SyncAsync` が作る。2 回目からは何もしない [決定。2026-10-31]
   - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
   - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
+  - Response（`SyncResponse`）[決定。2026-10-31]: 進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、この同期でプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（サインインの流れ。[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
   - `GetPlayerAsync` は `[NoSideEffects]`（読み取り専用のトランザクション）なので、これらを入れられない。そのため RPC を分ける
   - ガチャの交換pt の変換は持たない（MVP のガチャは期間を持たない。[gacha.md](../systems/gacha.md) 4章）
 - **操作の RPC は局面ごとに分ける** [決定]
@@ -120,9 +121,9 @@ updated: 2026-10-31
 - かけらは育成アイドル（`idol_id` = 1 キャラ）ごとに持つ [決定。2026-10-31。[idol-support.md](../systems/idol-support.md) 1.1]
 - 端末とプレイヤーは、いまは 1 対 1（VolTech-MagicOnion の `devices` の `player_id` が `UNIQUE`。端末の登録のたびに新しい `player_id` が発行される）。MVP は引き継ぎを作らない。引き継ぎを足すときは、1 人のプレイヤーに複数の端末を結べるよう VolTech-MagicOnion の `devices` を変える（[repository-layout.md](repository-layout.md) 3.1。[game-spec.md](../overview/game-spec.md)）
 - `players.player_id` は `char(26)`（ULID）。VolTech-MagicOnion のテーブルの `player_id` も `char(26)` にそろえる（[repository-layout.md](repository-layout.md) 10.1）
-- 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`
+- 1ユーザーにつき、進行中のプロデュースのセッションは1つ。進行中があるときの `StartAsync` は `PRODUCE_ALREADY_IN_PROGRESS`(バージョンが違うセッションは破棄してから始める。5章)
 - 「抽選結果と所持品の更新を1トランザクションで整合させる」（[gacha.md](../systems/gacha.md) 完了条件）。冪等性の保存済みレスポンスも同じトランザクションで書く（VolTech-MagicOnion の仕様）
-- **所持品・通貨を変える RPC は、トランザクションの最初に `players` の行を更新またはロックする**（`SELECT ... FROM players WHERE player_id = @id FOR UPDATE`。最初の処理が `players` の条件付き更新なら、それでよい）[決定。2026-10-31]。対象は `DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`StartAsync` と、報酬を付与するプロデュースの操作。同じプレイヤーの要求が直列になり、二重払い・重複の判定のずれ・ロックの順の違いによるデッドロックが起きない
+- **同じプレイヤーの副作用のある RPC は、VolTech-MagicOnion が直列にする**: 冪等性の対象の RPC は、本体の前に `last_responses` のそのプレイヤーの行を `FOR UPDATE` でロックする（`Transactions.cs`。[server-foundation.md](server/server-foundation.md)）。そのため Uta の手順で `players` の行を明示的にロックしない。通貨・pt を払うところは、条件付きの `UPDATE ... WHERE 残高 >= @cost` の 1 文で行う（0 行なら不足のエラー）[決定。2026-10-31。ユーザーの判断。それまでは「最初に `players` をロックする」としていた]
 - 通貨・pt を減らす更新は、`UPDATE ... SET x = x - @cost WHERE player_id = @id AND x >= @cost` の 1 文にし、更新が 0 行なら不足のエラーにする。ガチャの交換pt は `gacha_exchange_points` なので `gacha_id` も条件に入れる（[gacha-support-server.md](server/gacha-support-server.md) 2章）。同じプレイヤーの同時の別要求でも残高がマイナスにならない [決定。2026-10-31]
 - インデックスは、実装するときに検索の形に合わせて付ける
 
@@ -165,7 +166,7 @@ updated: 2026-10-31
 
 | ルール | 置き場 | 理由 |
 |---|---|---|
-| カード効果の処理、ゾーンの移動、ターン処理順、計算式（[lesson-card.md](../systems/lesson-card.md) 4〜12章） | `Uta.Domain` | クライアントとサーバーで結果を一致させる（15.7）。確定はサーバー |
+| カード効果の処理、ゾーンの移動、ターン処理順、計算式（[lesson-card.md](../systems/lesson-card.md) 4〜12章） | `Uta.Domain` | クライアントとサーバーで結果を一致させる（[lesson-phases.md](lesson-phases.md) 8章）。確定はサーバー |
 | 使用可否の判定（コスト・使用条件。PRD-04） | `Uta.Domain` | クライアントでも判定と予測の表示に使う（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)） |
 | 最終評価の計算（[produce.md](../systems/produce.md) 6章） | `Uta.Domain` | 最終試験の前後で、評価の見込みを表示できる。確定はサーバー（2026-10-28 決定） |
 | 週の進行（行動の処理、選択肢の抽選、レッスン後の処理、試験の結果。[produce.md](../systems/produce.md) 3〜5章・10章） | `Uta.Domain` | 再生の検証を `Uta.Domain` の単体テストで書ける（[produce-domain.md](produce-domain.md) 7章）。乱数はサーバーが渡す（2026-10-31 決定） |
@@ -201,7 +202,8 @@ updated: 2026-10-31
 破棄の流れ:
 
 1. `SyncAsync`（起動時）で、進行中のセッションの `app_version` と `state_version` を確かめ、違えば破棄して、レスポンスで「破棄した」ことを返す。クライアントはダイアログで知らせる
-2. `GetStateAsync` は `[NoSideEffects]` なので破棄しない。違うセッションは「進行中のセッション無し」として返す
+2. `GetStateAsync` は `[NoSideEffects]` なので破棄しない。違うセッションは「進行中のセッション無し」(`Phase` が `Nothing`。エラーにしない。[produce-domain.md](produce-domain.md) 8章)として返す
+4. `StartAsync` のとき、バージョンが違うセッションが残っていれば、それを破棄してから始める(`PRODUCE_ALREADY_IN_PROGRESS` にしない) [決定。2026-10-31]
 3. 起動後にアプリのバージョンが変わることはないが、`SyncAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）でも確かめる。違えば破棄して `PRODUCE_SESSION_DISCARDED` を返す
 
 - 比べるのは「違うかどうか」（新しいか古いかは見ない）。強制アップデートは実装しないので、古いアプリで接続し直すと、新しいアプリで始めたセッションも破棄される（受け入れる。[repository-layout.md](repository-layout.md) 10.5）

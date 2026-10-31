@@ -91,7 +91,8 @@ def collect_files(root):
     files = []
     docs = root / "uta_docs"
     for path in sorted(docs.rglob("*.md")):
-        if ".obsidian" in path.parts:
+        # .raw/ は Goldfish の報告の作業用（Git に入れない）。点検しない
+        if ".obsidian" in path.parts or ".raw" in path.parts:
             continue
         files.append(path)
     for base in (root / ".claude" / "skills", root / ".claude" / "agents"):
@@ -268,7 +269,7 @@ def check_adrs(root, report):
     # 本文の「ADR NNNN」が実在する番号か
     existing = set(numbers)
     for path in [root / "CLAUDE.md"] + sorted((root / "uta_docs").rglob("*.md")) + sorted((root / ".claude").rglob("*.md")):
-        if not path.exists() or "worktrees" in path.relative_to(root).parts:
+        if not path.exists() or {"worktrees", ".raw"} & set(path.relative_to(root).parts):
             continue
         text = strip_code_blocks(path.read_text(encoding="utf-8"))
         for lineno, line in enumerate(text.split("\n"), 1):

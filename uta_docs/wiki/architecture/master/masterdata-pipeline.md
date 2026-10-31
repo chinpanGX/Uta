@@ -8,7 +8,7 @@ updated: 2026-10-31
 
 実装設計書（4編）の2編目。マスタデータ（排出テーブル、カード定義、週構成など）を、1つの定義からクライアント用・サーバー用に出し分けて作り、配る仕組みを定める。前提は [repository-layout.md](../repository-layout.md)。
 
-- マスタの**中身**（どんなテーブルが要るか）は `systems/` が正。ここには、定義・生成・配信の仕組みと、表現の規約を書く
+- マスタの**中身**（テーブル・列・区分・検証）は、システムごとのページ（`*-tables.md`）が正。全テーブルの索引は [README.md](README.md)。何を持つかの根拠はゲームの仕様（`systems/`）。ここには、定義・生成・配信の仕組みと、表現の規約を書く（2026-10-31 に「中身は `systems/` が正」から直した。[ADR 0017](../../decisions/0017-spec-design-plan-stages.md) の追記）
 - 仕組みは自作の [MasterMemoryAddons](../../../../external/MasterMemoryAddons/README.md)（`external/`）を使う。採用は [ADR 0007](../../decisions/0007-masterdata-with-addons.md)（accepted）
 
 ## 凡例
@@ -57,6 +57,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - プロパティは `{ get; init; }`。テーブルの型は `class` のみ（`record` / `struct` は定義のエラー）
 - 主キーは `[PrimaryKey]`（複合キーは `keyOrder`）、検索用は `[SecondaryKey(n)]`
 - enum は C# で定義し、CSV に書く名前を `[InputName]` で付ける（名称は仮称。[glossary.md](../../glossary.md)、[ADR 0001](../../decisions/0001-ip-policy.md)）
+- **マスタの列の enum は `masterdata/Definitions` に写しを置く** [決定。2026-10-31。ユーザーの判断]: `master-gen` は `Uta.Domain` を参照できず、CSV で使う enum はすべてのメンバーに `[InputName]` が要るため（アドオンの docs）。写しは `Uta.Domain`・`Uta.Shared` の enum と**同じ名前・同じ数値**にする（名前・数値の正は、レッスンの enum は [lesson-enums.md](../lesson-enums.md)、ほかはその列を持つ `*-tables.md`）。各側の Infrastructure が数値のまま変換する（`(Uta.Domain.Rarity)(int)row.Rarity`）。ずれはサーバーのテストで、写しと元の enum の名前と数値をすべて比べて見つける（リフレクションはテストの中だけで使う）
 - 検証は属性で書く: `[Unique]`、`[Exists(typeof(T))]`（空欄を許すなら `AllowEmpty = true`）。違反は `master-gen` が「ファイル 行 列」で報告する。生成ソースには残らない
 - Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要（Uta では `Uta.Client.Infrastructure` に置く。[repository-layout.md](../repository-layout.md) 5章）
 - 空欄は型の既定値（`0` / `false` / `""` / enum の 0）。主キーの空欄はエラー
@@ -92,12 +93,13 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - グループの見出しテーブル（`EffectGroup` / `ConditionGroup`）を置くのは、参照列に `[Exists(typeof(EffectGroup))]` を付けて、存在を属性で検証するため（複合キーの子テーブルは `Exists` の参照先にしにくい。推測）
 - グループの ID も、マスタの ID の方針どおり**採番の規則は作らない**（[repository-layout.md](../repository-layout.md) 10.1）。手で振る
 - コストはカードにしかない（ドリンク・育成アイテムはコストを持たない）ので、グループにせず `CardCost` のままにする
-- メリット: 入れ子の深さに制限がなく、効果内条件を複数持てる。同じ `Effect` / `Condition` を育成アイテム・ドリンク（[lesson-phases.md](../lesson-phases.md) 6章）からも使える。アビリティの枠 1 は専用のテーブルにした（[idol-support.md](../../systems/idol-support.md) 2.3）。枠 2〜6 で流用するかは idol-support.md の未決事項
+- **入れ子の深さは 1** [決定。2026-10-31。ユーザーの判断]: 子のグループ（`AddPersistent`・`ScheduleEffect` の `RefEffectGroupId` の先）には、`AddPersistent`・`ScheduleEffect` を置かない（今のコードの `CardDefinitionValidator` と同じ）。これでグループの循環も起きない。マスタは `IValidatable` で、Domain は `CardDefinitionValidator` で検証する（[lesson-enums.md](../lesson-enums.md) 1章）
+- メリット: 効果内条件を複数持てる。同じ `Effect` / `Condition` を育成アイテム・ドリンク（[lesson-phases.md](../lesson-phases.md) 6章）からも使える。アビリティの枠 1 は専用のテーブルにした（[idol-support.md](../../systems/idol-support.md) 2.3）。枠 2〜6 で流用するかは idol-support.md の未決事項
 - デメリット: 1枚のカードが CSV の複数の表に分かれ、読みにくい。代替の「カードごとの表に `ParentOrder` と条件の列を足す」案は、効果内条件が1つに限られ、アイテム・アビリティで同じ表を作り直すことになるため採らない
 
 - **効果は汎用列＋型付きの列で表す** [決定]
   - `Op` は効果の種類の enum（[lesson-card.md](../../systems/lesson-card.md) 7章の `op:` にあたる）。効果エンジンは `Op` を見て処理を切り替える。一覧は [lesson-enums.md](../lesson-enums.md)
-  - 対象のステータスは `Status`、持続効果の発動タイミングは `Trigger` という**型付きの enum の列**に入れる（`Arg` に数値で入れない）。CSV に名前で書け、enum の名前を `master-gen` が検証できるため。使わない行では空欄（enum の 0 ＝ `None`）。Domain の `EffectDef` も同じ列を型付きで持つ（[lesson-enums.md](../lesson-enums.md)）
+  - 対象のステータスは `Status`、持続効果の発動タイミングは `Trigger` という**型付きの enum の列**に入れる（`Arg` に数値で入れない）。CSV に名前で書け、enum の名前を `master-gen` が検証できるため。使わない行では空欄（enum の 0 ＝ `Nothing`）。Domain の `EffectDef` も同じ列を型付きで持つ（[lesson-enums.md](../lesson-enums.md)）
   - 数値は `Value` と `Arg1`〜`Arg3`（`int`）に入れる。小数は整数にする（例: `focusScale: 1.5` → `150`。パーセント）
   - **倍率・回数の `Arg` は 0（空欄）を既定値として扱う**（連撃 0 → 1回、倍率 0 → 100%、持続の制限 0 → 無制限）。どの項目も 0 そのものに意味がないため、「空欄＝既定値」の規約にそろえる
   - 他のテーブルを指す値は、汎用列に入れず `RefCardId` などの**専用の列**にし、`[Exists(typeof(...), AllowEmpty = true)]` を付ける。参照先の存在を属性で検証するため
@@ -117,18 +119,19 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 - `RefConditionGroupId` は、どの `Op` でも**効果内条件**（満たさないとその行だけ飛ばす。判定はコストの前。[lesson-card.md](../../systems/lesson-card.md) 6.2）。持続効果（`AddPersistent`）の行でも同じで、付与するかどうかの条件になる。発動のたびに見る条件は、発動する効果のグループの行に付ける（[lesson-enums.md](../lesson-enums.md)）
 
-## 4. 出し分けの区分 [Uta案]
+## 4. 出し分けの区分 [決定。2026-10-31]
 
-どちらの側にあるべきかの暫定案。**要確認**のものはレビューで決める。
+区分の考え方。テーブルごとの区分は各 `*-tables.md` で決めていて、一覧は [README.md](README.md)（2026-10-31 に「暫定案」から直した）。
 
 | 区分 | テーブル・列の例 | 理由 |
 |---|---|---|
-| 両方（Common） | 育成アイドル・サポートカードの基本値、スキルカード（表示と判定に使う面）、週構成、レッスンルール、ガチャの排出率・天井 | 画面で表示・確率表示（GAC-02）に使う。`Uta.Domain` が使う値も含む |
-| `[ClientOnly]` | アイコンのアドレス、表示名、演出の設定 | サーバーに不要 |
+| 両方（Common） | 育成アイドル・サポートカードの基本値、スキルカード（表示と判定に使う面）、週構成、ガチャの排出率・天井 | 画面で表示・確率表示（GAC-02）に使う。`Uta.Domain` が使う値も含む |
+| `[ClientOnly]` | アイコンのアドレス、演出の設定 | サーバーに不要 |
 | `[ServerOnly]` | レンタル候補（SUP-06）、報酬の設定、不正検知のしきい値（推測） | クライアントに渡さない |
 | （2026-10-31 に解決）試験の NPC スコア | Common（`ExamRivalScore`。[produce-tables.md](produce-tables.md)） | 試験中の順位の表示と判定を Shared.Domain で行うため |
 
-- テーブルごとの区分は 9章の索引にまとめる
+- テーブルごとの区分は各 `*-tables.md` で決め、一覧は [README.md](README.md) にまとめる
+- レッスンルール（[lesson-card.md](../../systems/lesson-card.md) 4.1）はマスタにせず `Uta.Domain` の定数にする（[produce-tables.md](produce-tables.md)）
 
 - `[ClientOnly]` / `[ServerOnly]` の列が `[Exists]` で別の側にだけ存在するテーブルを参照した場合の挙動は**未確認**。定義に書く前にアドオンで試す
 
@@ -212,6 +215,9 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 ## 未決事項
 
 - `Exists` が別の側のテーブルを参照した場合の挙動
+- 表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある
+- Unity にマスタの実行時ライブラリ（MasterMemory と `MasterMemory.Addons.Core`）を入れる方法。アドオンに Unity パッケージが無い（[repository-layout.md](../repository-layout.md) 3章）
+- Android で `StreamingAssets` のバイナリを読む方法（`File` の API では読めない。`UnityWebRequest` など）
 - クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
 - MasterMemory・MessagePack・MagicOnion のバージョン整合
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか

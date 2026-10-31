@@ -119,7 +119,7 @@ updated: 2026-10-31
 | レッスン・試験 | スキップ | — | `ExecuteLessonActionAsync` |
 | 終了以外 | 放棄する | — | `AbandonAsync`(操作の記録には残さない。セッションが終わるため) |
 
-- 局面は 10.5 の「進行」の局面。**試験の結果**は、再挑戦が残るときの入力待ち(合否にかかわらず。[produce.md](../systems/produce.md) 5.1.1)。**ドリンクの整理**は、ドリンクを3つ持っているときに4つ目を受け取ったときの入力待ちで、4つから1つ捨てるまで先へ進まない [決定。2026-10-31]
+- 局面は 6章の「進行」の局面。**試験の結果**は、再挑戦が残るときの入力待ち(合否にかかわらず。[produce.md](../systems/produce.md) 5.1.1)。**ドリンクの整理**は、ドリンクを3つ持っているときに4つ目を受け取ったときの入力待ちで、4つから1つ捨てるまで先へ進まない [決定。2026-10-31]
 - **MVP で受ける操作**は、週の選択・カードの選択肢(選ぶ・受け取らないだけ。再抽選・除去は残り回数 0 なので常に拒否)・試験の結果・レッスン・試験(カードを使う・スキップだけ)・放棄。相談中・ドリンクの整理・ドリンクを使う / 捨てるは MVP の後(`OperationKind` の値は予約して残す)
 - 要求の局面が今の局面と違えば拒否する(`PRODUCE_UNEXPECTED_PHASE`)。例外は「ドリンクを捨てる」で、終了以外のどの入力待ちでも受ける(MVP の後)
 
@@ -129,7 +129,7 @@ updated: 2026-10-31
 
 | 値 | 名前 | 引数1 | 引数2 | 引数3 |
 |---|---|---|---|---|
-| 0 | `None` | | | |
+| 0 | `Nothing` | | | |
 | 1 | `ChooseWeekAction` | 行動の枠番号 | 選択肢の番号(無いとき -1) | パラメータ(`ParamKind`。レッスン以外は、Request の `Param` を見ずに -1 を入れる) |
 | 2 | `ConsultExchange` | 品の番号 | | |
 | 3 | `ConsultEnhance` | カードのインスタンス ID | | |
@@ -221,7 +221,7 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 | フィールド | 型 | 内容・いつ入るか |
 |---|---|---|
 | `OperationNumber` | `int` | 次の操作番号 |
-| `Phase` | enum `ProducePhase` | `None` / `WeekSelect` / `CardOffer` / `Lesson` / `Exam` / `ExamResult` / `Finished` |
+| `Phase` | enum `ProducePhase` | `Nothing` / `WeekSelect` / `CardOffer` / `Lesson` / `Exam` / `ExamResult` / `Finished` |
 | `Week` | `int` | 週番号 |
 | `Singing` / `Rhythm` / `Expression` | `int` | パラメータ |
 | `Hp` / `MaxHp` | `int` | 体力(レッスン・試験の間は `LessonState` の値。[produce.md](../systems/produce.md) 4.3) |
@@ -230,16 +230,16 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 | `WeekActions` | 配列 | 週の選択のとき: 枠ごとの行動の種類。休むは最後の枠(選べないときは選べない印) |
 | `ClassOptions` | 配列 | 授業の週のとき: 選択肢ごとの `HpCost`・上がるパラメータ・`ParamGain` |
 | `CardOffers` | `int[]` | カードの選択肢のとき: カード ID(枠の順) |
-| `Lesson` | 型 | レッスン・試験のとき: lesson-card.md 12章の状態から山札の並びを除いたもの(手札のインスタンス ID、山札・捨札・除外の中身は ID の昇順)と、試験なら審査ターンの列・スコア・NPC のスコア |
+| `Lesson` | 型 | レッスン・試験のとき: [lesson-domain-types.md](lesson-domain-types.md) 3章の `LessonState` から山札の並びを除いたもの(手札のインスタンス ID、山札・捨札・除外の中身は ID の昇順)と、試験なら審査ターンの列・スコア・NPC のスコア |
 | `ExamResult` | 型 | 試験の結果のとき: スコア・順位・NPC のスコア・合否 |
 | `Result` | `ProduceResultResponse` | 終了の局面に入った操作のレスポンスだけ(ほかは空) |
 
-- 終わった後に `GetState` を呼ぶと `PRODUCE_NOT_IN_PROGRESS` を返す。結果は終了の局面に入った操作のレスポンスだけで返す。そのレスポンスを受け取る前にアプリが落ちたら、結果の画面は出さずにホームに戻る(報酬は付与済みで、ホームの所持品に反映されている)
+- 進行中のセッションが無いとき(一度も始めていない・終わった・破棄した・`app_version` か `state_version` が違う)、`GetState` はエラーにせず、`Phase` が `Nothing` で、ほかの項目が空のレスポンスを返す。`PRODUCE_NOT_IN_PROGRESS` を返すのは操作の RPC と `AbandonAsync` だけ [決定。2026-10-31。ユーザーの判断]。結果は終了の局面に入った操作のレスポンスだけで返す。そのレスポンスを受け取る前にアプリが落ちたら、結果の画面は出さずにホームに戻る(報酬は付与済みで、ホームの所持品に反映されている)
 - エラーの一覧は [api-design.md](api-design.md) 2章が正。このページの操作で返すのは `PRODUCE_STALE_OPERATION`(操作番号が違う)、`PRODUCE_UNEXPECTED_PHASE`(局面が違う)、`PRODUCE_INVALID_ARGUMENT`(範囲外の番号・ID、使えない操作、`RentalCandidateId` が 0 でない)、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_INVALID_FORMATION`(idol-support.md 2.1)、`PRODUCE_ALREADY_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`(api-design.md 5章)
 
 ## 未決事項
 
-- スキルカードサポートの判定のタイミング(10.3 では T4 の直後を仮置き)
+- スキルカードサポートの判定のタイミング(4章では T4 の直後を仮置き)
 
 ## 実装メモ
 

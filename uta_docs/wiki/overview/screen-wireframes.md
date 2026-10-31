@@ -34,15 +34,15 @@ updated: 2026-10-31
 
 | ワイヤー | screen-design の画面 | 機能ID | 呼ぶ API(仮) |
 |---|---|---|---|
-| ホーム | ホーム | — | GetPlayer、GetState(再開) |
+| ホーム | ホーム | — | GetPlayer、GetState(再開を押したとき) |
 | 1. 編成 | 編成 | PRD-01、SUP-06 | GetRentalCandidates、Start |
 | 2. 週の行動選択 | 週の行動選択 | PRD-02 | ChooseWeekAction |
 | 3. レッスン・試験 | レッスン / 試験 | PRD-03〜08 | ExecuteLessonAction |
-| 4. スキルカード獲得 | (一覧に未掲載。追加を提案) | PRD-02 | ResolveCardOffer |
-| 5. 授業・おでかけ・支給 | (一覧に未掲載。追加を提案) | PRD-02 | ChooseWeekAction |
-| 6. 相談 | (一覧に未掲載。PRD-09 は次点) | PRD-09 | ChooseWeekAction(相談に入る)、ExecuteConsultAction |
-| 7. 試験結果 | (一覧に未掲載。追加を提案) | PRD-06 | DecideExamRetry(再挑戦する / しない) |
-| 8. 最終評価 | プロデュース結果 | PRD-13 | GetState |
+| 4. スキルカード獲得 | スキルカード獲得 | PRD-02 | ResolveCardOffer |
+| 5. 授業・おでかけ・支給 | 授業・おでかけ・支給 | PRD-02 | ChooseWeekAction |
+| 6. 相談 | 相談(PRD-09 は次点) | PRD-09 | ChooseWeekAction(相談に入る)、ExecuteConsultAction |
+| 7. 試験結果 | 試験結果 | PRD-06 | DecideExamRetry(再挑戦する / しない) |
+| 8. 最終評価 | プロデュース結果 | PRD-13 | 終了の局面に入った操作のレスポンス(GetState では取らない。[produce-domain.md](../architecture/produce-domain.md) 8章) |
 | 9. ガチャ | ガチャ(一覧・排出率・結果)、交換 | GAC-01〜04 | GetGachas、Draw、Exchange |
 | 10. 一覧・強化 | 所持一覧・詳細、育成アイドルの強化、サポートカードの強化 | IDL-01・02、SUP-01・02 | GetPlayer、Train、Awaken、LevelUp、LimitBreak |
 

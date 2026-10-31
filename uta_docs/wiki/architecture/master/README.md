@@ -36,7 +36,7 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 | `ConditionGroup` | `ConditionGroupId` | Common | 条件のグループの見出し |
 | `Condition` | `ConditionGroupId` + `Order` | Common | 条件の 1 行（AND） |
 
-- 区分は [masterdata-pipeline.md](masterdata-pipeline.md) 4章の Uta案（スキルカードは表示と判定に使うので Common）。テーブルごとには決めていない
+- 区分は [lesson-tables.md](lesson-tables.md) で決めている（スキルカードは表示と判定に使うので Common）。考え方は [masterdata-pipeline.md](masterdata-pipeline.md) 4章
 
 ### 2. プロデュース（14 テーブル）
 
@@ -90,4 +90,4 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 ### 5. 索引から見えること
 
 - 合計 35 テーブル。ServerOnly は 3 つ（`EvaluationRankReward`・`InitialSupportCard`・`InitialSetting`）。`[ClientOnly]` のテーブル・列はまだ無い（表示名・アイコンは未定義）
-- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（ServerOnly → Common。例: `InitialSupportCard.SupportCardId` → `SupportCard`）はある。両側に出すテーブルを指すので問題にならない見込み（推測。8章の `[Exists]` の確認で確かめる）
+- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（ServerOnly → Common。例: `InitialSupportCard.SupportCardId` → `SupportCard`）はある。両側に出すテーブルを指すので問題にならない見込み（推測。[repository-layout.md](../repository-layout.md) 8章の `[Exists]` の確認で確かめる）

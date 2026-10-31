@@ -75,9 +75,9 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 
 | 観点 | subagent_type | model | effort | 理由 |
 |---|---|---|---|---|
-| 整合性 | `uta-goldfish-consistency` | `opus` | `high` | ADR とほかのページを何枚も突き合わせる。見落としが後で一番高くつく |
+| 整合性 | `uta-goldfish-consistency` | `opus` | `medium` | ADR とほかのページを何枚も突き合わせる。見落としが後で一番高くつく |
 | 実装可能性 | `uta-goldfish-readiness` | `sonnet` | `medium` | **実装を担当するモデルで読ませる。** Sonnet が質問せずに書けると判断できなければ、設計書が足りていない（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
-| 設計の批評 | `uta-goldfish-critique` | `fable` | `high` | 前提を疑い、代わりの案を出す判断が中心。ここに一番強いモデルを使う |
+| 設計の批評 | `uta-goldfish-critique` | `fable` | `medium` | 前提を疑い、代わりの案を出す判断が中心。ここに一番強いモデルを使う |
 
 - モデル・エフォート・使えるツール（Read・Grep・Glob と、報告のファイルを書く Write）はエージェントの定義で決まっている。Agent ツールに `model`・`effort` は渡さない。ユーザーが別の指定をしたときだけ渡す。
 - 役割・共通のルール・出力の形式は、Goldfish が自分で [goldfish-rules.md](goldfish-rules.md) とその観点の `lenses/` を読む。依頼文には何を見るかだけを書く。
