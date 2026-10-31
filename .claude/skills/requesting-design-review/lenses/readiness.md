@@ -20,7 +20,7 @@ egm の implementation_readiness・comprehension の観点を Uta 向けにま�
 
 ## 決まっていないと書けないもの
 
-- [ ] **置き場所**: どの層・どのアセンブリ・どのフォルダに置くか（`shared/Uta.Domain`・`Uta.Shared`・`server/`・`client/uta/`・`masterdata/`）
+- [ ] **置き場所**: どの層・どのアセンブリ・どのフォルダに置くか（`shared/Uta.Shared.Domain`・`Uta.Shared.Contracts`・`server/`・`client/uta/`・`masterdata/`）
 - [ ] **データの形**: 型・フィールド・取りうる値の範囲・初期値。マスタなら列と型（int / long / string / bool / enum）、クライアントに出すかサーバーだけか
 - [ ] **計算式**: 入力・出力・丸め方（切り捨て / 四捨五入）・上限と下限・整数で表せるか
 - [ ] **処理の順番**: 状態がどう変わるか、どの順で処理するか、同時に起きたときの優先
@@ -58,7 +58,7 @@ egm の implementation_readiness・comprehension の観点を Uta 向けにま�
 
 ## 既にあるコードを説明するページのとき
 
-対象が今あるコードの説明（例: [lesson-domain-types.md](../../../../uta_docs/wiki/architecture/lesson-domain-types.md) と `shared/Uta.Domain/`）なら、**この文書だけで、同じ振る舞いのコードを書き直せるか**を見る（egm の Re-Implementation Standard による）。
+対象が今あるコードの説明（例: [lesson-domain-types.md](../../../../uta_docs/wiki/architecture/lesson-domain-types.md) と `shared/Uta.Shared.Domain/`）なら、**この文書だけで、同じ振る舞いのコードを書き直せるか**を見る（egm の Re-Implementation Standard による）。
 
 - [ ] 外から見える約束（シグネチャ、型、既定値、エラーの返し方、副作用）が書かれているか
 - [ ] 振る舞いの決まり（計算、検証、状態の移り方、境界の扱い）が書かれているか

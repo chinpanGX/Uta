@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Uta.Domain.Rng;
+using Uta.Shared.Domain.Rng;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>
     /// レッスンの処理（lesson-card.md 10章）。1回の呼び出しで、次の入力待ち（プレイヤー操作）まで進める（produce.md 10.1）。

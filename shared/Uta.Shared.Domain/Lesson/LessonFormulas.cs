@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Uta.Domain.Numerics;
+using Uta.Shared.Domain.Numerics;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>
     /// 計算式（lesson-card.md 9章）。倍率はパーセントの整数で受け取り、分子と分母を long で掛け合わせて最後に1回だけ丸める。

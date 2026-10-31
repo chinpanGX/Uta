@@ -1,18 +1,18 @@
 ---
-title: レッスンの Shared.Domain の型（Uta.Domain）
+title: レッスンの Shared.Domain の型（Uta.Shared.Domain）
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
-# レッスンの Shared.Domain の型（Uta.Domain）
+# レッスンの Shared.Domain の型（Uta.Shared.Domain）
 
-[lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce-domain.md](produce-domain.md) 3章 の乱数を、`shared/Uta.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
+[lesson-card.md](../systems/lesson-card.md) の 3章（カード定義）・7章（効果）・8章（ステータス）・10章（処理順）と、[produce-domain.md](produce-domain.md) 3章 の乱数を、`shared/Uta.Shared.Domain` の型に落とした設計。置き場とルールは [repository-layout.md](repository-layout.md) 5・6章、[ADR 0008](../decisions/0008-shared-domain-and-onion.md)。
 
 ## 凡例
 
 - **[決定]**: 2026-10-28 にこの設計で進めると決めたこと
 - **[Uta案]**: 仕様に書かれていない細部を、実装のために仮に決めたもの
-- **[未実装]**: コード（`shared/Uta.Domain`）にまだ無い型。書いてあるのは今の案で、シグネチャはその型を作る実装計画で決める（2026-10-31 に、実装済みの型と区別するために足した）
+- **[未実装]**: コード（`shared/Uta.Shared.Domain`）にまだ無い型。書いてあるのは今の案で、シグネチャはその型を作る実装計画で決める（2026-10-31 に、実装済みの型と区別するために足した）
 
 ## 決まっていること [決定]
 
@@ -21,15 +21,15 @@ updated: 2026-10-31
 - 効果はマスタの `Effect` の行と同じ形（`Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3`・参照先のカード ID）で持つ。enum の名前・数値と列の対応は [lesson-enums.md](lesson-enums.md) が正 [決定。2026-10-31]
 - マスタの生成物には依存しない。カード定義はポート `ICardCatalog` 越しに受け取る
 - 表示用のイベント列（演出に使う「何が起きたか」の記録）は後回し
-- 単体テストは `shared/Uta.Domain.Tests/`（xUnit v3、.NET 10）
+- 単体テストは `shared/Uta.Shared.Domain.Tests/`（xUnit v3、.NET 10）
 
 ## 1. 名前空間とファイル
 
 | 名前空間 | 中身 |
 |---|---|
-| `Uta.Domain.Numerics` | `FixedMath`（整数の切り上げ・切り捨て除算） |
-| `Uta.Domain.Rng` | `IRandom`、`RandomOps`、`SplitMix64`、`Xoshiro256StarStar`、`RandomStreamKind`、`RandomStreamKey`、`RandomStreams` |
-| `Uta.Domain.Lesson` | カード定義・状態・計算式・エンジン |
+| `Uta.Shared.Domain.Numerics` | `FixedMath`（整数の切り上げ・切り捨て除算） |
+| `Uta.Shared.Domain.Rng` | `IRandom`、`RandomOps`、`SplitMix64`、`Xoshiro256StarStar`、`RandomStreamKind`、`RandomStreamKey`、`RandomStreams` |
+| `Uta.Shared.Domain.Lesson` | カード定義・状態・計算式・エンジン |
 
 ## 2. カード定義（lesson-card.md 3章・7章）
 
@@ -44,9 +44,9 @@ updated: 2026-10-31
 | `StatusKind` | 8章のステータスの enum |
 | `PersistentTrigger` | 持続効果が反応するタイミングの enum |
 | `ICardCatalog` | ID からカード定義を返すポート |
-| `LessonRules` | lesson-card.md 4.1 の値（`Uta.Domain` の定数） |
+| `LessonRules` | lesson-card.md 4.1 の値。`static class` の `const` にする（差し替えない。保存する状態にルールが入らないので、差し替えられると再生の結果が黙って変わるため）[決定。2026-11-01。ユーザーの判断]。今のコードは `Default` を持つクラスなので、[enum の改名の計画](../../plans/2026-10-31-lesson-enums-rename.md) で直す |
 | `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。試験なら `ExamSetup` も持つ(`ExamSetup` を渡す引数は未実装) |
-| `ExamSetup` [未実装] | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int singing, int rhythm, int expression, int aPerThousand, int bFirst, int bSecond, int bThird, int earlyEndScore)`: 審査ターンの列、試験の開始時の 3 パラメータの値、スコアボーナスの係数(5.2 の a と、審査比率の 1〜3 番目の b)、早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int rank)` は 1 ターン分(`rank` は審査比率の何番目か 1〜3)。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
+| `ExamSetup` [未実装] | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int earlyEndScore)`: 審査ターンの列と早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int scoreBonusPercent)` は 1 ターン分で、`scoreBonusPercent` は [produce.md](../systems/produce.md) 5.2 の「スコアボーナス(%)」。**週の進行(プロデュースのドメイン)が試験の開始時のパラメータから先に計算して渡す**。レッスンのエンジンは 5.2 の式を持たない(試験中にパラメータは変わらないので先に計算できる) [決定。2026-11-01。ユーザーの判断]。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
 | `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。[lesson-phases.md](lesson-phases.md) 1章） |
 
 ### 2.1 `Op` ごとの引数
@@ -72,7 +72,7 @@ updated: 2026-10-31
 
 - 元気と体力はステータスではなく `LessonState` に持つ
 - 「スキルカード使用数追加」はステータスにせず、残りの使用数（ターン開始で基本値に戻す）に足す [Uta案]
-- 集中強化・好印象強化の持続ターンは、フェーズ4で決める（いまは値だけ）
+- 集中強化・好印象強化の持続ターンは、`AddStatusPercent` を採用するときに決める（いまは値だけ。[lesson-phases.md](lesson-phases.md) 1章）
 
 ## 4. 乱数（[produce-domain.md](produce-domain.md) 3章）
 
@@ -94,7 +94,7 @@ updated: 2026-10-31
 | `LessonCommand` | カードを使う / ドリンクを使う / スキップ |
 | `UseCheckResult` / `LessonApplyResult` | 使用可否と、操作を受け付けたか |
 | `LessonResult` / `LessonEndReason` [未実装] | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す |
-| `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。クライアントの予測にも使う）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
+| `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。クライアントの予測にも使う。**MVP のクライアントの予測は使用可否だけ**で、効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
 | `EffectExecutor` | `Op` ごとの `switch` で効果を処理する |
 | `ConditionEvaluator` | 条件の判定（P1・P2） |
 | `TriggerDispatcher` | 同じタイミングの発動を、10章の順（サポートアビリティ → 育成アイテム → 持続効果）で並べて処理する |
@@ -111,7 +111,7 @@ updated: 2026-10-31
 
 | 区分 | 範囲 |
 |---|---|
-| 効果 | `GainParam`、`GainParamByImpression`、`AddGenki`、`AddStatus`、`DrawCards`、`AddCardUses`、`AddPersistent`（名前は [lesson-enums.md](lesson-enums.md)） |
+| 効果 | `GainParam`、`GainParamByImpression`、`AddShield`、`AddStatus`、`DrawCards`、`AddCardUses`、`AddPersistent`（名前は [lesson-enums.md](lesson-enums.md)） |
 | コスト | 全種類（ステータスを払うコストは仕組みが同じなので先に入れる） |
 | 条件 | 全種類（同上） |
 | 対象外 | 試験、ドリンク、育成アイテム、サポートアビリティ、上の表にない `Op` |
@@ -125,12 +125,12 @@ updated: 2026-10-31
 
 ## 実装メモ
 
-2026-10-28 にフェーズ0・1の範囲を実装した（`shared/Uta.Domain`、`shared/Uta.Domain.Tests`）。
+2026-10-28 にフェーズ0・1の範囲を実装した（`shared/Uta.Shared.Domain`、`shared/Uta.Shared.Domain.Tests`）。
 
 - ファイルは型ごとに分けず、近いものをまとめた（enum は `Lesson/LessonEnums.cs`、カード定義・ポート・ルールは `Lesson/CardDefinition.cs`、状態の部品は `Lesson/LessonState.cs`、`EffectExecutor` と `TriggerDispatcher` は `Lesson/EffectExecutor.cs`）
 - `EffectExecutor` と `TriggerDispatcher` は `internal`。外から使うのは `LessonEngine`・`ConditionEvaluator`・`LessonFormulas`・`CardDefinitionValidator`
 - 状態を書き換えるメソッドは `internal`。サーバーは「全部の値を受け取るコンストラクタ」で作り直す（テストの `Replay_RestoredMidway_SameResultAsContinuousRun` で、途中で作り直しても結果が変わらないことを確かめた）
-- `Uta.Domain` は `TreatWarningsAsErrors`。`Enum.IsDefined`（リフレクション）は使わず、範囲で確かめる
+- `Uta.Shared.Domain` は `TreatWarningsAsErrors`。`Enum.IsDefined`（リフレクション）は使わず、範囲で確かめる
 - 9.2 の計算は、分子が最大で 10^16 程度（パラメータ 1,000・倍率 300%）。桁あふれは `checked` で例外にする
 - 乱数の参照値: SplitMix64（seed 1234567）と xoshiro256**（状態 1,2,3,4）は公開されている値と一致。ストリームの値は Python の独立した実装で計算した値をテストに固定した
 - フェーズ1のカード 13 枚は、マスタではなくテストの `Phase1Cards` に定義している（マスタの生成は masterdata-pipeline.md の作業）

@@ -1,4 +1,4 @@
-﻿namespace Uta.Domain.Lesson
+﻿namespace Uta.Shared.Domain.Lesson
 {
     // マスタ・保存の値に使うので、enum の数値は変えない。追加は末尾に足す。
 

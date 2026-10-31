@@ -9,8 +9,8 @@ ASP.NET Core + MagicOnion（Unary のみ）、.NET 10（C# 14）。DB は Postgr
 - [ ] アーキテクチャテスト（NetArchTest など）があるなら、新しい依存がそれに引っかからないか。ないなら、違反を目で探す
 - [ ] `Api`（MagicOnion のサービス）が薄いか。ルールを `Api` に書かず、`Application` / `Domain` に置いているか
 - [ ] サーバー固有の知識（ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与）が `server/Uta.Server/Domain/` にあり、`shared/` に漏れていないか（6.1）
-- [ ] Shared.Domain のルールを `Uta.Domain` から使わず、サーバーで別に書き直していないか（二重実装。ADR 0008）
-- [ ] Shared.Domain の型は合成で包んでいるか（継承・`partial` で `Uta.Domain` の型を広げていないか）
+- [ ] Shared.Domain のルールを `Uta.Shared.Domain` から使わず、サーバーで別に書き直していないか（二重実装。ADR 0008）
+- [ ] Shared.Domain の型は合成で包んでいるか（継承・`partial` で `Uta.Shared.Domain` の型を広げていないか）
 
 ## サーバー権威とゲームの正しさ
 

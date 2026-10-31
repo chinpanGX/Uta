@@ -5,11 +5,11 @@
     <OutputType>Exe</OutputType>
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Uta.Domain.Tests</RootNamespace>
+    <RootNamespace>Uta.Shared.Domain.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Uta.Domain\Uta.Domain.csproj" />
+    <ProjectReference Include="..\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

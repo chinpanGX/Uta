@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Uta.Domain.Lesson
+namespace Uta.Shared.Domain.Lesson
 {
     /// <summary>
     /// カード定義の検査。未対応の Op を使うカードは、マスタを読むときにエラーにする（lesson-card.md 15.1）。

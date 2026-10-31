@@ -1,4 +1,4 @@
-﻿namespace Uta.Domain.Rng
+﻿namespace Uta.Shared.Domain.Rng
 {
     /// <summary>
     /// SplitMix64。xoshiro256** の状態の初期化と、ストリームのキーを混ぜるのに使う（produce.md 10.2）。

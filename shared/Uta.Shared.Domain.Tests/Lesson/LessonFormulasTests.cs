@@ -1,7 +1,7 @@
-﻿using Uta.Domain.Lesson;
+﻿using Uta.Shared.Domain.Lesson;
 using Xunit;
 
-namespace Uta.Domain.Tests.Lesson
+namespace Uta.Shared.Domain.Tests.Lesson
 {
     public sealed class LessonFormulasTests
     {

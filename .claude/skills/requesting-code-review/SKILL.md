@@ -78,7 +78,7 @@ git diff --stat --submodule=log $BASE_SHA..$HEAD_SHA
 ## 例
 
 ```
-[サーバーのガチャ抽選と、Uta.Shared の DTO、クライアントの呼び出しを実装し終えた]
+[サーバーのガチャ抽選と、Uta.Shared.Contracts の DTO、クライアントの呼び出しを実装し終えた]
 
 あなた: マージ前にレビューに出します。
 
@@ -92,7 +92,7 @@ HEAD_SHA=$(git rev-parse HEAD)
   DESCRIPTION: ガチャ1回・10回の抽選と天井、交換pt の加算
   PLAN_OR_REQUIREMENTS: uta_docs/wiki/systems/gacha.md、architecture/api-design.md、decisions/0010-database.md
   FILES: server/Uta.Server/...
-  OTHER_LAYERS: shared/Uta.Shared/...、client/uta/Assets/Scripts/Infrastructure/...
+  OTHER_LAYERS: shared/Uta.Shared.Contracts/...、client/uta/Assets/Scripts/Infrastructure/...
 
 [結果]
   server: Important 1件（冪等性の対象になっていない）→ 直す
