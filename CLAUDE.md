@@ -54,6 +54,7 @@ uta/
 ├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
 │  ├─ plans/      # 実装計画（どのファイルに何を書くか。書式は plans/README.md）
+│  ├─ reviews/    # 設計書レビューの結果（実施日ごとのフォルダ。目次は各フォルダの README.md）
 │  └─ wiki/       # LLMが維持する整理済み知識
 │     ├─ index.md
 │     ├─ log.md
