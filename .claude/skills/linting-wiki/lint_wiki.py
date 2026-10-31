@@ -138,7 +138,8 @@ def check_links(root, files, report):
 
 
 def check_code_paths(root, report):
-    """CLAUDE.md・スキル・エージェントのコード書式のパスが実在するか。"""
+    """CLAUDE.md・スキル・エージェントのコード書式のパスが実在するか。同じパスは 1 件にまとめる。"""
+    missing = {}
     targets = [root / "CLAUDE.md"]
     for base in (root / ".claude" / "skills", root / ".claude" / "agents"):
         if base.exists():
@@ -158,9 +159,10 @@ def check_code_paths(root, report):
                     report.add("警告", "確かめられなかったリンク", f"{rel(root, path)}:{lineno}",
                                f"{value}（サブモジュールが未初期化）")
                     continue
-                if True:
-                    report.add("警告", "書かれたパスがない", f"{rel(root, path)}:{lineno}",
-                               f"{value}（これから作る予定なら、そう分かるように書く）")
+                missing.setdefault(value, []).append(f"{rel(root, path)}:{lineno}")
+    for value, places in sorted(missing.items()):
+        report.add("警告", "書かれたパスがない", value,
+                   f"{len(places)} か所（{', '.join(places)}）。これから作る予定なら、そう分かるように書く")
 
 
 def check_frontmatter(root, report):

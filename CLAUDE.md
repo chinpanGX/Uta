@@ -50,7 +50,7 @@ uta/
 ├─ CLAUDE.md
 ├─ .editorconfig / .gitattributes / .gitignore  # .editorconfig は client/・server/・shared/ にも置く
 ├─ external/      # Git サブモジュール（自作の共通パッケージ・サーバー基盤）
-├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）
+├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）。未作成
 ├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
 │  ├─ plans/      # 実装計画（どのファイルに何を書くか。書式は plans/README.md）
@@ -62,9 +62,9 @@ uta/
 │     ├─ systems/       # produce / gacha（live は保留）
 │     ├─ architecture/  # 実装設計書（共通・基盤 / マスター / API / 画面）、サーバー基盤
 │     └─ decisions/     # ADR
-├─ server/        # ASP.NET Core + MagicOnion
+├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Domain（共有ドメイン）・Uta.Shared（サービスIF・DTO）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Domain（共有ドメイン）・Uta.Shared（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）

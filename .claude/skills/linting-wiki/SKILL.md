@@ -32,7 +32,7 @@ python -I .claude/skills/linting-wiki/lint_wiki.py
 | index に未登録 | エラー | `uta_docs/wiki/` のページが `index.md` からリンクされているか |
 | ADR | エラー | ファイル名の形、番号の重複、title の番号、`index.md` に書いた status と本体の status、本文の「ADR NNNN」が実在する番号か |
 | 孤立ページ | 警告 | `index.md` 以外のどのページからもリンクされていないか |
-| 書かれたパスがない | 警告 | CLAUDE.md・スキル・エージェントにコード書式で書いたパス（`shared/...` など）が実在するか。`.gitignore` で除外したものは見ない |
+| 書かれたパスがない | 警告 | CLAUDE.md・スキル・エージェントにコード書式で書いたパス（`shared/...` など）が実在するか。同じパスは書かれた場所をまとめて 1 件にする。`.gitignore` で除外したものは見ない |
 | 確かめられなかったリンク | 警告 | 行き先が `external/` のサブモジュールの中で、サブモジュールが未初期化 |
 
 ### 3. 直す
