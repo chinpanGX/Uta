@@ -20,7 +20,7 @@ updated: 2026-10-31
 
 ## システム仕様
 
-- [systems/produce.md](systems/produce.md) — プロデュース（育成）：週構成、行動、レッスン・試験の値、スコアボーナス、NPC、最終評価、プレイヤーLv
+- [systems/produce.md](systems/produce.md) — プロデュース（育成）：週構成、行動、レッスン・試験の値、試験の結果の遷移、スコアボーナス、NPC、最終評価・報酬、プレイヤーLv、乱数・操作の記録・セッションの保存（10章）、API案
 - [systems/lesson-card.md](systems/lesson-card.md) — レッスン・試験のカードロジック：カード定義、コスト、条件、効果、計算式、ターン処理順、初期カードセット、実装フェーズ
 - [systems/idol-support.md](systems/idol-support.md) — 育成アイドル・サポートカード：ステータス、初期デッキ、トレーニング・覚醒、アビリティ、イベント、レンタル枠
 - [systems/gacha.md](systems/gacha.md) — ガチャ：排出率、天井（交換pt）、重複時の扱い、無償通貨のみ
@@ -30,7 +30,7 @@ updated: 2026-10-31
 
 - [architecture/server-foundation.md](architecture/server-foundation.md) — サーバー基盤（.NET 10、MagicOnion + PostgreSQL）：構成、フィルター順序、エラー、認証・冪等性
 
-### 実装設計書（4編・叩き台）
+### 実装設計書（4編と補足・叩き台）
 
 - [architecture/repository-layout.md](architecture/repository-layout.md) — 共通・基盤編：リポジトリ構成、アセンブリと層の依存ルール、共有コードの制約、機能ID、共通の規約、環境構成とデプロイ
 - [architecture/masterdata-pipeline.md](architecture/masterdata-pipeline.md) — マスター設計編：MasterMemoryAddons による定義・生成・配信、列の型の制約と表現の規約

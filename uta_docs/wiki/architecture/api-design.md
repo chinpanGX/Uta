@@ -41,9 +41,9 @@ updated: 2026-10-31
 | `IGachaService` | `GetGachasAsync`（ガチャごとの交換pt）、`DrawAsync`（単発・10連）、`GetHistoryAsync`、`ExchangeAsync`（交換pt で天井の交換） | GAC-01〜04 | `DrawAsync`・`ExchangeAsync` はあり | `DrawAsync`・`ExchangeAsync` |
 | `IIdolService` | `TrainAsync`（トレーニング）、`AwakenAsync`（覚醒）。MVP では作らない | IDL-02 | あり | 両方 |
 | `ISupportService` | `LevelUpAsync`（所持IDと目標のレベル。強化pt とゴールドを使う）、`LimitBreakAsync`（解放する所持IDと素材の所持ID。[idol-support.md](../systems/idol-support.md) 2.2.1） | SUP-02 | あり | 両方 |
-| `IProduceService` | `GetRentalCandidatesAsync`、`StartAsync`、`ChooseWeekActionAsync`、`ExecuteConsultActionAsync`、`ResolveCardOfferAsync`、`DiscardDrinkAsync`、`DecideExamRetryAsync`、`ExecuteLessonActionAsync`、`GetStateAsync`、`AbandonAsync` | PRD-01〜14、SUP-06 | `GetRentalCandidatesAsync`・`GetStateAsync` 以外あり | 副作用ありのすべて |
+| `IProduceService` | `GetRentalCandidatesAsync`、`StartAsync`、`ChooseWeekActionAsync`、`ExecuteConsultActionAsync`、`ResolveCardOfferAsync`、`DiscardDrinkAsync`、`DecideExamRetryAsync`、`ExecuteLessonActionAsync`、`GetStateAsync`、`AbandonAsync` | PRD-01〜14、IDL-03・04、SUP-03〜06 | `GetRentalCandidatesAsync`・`GetStateAsync` 以外あり | 副作用ありのすべて |
 
-- MVP で作らない RPC: `IIdolService` の 2 つ、`GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`（[game-spec.md](../overview/game-spec.md) 最小実装範囲）
+- MVP で作らない RPC: `IIdolService` の 2 つ、`GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`、`GetHistoryAsync`（履歴を見る画面を MVP に置かないため。履歴の保存はする）（[game-spec.md](../overview/game-spec.md) 最小実装範囲）
 
 - 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は `DrawGachaRequest` / `DrawGachaResponse` のように、RPC ごとに1組作る。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる
 - **`SyncAsync`**: 起動フローでホームに入る前に1回呼ぶ（[screen-design.md](screen-design.md) 4章）。副作用のある「起動時の処理」をここにまとめる
@@ -63,7 +63,7 @@ updated: 2026-10-31
   - DTO が型で区別でき、引数の意味が明確になる。RPC の数が増えるのは受け入れる
   - どの操作の要求も、**ターン番号**（週の行動なら週番号）と**次の操作番号**を持つ。古いターンへの操作や、サーバーの操作番号と合わない要求は拒否する（クライアントは `GetState` で取り直す）。再送は `x-request-id` で冪等に扱う。操作番号は同じターンに複数の操作をするときの区別に使う（[produce.md](../systems/produce.md) 10.4。2026-10-28 決定）
 - 取得系（`[NoSideEffects]`）は読み取り専用のトランザクションで動く（基盤の仕様）
-- **マスタ配信は RPC にしない**。クライアントのマスタはバイナリを配信で取得する（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。バージョン不一致は基盤の強制アップデート・`x-app-version` で扱う
+- **マスタ配信は RPC にしない**。クライアントのマスタはバイナリをアプリに同梱し、あとで Addressables のダウンロードに移す（[masterdata-pipeline.md](masterdata-pipeline.md) 6章）。バージョン不一致は基盤の強制アップデート・`x-app-version` で扱う
 - DTO は、サーバー専用の値（`[ServerOnly]` のマスタの値など）を含めない。レンタル候補のように、サーバーが決めた結果だけを返す
 - DTO の ID: サーバーが発行する ID（ULID）は26文字の `string`、マスタの ID は `int`（[repository-layout.md](repository-layout.md) 10.1）
 
@@ -146,7 +146,7 @@ updated: 2026-10-31
 - 週、体力、パラメータ、デッキ、育成アイテム、ドリンク、育成pt、編成（開始時の性能を写したもの）
 - レッスン・試験の中なら:
   - カードの個体の一覧（`instanceId`、`cardId`、強化、レッスン中強化）と、それぞれのゾーン（山札の順番を含む）
-  - ステータス（[lesson-card.md](../systems/lesson-card.md) 8章）と、ターン制ステータスの初付与のフェーズ（11章）
+  - ステータス（[lesson-card.md](../systems/lesson-card.md) 8章）と、ターン制ステータスの「プレイヤー操作中に初めて付与したか」の印（11章）
   - 持続効果・発動予約の一覧（発動する効果の中身を丸ごと、残りターン・回数、付与の順番）。効果グループ ID では持たない。マスタの版はアプリのバージョンと同じで、版が違うセッションは破棄される（5章）ので、中身を持っても食い違わない [決定。2026-10-31]
   - 残りの使用数、ターン番号、スコア・パラメータの途中経過
 - 乱数: **マスターシードと、使用中のストリームごとの `xoshiro256**` の現在の状態の両方を持つ**（[produce.md](../systems/produce.md) 10.2）。現在の状態があれば再開がすぐにでき、マスターシードと操作の記録があれば最初から再現できる

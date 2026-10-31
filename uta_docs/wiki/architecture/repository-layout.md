@@ -13,7 +13,7 @@ updated: 2026-10-31
 
 ## 凡例
 
-- **[決定]**: [CLAUDE.md](../../../CLAUDE.md)・accepted の ADR、または 2026-10-27 にユーザーが確認した方針（後者は [ADR 0007](../decisions/0007-masterdata-with-addons.md)〜[ADR 0010](../decisions/0010-database.md) に記録）
+- **[決定]**: [CLAUDE.md](../../../CLAUDE.md)・accepted の ADR、またはユーザーが確認した方針（日付を添える。ADR にしていないものもある）
 - **[Uta案]**: この叩き台の提案。採否はレビューと ADR で決める
 - 推測は「推測」と明記する
 
@@ -36,6 +36,7 @@ updated: 2026-10-31
 ```
 uta/
 ├─ CLAUDE.md
+├─ global.json              # [決定] dotnet test の実行方式（Microsoft.Testing.Platform）
 ├─ external/                 # [決定] サブモジュール（ADR 0005）
 │  ├─ VolTech-MagicOnion/    #   サーバー基盤、Unity 側 Abstractions
 │  ├─ MasterMemoryAddons/    #   マスタのコード生成・検証・バイナリ生成
@@ -45,7 +46,8 @@ uta/
 ├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない（未作成）
 │  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）
 │  ├─ csv/                   #   スプレッドシートから書き出した CSV
-│  └─ masterdata.yaml        #   出力先の設定
+│  ├─ masterdata.yaml        #   出力先の設定
+│  └─ gen.ps1                #   生成のスクリプト（masterdata-pipeline.md 7章）
 ├─ shared/                   # [決定] Unity・サーバー共有。C# 9 の範囲（.editorconfig）
 │  ├─ Uta.Domain/            # [決定] 純粋なゲームルール（ADR 0008）
 │  ├─ Uta.Shared/            # [決定] サービスIF・DTO（通信契約。ADR 0008）（未作成）
@@ -58,17 +60,17 @@ uta/
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
 │     ├─ Infrastructure/     #   DB、マスタの読み込み
 │     ├─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
-│     └─ MasterData/Generated/   生成物（サーバー用）
+│     └─ MasterData/         #   生成物（サーバー用）: Generated/ のソースと masterdata.bytes（ADR 0013）
 └─ client/uta/               # [決定] Unity プロジェクトのルート
    └─ Assets/Scripts/        # （未作成）
       ├─ Application/        # [Uta案] ユースケース、ポート
       ├─ Infrastructure/     #   API 呼び出し、マスタ、ローカル保存
-      │  └─ MasterData/Generated/   生成物（クライアント用）
+      │  └─ MasterData/Generated/   生成物（クライアント用のソース。バイナリは Assets/StreamingAssets/MasterData/。ADR 0013）
       ├─ Presentation/       #   View、Presenter
       └─ Bootstrap/          #   Composition Root
 ```
 
-- **マスタ型を `shared/` に置かない**のが、ADR 0002 / CLAUDE.md からの変更点。サーバー専用の列・テーブルをクライアントから見えなくするため（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
+- **マスタ型を `shared/` に置かない**。サーバー専用の列・テーブルをクライアントから見えなくするため（[ADR 0007](../decisions/0007-masterdata-with-addons.md)。ADR 0002 の当初の案から変えた）
 - **`shared/` の取り込み方** [決定。2026-10-31。動作は 8章で確かめる]:
   - Unity: `shared/Uta.Domain/` と `shared/Uta.Shared/` の直下に `package.json` と asmdef を置き、`client/uta/Packages/manifest.json` から `file:` で参照する。`package.json` の `name` は `com.uta.domain` / `com.uta.shared`、asmdef の名前はアセンブリ名と同じ（`Uta.Domain` / `Uta.Shared`）。`manifest.json` の行は `"com.uta.domain": "file:../../../shared/Uta.Domain"`
   - `dotnet build` の出力が Unity に読まれないよう、`.csproj` の `BaseOutputPath` / `BaseIntermediateOutputPath` を `bin~/` / `obj~/` にする（Unity は `~` で終わるフォルダを読まない）。`Uta.Domain.Tests/` はパッケージの外（`shared/` の直下で別フォルダ）なので取り込まれない
@@ -125,7 +127,7 @@ uta/
 
 | 層 | 責務 | 禁止 |
 |---|---|---|
-| Domain | ゲームルール（計算式、状態遷移、検証）、値オブジェクト、enum、ID 型 | UnityEngine、MasterMemory とその生成物、MagicOnion、DB、`float` / `double` |
+| Domain | ゲームルール（計算式、状態遷移、検証）、値オブジェクト、enum、ID 型 | UnityEngine、MasterMemory とその生成物、MagicOnion、MessagePack、DB、`float` / `double` |
 | Application | ユースケース。外部とのやりとりは**ポート（インターフェース）**で定義する。UniTask は使ってよい | UnityEngine の API（asmdef の `noEngineReferences` で強制する。3章）、Infrastructure・Presentation・`Uta.Shared` への参照 |
 | Infrastructure | ポートの実装（API 呼び出し、マスタ読み込み、ローカル保存）。DTO ↔ Domain のマッピングはここで行う | Presentation への参照 |
 | Presentation | View（表示）と Presenter（Application を呼ぶ） | Infrastructure・`Uta.Shared`（通信 DTO）への参照 |
@@ -193,7 +195,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 **今あるもの**: `Uta.Domain` のビルドと単体テスト、wiki の点検。コマンドは [CLAUDE.md](../../../CLAUDE.md) の「ビルド・テスト・実行」。
 
-**これから作るもの**（CI は未実装。作ったら CLAUDE.md にも追記する）:
+**これから作るもの**（CI は未実装。作ったら CLAUDE.md にも追記する）。CI で回すもの（GitHub Actions）と、手で回すものに分ける。実機ビルドは Unity のライセンスと macOS のランナーが要るので、当面は手で回す:
 
 - `master-gen --check`（CSV の検証と、生成ソースが古くないかの検出。バイナリの古さの検出は、アドオンの改善待ち。[ADR 0013](../decisions/0013-commit-masterdata-binary.md)）
 - マスタのバイナリを `MemoryDatabase` で読めること（クライアント用・サーバー用の両方）
@@ -201,7 +203,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - サーバーの依存方向のアーキテクチャテスト
 - `git clone --recurse-submodules` での初期化（CI も同様）
 - クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` は `noEngineReferences` で強制。3章）
-- Windows / Android / iOS の実機ビルド（早期・継続的に）
+- （手で回す）Windows / Android / iOS の実機ビルド（早期・継続的に）。ほかの項目は CI で回す
 
 ## 8. 実装前に確かめること（要検証）
 
@@ -263,17 +265,18 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 - **アルゴリズムは `xoshiro256**`**（64 ビット。xorshift の後継）
 - 実装は `Uta.Domain` に置き、サーバーで使う。範囲内の整数の取り出し方も、同じコードで固定する
-- シードはサーバーが生成する（暗号用の乱数を使う。推測）。シードと乱数の位置はプロデュースのセッションに保存する（[api-design.md](api-design.md) 3章）
+- マスターシードはサーバーが暗号用の乱数（.NET の `RandomNumberGenerator`）で生成する [決定。2026-10-31]。マスターシードと、使用中のストリームごとの `xoshiro256**` の状態（と引いた回数）を、プロデュースのセッションに保存する（[api-design.md](api-design.md) 3.1、[produce.md](../systems/produce.md) 10.2・10.5）
 - シードから用途・場面ごとのストリームを SplitMix64 で作る。範囲内の整数は棄却法、シャッフルは Fisher–Yates。ストリームの一覧と引く順番は [produce.md](../systems/produce.md) 10.2・10.3（2026-10-28 決定）
 - `System.Random` は使わない
 
 ### 10.4 テスト
 
 - **単体テストは専用のプロジェクト（dll）に分ける**。主な対象は `Uta.Domain`（同じシードと操作列で同じ結果になること、計算式）
+- 期待値（固定のシード・操作列の結果、状態のハッシュ、乱数の参照値）は、テストのコードに定数で書く。別ファイルにしない（今の `Uta.Domain.Tests` と同じ）
 - **サーバーは結合テストを書く**（DB を含めて、RPC から結果・保存までを確かめる）
 - **Unity 側のテストは必須にしない**
 - **フレームワークは xUnit v3（`xunit.v3`）**。最新を触る目的で、外部のリポジトリ（VolTech-MagicOnion・MasterMemoryAddons。いずれも xUnit v2 系）より新しい版を使う。版は実装時に NuGet で最新の安定版を確認して固定する
-- **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）
+- **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）。`server/compose.yaml` の PostgreSQL でも足りるが、テストごとにまっさらな DB を作れることと、技術先行で触る目的で採る
 - テストプロジェクトはテスト対象の隣に置く。`Uta.Domain` は `shared/Uta.Domain.Tests/`（2026-10-28 決定）。サーバーの置き場はサーバーの作成時に決める
 - 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
 
@@ -300,7 +303,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | 環境 | API | DB | 用途 |
 |---|---|---|---|
 | ローカル（開発） | `dotnet run` / IDE で直接起動 | PostgreSQL を Docker Compose で起動 | 実装・デバッグ。Unity エディターと実機から接続 |
-| ローカル（確認） | コンテナ | Docker Compose | デプロイ前に、イメージがそのまま動くかを確かめる |
+| ローカル（確認。任意） | コンテナ | Docker Compose | デプロイ前に、イメージがそのまま動くかを確かめる。dev にすぐ出せるなら省いてよい |
 | dev（Google Cloud） | Cloud Run | Cloud SQL for PostgreSQL | デプロイ後の確認。実機から接続 |
 
 - 本番環境は分けない（商用公開は非目標）
@@ -309,9 +312,9 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 
 ### 11.2 工程
 
-1. **ローカルで確かめる**: `dotnet test`（単体テストと結合テスト）を通し、Unity エディターと実機から操作して確かめる
+1. **ローカルで確かめる**: テスト（CLAUDE.md の「ビルド・テスト・実行」のコマンド。単体テストと結合テスト）を通し、Unity エディターと実機から操作して確かめる
 2. **イメージを作る**: `dotnet publish /t:PublishContainer` で API のイメージを作り、Artifact Registry に登録する。サーバー用のマスタのバイナリもイメージに含める
-3. **マイグレーションを流す**: DbUp でスキーマを更新する。API と同じイメージの `migrate` コマンドを、Cloud Run のジョブとして流す（ローカルでは `dotnet run -- migrate`。[ADR 0012](../decisions/0012-migration-dbup.md)）
+3. **マイグレーションを流す**: DbUp でスキーマを更新する。API と同じイメージの `migrate` コマンドを、Cloud Run のジョブとして流す（ローカルでは `dotnet run --project server/Uta.Server -- migrate`。[ADR 0012](../decisions/0012-migration-dbup.md)）
 4. **デプロイする**: Cloud Run のサービスを、新しいイメージで更新する
 5. **確かめる**: ヘルスチェックと、実機から「ログイン → ガチャを1回引く」までのスモークテスト
 6. **問題があれば前に進めて直す**: dev 環境ではロールバックしない。DbUp はマイグレーションを戻せず、手順 3 でスキーマは進んでいるため、古い API に戻すと新しいスキーマと合わない。直したイメージを作って手順 2 からやり直す [決定。2026-10-31]。本番環境は持たない（11.1）ので、これで足りる
