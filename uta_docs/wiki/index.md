@@ -55,6 +55,7 @@ updated: 2026-10-31
 - [decisions/0011-deploy-google-cloud.md](decisions/0011-deploy-google-cloud.md) — API サーバーをコンテナにして Google Cloud（Cloud Run + Cloud SQL）にデプロイする（accepted）
 - [decisions/0012-migration-dbup.md](decisions/0012-migration-dbup.md) — マイグレーションは DbUp、API とは別の `migrate` コマンド（dev は Cloud Run のジョブ）で流す（accepted）
 - [decisions/0013-commit-masterdata-binary.md](decisions/0013-commit-masterdata-binary.md) — マスタのバイナリもコミットする。ADR 0007 の「バイナリはコミットしない」を置き換え（accepted）
+- [decisions/0014-design-heavy-sonnet-implementation.md](decisions/0014-design-heavy-sonnet-implementation.md) — 設計は厚く書き、実装は Sonnet のサブエージェントに任せる。仕様と実装の間に実装計画（`uta_docs/plans/`）を置く（proposed）
 
 ## 一次資料（raw）
 

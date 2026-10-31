@@ -9,6 +9,7 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | adr | ADR 0014（設計は厚く書き、実装は Sonnet のサブエージェントに任せる）を proposed で起票。実装計画の置き場 `uta_docs/plans/` と書式（plans/README.md）、設計書レビューのスキル requesting-design-review を追加。main へのマージで ADR 0012（DbUp）・0013 と番号が重なったため 0014 に改番
 - 2026-10-31 | lint | claude/uta-design-continuation（10/28 の未決事項の決定、ADR 0012・0013）を main にマージ。同じ日に main で決めた内容と食い違う3点は main を正にした（テストは `shared/Uta.Domain.Tests`、乱数は用途・場面ごとのストリーム、操作の記録は状態の1列の中で `produce_actions` テーブルは作らない）。produce.md 10章に「1ユーザー1セッション」「アプリのバージョンが違えば破棄」を反映し、10.7 から外した。api-design.md 3.1 を produce.md 10章に合わせ、repository-layout.md・CLAUDE.md の `tests/` を削除
 - 2026-10-31 | impl | external/VolTech-MagicOnion を a65980e に更新（RPC ごとの設定を、共有インターフェース（`ServiceBase<T>` の `T`）の属性だけから読む。`[SkipAuth]` はクラスに付けられず、冪等性の対象にもならない。予約エラーの既定の action を基盤の仕様に表で置く）
 - 2026-10-29 | spec | overview/screen-wireframes.md（ホームと10画面のワイヤー叩き台）を新規作成。ADR 0008・0009、produce.md 10章、screen-design.md に合わせた。produce.md の未決事項と screen-design.md（ワイヤーへの参照、画面一覧に未掲載の4画面を [Uta案] で追加）を更新、index に登録

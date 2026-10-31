@@ -22,6 +22,8 @@
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
 | 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
 | コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`） |
+| 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0014](uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)） |
+| 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
@@ -50,6 +52,7 @@ uta/
 ├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）
 ├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
+│  ├─ plans/      # 実装計画（どのファイルに何を書くか。書式は plans/README.md）
 │  └─ wiki/       # LLMが維持する整理済み知識
 │     ├─ index.md
 │     ├─ log.md
@@ -71,11 +74,18 @@ uta/
 
 ## 実装前のルール（ドキュメント駆動）
 
+**設計は厚く書き、実装は Sonnet のサブエージェントに任せる**（[ADR 0014](uta_docs/wiki/decisions/0014-design-heavy-sonnet-implementation.md)、proposed）。判断は仕様と実装計画に寄せ、実装担当に設計判断を残さない。
+
 1. 仕様ページ（`systems/` または `architecture/`）を書く、または更新する
 2. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
-3. 実装する
-4. 実装結果と仕様のズレを wiki に反映する
-5. `log.md` に1行追記する
+3. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）
+4. 仕様と実装計画を `requesting-design-review` でレビューに出す。実装計画は、実装可能性の観点（Sonnet）が「質問せずに書ける」と判定するまで直し、`status: ready` にする
+5. 計画のタスクごとに Sonnet のサブエージェントに実装させる（Agent ツールで `model: sonnet`）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
+6. `requesting-code-review` でコードレビューに出す
+7. 実装結果と仕様のズレを wiki に反映し、計画を `status: done` にする
+8. `log.md` に1行追記する
+
+仕様・実装計画を書くのはメインのセッション（Opus または Fable）。計画が要らない小さな変更（1 ファイルの修正など）は 3〜5 を飛ばしてよい。
 
 ## wiki ページの書式
 
