@@ -1,7 +1,7 @@
 ---
 title: ゲーム概要仕様
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # ゲーム概要仕様
@@ -146,4 +146,4 @@ MVP で作る画面（[screen-design.md](../architecture/screen-design.md) 2章�
 
 ## 更新が必要になるページ
 
-この仕様が変わったら: `systems/` 各ページ、`architecture/` の各ページ（特に api-design.md・screen-design.md）、[screen-wireframes.md](screen-wireframes.md)、関係する `uta_docs/plans/` の実装計画、`glossary.md`、`index.md`、`log.md`。
+この仕様が変わったら: `systems/` 各ページ、`architecture/` の各ページ（特に api-design.md・screen-design.md）、[screen-wireframes.md](screen-wireframes.md)、関係する `uta_docs/plans/` の実装計画、`glossary.md`、`index.md`。

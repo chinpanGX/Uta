@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -61,10 +61,10 @@ updated: 2026-10-31
 | 試験 | ページ | PRD-06、PRD-07 | ExecuteLessonAction | 試験の設定、スコアボーナス |
 | プロデュース結果 | ページ | PRD-13 | 終了の局面に入った操作のレスポンス（`ExecuteLessonAction` または `DecideExamRetry`）。終わった後の `GetState` は結果を返さない（[produce-domain.md](produce-domain.md) 8章） | 評価の設定 |
 | 設定・お知らせ | ページ／モーダル | — | — | — |
-| スキルカード獲得 | モーダル（案） | PRD-02 | ResolveCardOffer | スキルカード |
-| 授業・おでかけ・支給 | ページ（案） | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
+| スキルカード獲得 | モーダル | PRD-02 | ResolveCardOffer | スキルカード |
+| 授業・おでかけ・支給 | ページ | PRD-02 | ChooseWeekAction | 行動、イベント（MVP は授業・支給だけ） |
 | 相談 [Uta案・追加] | ページ（案） | PRD-09 | ChooseWeekAction、ExecuteConsultAction | スキルカード、ドリンク（MVP では作らない） |
-| 試験結果 | ページ（案） | PRD-06 | DecideExamRetry | 試験の設定 |
+| 試験結果 | ページ | PRD-06 | DecideExamRetry | 試験の設定 |
 
 - MVP で作る画面は [game-spec.md](../overview/game-spec.md) の「画面」が正。「次点」「後回し」の機能（PRD-09〜12、PRD-14〜17、IDL-02、SUP-04〜06、GAC-05〜07）の画面は、その機能を実装するときに足す
 - 山札・捨札の確認（PRD-08）は、レッスン中に開くモーダルとして持つ案
@@ -112,12 +112,13 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 
 ## 未決事項
 
-- 縦向きでの基準解像度と、セーフエリア・Windows のウィンドウサイズの扱い
 - 画面の名称・文言（Uta 独自のものにする。[glossary.md](../glossary.md) の仮称を置き換える）
 - Addressables に移ったあとの、マスタの更新確認のタイミングと更新中の表示
 - 予測値をどの画面要素に出すか（カードの詳細、スコアのプレビューなど）
-- ガチャ結果の演出の範囲（3D ライブは保留。[ADR 0003](../decisions/0003-defer-3d-live.md)）
-- 追加した画面の種類（ページ／モーダル／シート）。スキルカード獲得・授業・支給・試験結果は MVP で作ると決めた（[game-spec.md](../overview/game-spec.md)）。相談を一覧に入れるかは、相談を作るときに決める
+- ガチャ結果の演出の範囲（MVP は演出なし。足すときに決める。3D ライブは保留。[ADR 0003](../decisions/0003-defer-3d-live.md)）
+- 相談の画面の種類（相談を作るときに決める）
+
+（2026-11-01 に解決: 基準解像度・セーフエリア・Windows のウィンドウ、スキルカード獲得・授業・支給・試験結果の画面の種類 → [screen-wireframes.md](../overview/screen-wireframes.md)「共通の方針」・2章の表）
 
 ## 実装メモ
 

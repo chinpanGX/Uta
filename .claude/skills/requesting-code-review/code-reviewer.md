@@ -110,8 +110,8 @@ Subagent (general-purpose):
     - 結合テストが要るところにあるか（サーバー）
 
     **ドキュメント:**
-    - コードの変更に合わせて、関係する仕様ページ（`systems/`・`architecture/`）と
-      `log.md` が同じ変更で更新されているか（CLAUDE.md「実装前のルール」）
+    - コードの変更に合わせて、関係する仕様ページ（`systems/`・`architecture/`）が
+      同じ変更で更新されているか（CLAUDE.md「実装前のルール」）
 
     ## 重さの付け方
 

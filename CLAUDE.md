@@ -57,7 +57,6 @@ uta/
 │  ├─ reviews/    # 設計書レビューの結果（実施日ごとのフォルダ。目次は各フォルダの README.md）
 │  └─ wiki/       # LLMが維持する整理済み知識
 │     ├─ index.md     # 入口。ページの一覧は各フォルダの README.md
-│     ├─ log.md
 │     ├─ glossary.md
 │     ├─ overview/      # ゲーム全体の仕様
 │     ├─ systems/       # ゲームの仕様（produce / lesson-card / idol-support / gacha。live は保留）
@@ -72,7 +71,7 @@ uta/
 
 ## wiki の運用（3操作）
 
-1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら、そのフォルダの `README.md`（ページを足した・消したとき）と `log.md` を更新する。
+1. **Ingest**: 調べたこと・決めたことは、まず `uta_docs/raw/` に置き、`uta_docs/wiki/` に反映する。反映したら、そのフォルダの `README.md`（ページを足した・消したとき）を更新する。変更の記録はコミットメッセージに書く（`log.md` は使わない。[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
 2. **Query**: 設計・実装の根拠は wiki から引く。wiki に無いことは推測で実装せず、先に wiki へ起こす。
 3. **Lint**: 定期的に、矛盾・古い記述・孤立ページ・目次に未登録のページを点検して修正する。機械的に調べられるもの（リンク切れ・目次（README）への登録・frontmatter・ADR の番号）は `linting-wiki` のスクリプトで、矛盾・古い記述は `requesting-design-review` の整合性の観点で見る。
 
@@ -94,7 +93,7 @@ uta/
 6. 計画のタスクごとに Sonnet のサブエージェントに実装させる（Agent ツールで `model: sonnet`）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
 7. `requesting-code-review` でコードレビューに出す
 8. 実装結果と設計書のズレを wiki に反映し（実装設計書を直す。ゲームの挙動が変わったときだけ仕様も直す）、計画を `status: done` にする
-9. `log.md` に1行追記する
+9. コミットメッセージに、何を変えたかと決めたこと・理由を書く（変更の記録は `git log` から引く。[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）
 
 仕様・実装設計書・実装計画を書くのはメインのセッション（Opus または Fable）。計画が要らない小さな変更（1 ファイルの修正など）は 4〜6 を飛ばしてよい。
 
@@ -142,7 +141,7 @@ uta/
 - 改行は LF 固定（`.gitattributes`）。`.bat` / `.cmd` のみ CRLF
 - Unity の `.meta` ファイルは必ずコミットする。`client/uta/Library/` などの自動生成物は入れない（`.gitignore`）
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
-- コミットメッセージは日本語
+- コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。履歴は `git log -- uta_docs/wiki` などで引く
 - サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
   - 共通基盤は Uta の開発を通して整え、別のアプリでも使える形でリリースする。Uta 固有のものを共通基盤に入れない。固定はコミット（タグを待たない）。ルールは [repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 3.1
   - clone: `git clone --recurse-submodules <Uta の URL>`（済みの clone では `git submodule update --init`）

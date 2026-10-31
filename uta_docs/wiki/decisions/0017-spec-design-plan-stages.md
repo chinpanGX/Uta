@@ -1,7 +1,7 @@
 ---
 title: ADR 0017 ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す
 status: accepted
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # ADR 0017: ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す
@@ -39,6 +39,7 @@ ADR 0014 から引き継ぐもの（変えない）:
 - 計画の基準は egm（[google/elephant-goldfish-model](https://github.com/google/elephant-goldfish-model)、Apache-2.0）の Zero-Decision Rule
 - モデルの使い分け: 仕様・実装設計書・計画を書くのはメインのセッション（Opus または Fable）、レビューは観点ごとの Goldfish（整合性は Opus、実装可能性は Sonnet、設計の批評は Fable）、実装は Sonnet
 - コードレビューは `requesting-code-review`。実装と設計書のズレは wiki に戻し、`log.md` に追記する
+  - 追記（2026-11-01。ユーザーの判断）: `log.md` への追記は [ADR 0018](0018-change-log-from-git.md) で置き換えた。変更の記録はコミットメッセージに書き、`git log` から引く
 
 ## 理由
 
