@@ -1,7 +1,7 @@
 ---
 title: マスタデータの定義・生成・配信（実装設計書 マスター設計編）
 status: draft
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # マスタデータの定義・生成・配信（実装設計書 マスター設計編）
@@ -23,8 +23,8 @@ updated: 2026-10-27
 - **列の型は `int` / `long` / `string` / `bool` / enum だけ**。`float`・配列・nullable はマスタでは扱わない [決定。2026-10-27 に確定]
 - クライアント用・サーバー用の出し分けは、定義に付ける `[ClientOnly]` / `[ServerOnly]` で行う（列にも、型全体にも付けられる）[確認]
 - マスタの正本は最上位の `masterdata/` に置く [決定]
-- カード効果などの入れ子は、汎用列＋型付きの参照列で表す [決定。3章]
-- 生成したソースはコミットし、CI の `master-gen --check` で検出する。バイナリはコミットしない [決定。5章]
+- カード効果などの入れ子は、汎用列＋型付きの参照列で表す。効果と条件はグループにまとめる [決定。3章、`Op` の一覧は 3.1]
+- 生成したソースはコミットし、CI の `master-gen --check` で検出する。バイナリもコミットする [決定。5章、[ADR 0013](../decisions/0013-commit-masterdata-binary.md)]
 - 配信は、まずアプリに同梱（StreamingAssets）し、あとで Addressables に移る [決定。6章]
 - CSV は Git の `masterdata/csv/` を正本にする [決定。7章]
 
@@ -83,19 +83,31 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 ### 難所: カード定義の入れ子
 
-[lesson-card.md](../systems/lesson-card.md) 3章のカード定義は、`base` / `enhanced`（`CardFace`）の中に `costs` / `useConditions` / `effects` の**配列**を持つ。列が5型だけで配列を使えないと、そのままでは表せない。次のように正規化する（テーブル・列の名前は仮）:
+[lesson-card.md](../systems/lesson-card.md) 3章のカード定義は、`base` / `enhanced`（`CardFace`）の中に `costs` / `useConditions` / `effects` の**配列**を持つ。さらに効果は、持続効果・発動予約の中に効果を持ち（入れ子）、効果ごとに条件（効果内条件）を持つ。列が5型だけで配列を使えないと、そのままでは表せない。
+
+**効果と条件は「グループ」にまとめ、カードからグループを指す** [決定。2026-10-28]（テーブル・列の名前は仮）:
 
 | テーブル | 主キー | 主な列 |
 |---|---|---|
 | `Card` | `CardId` | プラン、種別、レアリティ、`UnlockLv`、`OnceInLesson`、`Unique`、`StartInHand` |
-| `CardFace` | `CardId` + `Face`（通常 / 強化） | （面ごとの共通項目があれば） |
-| `CardCost` | `CardId` + `Face` + `Order` | `Kind`（enum）、`Value` |
-| `CardCondition` | 同上 | `Kind`（enum）、`Value`、`Arg1`… |
-| `CardEffect` | 同上 | `Op`（enum）、`Value`、`Arg1`〜`Arg3`（汎用の `int`）、`RefCardId` などの参照列 |
+| `CardFace` | `CardId` + `Face`（通常 / 強化） | `EffectGroupId`、`UseConditionGroupId`（空欄＝条件なし） |
+| `CardCost` | `CardId` + `Face` + `Order` | `Kind`（enum `CostKind`）、`Value` |
+| `EffectGroup` | `EffectGroupId` | （見出し。`Memo` など） |
+| `Effect` | `EffectGroupId` + `Order` | `Op`（enum）、`Status`（enum）、`Trigger`（enum）、`Value`、`Arg1`〜`Arg3`（`int`）、`RefConditionGroupId`、`RefEffectGroupId`、`RefCardId` |
+| `ConditionGroup` | `ConditionGroupId` | （見出し） |
+| `Condition` | `ConditionGroupId` + `Order` | `Subject`（enum）、`Comparator`（enum）、`Value`。グループ内はすべて満たすと真（AND） |
 
-- **効果は汎用列＋型付きの参照列で表す** [決定]
-  - `Op` は効果の種類の enum（[lesson-card.md](../systems/lesson-card.md) の `op:` にあたる。例: パラメータ上昇、元気の付与、ステータスの付与）。効果エンジンは `Op` を見て処理を切り替える
+- グループの見出しテーブル（`EffectGroup` / `ConditionGroup`）を置くのは、参照列に `[Exists(typeof(EffectGroup))]` を付けて、存在を属性で検証するため（複合キーの子テーブルは `Exists` の参照先にしにくい。推測）
+- グループの ID も、マスタの ID の方針どおり**採番の規則は作らない**（[repository-layout.md](repository-layout.md) 10.1）。手で振る
+- コストはカードにしかない（ドリンク・育成アイテムはコストを持たない）ので、グループにせず `CardCost` のままにする
+- メリット: 入れ子の深さに制限がなく、効果内条件を複数持てる。同じ `Effect` / `Condition` を育成アイテム・ドリンク（[lesson-card.md](../systems/lesson-card.md) 15.6）、アビリティ（[idol-support.md](../systems/idol-support.md)）からも使える
+- デメリット: 1枚のカードが CSV の複数の表に分かれ、読みにくい。代替の「カードごとの表に `ParentOrder` と条件の列を足す」案は、効果内条件が1つに限られ、アイテム・アビリティで同じ表を作り直すことになるため採らない
+
+- **効果は汎用列＋型付きの列で表す** [決定]
+  - `Op` は効果の種類の enum（[lesson-card.md](../systems/lesson-card.md) 7章の `op:` にあたる）。効果エンジンは `Op` を見て処理を切り替える。一覧は 3.1
+  - 対象のステータスは `Status`、持続効果の発動タイミングは `Trigger` という**型付きの enum の列**に入れる（`Arg` に数値で入れない）。CSV に名前で書け、enum の名前を `master-gen` が検証できるため。使わない行では空欄（enum の 0 ＝ `None`）
   - 数値は `Value` と `Arg1`〜`Arg3`（`int`）に入れる。小数は整数にする（例: `focusScale: 1.5` → `150`。パーセント）
+  - **倍率・回数の `Arg` は 0（空欄）を既定値として扱う**（連撃 0 → 1回、倍率 0 → 100%、持続の制限 0 → 無制限）。どの項目も 0 そのものに意味がないため、「空欄＝既定値」の規約にそろえる
   - 他のテーブルを指す値は、汎用列に入れず `RefCardId` などの**専用の列**にし、`[Exists(typeof(...), AllowEmpty = true)]` を付ける。参照先の存在を属性で検証するため
   - `Op` ごとの引数の意味（`Value` / `Arg1`〜`Arg3` が何か、どの参照列を使うか）は一覧にして保守し、`IValidatable` で検証する（必須の引数が空でないか、使わない引数が埋まっていないか）。`[ServerOnly]` の値を参照しないので、クライアント用の出力に入っても問題ない
   - 引数が3つで足りない `Op` が出たら、`Arg` を増やすか、その `Op` だけ子テーブルにするかをその時に決める
@@ -106,6 +118,71 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - 代替の「`Op` ごとにテーブルを分ける」案は、テーブルが効果の種類だけ増え、記載順に処理するための結合も重くなるため採らない（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 - 効果は「記載順に処理する」ので、`Order` を必ず持つ
 - 同じ構造が週構成（[produce.md](../systems/produce.md) 3.1）、アイドル・サポートカードのアビリティ・イベント（[idol-support.md](../systems/idol-support.md)）にも出る。先に1つ（カード）で型を決め、他へ流用する
+
+### 3.1 効果の `Op` 一覧 [決定。2026-10-28]
+
+効果プリミティブ（[lesson-card.md](../systems/lesson-card.md) 7章）と列の対応。「フェーズ」はカードとして動かし始めるフェーズ（[lesson-card.md](../systems/lesson-card.md) 15章）で、enum には最初から全部を定義する（15.1）。空欄の列は使わない（`IValidatable` で埋まっていないことを確かめる）。
+
+| `Op` | フェーズ | `Status` / `Trigger` | `Value` | `Arg1`〜`Arg3`・参照列 |
+|---|---|---|---|---|
+| `Param` | 1 | — | パラメータ | `Arg1` 連撃の回数（4）、`Arg2` 集中の倍率%（4）、`Arg3` 好調の倍率%（3） |
+| `ParamByRatio` | 1（好印象）/ 2（元気・やる気） | `Status`＝参照元 | 倍率% | — |
+| `ParamBonus` | 未定 | — | 上昇量増加% | `Arg1` ターン数 |
+| `AddGenki` | 1 | — | 値 | — |
+| `AddFixedGenki` | 2 | — | 値 | — |
+| `RecoverHp` | 2 | — | 値 | — |
+| `ScaleResource` | 2 | `Status`＝対象 | 倍率%（端数は切り捨て） | — |
+| `SetResource` | 2 | `Status`＝対象 | 値 | — |
+| `AddTurns` | 1（消費体力減少） | `Status` | ターン数 | — |
+| `AddStack` | 1（好印象・消費体力削減） | `Status` | 値 | — |
+| `AddPercent` | 未定 | `Status` | % | `Arg1` ターン数（0＝ずっと） |
+| `Draw` | 1 | — | 枚数 | — |
+| `AddUses` | 1 | — | 回数 | — |
+| `ReplaceHand` | 未定 | — | — | — |
+| `EnhanceHand` | 未定 | — | — | — |
+| `CreateCard` | 未定 | — | — | `RefCardId`。生成する位置の持ち方は採用時に決める |
+| `Schedule` | 未定 | — | 何ターン後か（次のターン＝1） | `RefEffectGroupId` |
+| `Persistent` | 1（使用時） | `Trigger` | — | `Arg1` ターン数・`Arg2` 回数（0＝無制限）、`RefEffectGroupId`（発動する効果）、`RefConditionGroupId`（発動条件） |
+
+- どの `Op` でも、`RefConditionGroupId` を埋めると**効果内条件**になる（満たさないとその行だけ飛ばす。判定はコストの前。[lesson-card.md](../systems/lesson-card.md) 6.2）。`Persistent` の `RefConditionGroupId` は効果内条件ではなく、発動のたびに見る条件として扱う
+- [lesson-card.md](../systems/lesson-card.md) 7.6 の後回しのプリミティブ（`RepeatNext` / `AddLessonTurn` / `DeckManipulate`）は enum に入れず、そのカードを採用するときに足す
+- 「未定」は、どのフェーズのカードにも使われていないもの（初期カードセットに無い）
+
+`Status`（enum `StatusKind`）の値: `Genki`、`Impression`、`Motivation`、`Focus`、`GoodCondition`、`Excellent`、`CostDown`（消費体力減少）、`CostUp`（消費体力増加）、`CostReduce`（消費体力削減）、`GenkiBlock`（元気増加無効）、`DebuffGuard`（低下状態無効）、`ImpressionBoost`（好印象強化）、`FocusBoost`（集中強化）。名前は仮称（[glossary.md](../glossary.md)）。
+
+`Trigger`（enum `TriggerKind`）の値。カードの種別での絞り込みは、条件ではなく `Trigger` の種類で表す:
+
+| 値 | タイミング（[lesson-card.md](../systems/lesson-card.md) 10章） |
+|---|---|
+| `LessonStart` | L1 |
+| `TurnStart` / `AfterTurnStart` | T3 / T5 |
+| `EveryNTurns` | T7（N は `Value`） |
+| `OnCostHpDecrease` | P4 |
+| `OnCardUse` / `OnActiveCardUse` / `OnMentalCardUse` | P5 |
+| `AfterCardUse` / `AfterActiveCardUse` / `AfterMentalCardUse` | P7 |
+| `OnSkip` | E1 |
+| `TurnEnd` | E2 |
+
+`CostKind`: `Consume`、`HpDirect`（フェーズ1）、`GoodConditionTurns`、`ExcellentTurns`（フェーズ3）、`Focus`（フェーズ4）、`Impression`、`Motivation`（使うカードを採用したとき）。
+
+`Condition` の `Subject`（enum `ConditionSubject`）と `Comparator`（`Ge` / `Le` / `Eq`）:
+
+| `Subject` | `Value` | 例 |
+|---|---|---|
+| `Impression` / `Genki` / `Motivation` / `Focus` | 値 | L02（`Impression` `Ge` 1） |
+| `GoodConditionTurns` / `ExcellentTurns` | ターン数（「状態である」は `Ge` 1） | S04、S11 |
+| `HpPercent` | 最大体力に対する% | F05（`HpPercent` `Ge` 50） |
+| `Turn` | 何ターン目か | |
+| `TargetPercent` | クリア目標に対する% | |
+
+例（L14 の通常版。ID は説明用）:
+
+| テーブル | 行 |
+|---|---|
+| `CardCost` | `Consume` 4 |
+| `CardFace` | `EffectGroupId` 1401 |
+| `Effect`（1401） | 1: `AddStack` `Impression` 3 ／ 2: `Persistent` `OnMentalCardUse` → `RefEffectGroupId` 1402 |
+| `Effect`（1402） | 1: `AddStack` `Impression` 1 |
 
 ## 4. 出し分けの区分 [Uta案]
 
@@ -132,20 +209,23 @@ outputs:
     target: client
     source: ../client/uta/Assets/Scripts/Infrastructure/MasterData/Generated
     namespace: Uta.MasterData
-    binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes   # 同梱。コミットしない
+    binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes   # 同梱。コミットする
     encrypt: true
   - name: server
     target: server
     source: ../server/Uta.Server/MasterData/Generated
     namespace: Uta.MasterData
-    binary: ../server/Uta.Server/MasterData/masterdata.bytes                   # コミットしない
+    binary: ../server/Uta.Server/MasterData/masterdata.bytes                   # コミットする
 ```
 
 - **`source` のディレクトリは生成のたびに中身を丸ごと入れ替える**。生成専用のディレクトリにし、手書きのファイルを置かない [確認]
 - 出力先には `namespace` が必須。`MasterDataSchema.cs`（スキーマのハッシュを持つ）も一緒に出る [確認]
 - 開発用の出力先は `environments` で上書きできる [確認]
 - **生成したソースはコミットする** [決定]。ツールがなくても Unity でプロジェクトを開け、レビューで差分も見える。生成し忘れは CI の `master-gen --check` が終了コード 1 で検出する
-- **バイナリはコミットせず、ビルドのときに作る** [決定]。`.gitignore` に `masterdata.bytes` と `masterdata.manifest.json` の出力先を足す（未実施）
+- **バイナリ（`masterdata.bytes`）とマニフェストもコミットする** [決定。2026-10-28。[ADR 0013](../decisions/0013-commit-masterdata-binary.md)]。clone した直後から、ツールなしで Unity で動かせる
+  - **生成は CSV か定義を変えたときだけ行う**。クライアント用は暗号化のソルトと IV を毎回乱数で作り、マニフェストには `createdAt` が入るので、中身が同じでも生成するたびに差分が出る [確認。アドオンの pipeline.md]
+  - CSV を変えたら、同じコミットでバイナリも作り直す。レビューは CSV の差分で行う
+  - 作り直し忘れは、今の `--check` では検出できない（生成ソースしか見ない）。アドオンの改善（8章）が入るまでは運用で防ぐ
 
 ## 6. バイナリと配信
 
@@ -165,12 +245,13 @@ outputs:
 
 ## 7. 導入と運用
 
-- ツール（`net10.0`）の実行方法: `external/MasterMemoryAddons` を `dotnet run --project ...Tools -- code-gen --config masterdata/masterdata.yaml` で呼ぶ。アドオンは Makefile を前提にしているが、Windows では make の用意が要る（scoop / choco / WSL）。Uta 側にコマンドを用意するか未決
+- ツール（`net10.0`）の実行方法: `external/MasterMemoryAddons` を `dotnet run --project ...Tools -- code-gen --config masterdata/masterdata.yaml` で呼ぶ。アドオンは Makefile を前提にしているが、Uta では make を使わず PowerShell のスクリプトで包む（下記）
 - アプリが参照する MasterMemory / MessagePack のバージョンは、**アドオンのツールと同じにする**（アドオンの docs 時点で MasterMemory 3.0.4、MessagePack 3.1.12）[確認]。MagicOnion が要求する MessagePack のバージョンと揃うかは未確認（基盤の設計書は「MagicOnion 7 系なら MessagePack は 3 系」と書いている）
 - アドオンの変更は、サブモジュール側を先に push してから Uta のポインタを更新する（[ADR 0005](../decisions/0005-foundation-submodule.md)）
 - **CSV は Git の `masterdata/csv/` を正本にする** [決定]。差分をレビューでき、ビルドが再現できる
-  - スプレッドシートは編集の道具とし、タブ名をテーブル名にそろえて CSV に書き出す（ファイル名＝テーブル名。水平分割は `item_weapon.csv` のように `_` で区切る。[確認]）
-  - 書き出しの手順・スクリプトは未決。スプレッドシートと CSV の行き来の手間が課題になる
+  - ファイル名＝テーブル名。水平分割は `item_weapon.csv` のように `_` で区切る [確認]
+  - **最初はスプレッドシートを使わず、CSV を直接編集する** [決定。2026-10-28]。書き出しの手順が要らない。グループ ID を使う入れ子の表（3章）を手で編集するのがつらくなったら、スプレッドシートと書き出しのスクリプトを足す（そのときは、タブ名をテーブル名にそろえる）
+- **ツールは PowerShell のスクリプトで包む** [決定。2026-10-28]。`masterdata/gen.ps1` から `dotnet run --project external/MasterMemoryAddons/...` を呼ぶ（`code-gen`・`master-gen`・`--check` を引数で切り替える案）。Windows で make が要らず、GitHub Actions でも `pwsh` で動く。スクリプトの中身は、実装するときに書く
 
 ## 8. アドオンの改善バックログ
 
@@ -180,19 +261,18 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 |---|---|---|
 | Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の実機確認になる | 未着手 |
 | `[Exists]` が別の側を参照する場合 | `[ClientOnly]` / `[ServerOnly]` の列・テーブルを参照したとき、片側の生成物や検証がどうなるか | 未確認（4章） |
-| Windows での実行 | アドオンは make を前提にしている。Windows では scoop / choco / WSL の用意が要る | 未着手（7章） |
+| Windows での実行 | アドオンは make を前提にしている。Uta は `masterdata/gen.ps1` で回避する（7章）。アドオン側に PowerShell のスクリプトを用意してもよい | 回避済み |
 | 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
 | 日時の列の検証 | `string` の日時の形式（`yyyy-MM-dd HH:mm:ss`）を属性で宣言し、`master-gen` が検証できるとよい。いまは `IValidatable` で書く | 案 |
+| 中身が同じなら書き換えない | データのハッシュ（`dataHash`）が既存のバイナリと同じなら、ファイルを書き換えない（マニフェストも）。バイナリをコミットするので、意味のない差分を出さないため（[ADR 0013](../decisions/0013-commit-masterdata-binary.md)） | 案 |
+| `--check` でバイナリの古さも検出 | 出力済みのバイナリの `dataHash` が、今の CSV から計算した値と違えば終了コード 1 にする。作り直し忘れを CI で検出するため（[ADR 0013](../decisions/0013-commit-masterdata-binary.md)） | 案 |
 | `Op` ごとの引数の検証 | 3章の「汎用列＋参照列」を属性で宣言できると、`IValidatable` の手書きが減る（推測。必要になってから検討） | 案 |
 
 - 列の型（`int` / `long` / `string` / `bool` / enum のみ）は**改善の対象にしない**。Uta の確定事項（[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
 
 ## 未決事項
 
-- `Op` の一覧と、`Op` ごとの引数の意味（最初は好印象のフェーズ1の範囲。[lesson-card.md](../systems/lesson-card.md) 15.2）
 - 区分が「要確認」のテーブル（4章）、`Exists` が別の側のテーブルを参照した場合の挙動
-- スプレッドシート → CSV の書き出し手順・スクリプト
-- ツールの実行コマンドを Uta 側にどう用意するか（Makefile か、スクリプトか）
 - クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
 - MasterMemory・MessagePack・MagicOnion のバージョン整合
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか

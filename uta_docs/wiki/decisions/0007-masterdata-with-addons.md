@@ -1,10 +1,12 @@
 ---
 title: ADR 0007 マスタデータを MasterMemoryAddons でクライアント用・サーバー用に出し分ける
 status: accepted
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # ADR 0007: マスタデータを MasterMemoryAddons でクライアント用・サーバー用に出し分ける
+
+> 注記（2026-10-28）: 「決定」のうち「**バイナリはコミットせず、ビルドのときに作る**」は [ADR 0013](0013-commit-masterdata-binary.md) で置き換えた（バイナリもコミットする）。それ以外の決定は有効。
 
 ## 状況
 

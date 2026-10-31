@@ -109,8 +109,14 @@ updated: 2026-10-28
 ## 未決事項
 
 - 7章の値
-- ガチャ通貨の入手手段(プロデュース報酬、ログインなど)
-- トランザクション設計(DB は PostgreSQL + Npgsql + Dapper に決定。[ADR 0010](../decisions/0010-database.md))
+- 初期付与のガチャ通貨の量
+
+(2026-10-28 に解決: DB は [ADR 0010](../decisions/0010-database.md)、テーブルは [api-design.md](../architecture/api-design.md) 3章)
+
+## 8. ガチャ通貨の入手と交換pt の変換 [決定。2026-10-28]
+
+- ガチャ通貨の入手手段は、**アカウント作成時の初期付与**と、**プロデュースの報酬**([produce.md](produce.md) 6.1)の2つ。ログインボーナスと、交換メダルのショップは後回し
+- 期間が終わったガチャの交換pt から交換メダルへの変換は、バッチ処理にせず、起動時に呼ぶ `SyncAsync` の中で行う([api-design.md](../architecture/api-design.md) 1章)。起動しないユーザーの分は変換されないまま残るが、表示にしか影響しない
 
 ## 実装メモ
 

@@ -96,7 +96,7 @@ uta/
 - サーバー権威: 育成の計算結果、ガチャ抽選、所持品の更新はすべてサーバーで行う。結果の確定は常にサーバー。
 - クライアントは表示と入力に加え、共有ドメイン（`shared/Uta.Domain`）で**使用可否の判定と予測の表示**まで行う。**シードは持たない**（[ADR 0008](uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)）。
 - 共有型は `shared/` に置く。Unity / サーバー双方から参照する。マスタ型は `masterdata/` の定義から各側へ生成する（[ADR 0007](uta_docs/wiki/decisions/0007-masterdata-with-addons.md)）。
-- 層の構成と依存ルールは [architecture/repository-layout.md](uta_docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](uta_docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](uta_docs/wiki/decisions/0010-database.md)）。デプロイ先は Google Cloud の Cloud Run + Cloud SQL（[ADR 0011](uta_docs/wiki/decisions/0011-deploy-google-cloud.md)）。
+- 層の構成と依存ルールは [architecture/repository-layout.md](uta_docs/wiki/architecture/repository-layout.md)。クライアントはオニオンアーキテクチャ（uGUI + UnityScreenNavigator・VContainer・UniTask。[ADR 0009](uta_docs/wiki/decisions/0009-client-stack.md)）。DB は PostgreSQL（[ADR 0010](uta_docs/wiki/decisions/0010-database.md)）、マイグレーションは DbUp（[ADR 0012](uta_docs/wiki/decisions/0012-migration-dbup.md)）。デプロイ先は Google Cloud の Cloud Run + Cloud SQL（[ADR 0011](uta_docs/wiki/decisions/0011-deploy-google-cloud.md)）。
 - マスタの列の型は `int` / `long` / `string` / `bool` / enum のみ。共有ドメインでは `float` / `double` を使わない。
 - ID はマスタが `int`、サーバーが発行するものは ULID。時刻はサーバーが正で JST 固定、日付の更新は 12 時。乱数は `xoshiro256**`。強制アップデートはアプリのバージョンで判定（[repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 10章）。
 - iOS（IL2CPP / AOT）制約を常に考慮する。リフレクション依存を避け、Source Generator / 事前生成を優先する。

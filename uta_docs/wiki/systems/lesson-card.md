@@ -212,7 +212,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | Nターン目以降 | |
 | レッスンのクリア目標のN%以下 | |
 
-条件は `{ subject, comparator, value }` の汎用形で表す。[Uta案]
+条件は `{ subject, comparator, value }` の汎用形で表す。複数の条件はグループにまとめ、すべて満たすと真(AND)。使用条件と効果内条件で同じ形を使う。[決定。2026-10-28。マスタでの表し方は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章・3.1]
 
 ### 6.2 判定タイミング [確認]
 
@@ -221,7 +221,9 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 ---
 
-## 7. 効果プリミティブ [Uta案]
+## 7. 効果プリミティブ [決定。2026-10-28]
+
+下の op をマスタの `Op` enum にする。op ごとの列(`Status` / `Trigger` / `Value` / `Arg1`〜`Arg3` / 参照列)の対応と、ステータス・トリガー・コスト・条件の enum は [masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3.1 が正。効果はグループにまとめ、持続効果・発動予約は中身の効果のグループを指す。どの効果にも効果内条件(条件のグループ)を付けられる。
 
 ### 7.1 パラメータ系
 
@@ -233,7 +235,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 
 - `hits` は連撃。集中は1回ごとに加算される。[確認]
 - `focusScale` は「集中効果をN倍適用」、`goodScale` は「好調効果をN倍適用」。[確認]
-- マスタに移すときは、小数を整数（パーセント）にする（`focusScale: 1.5` → `150`）。効果は `Op`・`Value`・`Arg1`〜`Arg3` と参照列で表す（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章、[ADR 0007](../decisions/0007-masterdata-with-addons.md)）
+- マスタに移すときは、小数を整数（パーセント）にする（`focusScale: 1.5` → `150`）。効果は `Op`・`Status`・`Trigger`・`Value`・`Arg1`〜`Arg3` と参照列で表す（[masterdata-pipeline.md](../architecture/masterdata-pipeline.md) 3章・3.1、[ADR 0007](../decisions/0007-masterdata-with-addons.md)）。`hits`・`focusScale`・`goodScale` の既定値は、マスタでは 0（空欄）で表す
 
 ### 7.2 リソース系
 

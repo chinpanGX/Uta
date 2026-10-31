@@ -1,10 +1,12 @@
 ---
 title: ADR 0002 通信方式にMagicOnionを採用
 status: accepted
-updated: 2026-10-25
+updated: 2026-10-28
 ---
 
 # ADR 0002: 通信方式に MagicOnion（gRPC）を採用
+
+> 注記（2026-10-28）: 「決定」のうち**マスタ型の置き場**は [ADR 0007](0007-masterdata-with-addons.md) で置き換えた（マスタ型は `shared/` に置かず、`masterdata/` の定義から各側へ生成する）。それ以外の決定は有効。
 
 ## 状況
 

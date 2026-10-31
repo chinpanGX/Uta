@@ -1,7 +1,7 @@
 ---
 title: ADR 0011 API サーバーをコンテナにして Google Cloud（Cloud Run + Cloud SQL）にデプロイする
 status: accepted
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # ADR 0011: API サーバーをコンテナにして Google Cloud（Cloud Run + Cloud SQL）にデプロイする
@@ -36,7 +36,9 @@ updated: 2026-10-27
 - **Cloud SQL は最小構成でも常に費用がかかる**。使わない期間はインスタンスを停止する。料金は作る前に公式の料金表で確認する
 - Cloud Run で gRPC を通すには、HTTP/2 で end-to-end に受ける設定と、Kestrel を HTTP/2（h2c）で待ち受ける設定が要る（推測・要確認）
 - Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるかを、早期に確かめる必要がある（[repository-layout.md](../architecture/repository-layout.md) 8章）
-- 接続情報などの秘密の値の置き場（Secret Manager など）、マイグレーションの実行方法、CI での自動化は未決
+- 接続情報などの秘密の値の置き場（Secret Manager など）と、マイグレーションの実行方法は未決
+  - 2026-10-28 追記: 秘密の値は Secret Manager、接続は Cloud Run 組み込みの Cloud SQL 接続、リージョンは東京、ヘルスチェックは gRPC に決定（[repository-layout.md](../architecture/repository-layout.md) 11.4）。マイグレーションは [ADR 0012](0012-migration-dbup.md)
+- CI は、最初は手動で流し、手順が固まったら GitHub Actions で自動化する（2026-10-28 追記。[repository-layout.md](../architecture/repository-layout.md) 11.2）
 
 ## 見直す条件
 

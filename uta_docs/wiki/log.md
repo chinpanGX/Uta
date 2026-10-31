@@ -9,12 +9,18 @@ updated: 2026-10-31
 新しいものを上に追記する。1変更1行。形式: `YYYY-MM-DD | 種別 | 内容`
 種別: ingest / spec / adr / impl / lint
 
+- 2026-10-31 | lint | claude/uta-design-continuation（10/28 の未決事項の決定、ADR 0012・0013）を main にマージ。同じ日に main で決めた内容と食い違う3点は main を正にした（テストは `shared/Uta.Domain.Tests`、乱数は用途・場面ごとのストリーム、操作の記録は状態の1列の中で `produce_actions` テーブルは作らない）。produce.md 10章に「1ユーザー1セッション」「アプリのバージョンが違えば破棄」を反映し、10.7 から外した。api-design.md 3.1 を produce.md 10章に合わせ、repository-layout.md・CLAUDE.md の `tests/` を削除
 - 2026-10-31 | impl | external/VolTech-MagicOnion を a65980e に更新（RPC ごとの設定を、共有インターフェース（`ServiceBase<T>` の `T`）の属性だけから読む。`[SkipAuth]` はクラスに付けられず、冪等性の対象にもならない。予約エラーの既定の action を基盤の仕様に表で置く）
 - 2026-10-29 | spec | overview/screen-wireframes.md（ホームと10画面のワイヤー叩き台）を新規作成。ADR 0008・0009、produce.md 10章、screen-design.md に合わせた。produce.md の未決事項と screen-design.md（ワイヤーへの参照、画面一覧に未掲載の4画面を [Uta案] で追加）を更新、index に登録
 - 2026-10-28 | impl | `shared/Uta.Domain`（netstandard2.1・C# 9）にレッスンのフェーズ0・1（カード定義・状態・乱数・計算式・エンジン）を実装し、`shared/Uta.Domain.Tests`（xunit.v3 4.0.2、49件）を追加。architecture/lesson-domain-types.md を新規作成し index に登録。ルートに global.json、CLAUDE.md にビルド・テストのコマンドを追記、repository-layout.md 10.4 にテストの置き場を反映
 - 2026-10-28 | spec | produce.md 10章の案を決定に変更。要求に「次の操作番号」を足す（api-design.md 1・5章）。乱数ストリームの作り方を repository-layout.md 10.3、新しい用語を glossary に反映
 - 2026-10-28 | lint | 調査反映ページを点検して修正（lesson-card: スコアボーナスの参照先 5.2・最終スコアボーナス、中間試験の早期終了は初級・中級のみ、カード ID を int に、同タイミングの順にサポートアビリティを追加、シードの粒度を produce.md 10章に揃える。produce: 完了条件を ADR 0008 に合わせる、決定済みの未決事項を削除、API案を RPC の分割に合わせる、NPC スコアは切り捨て。gacha: DB を ADR 0010 に。updated を修正）。参考作品と同じ仮称を glossary に「置き換え対象」として記録
 - 2026-10-28 | spec | produce.md 10章を書き換え、サーバー検証の土台の案（入力待ち単位の処理、用途・場面ごとの乱数ストリームと引く順番、操作の記録形式、途中再開で保存する状態）を [Uta案] で追加
+- 2026-10-28 | adr | ADR 0013（マスタのバイナリもコミットする）を accepted で起票し、ADR 0007 に置き換えの注記を追加。masterdata-pipeline.md 5章（生成は CSV か定義を変えたときだけ）・8章（アドオンの改善2件: 中身が同じなら書き換えない、`--check` でバイナリの古さを検出）、repository-layout.md 7章、index を更新。バイナリを無視する `.gitignore` は足さない
+- 2026-10-28 | adr | ADR 0012（マイグレーションは DbUp、API とは別の `migrate` コマンドで流す）を accepted で起票。ADR 0011 に 11.4 の決定を追記、ADR 0002 に「マスタ型の置き場は ADR 0007 で置き換え」の注記を追加。index・CLAUDE.md を更新
+- 2026-10-28 | spec | 未決事項を推奨案で決定。api-design.md を更新（RPC 名の確定と `SyncAsync` の追加、エラーは domain `uta`＋機能の接頭辞の reason に変更（基盤の `ErrorCode` が数値を持たないため番号帯をやめた）、テーブル一覧、セッションの状態の中身・`state_version`・`produce_actions`、最終評価は `Uta.Domain`、中断・放棄・**アプリのバージョンが違えば破棄**）。repository-layout.md（ULID の持ち方、`tests/`、`noEngineReferences`、NetArchTest、11.4 のデプロイ構成、8章に要検証3件）、masterdata-pipeline.md（CSV を直接編集、`gen.ps1`）、produce.md（6.1 報酬）、gacha.md（8章 通貨の入手と変換）、game-spec.md（認証は匿名のみ）、screen-design.md（起動フローに同期）、glossary を更新
+- 2026-10-28 | spec | 効果の `Op` 一覧を決定。効果・条件はグループ（`EffectGroup`/`Effect`、`ConditionGroup`/`Condition`）にまとめてカードから指す、対象のステータスと発動タイミングは型付きの enum 列（`Status`/`Trigger`）、倍率・回数の `Arg` は 0＝既定値。masterdata-pipeline.md 3章・3.1、lesson-card.md 6.1・7章、glossary に反映（ADR 0007 の「汎用列＋型付きの参照列」の範囲内なので ADR は変えない）
+- 2026-10-28 | spec | CI は最初は手動で流し、手順が固まったら GitHub Actions で自動化する、に決定。repository-layout.md 11.2 に追記して 11.4 の未決から外し、ADR 0011 の「CI での自動化は未決」を更新
 - 2026-10-27 | lint | `docs/` を `uta_docs/` にリネーム。CLAUDE.md・README・raw/README・project-instructions・ADR 0001/0006・repository-layout.md の参照を更新（ADR 0003 の記録と過去のログは当時の表記のまま）
 - 2026-10-27 | adr | ADR 0011（API をコンテナにして Google Cloud の Cloud Run + Cloud SQL にデプロイ）を accepted で起票。repository-layout.md に11章「環境構成とデプロイ」と8章の要検証2件を追加。index・game-spec・CLAUDE.md・glossary を更新
 - 2026-10-27 | spec | クライアントのローカル保存は Supplement の MessagePack 版（`Supplement.MessagePack`）に決定。repository-layout.md 10.6 と 8章（版の整合）に反映
