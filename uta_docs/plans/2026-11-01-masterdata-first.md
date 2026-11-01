@@ -1,6 +1,6 @@
 ---
 title: 実装計画: masterdata の最初の計画 1/2（骨組み・レッスンのマスタ・サーバーでの読み込み）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/master/lesson-tables.md, ../wiki/architecture/lesson-enums.md, ../wiki/systems/lesson-card.md, ../wiki/overview/game-spec.md
 ---

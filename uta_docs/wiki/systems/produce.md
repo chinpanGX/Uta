@@ -400,7 +400,7 @@ MVP(初級)の授業 [決定。2026-10-31]:
 - **Uta の必要経験値(マスタの初期値。仮)** [決定。2026-10-31]: Lv L → L+1 に `40 × L`(マスタ `PlayerLevelExp` の行の初期値)。上限は Lv 100。1 回の付与で複数レベル上がってよい。上限に達したら経験値は増やさない
 - 経験値の持ち方 [決定。2026-10-31]: `players` に Lv と「今のレベルの中の経験値」を持つ。付与のたびに、`PlayerLevelExp` の必要量に届いたら引いて Lv を上げる(複数回)
 - 機能の解放: Lv5 相談での強化、Lv10 再抽選+1、Lv15 相談での削除、Lv65 除去+1。MVP では作らない(PRD-14)。カードの `unlockLv` だけは MVP でも見る
-- カード・ドリンクもレベルで解放される(カードの `unlockLv`)。値は参考作品の値を使う([lesson-card.md](lesson-card.md) 14章)。プロデュースの開始時の Lv を開始時の入力に写す([produce-domain.md](../architecture/produce-domain.md) 6章)
+- カード・ドリンクもレベルで解放される(カードの `unlockLv`)。値は参考作品の値を使う([lesson-card.md](lesson-card.md) 14章)。masterdata は仮の値（N・R = 1、SR = 5、SSR = 10）で、参考作品の値が分かったら差し替える。プロデュースの開始時の Lv を開始時の入力に写す([produce-domain.md](../architecture/produce-domain.md) 6章)
 - [Uta案] 参考作品は経験値の大半を課題・実績の報酬で得る。Uta にはその仕組みが無いので、プロデュース報酬の経験値を増やすか、必要経験値を減らす。
 
 ---
