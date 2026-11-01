@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/shared/">
+    <Project Path="shared/Uta.Shared.Contracts/Uta.Shared.Contracts.csproj" />
+    <Project Path="shared/Uta.Shared.Domain/Uta.Shared.Domain.csproj" />
+    <Project Path="shared/Uta.Shared.Domain.Tests/Uta.Shared.Domain.Tests.csproj" />
+  </Folder>
+  <Folder Name="/server/">
+    <Project Path="server/Uta.Server/Uta.Server.csproj" />
+    <Project Path="server/Uta.Server.Tests/Uta.Server.Tests.csproj" />
+  </Folder>
+  <Folder Name="/external/">
+    <Project Path="external/VolTech-MagicOnion/src/VolTech.Server.Abstractions/VolTech.Server.Abstractions.csproj" />
+    <Project Path="external/VolTech-MagicOnion/src/VolTech.Server/VolTech.Server.csproj" />
+  </Folder>
+</Solution>

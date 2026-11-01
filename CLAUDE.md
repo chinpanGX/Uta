@@ -73,9 +73,9 @@ uta/
 │     │  ├─ master/     # マスタ設計（定義・生成・配信、システムごとのテーブルと列）
 │     │  └─ server/     # サーバーの実装設計（サーバー基盤、ガチャ・強化の処理）
 │     └─ decisions/     # ADR
-├─ server/        # ASP.NET Core + MagicOnion（プロジェクトは未作成。今は .editorconfig のみ）
+├─ server/        # ASP.NET Core + MagicOnion（Uta.Server・Uta.Server.Tests・compose.yaml）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO。未作成）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO。今は中身が空）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
@@ -164,10 +164,13 @@ uta/
 
 ## ビルド・テスト・実行
 
-プロジェクト（`server/`・`client/`）を作成したら、実際に動くコマンドをここに追記する。
+プロジェクト（`client/`）を作成したら、実際に動くコマンドをここに追記する。
 
 - `shared/Uta.Shared.Domain` のビルド: `dotnet build shared/Uta.Shared.Domain`
 - `shared/Uta.Shared.Domain` の単体テスト: `dotnet test --project shared/Uta.Shared.Domain.Tests`（.NET 10 SDK。実行方式はルートの `global.json` で Microsoft.Testing.Platform を指定）
+- サーバー・shared 全体のビルド: `dotnet build Uta.slnx`（警告 0・エラー 0）
+- サーバーのテスト: `dotnet test --project server/Uta.Server.Tests`（アーキテクチャテストと結合テスト。結合テストは Docker が要る: Testcontainers が PostgreSQL を起動する）
+- ローカルのサーバー: `docker compose --env-file server/.env -f server/compose.yaml up -d --wait`（`server/.env` は `.env.example` を写して `POSTGRES_PASSWORD` を書く）→ `dotnet user-secrets set "ConnectionStrings:Default" "<接続文字列>" --project server/Uta.Server` → `dotnet run --project server/Uta.Server -- migrate`（マイグレーション）→ `dotnet run --project server/Uta.Server`（`http://localhost:5000`）
 - wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
 
 ## 用語集

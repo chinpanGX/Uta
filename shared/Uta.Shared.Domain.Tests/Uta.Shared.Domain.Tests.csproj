@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <!-- xunit.v3 4.x は Microsoft.Testing.Platform で動く（ルートの global.json で dotnet test の実行方式を指定） -->
-    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
 </Project>

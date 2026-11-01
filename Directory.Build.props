@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- shared/・server/ の .NET プロジェクトの共通設定（repository-layout.md 2.1）。Nullable・LangVersion は各 .csproj に書く -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <!-- .editorconfig の規約（var・Allman・命名）をビルドの警告にする -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Unity にソースで入るため、netstandard2.1・C# 9 に収める（repository-layout.md 5章） -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Uta.Shared.Contracts</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
+    <ProjectReference Include="..\..\external\VolTech-MagicOnion\src\VolTech.Server.Abstractions\VolTech.Server.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

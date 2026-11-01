@@ -50,6 +50,8 @@ client/*/*.ipa
 # --- .NET (server/, shared/) ---
 bin/
 obj/
+bin~/
+obj~/
 .vs/
 *.user
 *.suo

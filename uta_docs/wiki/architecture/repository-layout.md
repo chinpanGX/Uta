@@ -37,9 +37,9 @@ updated: 2026-11-01
 uta/
 ├─ CLAUDE.md
 ├─ global.json              # [決定] dotnet test の実行方式（Microsoft.Testing.Platform）
-├─ Uta.slnx                 # [決定] shared/・server/ のソリューション（2.1）（未作成）
-├─ Directory.Build.props    # [決定] .NET のプロジェクト共通の設定（2.1）（未作成）
-├─ Directory.Packages.props # [決定] NuGet の版を一か所で固定する（2.1）（未作成）
+├─ Uta.slnx                 # [決定] shared/・server/ のソリューション（2.1）
+├─ Directory.Build.props    # [決定] .NET のプロジェクト共通の設定（2.1）
+├─ Directory.Packages.props # [決定] NuGet の版を一か所で固定する（2.1）
 ├─ external/                 # [決定] サブモジュール（ADR 0005）
 │  ├─ VolTech-MagicOnion/    #   サーバー基盤、Unity 側 Abstractions
 │  ├─ MasterMemoryAddons/    #   マスタのコード生成・検証・バイナリ生成
@@ -53,12 +53,12 @@ uta/
 │  └─ gen.ps1                #   生成のスクリプト（masterdata-pipeline.md 7章）
 ├─ shared/                   # [決定] Unity・サーバー共有。C# 9 の範囲（.editorconfig）
 │  ├─ Uta.Shared.Domain/            # [決定] 純粋なゲームルール（ADR 0008）
-│  ├─ Uta.Shared.Contracts/            # [決定] サービスIF・DTO（通信契約。ADR 0008）（未作成）
+│  ├─ Uta.Shared.Contracts/            # [決定] サービスIF・DTO（通信契約。ADR 0008）。今は中身が空
 │  └─ Uta.Shared.Domain.Tests/      # [決定] Uta.Shared.Domain の単体テスト（10.4）
 ├─ server/                   # [決定] .NET 10
-│  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）（未作成）
-│  ├─ Uta.Server.Tests/      # [決定] サーバーのテスト 1 プロジェクト（10.4）（未作成）
-│  └─ Uta.Server/            # [決定] 1プロジェクト。フォルダで層を分ける（未作成）
+│  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）
+│  ├─ Uta.Server.Tests/      # [決定] サーバーのテスト 1 プロジェクト（10.4）
+│  └─ Uta.Server/            # [決定] 1プロジェクト。フォルダで層を分ける
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
@@ -66,7 +66,7 @@ uta/
 │     ├─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
 │     └─ MasterData/         #   生成物（サーバー用）: Generated/ のソースと masterdata.bytes（ADR 0013）
 └─ client/
-   ├─ Directory.Build.props  # [決定] 上の階層の設定を Unity の csproj に効かせない（2.1）（未作成）
+   ├─ Directory.Build.props  # [決定] 上の階層の設定を Unity の csproj に効かせない（2.1）
    └─ uta/                   # [決定] Unity プロジェクトのルート
       └─ Assets/Scripts/     # [決定] 層ごとに asmdef（3章）（未作成）
          ├─ Application/     #   ユースケース、ポート
@@ -108,7 +108,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 | 呼び名 | コード |
 |---|---|
 | Shared.Domain | `shared/Uta.Shared.Domain`（テストは `shared/Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
-| Shared.Contracts | `shared/Uta.Shared.Contracts`（未作成。サービスIF・DTO）。パッケージ名は `com.uta.shared.contracts` |
+| Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO。今は中身が空）。パッケージ名は `com.uta.shared.contracts` |
 | Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） |
 | Client.Domain | なし。呼び名だけ用意する。クライアント固有の知識は今は `Application` / `Presentation` に置き（6.1）、層を作るときに `Uta.Client.Domain` にする |
 
@@ -159,7 +159,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 5. **NuGet の版は VolTech-MagicOnion が先**（2.1）
 6. Uta の実装計画で共通基盤の変更が要るときは、計画のタスクを「共通基盤の変更」と「Uta のポインタ更新と利用」に分ける
 
-サーバーの中の依存の向き [決定。2026-10-31]。**許可の一覧**として読む: 「参照してよいもの」に無いものはすべて禁止で、「禁止」の列は間違えやすいものの例 [決定。2026-11-01。ユーザーの判断]。NetArchTest のテストも、層ごとに許可の一覧から書く:
+サーバーの中の依存の向き [決定。2026-10-31]。「参照してよいもの」は設計の意図で、NetArchTest で検査するのは「禁止」の列。**層ごとに「禁止」の列を 1 ルールにする**（2026-11-01、1a の実装計画で、下の箇条書きの形に統一した。許可の一覧の形は、禁止の列に無い依存を検出できるので、層に型が増えたときに見直す）:
 
 | フォルダ（名前空間） | 参照してよいもの | 禁止 |
 |---|---|---|
@@ -171,7 +171,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
 - **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`、クライアントは `Assets/Scripts/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。生成物を参照してよいのは Infrastructure だけ
 - 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
-- 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする
+- 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする（層ごとに 1 件。型がまだ無い層のルールは空の集合で通るので、その層に最初の型が入る計画が「型が 1 つ以上ある」テストを足す）。動作の確認（2026-11-01）: NetArchTest.Rules 1.3.2 は .NET 10・xunit.v3（Microsoft.Testing.Platform）で動き、違反を検出できる
 - クライアントの `Application` の asmdef は **`noEngineReferences` を使わない**。UniTask を参照するため（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)・[ADR 0009](../decisions/0009-client-stack.md)）。UnityEngine の API を使わないことは、コードレビュー（[layers/client.md](../../../.claude/skills/requesting-code-review/layers/client.md)）で守る [決定。2026-10-31。2026-10-28 の「`true` にする」は ADR と食い違っていたので戻した]
 - DI は VContainer、非同期処理は UniTask [決定。[ADR 0009](../decisions/0009-client-stack.md)]
 
@@ -268,12 +268,11 @@ Shared.Domain と固有の知識が混ざるときの作法:
 |---|---|---|---|
 | `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く | client/ の最初の実装計画 |
 | MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
-| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認 | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | server/・client/ の最初の実装計画 |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認。サーバー側の MagicOnion・MessagePack は 2026-11-01 に確認済み（`Uta.Server` をビルドして NU1605 などが出ない） | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | client/ の最初の実装計画 |
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](master/masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル | マスタの定義 |
 | UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド | client/ の最初の実装計画 |
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
 | Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 | dev へのデプロイ |
-| NetArchTest が .NET 10・xunit.v3（Microsoft.Testing.Platform）で動くか。保守されているか | 3章 | サーバーのテストプロジェクトで 1 件動かす。使えなければ、保守されているフォーク（`NetArchTest.eNhancedEdition`）か ArchUnitNET に替える | サーバーのアーキテクチャテスト |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
 | Cloud SQL で PostgreSQL 18 を選べるか | 11.4 | 公式の対応表を見る。選べなければ選べる最新の版に、Compose と Testcontainers もそろえる | dev へのデプロイ |
 | `Uta.Shared.Domain` の計算が IL2CPP と .NET 10 で一致するか | 6章、10.4 | 実機ビルドのときに 1 回、固定のシードと操作列で再生した状態を項目ごとに比べる（[produce-domain.md](produce-domain.md) 7章）。（[lesson-phases.md](lesson-phases.md) 8章） | なし（実機ビルドの手順に入れる） |
@@ -334,7 +333,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 - **サーバーの結合テストは Testcontainers** で、テストのたびに Docker で PostgreSQL を立ち上げる。本番と同じ DB の挙動で確かめる（Docker が要る）。`server/compose.yaml` の PostgreSQL でも足りるが、テストごとにまっさらな DB を作れることと、技術先行で触る目的で採る
 - テストプロジェクトはテスト対象の隣に置く。`Uta.Shared.Domain` は `shared/Uta.Shared.Domain.Tests/`（2026-10-28 決定）
 - サーバーは `server/Uta.Server.Tests/` の 1 プロジェクトに、単体テスト・アーキテクチャテスト（NetArchTest。3章）・結合テスト（Testcontainers）をまとめ、フォルダで分ける（2026-10-31 決定。VolTech-MagicOnion の `VolTech.Server.Tests` と同じ形）。Docker が無いと結合テストは通らない
-- 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
+- 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。サーバーのテストの版（Testcontainers.PostgreSql・NetArchTest.Rules・Mvc.Testing など）は `Directory.Packages.props` が正。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
 
 ### 10.5 アプリのバージョン
 
@@ -402,7 +401,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 ## 12. 実装の進め方 [決定。2026-10-31]
 
-実装計画の単位と順は [game-spec.md](../overview/game-spec.md) の「実装計画の単位と順」が正。ここでは、その 1 番目の計画（**通信の疎通**）に何を入れるかを決める。
+実装計画の単位と順は [game-spec.md](../overview/game-spec.md) の「実装計画の単位と順」が正。ここでは、その 1 番目の計画（**通信の疎通**）に何を入れるかを決める。1 番目の計画は、サーバー・`shared/` の側の **1a「通信の疎通（サーバー）」**（手順 1・2・4。待つもの: なし）と、Unity の側の **1b「通信の疎通（クライアント）」**（手順 5・6。手順 6 は 1a のマージ後。完了条件 0 は 1b が受け持つ）に分ける（2026-11-01。1a と 1b は別の実装計画・別のセッションで進める）。1a は 2026-11-01 に実装した（[計画](../../plans/2026-11-01-connectivity-check-server.md)）。
 
 **方針**: 手をつけやすく、後で問題が出ない順にする。後で問題になりやすいのは、Unity 7（アルファ版）・IL2CPP・HTTP/2 まわりの、動くか分からないもの（8章）。これをゲームの機能を書く前に、最小の構成で通しておく。ゲームの機能（プロデュース・ガチャ）の計画は、1 番目の計画が通るまで始めない（`Uta.Shared.Domain` とマスタの計画は、通信に関係しないので並行してよい）。
 
@@ -413,7 +412,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 | 1 | 2.1 のファイル（`Uta.slnx`・`Directory.Build.props`・`Directory.Packages.props`・`client/Directory.Build.props`）。`Uta.Shared.Domain.Tests` の版を中央管理へ移す | `dotnet build Uta.slnx` と既存のテストが通る |
 | 2 | `shared/Uta.Shared.Contracts`（中身は空でよい。`VolTech.Server.Abstractions` を参照するだけ） | 版の衝突が出ない |
 | 3 | **（2026-10-31 に済み）VolTech-MagicOnion の変更**（3.1 の 6）: `devices`・`last_responses`・`game_logs` の `player_id` を `uuid` から `char(26)` に変えた（10.1。VolTech-MagicOnion の `f79974d`、Uta のポインタも更新済み）。VolTech-MagicOnion のテスト・CHANGELOG（互換性が壊れる変更）まで済ませて push し、Uta のポインタを上げる | VolTech-MagicOnion のテストが通る |
-| 4 | `server/Uta.Server`（下の「サーバーの骨組み」。Uta の RPC は無し）、`server/compose.yaml`、`server/Uta.Server.Tests`（アーキテクチャテスト 1 件と、VolTech-MagicOnion の端末登録の結合テスト 1 件） | NetArchTest が xunit.v3 で動く。ローカルで VolTech-MagicOnion の端末登録が通る |
+| 4 | `server/Uta.Server`（下の「サーバーの骨組み」。Uta の RPC は無し）、`server/compose.yaml`、`server/Uta.Server.Tests`（実際は、アーキテクチャテスト 6 件と、端末登録・ヘルスチェック・マイグレーションの結合テスト 7 件） | NetArchTest が xunit.v3 で動く。ローカルで VolTech-MagicOnion の端末登録が通る（**2026-11-01 に確認済み**） |
 | 5 | Unity 側: 外部パッケージを 3章の入れ方（NuGetForUnity と UPM）で入れ、`com.chinpangx.voltech.magiconion`・`com.uta.shared.domain`・`com.uta.shared.contracts` を `manifest.json` に入れ、3章の asmdef を作る | `shared/` の `file:` 取り込み、各パッケージが Unity 7 で動く、版が揃う、IL2CPP のビルドが通る（`Microsoft.Bcl.AsyncInterfaces`） |
 | 6 | Unity から VolTech-MagicOnion の端末登録（`RegisterAsync` → トークン）を呼ぶ最小の画面または起動処理 | 完了条件 0（Editor と Windows の IL2CPP）。結果は `architecture/unity7-evaluation.md` に書く |
 
@@ -432,7 +431,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 ## 未決事項
 
 - ビルド・CI の実体（`architecture/build-ci.md` として起こす予定。手動の手順を書き留めてから GitHub Actions に移す。11.2）
-- NuGet・UPM の具体の版。1 番目の実装計画（12章）で決める（VolTech-MagicOnion と共通のものは 2.1 のとおり VolTech-MagicOnion に合わせる）
+- UPM の具体の版（Unity 側。1b の実装計画で決める）。NuGet の版は `Directory.Packages.props` が正（2026-11-01 に 1a で決めた。VolTech-MagicOnion と共通のものは VolTech-MagicOnion に合わせる）
 
 （2026-10-31 に解決: ソリューションと版の管理（2.1）、共通基盤の固定と扱い（3.1）、サーバーのテストの置き場（10.4）、PostgreSQL の版・ポート・DB 名（11.4））
 
