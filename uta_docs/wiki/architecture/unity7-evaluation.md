@@ -60,7 +60,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - **エラー詳細のトレーラー**（`ErrorInfo`・`grpc-status-details-bin`）が YetAnotherHttpHandler・IL2CPP で届くか。この計画の RPC は `ErrorInfo` を付けない
 - **Android / iOS** の実機ビルド
 - **Managed Stripping を上げたとき・iOS / Android での VContainer のコンストラクター注入**（リフレクション。既定の Stripping の Windows IL2CPP では通った）。`[Preserve]`・`link.xml`・VContainer の Source Generator のどれかが要りうる
-- **MasterMemory・MasterMemoryAddons**（Unity のパッケージ `package.json`・asmdef が無く、入れ方は [masterdata-pipeline.md](master/masterdata-pipeline.md) の未決。今回は入れていない）
+- **MasterMemory・MasterMemoryAddons**（2026-11-01 に[別の計画](../../plans/2026-11-01-masterdata-unity.md)で入れた。Windows の Editor で読み込みを確認。IL2CPP・実機は未確認）
 - UnityScreenNavigator・Supplement は取り込みだけで、使っていない
 
 ## 4. 警告・注意
