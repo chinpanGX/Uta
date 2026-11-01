@@ -24,6 +24,9 @@ namespace Uta.Shared.Domain.Tests.Lesson
             AddAll(extra);
         }
 
+        /// <summary>昇順</summary>
+        public IReadOnlyList<int> CardIds { get; private set; } = new int[0];
+
         public CardDefinition Get(int cardId)
         {
             return cards[cardId];
@@ -40,6 +43,10 @@ namespace Uta.Shared.Domain.Tests.Lesson
 
                 cards.Add(definition.Id, definition);
             }
+
+            var ids = new List<int>(cards.Keys);
+            ids.Sort();
+            CardIds = ids.ToArray();
         }
     }
 }

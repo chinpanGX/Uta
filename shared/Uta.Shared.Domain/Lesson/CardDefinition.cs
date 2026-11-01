@@ -162,6 +162,9 @@ namespace Uta.Shared.Domain.Lesson
     public interface ICardCatalog
     {
         CardDefinition Get(int cardId);
+
+        /// <summary>全カードの ID。昇順</summary>
+        IReadOnlyList<int> CardIds { get; }
     }
 
     /// <summary>レッスンのルールの値（lesson-card.md 4.1）。差し替えない（lesson-domain-types.md 2章）。</summary>
