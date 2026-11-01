@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.chinpangx.voltech.magiconion": "file:../../../external/VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion",
+    "com.chinpangx.mastermemory.addons": "file:../../../external/MasterMemoryAddons/src/MasterMemory.Addons.Core",
     "com.chinpangx.supplement": "file:../../../external/Supplement/Assets/Supplement",
     "com.chinpangx.supplement.messagepack": "file:../../../external/Supplement/Assets/Supplement.MessagePack",
     "com.cysharp.magiconion.client.unity": "https://github.com/Cysharp/MagicOnion.git?path=src/MagicOnion.Client.Unity/Assets/Scripts/MagicOnion.Client.Unity#7.11.0",
@@ -16,6 +17,7 @@
     "com.unity.ide.visualstudio": "2.0.28",
     "com.unity.inputsystem": "7.0.0",
     "com.unity.pipeline": "0.9.1-exp.1",
+    "com.unity.test-framework": "1.9.0",
     "com.unity.render-pipelines.universal": "17.7.0",
     "com.unity.ugui": "7.0.0",
     "com.uta.shared.domain": "file:../../../shared/Uta.Shared.Domain",

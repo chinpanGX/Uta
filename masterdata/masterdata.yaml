@@ -7,3 +7,9 @@ outputs:
     source: ../server/Uta.Server/Infrastructure/MasterData/Generated
     namespace: Uta.MasterData
     binary: ../server/Uta.Server/Infrastructure/MasterData/masterdata.bytes
+  - name: unity
+    target: client
+    source: ../client/uta/Assets/Scripts/Infrastructure/MasterData/Generated
+    namespace: Uta.MasterData
+    binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes
+    encrypt: true
