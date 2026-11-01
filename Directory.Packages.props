@@ -1,0 +1,33 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- VolTech-MagicOnion の Directory.Packages.props と同じ版は同じに保つ。上げるときは基盤が先 -->
+  <ItemGroup>
+    <PackageVersion Include="MagicOnion.Abstractions" Version="7.11.0" />
+    <PackageVersion Include="MagicOnion.Server" Version="7.11.0" />
+    <PackageVersion Include="MagicOnion.Client" Version="7.11.0" />
+    <PackageVersion Include="MessagePack" Version="3.1.12" />
+    <PackageVersion Include="MessagePack.Annotations" Version="3.1.12" />
+    <PackageVersion Include="Grpc.AspNetCore.Server" Version="2.84.0" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.84.0" />
+    <PackageVersion Include="Grpc.StatusProto" Version="2.84.0" />
+    <PackageVersion Include="Grpc.AspNetCore.HealthChecks" Version="2.84.0" />
+    <PackageVersion Include="Grpc.HealthCheck" Version="2.84.0" />
+    <PackageVersion Include="Microsoft.NET.StringTools" Version="17.14.28" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Dapper" Version="2.1.89" />
+    <PackageVersion Include="dbup-postgresql" Version="7.0.1" />
+    <PackageVersion Include="Ulid" Version="1.4.1" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="ZLogger" Version="2.5.10" />
+  </ItemGroup>
+
+</Project>
