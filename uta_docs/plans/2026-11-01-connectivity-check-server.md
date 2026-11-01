@@ -155,6 +155,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 ```csharp
 using MagicOnion.Server;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
 using Uta.Server.Infrastructure;
 using VolTech.Server.Auth;
@@ -191,7 +192,8 @@ builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(li
 builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<IPlayerResolver, PlayerResolver>();
 builder.Services.AddVoltechServer(options => builder.Configuration.GetSection("Voltech").Bind(options));
-builder.Services.AddGrpcHealthChecks();
+// 登録した確認が 0 件だと Check が Unknown を返すので、常に Healthy の確認を 1 つ入れる（DB の確認は入れない。11.4）
+builder.Services.AddGrpcHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy());
 
 var app = builder.Build();
 app.MapMagicOnionService();
