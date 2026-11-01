@@ -33,13 +33,13 @@ updated: 2026-11-01
 ```
 masterdata/Definitions/*.cs        … 全列入りの定義（正本）
         │  code-gen
-        ├──▶ （クライアント用ソース。今は作らない。Unity に取り込む計画で足す）
+        ├──▶ client/uta/Assets/Scripts/Infrastructure/MasterData/Generated/ クライアント用ソース（ServerOnly を除く）
         └──▶ server/Uta.Server/Infrastructure/MasterData/Generated/ サーバー用ソース（ClientOnly を除く）
                    │  各プロジェクトで MasterMemory の Source Generator が MemoryDatabase を生成
 
 masterdata/csv/*.csv               … スプレッドシートから書き出した CSV
         │  master-gen（検証 → バイナリ生成）
-        ├──▶ （クライアント用 masterdata.bytes。今は作らない）
+        ├──▶ client/uta/Assets/StreamingAssets/MasterData/ クライアント用 masterdata.bytes（暗号化）＋ masterdata.manifest.json
         └──▶ サーバー用 masterdata.bytes ＋ masterdata.manifest.json（Infrastructure/MasterData/）
                    │
                    ├─ クライアント: Addressables などで配信（Uta 側の仕事。アドオンに配信の仕組みはない）
@@ -139,7 +139,9 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 ## 5. 出力先と設定 [決定／パスは Uta案]
 
-`masterdata/masterdata.yaml`（実物）。パスは設定ファイルのあるディレクトリからの相対 [確認]。**クライアント用の出力は今は作らない**（Unity に MasterMemory が入っておらず、生成ソースを置くとコンパイルできないため）。Unity に取り込む計画で、下の `unity` の出力先を足す。
+`masterdata/masterdata.yaml`（実物）。パスは設定ファイルのあるディレクトリからの相対 [確認]。（実物の抜粋）。
+
+クライアント用の出力（`unity`）は 2026-11-01 に足した（[計画](../../../plans/2026-11-01-masterdata-unity.md)）。
 
 ```yaml
 definitions: Definitions
@@ -151,11 +153,6 @@ outputs:
     source: ../server/Uta.Server/Infrastructure/MasterData/Generated
     namespace: Uta.MasterData
     binary: ../server/Uta.Server/Infrastructure/MasterData/masterdata.bytes   # コミットする。埋め込みリソース
-```
-
-Unity に取り込むときに足す出力先（案）:
-
-```yaml
   - name: unity
     target: client
     source: ../client/uta/Assets/Scripts/Infrastructure/MasterData/Generated
@@ -205,7 +202,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 | 項目 | 内容 | 状態 |
 |---|---|---|
-| Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の実機確認になる | 未着手 |
+| Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の確認になる | Windows の Editor（Mono）で確認済み（2026-11-01）。IL2CPP・Android・iOS は未確認 |
 | `[Exists]` が別の側を参照する場合 | `[ClientOnly]` / `[ServerOnly]` の列・テーブルを参照したとき、片側の生成物や検証がどうなるか | 確認済み（4章。問題なし） |
 | Windows での実行 | アドオンは make を前提にしている。Uta は `masterdata/gen.ps1` で回避する（7章）。アドオン側に PowerShell のスクリプトを用意してもよい | 回避済み |
 | 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
@@ -223,9 +220,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 ## 未決事項
 
 - 表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある
-- Unity にマスタの実行時ライブラリ（MasterMemory と `MasterMemory.Addons.Core`）を入れる方法。MasterMemory は NuGetForUnity。`Core` は、アドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（2026-11-01 に決定。[計画](../../../plans/2026-11-01-masterdata-unity.md)。実装は 2/2 のマージ後）
-- Android で `StreamingAssets` のバイナリを読む方法: 全プラットフォームで `UnityWebRequest` にする案（[計画](../../../plans/2026-11-01-masterdata-unity.md) 3章。Android での動作は未確認）
-- クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
+- IL2CPP・Android（`jar:file://` の `UnityWebRequest`）・iOS の実機でのマスタ読み込み。Windows の Editor では確認済み（[実装メモ](#実装メモ)）。Windows の IL2CPP は `IL1009` が解決済み（[unity7-evaluation.md](../unity7-evaluation.md) 3.1）なので、ビルドして確かめられる
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか
 - ゲーム仕様の変更時の運用（定義の変更でスキーマ ID が変わる → 古いアプリとの互換）
 
@@ -238,3 +233,11 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 - 生成ソースに `MemoryDatabase` は含まれず、ビルドのときに MasterMemory のソースジェネレーターが作る
 - MVP のカード 36 枚の ID は規則で振った（カード ID: F01〜F07 = 1〜7、S01〜S14 = 101〜114、L01〜L15 = 201〜215。効果・条件のグループ ID: `カードID × 100 + 面 × 10 + 連番`）。**この 36 枚の便宜であり、以後の計画は従わなくてよい**
 - CI への `check` の組み込み、`masterdata.bytes` が CSV と一致するかの検出（今の `--check` は生成ソースしか見ない。8章）は未実施
+
+2026-11-01 の実装（[計画: マスタを Unity に取り込む](../../../plans/2026-11-01-masterdata-unity.md)）で、仕様とのズレとして記録すること。
+
+- MasterMemory は NuGetForUnity（`Assets/packages.config`、3.0.4）。Source Generator は Unity 7 で動き、`Uta.MasterData.MemoryDatabase` が生成される（`MasterDataAssembly.cs` で名前空間を指定）。`MasterMemory.Addons.Core` は、アドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（アドオンの `main` に取り込み済み）
+- クライアント用の出力は 30 テーブル（`EvaluationRankReward` を除く）。`encrypt: true`
+- 読み込みは `Uta.Client.Infrastructure.MasterDataLoader`（`Load(byte[])`、`LoadFromStreamingAssetsAsync`。全プラットフォームで `UnityWebRequest`）。DI には登録していない（使う計画で作る）
+- Unity のテスト: `client/uta/Assets/Tests/EditMode`（Unity Test Framework 1.9.0）。実行は `unity test --mode EditMode`（同じプロジェクトを開いた Editor があると使えない。先に `unity close .`）
+- アドオンを Uta のツリーの中で `dotnet build`・`dotnet test` すると、Uta の `Directory.Packages.props`（版の一括管理）と `global.json`（テストランナー）が効いて失敗する。ビルドは `-p:ManagePackageVersionsCentrally=false`、テストはツリーの外にコピーして実行する

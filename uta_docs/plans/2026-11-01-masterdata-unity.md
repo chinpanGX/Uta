@@ -1,6 +1,6 @@
 ---
 title: 実装計画: マスタを Unity に取り込む（クライアント用の出力・MasterMemory の導入・StreamingAssets からの読み込み）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/repository-layout.md
 ---
@@ -337,3 +337,11 @@ namespace Uta.Client.Infrastructure
 
 - 2章で確かめたとおり、**`[Exists]` が別の側の表を参照しても `master-gen` は通る**。2/2 の「`EvaluationRankReward.Rank` に `[Exists]` を付けない」は、付けてよくなった（ServerOnly → Common の向き。アドオンのサンプルと同じ）。付けるかは 2/2 の判断に任せる
 - クライアントの出力を足したあと、定義のファイル名が 2/2 の計画のとおり（`Common.cs`・`Lesson.cs` ＋ 2/2 の追加分）であれば、`Generated/` の `.cs` の名前もそれに対応する
+
+## 9. 実装結果（2026-11-01）
+
+- 計画どおりに実装した。コミット: Uta の 3 つ（MasterMemory の導入と生成、アドオンの参照、ローダーとテスト）。アドオンは `main` の `a612e88`
+- Source Generator は Unity 7 で動いた（`Uta.MasterData.MemoryDatabase` が生成された）。クライアント用の出力は 30 テーブル
+- テスト: `unity test --mode EditMode` で 6 件すべて通る（Windows の Editor・Mono）。`precompiledReferences` の追加は要らなかった
+- 計画との違い: 同じプロジェクトを開いた Editor があると `unity test` が使えない（先に `unity close .`）。アドオンを Uta のツリーの中でビルド・テストすると Uta の CPM と `global.json` が効くので、`-p:ManagePackageVersionsCentrally=false` を付け、テストはツリーの外にコピーして流した（31 + 211 件が通る）
+- 未確認のまま: IL2CPP（Windows の `IL1009` は解決済みなので、ビルドして確かめられる）・Android・iOS
