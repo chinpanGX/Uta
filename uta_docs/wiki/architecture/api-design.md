@@ -48,14 +48,14 @@ updated: 2026-11-01
 
 - 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は RPC ごとに1組作り、名前は RPC 名から `Async` を除いて `Request` / `Response` を付ける（`DrawAsync` → `DrawRequest` / `DrawResponse`）。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる。例外は 2 つ [決定。2026-10-31]: 引数の無い RPC（`GetStateAsync`・`AbandonAsync`・`GetGachasAsync` など）は Request を作らない。プロデュースの操作の RPC は、共通の `ProduceStateResponse` を返す（[produce-domain.md](produce-domain.md) 8章）
 - **サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）** [決定。2026-11-01。ユーザーの判断。2026-10-31 の `SyncAsync` を二つに分けた]: 起動時に 1 回呼ぶ RPC の役割は、サーバーから所持データなどを一括で取る「サインイン」なので、プレイヤーの作成（サインアップ）と分ける。VolTech-MagicOnion も、サインアップ（プレイヤー作成）とサインイン（全件取得）をアプリが作る RPC として想定し、「サインアップ済みかは端末に保存せず、サインインの結果で判断する」としている。用語は [glossary.md](../glossary.md)。流れは [screen-design.md](screen-design.md) 4章: 端末に保存なし → 端末の登録（`RegisterAsync`）→ トークンの発行（`IssueTokenAsync`）→ サインアップ → サインイン。保存あり → トークンの発行 → サインイン。どちらも起動フローでホームに入る前に呼ぶ
-  - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[案。2026-11-01。ユーザーに確認中]。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[案]
+  - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[決定。2026-11-01。ユーザーの判断]。「独自の重複防止を作らない」（冒頭）の例外で、サインアップは作成の RPC なので、別の `x-request-id` で再び来ても何もしない。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[決定。2026-11-01。ユーザーの判断]
   - **`SignInAsync`**: 起動の流れで呼ぶ（起動時に 1 回。タイトルへ戻ったあと、未作成のときのサインアップの後にも呼び直す）。副作用のある「起動時の処理」と全件取得をまとめる。クライアントは受け取った所持データをキャッシュする。Request なし
     - 所持データなどを全件返す（項目は `GetPlayerAsync` の Response と同じ型を使う。型の項目は未決）
     - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
     - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
     - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
     - Response（`SignInResponse`）[決定。2026-11-01。`SyncResponse` の項目を引き継ぐ]: 所持データのほか、進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、このサインインでプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
-  - **プレイヤー未作成のとき**: `SignInAsync` は `PLAYER_NOT_CREATED` を返す（`SignUpAsync` 以外の Uta の RPC の共通の扱い。[server-foundation.md](server/server-foundation.md)）[案。2026-11-01。ユーザーに確認中]。クライアントはそれを受けたら `SignUpAsync` を呼び、あらためて `SignInAsync` を呼ぶ。サインアップの途中で通信が切れた後の再起動（端末には保存あり）も、この経路で直る
+  - **プレイヤー未作成のとき**: `SignInAsync` は `PLAYER_NOT_CREATED` を返す（`SignUpAsync` 以外の Uta の RPC の共通の扱い。[server-foundation.md](server/server-foundation.md)）[決定。2026-11-01。ユーザーの判断]。クライアントはそれを受けたら `SignUpAsync` を呼び、あらためて `SignInAsync` を呼ぶ。サインアップの途中で通信が切れた後の再起動（端末には保存あり）も、この経路で直る
   - `GetPlayerAsync` は `[NoSideEffects]`（読み取り専用のトランザクション）なので、破棄を入れられない。そのため `SignInAsync` と分ける。サインインが全件を返すので、`GetPlayerAsync` を残すか（取り直しに使うか）は未決
   - ガチャの交換pt の変換は持たない（MVP のガチャは期間を持たない。[gacha.md](../systems/gacha.md) 4章）
 - **操作の RPC は局面ごとに分ける** [決定]
@@ -98,7 +98,7 @@ updated: 2026-11-01
 
 | 接頭辞 | 機能 | 例 |
 |---|---|---|
-| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [案。ユーザーに確認中]。[server-foundation.md](server/server-foundation.md)。2026-11-01） |
+| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [決定。2026-11-01。ユーザーの判断]。[server-foundation.md](server/server-foundation.md)。2026-11-01） |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
 | `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
@@ -220,9 +220,6 @@ updated: 2026-11-01
 ## 未決事項
 
 - 報酬の具体の値（評価ランクごとの量。[produce.md](../systems/produce.md) 6.1 は仮の値）
-- `SignUpAsync` を 2 回目以降どう扱うか。案は「何もしない（`Created` = false）」。ほかの案は、エラー（例: `PLAYER_ALREADY_CREATED`）にしてクライアントが成功として扱う、2 回目は来ない前提にする。「再送は冪等性に任せ、独自の重複防止を作らない」（2章）との関係もあるので、ユーザーが決める
-- `SignUpResponse` の `Created`（案）を持つか
-- プレイヤー未作成のときの `SignInAsync` の返し方。案は `PLAYER_NOT_CREATED`
 - `SignInResponse` に載せる所持データの項目（`GetPlayerAsync` の Response と同じ型。型の項目も未決）
 - `GetPlayerAsync` を残すか（サインインが全件を返すため）
 - 起動の流れを 1 本にするか。初回の「登録 → 発行 → サインアップ → サインイン」と、「サインイン → `PLAYER_NOT_CREATED` → サインアップ → サインイン」は同じ状態に着くので、常にサインインから入る形に畳める案がある（レビューの指摘）
