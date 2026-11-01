@@ -1,6 +1,6 @@
 ---
 title: 実装計画: プレイヤーのサインアップ・サインイン（サーバー）
-status: draft
+status: ready
 updated: 2026-11-01
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/overview/game-spec.md
 ---
@@ -66,10 +66,14 @@ public sealed class SignUpResponse
     [Key(0)] public bool Created { get; }   // 今回作ったか。2 回目以降は false
 }
 
-// Player/SignInResponse.cs   （7 引数のコンストラクタに [SerializationConstructor]。引数の順は Key の番号）
+// Player/SignInResponse.cs
 [MessagePackObject]
 public sealed class SignInResponse
 {
+    // 引数名はプロパティ名の camelCase（level, exp, gold, supportPoints, gachaCurrency, hasActiveProduce, discardedProduce）。順は Key の番号
+    [SerializationConstructor]
+    public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce) { /* 各プロパティに代入 */ }
+
     [Key(0)] public int Level { get; }
     [Key(1)] public int Exp { get; }              // 今のレベルの中の経験値（produce.md 7章）
     [Key(2)] public int Gold { get; }
@@ -133,7 +137,7 @@ public sealed class SignInUseCase(IPlayerRepository players)
 -- InsertIfAbsentAsync（ExecuteAsync の戻り値、つまり影響した行数が 1 なら true）
 INSERT INTO players (player_id) VALUES (@playerId) ON CONFLICT (player_id) DO NOTHING
 -- FindAsync
-SELECT level, exp, gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency
+SELECT level AS Level, exp AS Exp, gold AS Gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency
 FROM players WHERE player_id = @playerId
 ```
 
@@ -209,7 +213,7 @@ public sealed class PlayerClient
 | `SignUp_Twice_DoesNothing` | `SignUpAsync`（`req-1`）→ `SignUpAsync`（`req-2`） | 2 回目は `Created == false`。行は 1 のまま |
 | `SignUp_SameRequestId_ReturnsStoredResponse` | `SignUpAsync`（`req-1`）を 2 回 | 2 回目も `Created == true`（保存済みのレスポンス）。行は 1 |
 | `SignIn_AfterSignUp_ReturnsDefaults` | `SignUpAsync` → `SignInAsync`（`req-2`） | `Level == 1`・`Exp == 0`・`Gold == 0`・`SupportPoints == 0`・`GachaCurrency == 0`・`HasActiveProduce == false`・`DiscardedProduce == false` |
-| `SignIn_BeforeSignUp_ReturnsPlayerNotCreated` | 登録 → `SignInAsync` | `RpcException`。`StatusCode == FailedPrecondition`。`Trailers` の `grpc-status-details-bin`（`GetValueBytes`）の UTF-8 化に `PLAYER_NOT_CREATED` と `uta` を含む。`players` に行は無い |
+| `SignIn_BeforeSignUp_ReturnsPlayerNotCreated` | 登録 → `SignInAsync` | `RpcException`。`StatusCode == FailedPrecondition`。`RpcException.Trailers` の `grpc-status-details-bin`（`Metadata.GetValueBytes("grpc-status-details-bin")`。無ければ `Metadata.Entry.ValueBytes` を key で探す）の UTF-8 化に `PLAYER_NOT_CREATED` と `uta` を含む。`players` に行は無い |
 | `SignIn_ThenSignUp_ThenSignIn_Works` | `SignInAsync`（失敗）→ `SignUpAsync` → `SignInAsync`（それぞれ別の `x-request-id`） | 最後の `SignInAsync` が成功する（クライアントの経路の確認） |
 | `SignIn_WithoutToken_Unauthenticated` | `PlayerClient` を使わず、`MagicOnionClient.Create<IPlayerService>(channel)` をヘッダーなしで直に呼ぶ（`SignInAsync`） | `StatusCode == Unauthenticated` |
 | `SignIn_WithoutRequestId_InvalidArgument` | 登録 → `SignUpAsync`（`req-1`）→ `CallAsync(..SignInAsync.., requestId: null)` | `StatusCode == InvalidArgument` |
