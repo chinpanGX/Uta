@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントでマスタを使う（マスタ → CardCatalog の詰め替えと、起動時の読み込み・DI 登録）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/screen-design.md, ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/lesson-domain-types.md
 ---
@@ -150,3 +150,11 @@ namespace Uta.Client.Infrastructure
 ## 7. 未決事項
 
 なし。ユーザーが推奨どおりと決めた（2026-11-01）: (1) マスタは認証より前に読む。(2) 読み込みに失敗したらリトライせず、表示して止まる。(3) `UtaBootstrap` が読み込む（Application にポートは足さない）。(4) Bootstrap は `MemoryDatabase`（`Uta.MasterData`）を触らず、`MasterCardCatalog.LoadFromStreamingAssetsAsync` で包む。このため、カード以外の変換を足す計画で `MemoryDatabase` を一度だけ読んで共有する形に直す（今回はカタログを作ったら捨てる）。
+
+## 8. 実装結果（2026-11-01）
+
+- 計画どおりに実装した（Sonnet のサブエージェント）。Infrastructure の `MasterCardCatalog`、`UtaBootstrap` の非同期化と `ICardCatalog` の登録、EditMode テスト（`MasterCardCatalogTests` 18 件）。asmdef は Bootstrap とテストに `Uta.Shared.Domain` を足した
+- `unity test --mode EditMode` で 26 件（既存 7 件を含む）すべて通る。コンパイルは、そのバッチ実行で `error CS` 0 件
+- 計画との違い: 新しい worktree には `Assets/Packages/`（NuGet の復元物）が無くコンパイルが通らないので、メインの checkout からコピーして通した（gitignore 済み）。`unity recompile` はメインの Editor を相手にしたので使えなかった
+- **確認できていない**: Play モードでの `master: ok` の表示と失敗の表示（確かめ方 3）、Windows の IL2CPP と終了コード（確かめ方 4）、Android・iOS
+- コードレビュー（requesting-code-review）は未実施
