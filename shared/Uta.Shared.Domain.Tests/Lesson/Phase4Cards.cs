@@ -9,15 +9,15 @@ namespace Uta.Shared.Domain.Tests.Lesson
     /// </summary>
     public static class Phase4Cards
     {
-        public const int S02 = 32;
-        public const int S03 = 33;
-        public const int S05 = 35;
-        public const int S08 = 38;
-        public const int S09 = 39;
-        public const int S10 = 40;
-        public const int S12 = 42;
-        public const int S13 = 43;
-        public const int S14 = 44;
+        public const int S02 = 102;
+        public const int S03 = 103;
+        public const int S05 = 105;
+        public const int S08 = 108;
+        public const int S09 = 109;
+        public const int S10 = 110;
+        public const int S12 = 112;
+        public const int S13 = 113;
+        public const int S14 = 114;
 
         public static IReadOnlyList<int> AllIds => new[] { S02, S03, S05, S08, S09, S10, S12, S13, S14 };
 

@@ -9,11 +9,11 @@ namespace Uta.Shared.Domain.Tests.Lesson
     /// </summary>
     public static class Phase3Cards
     {
-        public const int S01 = 31;
-        public const int S04 = 34;
-        public const int S06 = 36;
-        public const int S07 = 37;
-        public const int S11 = 41;
+        public const int S01 = 101;
+        public const int S04 = 104;
+        public const int S06 = 106;
+        public const int S07 = 107;
+        public const int S11 = 111;
 
         public static IReadOnlyList<int> AllIds => new[] { S01, S04, S06, S07, S11 };
 

@@ -15,13 +15,13 @@ namespace Uta.Shared.Domain.Tests.Lesson
         public const int F04 = 4;
         public const int F05 = 5;
         public const int F06 = 6;
-        public const int L01 = 11;
-        public const int L02 = 12;
-        public const int L04 = 14;
-        public const int L07 = 17;
-        public const int L10 = 20;
-        public const int L14 = 24;
-        public const int L15 = 25;
+        public const int L01 = 201;
+        public const int L02 = 202;
+        public const int L04 = 204;
+        public const int L07 = 207;
+        public const int L10 = 210;
+        public const int L14 = 214;
+        public const int L15 = 215;
 
         public static IReadOnlyList<int> AllIds => new[] { F01, F02, F03, F04, F05, F06, L01, L02, L04, L07, L10, L14, L15 };
 

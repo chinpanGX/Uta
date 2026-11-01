@@ -10,14 +10,14 @@ namespace Uta.Shared.Domain.Tests.Lesson
     public static class Phase2Cards
     {
         public const int F07 = 7;
-        public const int L03 = 13;
-        public const int L05 = 15;
-        public const int L06 = 16;
-        public const int L08 = 18;
-        public const int L09 = 19;
-        public const int L11 = 21;
-        public const int L12 = 22;
-        public const int L13 = 23;
+        public const int L03 = 203;
+        public const int L05 = 205;
+        public const int L06 = 206;
+        public const int L08 = 208;
+        public const int L09 = 209;
+        public const int L11 = 211;
+        public const int L12 = 212;
+        public const int L13 = 213;
 
         public static IReadOnlyList<int> AllIds => new[] { F07, L03, L05, L06, L08, L09, L11, L12, L13 };
 
