@@ -41,4 +41,8 @@ updated: 2026-11-01
 
 ## 実装メモ
 
-(実装後に設計とのズレをここに記録する)
+- 実装 [2026-11-01。計画 `plans/2026-11-01-masterdata-rest.md`]: `masterdata/Definitions/Produce.cs`、CSV 12 ファイル。MVP はシナリオ 2 つ（最短 3 週、初級 13 週）
+- この計画で名前を付けた enum（メンバーは 0 の `Nothing` のあと、書かれた順に 1 から）: `Difficulty`（`Beginner` / `Intermediate` / `Advanced`）、`WeekKind`（`Action` / `Finishing` / `MidExam` / `FinalExam`）、`ActionKind`（`Lesson` / `Class` / `Supply` / `Outing` / `Consult`）、`ExamKind`（`Mid` / `Final`）、`ProduceRank`（`F` / `E` / `D` / `C` / `CPlus` / `B` / `BPlus` / `A` / `APlus` / `S` / `SPlus` / `SS` / `SSPlus` = 1〜13）。`Uta.Shared.Domain` に元の enum を作るときはこの名前・数値に合わせる
+- 検証の置き場: 行の検査は `IValidatable`、表をまたぐ検査はサーバーのテスト（`MasterDataInvariantTests`）。上の検証に加えて次を検査する: `FinalExam` は `ExamEarlyEndScore` も 0、`ExamPattern` の比率の合計 100(`IValidatable` で、比率がそれぞれ 0 以上、`FirstPercent` が 45 以上なら `FirstTurnSecondRatePerTenThousand` が 0 も検査する)、`EvaluationScoreBand` は `Order` が 1 から連続で `MinScore` が単調増加、`EvaluationRank` は 13 ランクがそろい `MinValue` が単調増加、`EvaluationRankReward` も 13 ランクがそろう、`ExamRankReward` は `Mid`・`Final` それぞれに Rank 1〜3、`PlayerLevelExp` は `Level` が 1 から連続
+- `EvaluationRankReward.Rank` には `[Exists]` を付けない（ServerOnly の表から Common の表への `[Exists]` は未確認。[repository-layout.md](../repository-layout.md) 8章）。13 ランクがそろうことはテストで確かめる
+- `playerLevelExp`（99 行、`40 × Level`）はテストで全行の式を確かめる。報酬・`MinValue` の値は仮

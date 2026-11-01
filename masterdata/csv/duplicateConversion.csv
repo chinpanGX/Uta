@@ -1,0 +1,10 @@
+DuplicateConversion,,
+出典: uta_docs/wiki/systems/gacha.md,,
+ItemKind,Rarity,int
+ItemKind,Rarity,Amount
+Idol,R,5
+Idol,SR,25
+Idol,SSR,50
+SupportCard,R,300
+SupportCard,SR,1000
+SupportCard,SSR,3000

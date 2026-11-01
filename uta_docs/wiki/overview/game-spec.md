@@ -105,7 +105,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 1a | 通信の疎通（サーバー）（ソリューションと版の管理、`Uta.Shared.Contracts`・`Uta.Server` の骨組み。中身は [repository-layout.md](../architecture/repository-layout.md) 12章の手順 1・2・4） | — | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
 | 1b | 通信の疎通（クライアント）（Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。12章の手順 5・6） | 0 | 1a（手順 6 は 1a のマージ後） |
 | 2a | masterdata の最初の計画 1/2（[計画](../../plans/2026-11-01-masterdata-first.md)。骨組み・レッスンの 5 テーブル・サーバーでの読み込み） | — | なし |
-| 2b | masterdata の最初の計画 2/2（[計画](../../plans/2026-11-01-masterdata-rest.md)。プロデュース・育成アイドル・サポートカード・ガチャの 26 テーブル） | — | 2a |
+| 2b | **done**（2026-11-01）masterdata の最初の計画 2/2（[計画](../../plans/2026-11-01-masterdata-rest.md)。プロデュース・育成アイドル・サポートカード・ガチャの 26 テーブル） | — | 2a |
 | 2c | マスタを Unity に取り込む（[計画](../../plans/2026-11-01-masterdata-unity.md)。クライアント用の出力・MasterMemory の導入・StreamingAssets からの読み込み） | — | 2b |
 | 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
 | 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
@@ -142,8 +142,8 @@ MVP で作る画面（[screen-design.md](../architecture/screen-design.md) 2章�
 
 ## 未決事項
 
-- Uta のキャラクターのステータス・サポートカードの値（masterdata の最初の実装計画で仮の値を置く）
-- ガチャ 1 本の中身（masterdata の最初の実装計画で決める）: 排出テーブルの重みの割り振り（レア・種類の比は [gacha.md](../systems/gacha.md) 3.1）、確定枠のテーブル、天井の交換対象（`GachaCeilingItem`。SSR の 2 種を候補にする）。初期付与の R 5 種も通常枠から出る
+- （決定。2026-11-01）Uta のキャラクターのステータス・サポートカードの値は、仮の値を置いた（ユーザーの許可。育成アイドル 4 人・サポートカード 10 種。名前も仮称。masterdata の計画 2/2）。オリジナルの名称・値の調整は後
+- （決定。2026-11-01）ガチャ 1 本の中身は masterdata の計画 2/2 で決めた: 通常枠は [gacha.md](../systems/gacha.md) 3.1 の率をレア内で等分（重みの合計 10000）、確定枠は SR 以上の 7 行、天井の交換対象は育成アイドル SSR とサポートカード SSR の 1 つずつ。2 種ともサポートカードにする読みもある（`gachaCeilingItem.csv` を直す）
 - スキルカードの `unlockLv`（仮の値 N・R = 1、SR = 5、SSR = 10 を入れた。参考作品の値が分かったら差し替える。[lesson-card.md](../systems/lesson-card.md) 14章）
 - オリジナル名称（プロデュース等の仮称、キャラ、世界観の最小設定）。MVP は仮称のままで進められる
 - マスタを Addressables によるダウンロードに移す時期（いまは同梱。[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md) 6章）。MVP は同梱のままで進められる

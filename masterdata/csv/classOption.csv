@@ -1,0 +1,16 @@
+ClassOption,,,,,
+出典: uta_docs/wiki/systems/produce.md,,,,,
+int,int,int,int,int,bool
+ScenarioId,Week,Order,HpCost,ParamGain,GivesCard
+2,2,1,8,40,TRUE
+2,2,2,4,30,TRUE
+2,2,3,0,15,TRUE
+2,3,1,8,40,TRUE
+2,3,2,4,30,TRUE
+2,3,3,0,15,TRUE
+2,8,1,8,40,TRUE
+2,8,2,4,30,TRUE
+2,8,3,0,15,TRUE
+2,10,1,8,80,TRUE
+2,10,2,4,55,TRUE
+2,10,3,0,30,TRUE

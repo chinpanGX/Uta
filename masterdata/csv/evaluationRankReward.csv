@@ -1,0 +1,17 @@
+EvaluationRankReward,,,,
+出典: uta_docs/wiki/systems/produce.md,,,,
+ProduceRank,int,int,int,int
+Rank,GachaCurrency,Gold,SupportPoints,Exp
+F,50,1000,500,10
+E,50,1500,800,12
+D,50,2000,1000,14
+C,100,3000,1500,16
+CPlus,150,4000,2000,18
+B,200,5000,2500,20
+BPlus,250,6000,3000,25
+A,300,8000,4000,30
+APlus,400,10000,5000,35
+S,500,12000,6000,40
+SPlus,600,14000,7000,45
+SS,700,17000,8500,50
+SSPlus,800,20000,10000,60

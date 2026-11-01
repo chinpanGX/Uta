@@ -53,7 +53,7 @@ uta/
 │  └─ gen.ps1                #   生成のスクリプト（masterdata-pipeline.md 7章）
 ├─ shared/                   # [決定] Unity・サーバー共有。C# 9 の範囲（.editorconfig）
 │  ├─ Uta.Shared.Domain/            # [決定] 純粋なゲームルール（ADR 0008）
-│  ├─ Uta.Shared.Contracts/            # [決定] サービスIF・DTO（通信契約。ADR 0008）。今は中身が空
+│  ├─ Uta.Shared.Contracts/            # [決定] サービスIF・DTO（通信契約。ADR 0008）
 │  └─ Uta.Shared.Domain.Tests/      # [決定] Uta.Shared.Domain の単体テスト（10.4）
 ├─ server/                   # [決定] .NET 10
 │  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）
@@ -109,7 +109,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 | 呼び名 | コード |
 |---|---|
 | Shared.Domain | `shared/Uta.Shared.Domain`（テストは `shared/Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
-| Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO。今は中身が空）。パッケージ名は `com.uta.shared.contracts` |
+| Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO）。パッケージ名は `com.uta.shared.contracts` |
 | Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） |
 | Client.Domain | なし。呼び名だけ用意する。クライアント固有の知識は今は `Application` / `Presentation` に置き（6.1）、層を作るときに `Uta.Client.Domain` にする |
 
@@ -130,7 +130,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 - **Unity に入れる外部パッケージ** [決定。2026-10-31]: VolTech-MagicOnion の利用ガイド（[getting-started.md](../../../external/VolTech-MagicOnion/docs/guide/getting-started.md)「使う版」）に合わせる。何をどう入れるかの正はこのガイドで、Uta はそれに足すものだけを書く
   - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`）は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
   - UPM にあるもの（NuGetForUnity・UniTask・VContainer・`MagicOnion.Client.Unity`・`MessagePack.Unity`・YetAnotherHttpHandler）は UPM の git URL で入れ、版はタグで固定する（`manifest.json`）
-  - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く
+  - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く（`.meta` の形に注意。unity7-evaluation.md 3.1）
   - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` はアドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（2026-11-01 に決定。[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md)）
   - サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
 
@@ -269,13 +269,13 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 | 項目 | 関係するページ | 確かめ方 | ブロックする作業 |
 |---|---|---|---|
-| `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く。**2026-11-01 に確かめた範囲**: Unity 7（`7000.0.0a12`）の Editor とバッチモードで、`file:` 取り込み（Domain・Contracts）が通り、`dotnet build` の後も型は重複しなかった（[unity7-evaluation.md](unity7-evaluation.md)）。**未確認**: Windows の IL2CPP（ビルドが `IL1009` で失敗）・Android・iOS | client/ の最初の実装計画 |
+| `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く。**2026-11-01 に確かめた範囲**: Unity 7（`7000.0.0a12`）の Editor とバッチモードで、`file:` 取り込み（Domain・Contracts）が通り、`dotnet build` の後も型は重複しなかった（[unity7-evaluation.md](unity7-evaluation.md)）。Windows の IL2CPP のプレイヤーのビルドと実行も通った。**未確認**: Android・iOS | client/ の最初の実装計画 |
 | MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
-| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認。サーバー側の MagicOnion・MessagePack は 2026-11-01 に確認済み（`Uta.Server` をビルドして NU1605 などが出ない） | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド。**2026-11-01 に確かめた範囲**: Unity 7 の Editor で、MagicOnion 7.11.0・MessagePack 3.1.12・Supplement（1.5.0）・Supplement.MessagePack（1.0.0）を取り込み、コンパイルが通った（版の警告なし）。MasterMemory は未入れ。IL2CPP は未確認（[unity7-evaluation.md](unity7-evaluation.md)） | client/ の最初の実装計画 |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認。サーバー側の MagicOnion・MessagePack は 2026-11-01 に確認済み（`Uta.Server` をビルドして NU1605 などが出ない） | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド。**2026-11-01 に確かめた範囲**: Unity 7 の Editor で、MagicOnion 7.11.0・MessagePack 3.1.12・Supplement（1.5.0）・Supplement.MessagePack（1.0.0）を取り込み、コンパイルが通った（版の警告なし）。MasterMemory は未入れ。Windows の IL2CPP で MagicOnion・MessagePack を通した RPC が通った（MasterMemory・Supplement は IL2CPP で未確認）（[unity7-evaluation.md](unity7-evaluation.md)） | client/ の最初の実装計画 |
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](master/masterdata-pipeline.md) 4章 | **確認済み（2026-11-01）**: アドオンのツールで通る（検証はデータ全体、クライアントの出力では落ちる） | マスタの定義 |
-| UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド。**2026-11-01 に確かめた範囲**: Editor で、UniTask 2.5.11・VContainer 1.19.0 の取り込みとコンパイル、VContainer の起動（Play モード）が通った。UnityScreenNavigator 1.8.0 は取り込みとコンパイルだけで、動作は未確認。IL2CPP は未確認（[unity7-evaluation.md](unity7-evaluation.md)） | client/ の最初の実装計画 |
-| Windows の IL2CPP のプレイヤーのビルドが `Microsoft.Bcl.AsyncInterfaces` の `IL1009` で失敗する。VolTech-MagicOnion のガイドの手順（`Assets/Plugins/` に DLL を置く）では直らず、基盤の Sandbox でも再現した | [unity7-evaluation.md](unity7-evaluation.md) 3.1、基盤の docs/guide/getting-started.md | 基盤の Sandbox で原因を調べ、基盤を直す（3.1 のルール）。`Microsoft.Bcl.TimeProvider` への依存を外す案など | Windows の IL2CPP のプレイヤー（完了条件 0）、実機ビルド |
-| Unity の IL2CPP で、`Abstractions` の MessagePack の型（`RegisterResult` など）が動くか。生成された `Resolver` はそれらのフォーマッタを持たない（`GetFormatter` が `null`。Editor では動く） | [unity7-evaluation.md](unity7-evaluation.md) 3.2 | IL2CPP のプレイヤー（上の行が通ってから）。直し方は、基盤に生成する Resolver を足すか、フォーマッタを足す | Windows の IL2CPP のプレイヤー（完了条件 0） |
+| UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド。**2026-11-01 に確かめた範囲**: Editor で、UniTask 2.5.11・VContainer 1.19.0 の取り込みとコンパイル、VContainer の起動（Play モード）が通った。UnityScreenNavigator 1.8.0 は取り込みとコンパイルだけで、動作は未確認。UniTask・VContainer は Windows の IL2CPP のプレイヤーでも動いた（[unity7-evaluation.md](unity7-evaluation.md)） | client/ の最初の実装計画 |
+| ~~Windows の IL2CPP のプレイヤーのビルドが `Microsoft.Bcl.AsyncInterfaces` の `IL1009` で失敗する~~ **解決済み（2026-11-01）**。原因は DLL の `.meta` の `Exclude Editor`（古い形式）で、Unity 7 がこの DLL をプレイヤーに渡さなかったこと。`Any` 有効・`Editor` 無効の形に直して通った。Uta の `Uta.exe` も作れた | [unity7-evaluation.md](unity7-evaluation.md) 3.1、基盤の docs/guide/getting-started.md | 確認済み。a12 の挙動なので、Unity の版を上げたら確かめ直す | 版を上げたとき |
+| Unity の IL2CPP で、`Abstractions` の MessagePack の型（`RegisterResult` など）が動くか。生成された `Resolver` はそれらのフォーマッタを持たない（`GetFormatter` が `null`）。**Windows の IL2CPP では失敗しなかった**（サインアップ・サインインが通った。2026-11-01） | [unity7-evaluation.md](unity7-evaluation.md) 3.2 | Windows は確認済み。iOS（AOT）は実機ビルドのときに確かめる。どのフォーマッタが使われたかは未調査 | iOS の実機ビルド |
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
 | Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 | dev へのデプロイ |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
