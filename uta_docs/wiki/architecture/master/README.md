@@ -78,7 +78,7 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 | テーブル | 主キー | 区分 | 中身 |
 |---|---|---|---|
 | `Gacha` | `GachaId` | Common | ガチャ（価格、通常枠・確定枠のテーブル、天井の交換pt） |
-| `GachaTable` | `GachaTableId` | Common | 排出テーブルの見出し |
+| `GachaDetailTable` | `GachaTableId` | Common | 排出テーブルの見出し |
 | `GachaTableEntry` | `GachaTableId` + `Order` | Common | 排出テーブルの 1 行（`ItemKind` + `IdolId` / `SupportCardId` と重み） |
 | `GachaCeilingItem` | `GachaId` + `Order` | Common | 天井で交換できるもの |
 | `DuplicateConversion` | `ItemKind` + `Rarity` | Common | 重複したときの変換量 |
@@ -86,4 +86,4 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 ### 5. 索引から見えること
 
 - 合計 31 テーブル（2026-11-01 にレッスンの見出し 2 つとプロデュースの `LessonSetting`・`ExamRivalScore` を減らした）。ServerOnly は `EvaluationRankReward` の 1 つ（`InitialSupportCard`・`InitialSetting` は 2026-11-01 に Common にした）。`[ClientOnly]` のテーブル・列はまだ無い（表示名・アイコンは未定義）
-- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（`EvaluationRankReward.Rank` → `EvaluationRank`）はあるが、両側に出すテーブルを指すので問題にならない見込み（推測。[repository-layout.md](../repository-layout.md) 8章の `[Exists]` の確認で確かめる）
+- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（`EvaluationRankReward.Rank` → `EvaluationRank`）は `[Exists]` を付けず、13 ランクがそろうことをサーバーのテストで確かめる（ServerOnly の表から Common の表への `[Exists]` は未確認。[repository-layout.md](../repository-layout.md) 8章。2026-11-01）

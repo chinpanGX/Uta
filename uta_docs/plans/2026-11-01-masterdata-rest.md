@@ -1,6 +1,6 @@
 ---
 title: 実装計画: masterdata の最初の計画 2/2（プロデュース・育成アイドル・サポートカード・ガチャのマスタ）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/master/produce-tables.md, ../wiki/architecture/master/idol-support-tables.md, ../wiki/architecture/master/gacha-tables.md, ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/overview/game-spec.md
 ---
