@@ -1,6 +1,6 @@
 ---
 title: 実装計画: プレイヤーのサインアップ・サインイン（サーバー）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/overview/game-spec.md
 ---

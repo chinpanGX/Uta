@@ -33,11 +33,11 @@ namespace Uta.Shared.Contracts.Player
         [Key(4)]
         public int GachaCurrency { get; }
 
-        /// <summary>この計画では常に false。</summary>
+        /// <summary>プロデュース未実装の間は常に false。</summary>
         [Key(5)]
         public bool HasActiveProduce { get; }
 
-        /// <summary>この計画では常に false。</summary>
+        /// <summary>プロデュース未実装の間は常に false。</summary>
         [Key(6)]
         public bool DiscardedProduce { get; }
     }
