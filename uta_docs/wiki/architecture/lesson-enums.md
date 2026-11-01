@@ -65,6 +65,7 @@ updated: 2026-11-01
 | `SetShield` | 元気増加無効のときも値を設定する([lesson-card.md](../systems/lesson-card.md) 7.2)。`Value` は 0 以上 |
 | `ScaleShield` | `Value` は 0〜100(減らすだけ)。端数は切り捨て |
 | `RecoverHp` | `Value` は 1 以上。最大体力で止める |
+| `GainParamByShield` / `GainParamByMotivation` / `AddFixedShield` | `Value` は 1 以上(2026-11-01。マスタの検証の規則と同じ。Domain の検証にも入れた) |
 | `AddStatus` | `Value` は 1 以上(減らす効果はない) |
 | `DrawCards` | `Value` は 1 以上。引ける分だけ引く(lesson-card.md 4章) |
 | どの `Op` も | 負の値は読み込み時にエラー(`CardDefinitionValidator`) |

@@ -278,6 +278,12 @@ namespace Uta.Shared.Domain.Tests.Lesson
         }
 
         [Fact]
+        public void ExamSetup_DefaultExamTurn_Throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ExamSetup(new[] { default(ExamTurn) }, 0));
+        }
+
+        [Fact]
         public void Comparer_ExamSetup_DescribesExamLine()
         {
             var exam = new LessonState(MainExam(), TestStates.Deck(new[] { Phase1Cards.F01 }), 30, 30);

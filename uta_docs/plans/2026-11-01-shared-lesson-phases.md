@@ -1,6 +1,6 @@
 ---
 title: 実装計画: Uta.Shared.Domain のレッスン（フェーズ 2〜4・6）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/lesson-phases.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/lesson-enums.md, ../wiki/systems/lesson-card.md
 ---
@@ -535,7 +535,14 @@ unique・startInHand はすべて ×。`TestCardCatalog` に `Phase3Cards.All()`
 
 なし。
 
-## 7. 実装が終わったあとの wiki の更新（メインのセッションが行う。実装担当には渡さない）
+## 6.1 実装メモ（2026-11-01）
+
+- 実装後のテストは 170 本成功、ビルド警告 0・エラー 0。コードレビューは Critical・Important なし。Minor のうち `default(ExamTurn)` を `ExamSetup` で弾くことを足した。
+- 計画から外れた点: `ExamSetup` は `turns` をコピーして持つ。`LessonReplayTests` に 36 枚の重複なしを確かめる 1 本を足し、復元点に届いたことも確かめる。テスト名のまとめ方（`Theory` にした）。
+- 見送った Minor: `Describe` が予約・持続効果の中身を `Op` の数値の並びでしか比べない／`Diff` が位置で比べる／項目ごとの網羅テスト／固定シードのゴールデン値。IL2CPP の実機確認（`client/`）の計画で足す。
+- 未解決（ユーザーの判断待ち）: テストのカード ID とマスタの ID の違い（lesson-phases.md 1章）。
+
+## 7. 実装が終わったあとの wiki の更新（済み）（メインのセッションが行う。実装担当には渡さない）
 
 - [lesson-phases.md](../wiki/architecture/lesson-phases.md): 冒頭の「フェーズ 0・1 は実装済み」を 2〜4・6 まで広げる。1章の「テストのカードの置き場」の「フェーズ 2 の実装計画で決める」を、決めたシグネチャ（3.1）への参照に直す。8章の「今の `Summarize` は置き換える」を「置き換えた」に直す
 - [lesson-domain-types.md](../wiki/architecture/lesson-domain-types.md): `ExamSetup`・`LessonResult`・`LessonStateComparer` の [未実装] を外す。実装メモに足す

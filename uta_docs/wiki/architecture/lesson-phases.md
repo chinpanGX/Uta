@@ -8,7 +8,7 @@ updated: 2026-11-01
 
 [lesson-card.md](../systems/lesson-card.md)（レッスンのゲームの仕様）を、どの順番で、どのコードを変えて作るかを書いた実装設計書。カード・効果・計算式・ターン処理順の正は lesson-card.md、実装の順番・フェーズごとに変えるコード・テストの置き場・完了条件の正はこのページ。2026-10-31 に lesson-card.md の 15章を移した（中身は変えていない）。型は [lesson-domain-types.md](lesson-domain-types.md)、enum は [lesson-enums.md](lesson-enums.md)。
 
-仕組みは最初から全ステータス分を用意し、カードとして動かす範囲を段階的に広げる。順番: 好印象 → 元気 → 好調 → 集中 → 試験 → 育成アイテム・ドリンク。この章は範囲の定義だけを書き、進み具合は実装メモと `uta_docs/plans/` に書く(フェーズ 0・1 は実装済み)。
+仕組みは最初から全ステータス分を用意し、カードとして動かす範囲を段階的に広げる。順番: 好印象 → 元気 → 好調 → 集中 → 試験 → 育成アイテム・ドリンク。この章は範囲の定義だけを書き、進み具合は実装メモと `uta_docs/plans/` に書く(フェーズ 0〜4・6 は実装済み。フェーズ 5 は未着手。[2026-11-01-shared-lesson-phases.md](../../plans/2026-11-01-shared-lesson-phases.md))。
 
 **先に入れるものと後で足すものの基準** [決定。2026-10-31]: enum の値・ステータスの入れ物・式の項は、参考作品の構造で形が決まっているものを先に全部入れる(集中強化・好印象強化・低下状態無効・パラメータ上昇量増加・発動予約を含む)。カードに置いて動かすのはフェーズごと。式の形が決まっていないもの(低下状態の追加の項。[lesson-card.md](../systems/lesson-card.md) 8章)と、細則の多いプリミティブ([lesson-card.md](../systems/lesson-card.md) 7.6)だけは、使うカードを採用するときに足す
 
@@ -35,7 +35,7 @@ updated: 2026-11-01
 | 5 | 別の仕様(6章)を書いてから決める |
 | 6 | 試験(7章) |
 
-**テストのカードの置き場** [決定。2026-10-31]: テストのカード定義は `shared/Uta.Shared.Domain.Tests/Lesson/` に、フェーズごとに `Phase<N>Cards` を足す。カードを組み立てる補助(今の `Phase1Cards` の `private` な補助メソッド)は、共通の静的クラス `TestCards` に移し、開始時手札(`startInHand`)も渡せるようにする。全フェーズのカードをまとめて返す `ICardCatalog` の実装 `TestCardCatalog` を 1 つ作り、テストはそれを使う。カード ID は [lesson-card.md](../systems/lesson-card.md) 14章の番号から機械的に振る: F は番号そのまま(F01 = 1)、L は 10 + 番号(L01 = 11)、S は 30 + 番号(S01 = 31)。テストだけで使う合成カードは 900 以上。マスタの `CardId` もテストと同じ値で手で振る(採番の規則としては定めない。[lesson-card.md](../systems/lesson-card.md) 3.2)。マスタができたら、テストのカードとマスタの値が一致することを確かめるテストを 1 本置く。テストとマスタの二重の定義は、マスタができるまでの暫定。`TestCards`・`TestCardCatalog` のシグネチャと、既存のテストの書き換え方は、フェーズ 2 の実装計画で決める(「移す」と「フェーズ 2 を足す」を別のタスクにする)
+**テストのカードの置き場** [決定。2026-10-31]: テストのカード定義は `shared/Uta.Shared.Domain.Tests/Lesson/` に、フェーズごとに `Phase<N>Cards` を足す。カードを組み立てる補助(今の `Phase1Cards` の `private` な補助メソッド)は、共通の静的クラス `TestCards` に移し、開始時手札(`startInHand`)も渡せるようにする。全フェーズのカードをまとめて返す `ICardCatalog` の実装 `TestCardCatalog` を 1 つ作り、テストはそれを使う。カード ID は [lesson-card.md](../systems/lesson-card.md) 14章の番号から機械的に振る: F は番号そのまま(F01 = 1)、L は 10 + 番号(L01 = 11)、S は 30 + 番号(S01 = 31)。テストだけで使う合成カードは 900 以上。マスタの `CardId` もテストと同じ値で手で振る(採番の規則としては定めない。[lesson-card.md](../systems/lesson-card.md) 3.2)。マスタができたら、テストのカードとマスタの値が一致することを確かめるテストを 1 本置く。テストとマスタの二重の定義は、マスタができるまでの暫定。`TestCards`・`TestCardCatalog` のシグネチャは [2026-11-01-shared-lesson-phases.md](../../plans/2026-11-01-shared-lesson-phases.md) 3.1 で決め、実装した。ただし**実際のマスタのカード ID は F = 1〜7、S = 101〜114、L = 201〜215**（`masterdata/csv/card.csv`）で、ここの振り方（L = 10 + 番号、S = 30 + 番号）と違う。一致テストはどちらかに合わせてから作る(未決。ユーザーの判断待ち)
 
 **カードのない op の確かめ方** [決定。2026-10-31]: 初期カードセットで使われない op・コスト(`AddFixedShield`・`RecoverHp`・`SetShield`、消費体力増加の付与、好調・絶好調・集中のコストなど)は、テストだけの合成カード(ID 900 以上)で op ごとに単体テストする。F08(不調カード)と `CreateCard` はどのフェーズにも入れない(後回し)。
 
@@ -99,7 +99,7 @@ updated: 2026-11-01
 ## 8. 完了条件 [決定。2026-10-31]
 
 - そのフェーズの全カードについて、[lesson-card.md](../systems/lesson-card.md) 9章の式から出した期待値のユニットテストが通る。期待値は、初期状態 → 操作 → 期待値の具体例を実装計画に 3〜5 個書き、計算の途中も計画に書く(実装と同じ丸め方を実装担当が選ばないようにする)
-- 同じシードと操作列で、再生した状態が一致する(`Uta.Shared.Domain` の単体テスト。比べ方は [produce-domain.md](produce-domain.md) 7章: 値を項目ごとに比べる。比べる関数は `Uta.Shared.Domain` の `LessonStateComparer` に置き、.NET のテストと IL2CPP の確認で同じものを使う。今の `LessonEngineTests` の `Summarize` はそれに置き換える(2026-10-31 に「テストの共通クラス」から直した)。含める項目は `LessonState` の全部(`NextGrantOrder` などの内部の値を含む))
+- 同じシードと操作列で、再生した状態が一致する(`Uta.Shared.Domain` の単体テスト。比べ方は [produce-domain.md](produce-domain.md) 7章: 値を項目ごとに比べる。比べる関数は `Uta.Shared.Domain` の `LessonStateComparer` に置き、.NET のテストと IL2CPP の確認で同じものを使う。`LessonEngineTests` の `Summarize` はそれに置き換えた(2026-10-31 に「テストの共通クラス」から直した)。含める項目は `LessonState` の全部(`NextGrantOrder` などの内部の値を含む))
 - IL2CPP との一致は、実機ビルドのときに 1 回確かめる: 固定のシードと操作列で再生した状態を .NET 側で求めてテストに埋め込み、**IL2CPP でビルドした実行物**(Android の実機。または Windows の IL2CPP スタンドアロン)で同じ再生を走らせて比べる。Unity Editor は Mono で動くので、IL2CPP の確認にならない。比べ方は [produce-domain.md](produce-domain.md) 7章(項目ごと。ハッシュは作らない)。入口は Unity Test Runner の実機実行。テストの置き場は `client/uta/Assets/Tests/SharedDomainReplay/`(asmdef `Uta.Client.Tests.SharedDomainReplay`。参照は `Uta.Shared.Domain` と Unity Test Framework だけ)。期待値は .NET の単体テストで出した値を定数で書く。CI では回さない(ADR 0008) [決定。2026-11-01。ユーザーの判断]。本番のクライアントはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。この確認は実機ビルドの手順に入れる([game-spec.md](../overview/game-spec.md) 完了条件 7)
 
 ---

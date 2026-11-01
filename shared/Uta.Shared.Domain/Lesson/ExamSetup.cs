@@ -49,6 +49,12 @@ namespace Uta.Shared.Domain.Lesson
             var copy = new ExamTurn[turns.Count];
             for (var i = 0; i < copy.Length; i++)
             {
+                // default(ExamTurn) はコンストラクタを通らないので、ここでも検査する
+                if (turns[i].Param == ParamKind.Nothing || turns[i].ScoreBonusPercent < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(turns));
+                }
+
                 copy[i] = turns[i];
             }
 
