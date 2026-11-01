@@ -157,4 +157,4 @@ namespace Uta.Client.Infrastructure
 - `unity test --mode EditMode` で 26 件（既存 7 件を含む）すべて通る。コンパイルは、そのバッチ実行で `error CS` 0 件
 - 計画との違い: 新しい worktree には `Assets/Packages/`（NuGet の復元物）が無くコンパイルが通らないので、メインの checkout からコピーして通した（gitignore 済み）。`unity recompile` はメインの Editor を相手にしたので使えなかった
 - **確認できていない**: Play モードでの `master: ok` の表示と失敗の表示（確かめ方 3）、Windows の IL2CPP と終了コード（確かめ方 4）、Android・iOS
-- コードレビュー（requesting-code-review）は未実施
+- コードレビュー（requesting-code-review、client）: 判定は「はい」。Critical・Important なし。Minor 6 件は直さない（`ServerEndpoint.Resolve` の例外は try の外で、以前と同じ。キャンセルを FAILED と表示しない分岐は、トークンを渡すときに足す）
