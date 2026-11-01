@@ -59,6 +59,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - **`ApiCore` 経由の再送**（無効・期限切れのトークンを 1 回だけ取り直して再送する）と、`ApiServiceBase` が属性をリフレクションで読む部分の IL2CPP。範囲外
 - **エラー詳細のトレーラー**（`ErrorInfo`・`grpc-status-details-bin`）が YetAnotherHttpHandler・IL2CPP で届くか。この計画の RPC は `ErrorInfo` を付けない
 - **Android / iOS** の実機ビルド
+- **Managed Stripping を上げたとき・iOS / Android での VContainer のコンストラクター注入**（リフレクション。既定の Stripping の Windows IL2CPP では通った）。`[Preserve]`・`link.xml`・VContainer の Source Generator のどれかが要りうる
 - **MasterMemory・MasterMemoryAddons**（Unity のパッケージ `package.json`・asmdef が無く、入れ方は [masterdata-pipeline.md](master/masterdata-pipeline.md) の未決。今回は入れていない）
 - UnityScreenNavigator・Supplement は取り込みだけで、使っていない
 
@@ -70,7 +71,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
   - 基盤のテスト用の asmdef（`Tests/EditMode`）は、`Assets/` の外にあるのでコンパイルされない
   - `com.unity.ai.assistant`（もとから入っているパッケージ）が `NullReferenceException` を出す（`SessionSlice.cs`）。取り込みとは関係ない
   - `CrashReporter::UploadInsightsStackTraceContent should only be called from the main thread`。Editor 内部のもの
-- **`Application.identifier` を変えると、保存済みのアカウントのファイルが読めなくなる（`account corrupted`）**。`EncryptedFileAccountStore` がこの値から鍵を作るため。Windows のプレイヤーでは `Application.identifier` が空になり、起動で `Key source must not be null or empty` になったので、Uta は鍵の元を固定の値 `AppInfo.AccountKeySource`（`Uta.IdolMaster.Hommage`）にした（ユーザーの判断。2026-11-01）。変えたら、端末のアカウントのファイル（`persistentDataPath` の `account-<サーバーの URL>.dat`）を消す
+- **`Application.identifier` を変えると、保存済みのアカウントのファイルが読めなくなる（`account corrupted`）**。`EncryptedFileAccountStore` がこの値から鍵を作るため。Windows のプレイヤーでは `Application.identifier` が空になり、起動で `Key source must not be null or empty` になったので、Uta は鍵の元を固定の値 `AppInfo.AccountKeySource`（`Uta.Client.AccountKey.v1`）にした（ユーザーの判断。2026-11-01）。変えたら、端末のアカウントのファイル（`persistentDataPath` の `account-<サーバーの URL>.dat`）を消す
 - `ProjectSettings.asset` の `applicationIdentifier` は、もう鍵に使わない（上）
 - **起動の流れ**: この計画で作ったのは、[screen-design.md](screen-design.md) 4章の「1. 認証（端末の登録・トークンの発行）」だけ。画面は IMGUI の診断用で、画面の計画（7 番目）で作り直す
 - **`unity` CLI（Editor を操作する）の使い方**（動いたもの）: `unity status`（`--until-ready`）、`unity recompile --format json`、`unity command package resolve`、`unity command console get --tail N --level error|warning --format json`、`unity command editor.playmode start|stop`、`unity command eval '<C#>'`（`return` が要る）。`unity command` の名前は、`group name` ではなく、`editor.playmode start` のように `.` でつなぐ形もある（`unity list` で確認する）

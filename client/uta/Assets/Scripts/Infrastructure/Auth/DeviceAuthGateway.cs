@@ -26,14 +26,14 @@ namespace Uta.Client.Infrastructure.Auth
 
         /// <param name="serverUrl">例: http://localhost:5000</param>
         /// <param name="platform">AppVersion.Windows など（Bootstrap が決める）</param>
-        public static DeviceAuthGateway Create(string serverUrl, string platform, int appVersion, string accountFilePath, string applicationIdentifier)
+        public static DeviceAuthGateway Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource)
         {
             var channel = ApiChannel.Create(serverUrl);
             var callInvoker = ApiChannel.CreateCallInvoker(channel);
             var client = DeviceServiceClientFactory.Create(callInvoker);
             var provider = new DeviceTokenProvider(
                 client,
-                new EncryptedFileAccountStore(accountFilePath, applicationIdentifier),
+                new EncryptedFileAccountStore(accountFilePath, keySource),
                 new ApiCoreOptions(new AppVersion(platform, appVersion)));
             return new DeviceAuthGateway(channel, client, provider);
         }
