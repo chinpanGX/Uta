@@ -1,0 +1,18 @@
+Condition,,,,
+出典: uta_docs/wiki/systems/lesson-card.md 14章,,,,
+int,int,ConditionSubject,Comparator,int
+ConditionGroupId,Order,Subject,Comparator,Value
+512,1,HpPercent,GreaterOrEqual,50
+522,1,HpPercent,GreaterOrEqual,50
+10411,1,GoodConditionTurns,GreaterOrEqual,2
+10421,1,GoodConditionTurns,GreaterOrEqual,2
+10511,1,Focus,GreaterOrEqual,3
+10521,1,Focus,GreaterOrEqual,3
+10912,1,GoodConditionTurns,GreaterOrEqual,1
+10922,1,GoodConditionTurns,GreaterOrEqual,1
+11111,1,GoodConditionTurns,GreaterOrEqual,1
+11121,1,GoodConditionTurns,GreaterOrEqual,1
+11412,1,Focus,GreaterOrEqual,3
+11422,1,Focus,GreaterOrEqual,3
+20211,1,Impression,GreaterOrEqual,1
+20221,1,Impression,GreaterOrEqual,1

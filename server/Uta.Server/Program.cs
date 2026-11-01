@@ -32,6 +32,7 @@ if (args.Length > 0 && args[0] == "migrate")
     }
 }
 
+builder.Services.AddSingleton(MasterDataLoader.Load());
 builder.Logging.ClearProviders();
 builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(listen => listen.Protocols = HttpProtocols.Http2));
