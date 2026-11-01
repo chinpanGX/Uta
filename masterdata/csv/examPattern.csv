@@ -1,0 +1,8 @@
+ExamPattern,,,,,,,,,,,,,
+出典: uta_docs/wiki/systems/produce.md,,,,,,,,,,,,,
+int,int,int,int,int,int,int,int,int,int,int,int,int,int
+ExamPatternId,FirstPercent,SecondPercent,ThirdPercent,MidFirstTurns,MidSecondTurns,MidThirdTurns,FinalSenseFirstTurns,FinalSenseSecondTurns,FinalSenseThirdTurns,FinalLogicFirstTurns,FinalLogicSecondTurns,FinalLogicThirdTurns,FirstTurnSecondRatePerTenThousand
+1,40,33,27,4,3,2,5,4,3,5,3,3,1500
+2,45,40,15,4,3,2,6,4,2,5,4,2,0
+3,50,30,20,5,2,2,6,3,3,5,3,3,0
+4,60,23,17,5,2,2,7,3,2,6,3,2,0

@@ -1,0 +1,9 @@
+InitialSupportCard,
+出典: uta_docs/wiki/systems/idol-support.md,
+int,int
+Order,SupportCardId
+1,1
+2,2
+3,3
+4,4
+5,5

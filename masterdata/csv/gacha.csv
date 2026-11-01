@@ -1,0 +1,5 @@
+Gacha,,,,,
+出典: uta_docs/wiki/systems/gacha.md,,,,,
+int,int,int,int,int,int
+GachaId,SingleCost,TenCost,NormalTableId,GuaranteedTableId,CeilingPoints
+1,250,2500,1,2,200
