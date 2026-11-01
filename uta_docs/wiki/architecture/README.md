@@ -51,7 +51,10 @@ Shared.Domain（`shared/Uta.Shared.Domain`）の機能ごとの実装設計:
 - [lesson-phases.md](lesson-phases.md) — レッスンの実装フェーズ：順番、フェーズごとに変えるコード、テストのカードの置き場、完了条件
 - [produce-domain.md](produce-domain.md) — プロデュースの実装設計：処理の単位、乱数ストリームと引く順、操作の記録、保存する状態、再現の確かめ方、API案
 
+検証の記録:
+
+- [unity7-evaluation.md](unity7-evaluation.md) — Unity 7 の検証結果：確かめたもの（Editor・パッケージの取り込み・サインアップ/サインイン）、失敗したもの（Windows の IL2CPP のビルド `IL1009`）、未確認のもの、警告・注意
+
 未作成:
 
 - `build-ci.md`（ビルド・CI。repository-layout.md 7章の実体）
-- `unity7-evaluation.md`（Unity 7 検証の記録）

@@ -1,6 +1,6 @@
 ---
 title: 実装計画: 通信の疎通（クライアント）
-status: ready
+status: in-progress
 updated: 2026-11-01
 spec: ../wiki/architecture/repository-layout.md, ../wiki/overview/game-spec.md, ../wiki/architecture/screen-design.md
 ---
@@ -358,3 +358,24 @@ namespace Uta.Client.Editor
 ## 6. 未決事項
 
 なし（`requesting-design-review` に出して `ready` にする）。
+
+## 7. 結果（2026-11-01）
+
+実装は済んだが、完了条件 0 のうち **Windows の IL2CPP が未達**（ビルドが `IL1009` で失敗）なので、`status` は `done` にせず `in-progress` のまま。結果の詳細と確かめ方は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md)。
+
+| 完了条件 0 の分 | 状態 |
+|---|---|
+| Editor で、端末の登録（サインアップ）とトークンの発行（サインイン）が通る | 通った（Play モード。`SignedUp` → `SignedIn`、取り直し、サーバーのエラーの到達、保存データの破損の検出） |
+| Windows の IL2CPP で通る | **未達**。ビルドが `Microsoft.Bcl.AsyncInterfaces` の `IL1009` で失敗する。基盤の Sandbox でも再現し、Uta の構成が原因ではない（基盤の変更が要る） |
+
+計画から変えたこと:
+
+- UnityScreenNavigator・Supplement・Supplement.MessagePack を、ユーザーの判断で、取り込みまで行った（相対パスの `file:`。1章・3.2）。MasterMemoryAddons は Unity のパッケージが無いので入れていない
+- `com.unity.addressables` を 4.1.2 にした（3.2。4.1.1 は Unity 7 a12 でコンパイルエラー）
+- NuGetForUnity の復元は、コンパイルエラーがあると走らないので、一時的に 3 パッケージを外して復元させた（`unity7-evaluation.md` 2章）
+- `ProjectSettings/` の変更（Standalone の IL2CPP）は、ビルドが通らないので、`develop` に入れていない
+
+残ること（別の計画・基盤の変更）:
+
+- Windows の IL2CPP のビルドを通す（基盤の変更。3.1 のルール）。通ったら、Resolver が DTO のフォーマッタを持たない問題（`unity7-evaluation.md` 3.2）が実際に起きるかを確かめる
+- サーバーを止めた実行（タスク 3 の確認 4）
