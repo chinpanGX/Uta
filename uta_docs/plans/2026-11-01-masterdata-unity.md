@@ -1,6 +1,6 @@
 ---
 title: 実装計画: マスタを Unity に取り込む（クライアント用の出力・MasterMemory の導入・StreamingAssets からの読み込み）
-status: draft
+status: ready
 updated: 2026-11-01
 spec: ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/repository-layout.md
 ---
@@ -37,12 +37,12 @@ spec: ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/r
 | `[Exists]` が別の側の表を参照する場合（未決事項） | **問題ない**。`[Exists]` を持つ Common の表が `[ServerOnly]` の表を指す定義でも、`master-gen` は検証をデータ全体に対して行い、クライアントの出力では `[ServerOnly]` の表と `[Exists]` を落として生成する（終了コード 0）。ServerOnly → Common の向きは、アドオンのサンプル（`DropTable` → `Item`）にある。Uta の定義の `EvaluationRankReward.Rank` → `EvaluationRank`（ServerOnly → Common）も同じ向き |
 | `AesMasterDataCipher` | PBKDF2 の反復は 1000 回。読み込みの時間はほぼ増えない。鍵はスキーマのハッシュ（アプリの中にある）なので、難読化の範囲 |
 | MasterMemory 3.0.4 の NuGet | `lib/netstandard2.0/MasterMemory.dll` と `analyzers/dotnet/cs/MasterMemory.SourceGenerator.dll`（Source Generator）を持つ。依存は `MasterMemory.Annotations` 3.0.4 と `MessagePack` ≥ 3.1.3。Uta の MessagePack は 3.1.12 なので満たす |
-| Unity での Source Generator | **未確認**。NuGetForUnity の `analyzers` 経由の Source Generator が Unity 7 で動くかは、タスク 1 で最初に確かめる。参考: MagicOnion の Source Generator（`[MagicOnionClientGeneration]`）は Unity 7 で `Uta.Client.Infrastructure` に `Resolver` を生成している（[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 3.2。UPM 経由）。`packages.config` の `MessagePackAnalyzer` は NuGetForUnity 経由だが、動作の記録は無い |
+| Unity での Source Generator | **未確認**。NuGetForUnity の `analyzers` 経由の Source Generator が Unity 7 で動くかは、タスク 1 で最初に確かめる。参考: MagicOnion の Source Generator（`[MagicOnionClientGeneration]`）は Unity 7 で `Uta.Client.Infrastructure` に `Resolver` を生成している（[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章・3.2。どの経路で入れたジェネレーターかは未確認）。`packages.config` の `MessagePackAnalyzer` は NuGetForUnity 経由だが、動作の記録は無い |
 | `MasterMemory.Addons.Core` の Unity での扱い | `netstandard2.1`・名前空間 `MasterMemory.Addons`・参照は BCL のみ（`System.Buffers.Binary`・`System.Security.Cryptography`）。Unity 側に asmdef・`package.json` が無い。`#nullable` なしの `?` は Unity で警告 CS8632 になる（エラーではない。MagicOnion.Client.Unity でも出ている） |
 
 ## 3. この計画で決めたこと
 
-ユーザーの確認が要るもの（`**要確認**`）は 7章に並べた。確認が済むまで `status: draft`。
+7章の確認事項は、ユーザーが推奨どおりと決めた（2026-11-01）。
 
 | 項目 | 決めたこと | 理由 |
 |---|---|---|
@@ -51,14 +51,14 @@ spec: ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/r
 | `MemoryDatabase` の名前空間 | `Assets/Scripts/Infrastructure/MasterData/MasterDataAssembly.cs` に `[assembly: MasterMemory.MasterMemoryGeneratorOptions(Namespace = "Uta.MasterData")]` を置く | サーバーと同じ（1/2 の決定）。`Generated/` は生成のたびに丸ごと入れ替わるので、手書きのファイルは `Generated/` の外に置く |
 | `IsExternalInit` | `Assets/Scripts/Infrastructure/MasterData/IsExternalInit.cs` に `internal static class IsExternalInit`（名前空間 `System.Runtime.CompilerServices`）を置く | repository-layout.md 5章の決定。アドオンの `samples/Client/IsExternalInit.cs` と同じ内容 |
 | MasterMemory の入れ方 | NuGetForUnity（`Assets/packages.config` に `MasterMemory` と `MasterMemory.Annotations` を 3.0.4 で足す） | repository-layout.md 3章「NuGet のパッケージは NuGetForUnity で入れる」。MasterMemory の docs・アドオンの docs も同じ（NuGetForUnity で導入） |
-| `MasterMemory.Addons.Core` の入れ方 | **要確認**: アドオンの `src/MasterMemory.Addons.Core/` に `package.json` と asmdef を置いて Unity のパッケージにし（`shared/Uta.Shared.Domain` と同じ形。ソースは移さない）、Uta は `manifest.json` から `file:` で参照する（推奨） | 7章 1。repository-layout.md 3.1 のルール 2（別のゲームでも同じものが要る）に沿う |
+| `MasterMemory.Addons.Core` の入れ方 | アドオンの `src/MasterMemory.Addons.Core/` に `package.json` と asmdef を置いて Unity のパッケージにし（`shared/Uta.Shared.Domain` と同じ形。ソースは移さない）、Uta は `manifest.json` から `file:` で参照する | ユーザーの決定（2026-11-01）。repository-layout.md 3.1 のルール 2（別のゲームでも同じものが要る）に沿う |
 | `Uta.Client.Infrastructure` の asmdef | `references` に `MasterMemory.Addons.Core` を足す。MasterMemory・MessagePack の DLL は `overrideReferences: false` のまま自動で参照される（`MessagePack` は既にそうしている） | 最小の変更 |
 | 読み込みのコード | `Assets/Scripts/Infrastructure/MasterDataLoader.cs`（名前空間 `Uta.Client.Infrastructure`）。サーバーの `MasterDataLoader` と同じ形: `Load(byte[])` と、StreamingAssets を読む `LoadFromStreamingAssetsAsync` | 5章タスク 3。サーバーとの対称。生成物（`Uta.MasterData`）を参照してよいのは Infrastructure だけ（repository-layout.md 3.1） |
 | StreamingAssets の読み方 | **全プラットフォームで `UnityWebRequest`**（UniTask の `WithCancellation`）。パスは `Application.streamingAssetsPath + "/MasterData/masterdata.bytes"`。`"://"` を含まなければ（Windows・iOS・Editor）`new Uri(path).AbsoluteUri`（`file:///…`）にする。Android の `jar:file://…` はそのまま | Android では `File` の API で読めない。1 本の経路にして、プラットフォーム分岐を避ける。**Android での読み込みは未確認**（5章） |
 | 失敗 | `MasterDataFormatException` は `InvalidOperationException("マスタのバイナリを読めない（<Reason>）")` に包む（サーバーと同じ。スキーマのハッシュを含めない）。`UnityWebRequest` の失敗は UniTask が投げる `UnityWebRequestException` のまま | 鍵をログに出さない（masterdata-pipeline.md 6章） |
 | 呼び出し側 | この計画では DI に登録しない・誰も呼ばない（テストだけが呼ぶ） | 範囲外（使う計画で作る） |
 | マニフェスト | `masterdata.manifest.json` も StreamingAssets に出て同梱される（`schemaId`・`dataHash` だけで、外に出してよい値）。除外しない | ツールの出力先がバイナリと同じフォルダに固定。害がない |
-| クライアントのテスト | **要確認**: Unity Test Framework の EditMode テストを足す（推奨）。タスク 3 で `Packages/manifest.json` に `com.unity.test-framework` 1.9.0 を足す（Unity 7 に組み込みで、`packages-lock.json` に間接依存として既に入っている） | 7章 2 |
+| クライアントのテスト | Unity Test Framework の EditMode テストを足す。タスク 3 で `Packages/manifest.json` に `com.unity.test-framework` 1.9.0 を足す（Unity 7 に組み込みで、`packages-lock.json` に間接依存として既に入っている） | ユーザーの決定（2026-11-01） |
 | 生成の運用 | クライアント用の出力はバイナリが毎回変わる（暗号化のソルト・IV と `createdAt`）。**CSV か定義を変えたときだけ `master-gen` を実行する**。実行すると `server` の出力も書き直されるので、サーバーのバイナリの `dataHash` が同じなら、`git checkout -- server/Uta.Server/Infrastructure/MasterData/masterdata.manifest.json` で `createdAt` だけの差分を戻す | ADR 0013 |
 
 ## 4. 触るファイル
@@ -74,7 +74,7 @@ spec: ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/r
 | 作成（生成） | `client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes`・`masterdata.manifest.json` | `gen.ps1 master-gen` が作る | 1 |
 | 作成 | 上の新規ファイルと `MasterData`・`StreamingAssets` フォルダの `.meta` | Unity が作る。コミットする | 1・2・3 |
 | 作成 | `external/MasterMemoryAddons/src/MasterMemory.Addons.Core/package.json`・`MasterMemory.Addons.Core.asmdef` と `.meta` | UPM パッケージの定義（4.1） | 2 |
-| 変更 | `external/MasterMemoryAddons/src/MasterMemory.Addons.Core/MasterMemory.Addons.Core.csproj` | 出力を `bin~/`・`obj~/` にする（4.1） | 2 |
+| 作成 | `external/MasterMemoryAddons/src/MasterMemory.Addons.Core/Directory.Build.props` | 出力を `bin~/`・`obj~/` にする（4.1） | 2 |
 | 変更 | `external/MasterMemoryAddons/.gitignore`・`docs/dev/structure.md`・`docs/guide/build-and-distribute.md`・`docs/design/decisions.md`・`docs/log.md` | 4.1 | 2 |
 | 変更 | `external/MasterMemoryAddons`（サブモジュールのポインタ） | タスク 2 のコミットに上げる | 2 |
 | 変更 | `client/uta/Packages/manifest.json` | `com.chinpangx.mastermemory.addons`（`file:`）・`com.unity.test-framework` | 2・3 |
@@ -120,17 +120,27 @@ Uta の `.gitignore` は変えない（`Assets/Packages/` は既に除外済み�
 }
 ```
 
-`MasterMemory.Addons.Core.csproj` の `PropertyGroup` に足す（`shared/Directory.Build.props` と同じ値）:
+`src/MasterMemory.Addons.Core/Directory.Build.props`（`shared/Directory.Build.props` と同じ形。csproj は変えない）:
 
 ```xml
-<BaseOutputPath>bin~/</BaseOutputPath>
-<BaseIntermediateOutputPath>obj~/</BaseIntermediateOutputPath>
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- Unity は ~ で終わるフォルダを読まない。dotnet build の出力が Unity のパッケージに入って型が重複しないようにする -->
+  <PropertyGroup>
+    <BaseOutputPath>bin~/</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj~/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+</Project>
 ```
 
-- アドオンの `.gitignore` に `bin~/`・`obj~/` を足す（既存の `bin/`・`obj/` の行の隣）。既にある `src/MasterMemory.Addons.Core/bin`・`obj` は消してよい（ビルドの生成物）
+- **先に `src/MasterMemory.Addons.Core/bin` と `obj` のフォルダを削除する**（`git ls-files src/MasterMemory.Addons.Core` に `bin/`・`obj/` が無いことも確かめる）（ビルドの生成物。残すと、`obj/` の中の生成された `.cs` が既定のコンパイル対象に入って型が重複する）
+- アドオンの `.gitignore` に `bin~/`・`obj~/` を足す（既存の `bin/`・`obj/` の行の隣）
 - 別の csproj（`Tools`・テスト）から Core を `ProjectReference` で参照している形は変えない。ビルドの出力先が変わるだけ
 - アドオンの `CLAUDE.md` のコマンド: `dotnet build MasterMemory.Addons.slnx`（警告 0・エラー 0）、`dotnet test MasterMemory.Addons.slnx`（すべて通る）。変更の前後で結果が変わらないこと
-- docs: `docs/log.md` の先頭（「新しいものを上に追記」）に `- 2026-11-01 [dev/structure / build-and-distribute / decisions] Core を Unity のパッケージ(com.chinpangx.mastermemory.addons)としても使えるようにした(package.json・asmdef を Core のフォルダに置く)` の形で 1 行足す。`docs/design/decisions.md` の決定の表に同じ日付の行を足す（内容: 「Unity 専用のアセンブリは作らない」(2026-10-25)は変えない。Core のソースはそのままで、Core のフォルダに Unity のパッケージの定義を置く）。`docs/dev/structure.md` の「Unity のプロジェクトは Core と Attributes を直接参照する」を「Core は `file:` で参照できる(`package.json`・asmdef)。Attributes は Unity では要らない」に直す。`docs/guide/build-and-distribute.md` の「Unity」の項に、Core の入れ方（`manifest.json` に `"com.chinpangx.mastermemory.addons": "file:<相対パス>/src/MasterMemory.Addons.Core"`）を足す。CHANGELOG はアドオンに無い
+- docs: `docs/log.md` の先頭（「新しいものを上に追記」）に `- 2026-11-01 [dev/structure / build-and-distribute / decisions] Core を Unity のパッケージ(com.chinpangx.mastermemory.addons)としても使えるようにした(package.json・asmdef を Core のフォルダに置く)` の形で 1 行足す。`docs/design/decisions.md` の決定の表に同じ日付の行を足す（内容: 「Unity 専用のアセンブリは作らない」(2026-10-25)は変えない。Core のソースはそのままで、Core のフォルダに Unity のパッケージの定義を置く）。同じ表の 2026-10-25 の行（「Unity のプロジェクトは Core と Attributes を直接参照する」を含む）の末尾に「(2026-11-01: Core は `file:` で参照する。Attributes は Unity では要らない)」を書き添える。`docs/dev/structure.md` の「Unity のプロジェクトは Core と Attributes を直接参照する」を「Core は `file:` で参照できる(`package.json`・asmdef)。Attributes は Unity では要らない」に直す。`docs/guide/build-and-distribute.md` の「Unity」の項に、Core の入れ方（`manifest.json` に `"com.chinpangx.mastermemory.addons": "file:<相対パス>/src/MasterMemory.Addons.Core"`）を足す。CHANGELOG はアドオンに無い
 - `.meta`: `file:` のローカルパッケージは、Unity が開いたときにパッケージ側にも `.meta` を作る（`shared/Uta.Shared.Domain` に `.meta` がコミットされているのと同じ）。**アドオンの `.meta` は、Uta のプロジェクトを Editor で開いて作らせてから、アドオン側にコミットする**（タスク 2 の手順）
 
 ### 4.2 Uta 側の手書きファイル（タスク 1・2）
@@ -243,7 +253,7 @@ namespace Uta.Client.Infrastructure
 }
 ```
 
-`MasterMemory.dll` などの参照が足りずに CS0012 が出たら、**エラーメッセージが名指しする DLL を `precompiledReferences` に足す**（これ以外の変更はしない。足した DLL は 6章で報告する）。
+`precompiledReferences` は上の 4 つで固定する。**ほかの DLL を名指しする CS0012 が出たら、足さずに止まって報告する**（6章）。
 
 ## 5. タスク
 
@@ -256,7 +266,7 @@ namespace Uta.Client.Infrastructure
   1. `packages.config` に MasterMemory・MasterMemory.Annotations を足し、`MasterDataAssembly.cs`・`IsExternalInit.cs` を 4.2 のとおり作る
   2. Editor でプロジェクトを開く（NuGetForUnity が `Assets/Packages/` を復元する。復元されなければメニューの NuGet の Restore Packages）。`unity command package resolve`、`unity recompile --format json`。エラー 0 を確認する
   3. `masterdata.yaml` に 4.3 の出力先を足す
-  4. `powershell -NoProfile -File masterdata/gen.ps1 master-gen`（実行ポリシーで止まる環境では `-ExecutionPolicy Bypass` を足す）。ツールが出す「テーブル」の数が、サーバーの出力の数から `[ServerOnly]` の表（`EvaluationRankReward`）を引いた数であることを確認する
+  4. `powershell -NoProfile -File masterdata/gen.ps1 master-gen`（実行ポリシーで止まる環境では `-ExecutionPolicy Bypass` を足す）。ツールが `unity:` の行で出す「テーブル: N」の N が、サーバーの出力の数から `[ServerOnly]` の表（`EvaluationRankReward`）を引いた数であることを確認する
   5. サーバーの出力を確認する: `git diff --stat server/` で `masterdata.bytes` が変わっていなければ（`dataHash` が同じ）、`git checkout -- server/Uta.Server/Infrastructure/MasterData/masterdata.manifest.json` で `createdAt` だけの差分を戻す。`masterdata.bytes` や `Generated/` が変わっていたら、**止まって報告する**（2/2 のコミット後に CSV か定義が変わっている）
   6. Editor に戻り `unity recompile --format json`
   7. `.meta`（`MasterData/`・`Generated/`・`StreamingAssets/`・バイナリ・マニフェスト）を含めてコミットする
@@ -269,9 +279,10 @@ namespace Uta.Client.Infrastructure
 - 触る: 4章の表のタスク 2 の行
 - 手順:
   1. `external/MasterMemoryAddons` の中で `git switch -c unity-package` し、4.1 のとおり変更する。`dotnet build MasterMemory.Addons.slnx`・`dotnet test MasterMemory.Addons.slnx` を流す
-  2. アドオンをコミットし、**push する**（ブランチのまま。`main` に取り込むかは 7章 3）。Uta のポインタをそのコミットに上げる（`git add external/MasterMemoryAddons`）
+  2. アドオンをコミットし、**push する**（ブランチのまま）。Uta のポインタをそのコミットに上げる（`git add external/MasterMemoryAddons`）
   3. Uta の `manifest.json` に `com.chinpangx.mastermemory.addons` を足し、`Uta.Client.Infrastructure.asmdef` の `references` に `MasterMemory.Addons.Core` を足す（4.2）
   4. Editor で開き直し（または `unity command package resolve`）、`unity recompile --format json` でエラー 0 を確認する。Unity がアドオンのフォルダに作った `.meta` を、アドオンの側にコミットして**もう一度 push する**。Uta のポインタをその新しいコミットに上げる
+  5. アドオンで `main` に `unity-package` をマージ（`git switch main`（ローカルに無ければ `git switch -c main origin/main`）→ `git merge unity-package`）して push する。Uta のポインタを、`main` のそのコミットに上げてコミットする
 - 境界: アドオンの `Tools` と `tests` のビルドとテストの結果が、変更の前と同じ
 - 確かめ方: アドオンの build・test が通る。`dotnet build Uta.slnx`、`dotnet test --project server/Uta.Server.Tests` が通る（サーバーは Core を `ProjectReference` で参照している）。`unity recompile` のエラーが 0。`unity command eval 'return typeof(MasterMemory.Addons.MasterDataBinary).FullName;'`
 
@@ -292,16 +303,16 @@ namespace Uta.Client.Infrastructure
 
 ## 6. テスト
 
-`MasterDataLoaderTests`（`Uta.Client.Infrastructure.Tests` の名前空間。NUnit。`using NUnit.Framework; using UnityEngine.TestTools; using Cysharp.Threading.Tasks;`）。
+`MasterDataLoaderTests`（`Uta.Client.Infrastructure.Tests` の名前空間。NUnit。`using System; using System.Collections; using System.IO; using System.Threading; using NUnit.Framework; using UnityEngine.TestTools; using Cysharp.Threading.Tasks; using Uta.MasterData;`）。
 
 | テスト名 | 内容 |
 |---|---|
-| `Load_Bundled_ReturnsDatabase` | `File.ReadAllBytes(UnityEngine.Application.streamingAssetsPath + "/" + MasterDataLoader.RelativePath)` を `Load` に渡し、**サーバーのテスト `server/Uta.Server.Tests/MasterData/MasterDataTests.cs` にある `Assert.Equal(n, Db.XxxTable.Count)` の検査をすべて、同じ値で写す**（実装する時点の 2/2 後のファイルから写す。1/2 の時点では `CardTable` 36・`CardFaceTable` 72・`CardCostTable` 72・`EffectTable` 129・`ConditionTable` 14）。`EvaluationRankReward` の検査は、クライアントに表がないので写さない |
+| `Load_Bundled_ReturnsDatabase` | `File.ReadAllBytes(UnityEngine.Application.streamingAssetsPath + "/" + MasterDataLoader.RelativePath)` を `Load` に渡し、**サーバーのテスト `server/Uta.Server.Tests/MasterData/MasterDataTests.cs` にある、`Assert.Equal(n, Db.XxxTable.Count)` の形の検査（表の件数）だけを、同じ値で写す**（`Sum` や特定の行の検査は写さない。実装する時点の 2/2 後のファイルから写す。1/2 の時点では `CardTable` 36・`CardFaceTable` 72・`CardCostTable` 72・`EffectTable` 129・`ConditionTable` 14）。`EvaluationRankReward` の検査は、クライアントに表がないので写さない |
 | `Load_NotMasterData_ThrowsInvalidOperation` | `new byte[] { 1, 2, 3 }` で `InvalidOperationException`。メッセージに `NotMasterData` を含み、スキーマのハッシュ（`MasterDataSchema.Hash`）を含まない |
 | `Load_Null_ThrowsArgumentNull` | `null` で `ArgumentNullException` |
 | `Load_TamperedPayload_ThrowsInvalidOperation` | 同梱のバイナリの最後の 1 バイトを `^ 0xFF` に変えて `Load`。`InvalidOperationException`（`Corrupted`） |
 | `LoadFromStreamingAssetsAsync_ReturnsDatabase` | `[UnityTest]`。`UniTask.ToCoroutine(async () => { … })` で `LoadFromStreamingAssetsAsync()` を呼び、`CardTable.Count == 36` |
-| `LoadFromStreamingAssetsAsync_Cancelled_Throws` | `[UnityTest]`。キャンセル済みのトークンで呼び、`OperationCanceledException` |
+| `LoadFromStreamingAssetsAsync_Cancelled_Throws` | `[UnityTest]`。`UniTask.ToCoroutine(async () => { … })` の中で、キャンセル済みのトークン（`new CancellationToken(true)`）で呼ぶ。`try { await …; Assert.Fail("…"); } catch (OperationCanceledException) { }` の形で、派生型（`TaskCanceledException` など）も通す |
 
 - 暗号化の有無に関係なく通る。`EvaluationRankReward` の検査はクライアントの `MemoryDatabase` に表がないので書かない（コンパイルできない）
 - 実行方法は、5章タスク 3 の手順 5。サーバー側（`dotnet test --project server/Uta.Server.Tests`）は変えない
@@ -316,14 +327,11 @@ namespace Uta.Client.Infrastructure
 
 - タスク 1 の手順 6 でコンパイルエラー、または Source Generator が `MemoryDatabase` を生成しない（`Uta.MasterData.MemoryDatabase` 型が存在しない）。エラーの全文と、`Assets/Packages/MasterMemory.3.0.4/` の中身（`analyzers/` の DLL に `RoslynAnalyzer` のラベルが付いているか: インスペクターの Asset Labels）を添える
 - 4.1 の変更で、アドオンのビルド・テストの結果が変わる
-- 4.5 の `precompiledReferences` を、CS0012 に名指しされる 3 つ以外に足したくなった
+- 4.5 の `precompiledReferences` の 4 つ以外の DLL を名指しする CS0012 が出た
 
-## 7. 確認してほしいこと（未決事項）
+## 7. 未決事項
 
-1. **`MasterMemory.Addons.Core` の Unity への入れ方**。推奨は **C**（タスク 2。`src/MasterMemory.Addons.Core/` に `package.json` と asmdef を置く。`shared/Uta.Shared.Domain` と同じ形で、ソースを移さない）。**B**: Uta 側で `dotnet build external/MasterMemoryAddons/src/MasterMemory.Addons.Core -c Release` の DLL を `Assets/Plugins/MasterMemory.Addons.Core/` に置いて `.meta` をコミットする（基盤は変えないが、バイナリをコミットし、アドオンの更新のたびに作り直す）。B の場合はタスク 2 を「DLL をコピーして `.meta` をコミット」に置き換え、asmdef の参照を `precompiledReferences: ["MasterMemory.Addons.Core.dll"]` にする。ソースを `Unity/…/Runtime/` に移す形（VolTech-MagicOnion の `Abstractions` と同じ）は、Core が Unity と .NET の両方で使われるだけで、移す手間に見合わないとして採らなかった。
-2. **クライアントのテストの置き方**。推奨は **Unity Test Framework の EditMode テストを足す**（タスク 3。`com.unity.test-framework` 1.9.0 は `packages-lock.json` に間接依存として既にある）。しない場合は、`unity command eval` で手で確かめる記述に差し替え、6章のテストは書かない（再現できない確認になる）。
-3. **アドオンの変更の取り込み先**。タスク 2 のブランチ `unity-package` を、アドオンの `main` に取り込むか（PR を作るか、直接マージして push するか）。取り込む前は、Uta のポインタがブランチのコミットを指す。
-4. **本計画が始まる時期**。2/2 のマージを待つ（推奨）。待たずに、1/2 の定義（5 テーブル）だけで先に実装することもできる（テーブル数と 6章の件数が 5 テーブル分になり、2/2 のマージ後に `master-gen` をやり直す。クライアントのバイナリの差分が 1 回増える）。
+なし。ユーザーが推奨どおりと決めた（2026-11-01）: (1) Core は `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置く（C）。(2) クライアントのテストは Unity Test Framework の EditMode。(3) アドオンのブランチ `unity-package` は、タスク 2 の最後に `main` へマージして push し、Uta のポインタを `main` のそのコミットに合わせる（個人リポジトリなので PR は作らない）。(4) 2/2 のマージを待って実装する。
 
 ## 8. 引き継ぎ（2/2 の実装セッションへ）
 

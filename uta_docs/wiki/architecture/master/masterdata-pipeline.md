@@ -223,7 +223,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 ## 未決事項
 
 - 表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある
-- Unity にマスタの実行時ライブラリ（MasterMemory と `MasterMemory.Addons.Core`）を入れる方法。MasterMemory は NuGetForUnity。`Core` は、アドオンに Unity パッケージを足す案を推奨（[計画](../../../plans/2026-11-01-masterdata-unity.md) 7章でユーザーの確認待ち）
+- Unity にマスタの実行時ライブラリ（MasterMemory と `MasterMemory.Addons.Core`）を入れる方法。MasterMemory は NuGetForUnity。`Core` は、アドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（2026-11-01 に決定。[計画](../../../plans/2026-11-01-masterdata-unity.md)。実装は 2/2 のマージ後）
 - Android で `StreamingAssets` のバイナリを読む方法: 全プラットフォームで `UnityWebRequest` にする案（[計画](../../../plans/2026-11-01-masterdata-unity.md) 3章。Android での動作は未確認）
 - クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか

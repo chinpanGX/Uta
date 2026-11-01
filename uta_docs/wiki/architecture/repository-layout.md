@@ -131,7 +131,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
   - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`）は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
   - UPM にあるもの（NuGetForUnity・UniTask・VContainer・`MagicOnion.Client.Unity`・`MessagePack.Unity`・YetAnotherHttpHandler）は UPM の git URL で入れ、版はタグで固定する（`manifest.json`）
   - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く
-  - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` は未決（[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md) 7章）
+  - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` はアドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（2026-11-01 に決定。[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md)）
   - サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
 
 参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server/server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
