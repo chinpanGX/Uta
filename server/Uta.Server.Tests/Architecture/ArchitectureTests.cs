@@ -46,6 +46,18 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void ApiNamespace_HasTypes()
+    {
+        Assert.NotEmpty(LayerTypes("Api").GetTypes());
+    }
+
+    [Fact]
+    public void ApplicationNamespace_HasTypes()
+    {
+        Assert.NotEmpty(LayerTypes("Application").GetTypes());
+    }
+
+    [Fact]
     public void Rule_DetectsViolation()
     {
         var result = LayerTypes("Infrastructure").ShouldNot().HaveDependencyOn("Npgsql").GetResult();

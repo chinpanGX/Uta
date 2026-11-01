@@ -168,6 +168,7 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
 }
 ```
 
+- `PlayerService.cs` の先頭（`namespace` の前）に、理由の 1 行コメントと `#pragma warning disable CS8644` を置く。Contracts は Nullable なし、サーバーは Nullable 有効で、`ServiceBase<T>` が `IService<T>` の `With*` を実装していないという CS8644 が 5 件出るため（2026-11-01 実装時にユーザーが決定。csproj の `NoWarn` にはしない）。
 - 両方とも `ITransactions.RunAsync` の中で動かす。これで本体と同じトランザクション、`x-request-id` による冪等性（同じ ID の再送は保存済みのレスポンスを返し、本体を呼ばない）が効く。
 - `BusinessException` は `RunAsync` の中で投げる。トランザクションはロールバックされ（`last_responses` の保存もされない）、基盤のフィルターが `FAILED_PRECONDITION` と `google.rpc.ErrorInfo`（domain `uta`・reason `PLAYER_NOT_CREATED`）に変換する。
 - 冪等性の帰結: `x-request-id` が無い・形が違うと `INVALID_ARGUMENT`。別の RPC で使った ID の再利用も `INVALID_ARGUMENT`。同じ ID の再送は、最初の応答（`SignUp` なら `Created = true`）をそのまま返す。
