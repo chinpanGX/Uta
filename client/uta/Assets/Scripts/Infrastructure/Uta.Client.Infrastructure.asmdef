@@ -1,0 +1,20 @@
+{
+    "name": "Uta.Client.Infrastructure",
+    "rootNamespace": "Uta.Client.Infrastructure",
+    "references": [
+        "Uta.Client.Application",
+        "Uta.Shared.Domain",
+        "VolTech.Server.Abstractions",
+        "VolTech.MagicOnion.Client",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
