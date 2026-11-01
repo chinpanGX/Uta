@@ -112,8 +112,8 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
 | 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
 | 5a | server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足す。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
-| 5 | server/ のプレイヤー（初期付与）・ガチャ・強化（骨組みは 1 で作る） | 1・2・3 | 1、2、5a |
-| 6 | server/ のプロデュース | 4・5 | 4・5 |
+| 5 | **done**（2026-11-01）server/ のプレイヤー（初期付与）・ガチャ・強化（[初期付与](../../plans/2026-11-01-server-initial-grant.md)・[ガチャ](../../plans/2026-11-01-server-gacha.md)・[強化](../../plans/2026-11-01-server-support-upgrade.md)） | 1・2・3（レベル上げ・上限解放まで。性能への反映は 6） | 1、2、5a |
+| 6 | server/ のプロデュース | 3 の「開始時の性能への反映」・4・5 | 4・5 |
 | 7 | client/ の画面 | 6・7 | 1・6 |
 
 ### MVP の最小のコンテンツ

@@ -25,9 +25,13 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
         var playerId = Context.GetAuthContext().PlayerId;
         return await transactions.RunAsync(Context, async tx =>
         {
-            var player = await signIn.ExecuteAsync(tx, playerId)
+            var result = await signIn.ExecuteAsync(tx, playerId)
                 ?? throw new BusinessException(PlayerErrors.NotCreated, "player not created");
-            return new SignInResponse(player.Level, player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, false, false);
+            var player = result.Player;
+            return new SignInResponse(
+                player.Level, player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, false, false,
+                result.Idols.Select(x => new OwnedIdolDto(x.IdolId, x.Training, x.Awakening, x.Shards)).ToArray(),
+                result.SupportCards.Select(x => new OwnedSupportCardDto(x.Uid.ToString(), x.CardId, x.Level, x.LimitBreak)).ToArray());
         });
     }
 }

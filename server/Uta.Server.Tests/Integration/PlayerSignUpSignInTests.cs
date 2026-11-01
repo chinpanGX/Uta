@@ -54,7 +54,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     }
 
     [Fact]
-    public async Task SignIn_AfterSignUp_ReturnsDefaults()
+    public async Task SignIn_AfterSignUp_ReturnsInitialGrant()
     {
         await using var factory = new UtaServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
@@ -65,11 +65,82 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
 
         Assert.Equal(1, response.Level);
         Assert.Equal(0, response.Exp);
-        Assert.Equal(0, response.Gold);
-        Assert.Equal(0, response.SupportPoints);
-        Assert.Equal(0, response.GachaCurrency);
+        Assert.Equal(10000, response.Gold);
+        Assert.Equal(10000, response.SupportPoints);
+        Assert.Equal(2500, response.GachaCurrency);
         Assert.False(response.HasActiveProduce);
         Assert.False(response.DiscardedProduce);
+        Assert.Equal(new[] { 1, 2 }, response.Idols.Select(x => x.IdolId).ToArray());
+        Assert.All(response.Idols, x =>
+        {
+            Assert.Equal(0, x.Training);
+            Assert.Equal(0, x.Awakening);
+            Assert.Equal(0, x.Shards);
+        });
+        Assert.Equal(5, response.SupportCards.Length);
+        Assert.Equal(new[] { 1, 2, 3, 4, 5 }.ToHashSet(), response.SupportCards.Select(x => x.CardId).ToHashSet());
+        Assert.All(response.SupportCards, x =>
+        {
+            Assert.Equal(1, x.Level);
+            Assert.Equal(0, x.LimitBreak);
+            Assert.Equal(26, x.SupportCardUid.Length);
+        });
+        Assert.Equal(5, response.SupportCards.Select(x => x.SupportCardUid).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task SignUp_Twice_DoesNotGrantAgain()
+    {
+        await using var factory = new UtaServerFactory(postgres);
+        using var channel = factory.CreateGrpcChannel();
+        var player = await PlayerClient.CreateAsync(channel);
+
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+        await player.CallAsync(service => service.SignUpAsync(), "req-2");
+        var response = await player.CallAsync(service => service.SignInAsync(), "req-3");
+
+        Assert.Equal(10000, response.Gold);
+        Assert.Equal(2500, response.GachaCurrency);
+        Assert.Equal(2, response.Idols.Length);
+        Assert.Equal(5, response.SupportCards.Length);
+    }
+
+    [Fact]
+    public async Task SignUp_NewPlayer_CreatesOwnershipRows()
+    {
+        await using var factory = new UtaServerFactory(postgres);
+        using var channel = factory.CreateGrpcChannel();
+        var player = await PlayerClient.CreateAsync(channel);
+
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+
+        Assert.Equal(2L, await postgres.QueryScalarAsync<long>("SELECT count(*) FROM player_idols WHERE player_id = $1", player.PlayerId));
+        Assert.Equal(5L, await postgres.QueryScalarAsync<long>("SELECT count(*) FROM player_support_cards WHERE player_id = $1", player.PlayerId));
+    }
+
+    [Fact]
+    public async Task SignUp_NewPlayer_WritesOneGameLog()
+    {
+        const string logSql = "SELECT count(*) FROM game_logs WHERE player_id = $1 AND kind = 'player' AND body->>'reason' = 'sign_up'";
+        await using var factory = new UtaServerFactory(postgres);
+        using var channel = factory.CreateGrpcChannel();
+        var player = await PlayerClient.CreateAsync(channel);
+
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+        Assert.Equal(1L, await postgres.QueryScalarAsync<long>(logSql, player.PlayerId));
+
+        await player.CallAsync(service => service.SignUpAsync(), "req-2");
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+        Assert.Equal(1L, await postgres.QueryScalarAsync<long>(logSql, player.PlayerId));
+    }
+
+    [Fact]
+    public async Task Migration_CreatesOwnershipTables()
+    {
+        var count = await postgres.QueryScalarAsync<long>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = ANY(ARRAY['player_idols','player_support_cards'])");
+
+        Assert.Equal(2L, count);
     }
 
     [Fact]

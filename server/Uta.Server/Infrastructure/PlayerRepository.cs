@@ -27,6 +27,54 @@ public sealed class PlayerRepository : IPlayerRepository
         return row is null ? null : new PlayerSnapshot(row.Level, row.Exp, row.Gold, row.SupportPoints, row.GachaCurrency);
     }
 
+    public async Task GrantCurrenciesAsync(TxContext tx, Ulid playerId, int gachaCurrency, int gold, int supportPoints)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE players SET gacha_currency = gacha_currency + @gachaCurrency, gold = gold + @gold, support_points = support_points + @supportPoints " +
+            "WHERE player_id = @playerId",
+            new { playerId = playerId.ToString(), gachaCurrency, gold, supportPoints },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task<int?> TrySpendGachaCurrencyAsync(TxContext tx, Ulid playerId, int cost)
+    {
+        return await tx.Connection.QuerySingleOrDefaultAsync<int?>(new CommandDefinition(
+            "UPDATE players SET gacha_currency = gacha_currency - @cost " +
+            "WHERE player_id = @playerId AND gacha_currency >= @cost " +
+            "RETURNING gacha_currency",
+            new { playerId = playerId.ToString(), cost },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task AddSupportPointsAsync(TxContext tx, Ulid playerId, int points)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE players SET support_points = support_points + @points WHERE player_id = @playerId",
+            new { playerId = playerId.ToString(), points },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task<PlayerBalance?> TrySpendSupportAndGoldAsync(TxContext tx, Ulid playerId, int supportPoints, int gold)
+    {
+        var row = await tx.Connection.QuerySingleOrDefaultAsync<BalanceRow>(new CommandDefinition(
+            "UPDATE players SET support_points = support_points - @supportPoints, gold = gold - @gold " +
+            "WHERE player_id = @playerId AND support_points >= @supportPoints AND gold >= @gold " +
+            "RETURNING support_points AS SupportPoints, gold AS Gold",
+            new { playerId = playerId.ToString(), supportPoints, gold },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+        return row is null ? null : new PlayerBalance(row.SupportPoints, row.Gold);
+    }
+
+    private sealed class BalanceRow
+    {
+        public int SupportPoints { get; set; }
+        public int Gold { get; set; }
+    }
+
     private sealed class Row
     {
         public int Level { get; set; }
