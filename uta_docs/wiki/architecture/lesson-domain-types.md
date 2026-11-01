@@ -45,8 +45,8 @@ updated: 2026-11-01
 | `PersistentTrigger` | 持続効果が反応するタイミングの enum |
 | `ICardCatalog` | ID からカード定義を返すポート |
 | `LessonRules` | lesson-card.md 4.1 の値。`static class` の `const` にする（差し替えない。保存する状態にルールが入らないので、差し替えられると再生の結果が黙って変わるため）[決定。2026-11-01。ユーザーの判断]|
-| `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。種類か対象のパラメータが `Nothing` なら `ArgumentOutOfRangeException`。試験なら `ExamSetup` も持つ(`ExamSetup` を渡す引数は未実装) |
-| `ExamSetup` [未実装] | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int earlyEndScore)`: 審査ターンの列と早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int scoreBonusPercent)` は 1 ターン分で、`scoreBonusPercent` は [produce.md](../systems/produce.md) 5.2 の「スコアボーナス(%)」。**週の進行(プロデュースのドメイン)が試験の開始時のパラメータから先に計算して渡す**。レッスンのエンジンは 5.2 の式を持たない(試験中にパラメータは変わらないので先に計算できる) [決定。2026-11-01。ユーザーの判断]。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
+| `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。`LessonSetup(LessonKind kind, ParamKind targetParam, int maxTurns, int clearTarget, int perfectTarget, ExamSetup exam = null)` [Uta案。2026-11-01。フェーズ 6 の計画]。**`IsExam` は `exam != null`**。種類が `MidExam`/`FinalExam` であることと `exam != null` が食い違えば `ArgumentException`。種類が `Nothing`、または試験でないのに対象のパラメータが `Nothing` なら `ArgumentOutOfRangeException`。**試験のときは対象のパラメータを使わない**(審査ターンごとのパラメータは `ExamTurn` が持つ。どの値でもよく、`Nothing` も許す)。試験のとき `clearTarget` と `perfectTarget` は 0 でなければ `ArgumentOutOfRangeException`(試験はどちらの目標も持たない。lesson-card.md 9.5) |
+| `ExamSetup` [未実装] | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int earlyEndScore)`: 審査ターンの列と早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int scoreBonusPercent)` は 1 ターン分で、`scoreBonusPercent` は [produce.md](../systems/produce.md) 5.2 の「最終スコアボーナス(%)」(信頼度補正の後。MVP は補正 0)。**週の進行(プロデュースのドメイン)が試験の開始時のパラメータから先に計算して渡す**。レッスンのエンジンは 5.2 の式を持たない(試験中にパラメータは変わらないので先に計算できる) [決定。2026-11-01。ユーザーの判断]。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外。`ExamTurn` は `readonly struct`、`ExamSetup` は `sealed class`(プロパティは `Turns`・`EarlyEndScore`、`ExamTurn` は `Param`・`ScoreBonusPercent`)。`turns` が null・空、`param` が `Nothing`、`scoreBonusPercent` が負、`earlyEndScore` が負のとき例外。エンジンが読むのは `ScoreBonusPercent` と `EarlyEndScore` だけ(`Param` は表示のために持つ) [Uta案。2026-11-01]。レッスン開始時(L1。`Turn` が 0)に試験でパラメータが上がるときの倍率は、1 ターン目の値を使う [Uta案。2026-11-01。36 枚には起きない] |
 | `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。[lesson-phases.md](lesson-phases.md) 1章）。検査する列は `Status`・`Trigger`・`Value`・`Arg` の負・コスト・条件・カードの区分。エラーの文言と検査の順は [実装計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.4 |
 
 ### 2.1 `Op` ごとの引数
@@ -89,11 +89,12 @@ updated: 2026-11-01
 
 | 型 | 責務 |
 |---|---|
-| `LessonFormulas` | 9.1 最終消費量、9.2 パラメータ上昇値、9.3 元気、9.4 好印象（9.5 試験スコアは試験の実装時） |
+| `LessonFormulas` | 9.1 最終消費量、9.2 パラメータ上昇値、9.3 元気、9.4 好印象（9.5 試験スコアは `ExamScore`(試験の実装時)） |
 | `LessonCommand` | カードを使う / ドリンクを使う / スキップ |
 | `UseCheckResult` / `LessonApplyResult` | 使用可否と、操作を受け付けたか |
-| `LessonResult` / `LessonEndReason` [未実装] | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す |
+| `LessonResult` / `LessonEndReason` [未実装] | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す。`LessonResult` は `readonly struct`(プロパティ `Gained`・`LastTurn`・`Reason`・`Hp`)。`LessonEndReason` は `Nothing = 0`・`TurnsOver = 1`・`Perfect = 2`・`EarlyEnd = 3`(lesson-card.md 10.1)。`GetResult` は `public static`。レッスンが終わっていない(`IsFinished` でない)状態を渡したら `InvalidOperationException`。`LastTurn` は `state.Turn` [Uta案。2026-11-01] |
 | `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。クライアントの予測にも使う。**MVP のクライアントの予測は使用可否だけ**で、効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
+| `LessonStateComparer` [未実装] | 再生した状態の比べ方([produce-domain.md](produce-domain.md) 7章)。`Describe(LessonState)` は状態の全部の値を `項目=値` の文字列の並びにし、`Diff(LessonState expected, LessonState actual)` は食い違った項目だけを返す(同じなら空)。.NET の単体テストと IL2CPP の確認で同じ関数を使う。形は [フェーズごとの実装計画](../../plans/2026-11-01-shared-lesson-phases.md) 3.2 [Uta案。2026-11-01]。今の `LessonEngineTests` の `Summarize` はこれに置き換える |
 | `EffectExecutor` | `Op` ごとの `switch` で効果を処理する |
 | `ConditionEvaluator` | 条件の判定（P1・P2） |
 | `TriggerDispatcher` | 同じタイミングの発動を、10章の順（サポートアビリティ → 育成アイテム → 持続効果）で並べて処理する |
