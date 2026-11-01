@@ -75,7 +75,7 @@ uta/
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion（Uta.Server・Uta.Server.Tests・compose.yaml）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO。今は中身が空）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
@@ -171,7 +171,7 @@ uta/
 - サーバー・shared 全体のビルド: `dotnet build Uta.slnx`（警告 0・エラー 0）
 - サーバーのテスト: `dotnet test --project server/Uta.Server.Tests`（アーキテクチャテストと結合テスト。結合テストは Docker が要る: Testcontainers が PostgreSQL を起動する）
 - ローカルのサーバー: `docker compose --env-file server/.env -f server/compose.yaml up -d --wait`（`server/.env` は `.env.example` を写して `POSTGRES_PASSWORD` を書く）→ `dotnet user-secrets set "ConnectionStrings:Default" "<接続文字列>" --project server/Uta.Server` → `dotnet run --project server/Uta.Server -- migrate`（マイグレーション）→ `dotnet run --project server/Uta.Server`（`http://localhost:5000`）
-- Unity 7 の Editor が開いているときのコンパイル確認: `unity recompile --format json`（`client/uta` で実行）。パッケージの再解決: `unity command package resolve`。コンソールの読み出し・Play モードの開始と停止は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章。**Windows の IL2CPP のビルドは通らない（`IL1009`。同 3.1）**
+- Unity 7 の Editor が開いているときのコンパイル確認: `unity recompile --format json`（`client/uta` で実行）。パッケージの再解決: `unity command package resolve`。コンソールの読み出し・Play モードの開始と停止は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章。Windows の IL2CPP のプレイヤー（バッチモード。Editor を閉じてから）: `Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 -executeMethod Uta.Client.Editor.BuildCommands.BuildWindowsIl2Cpp -logFile <ログ>` → `client/uta/Build/Windows/Uta.exe`。起動して通信を確かめる: `Uta.exe -batchmode -nographics -uta-quit-after-check`（終了コード 0 が成功。接続先は `-uta-server-url <URL>`。[unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 3.1）
 - マスタの生成（`masterdata/`。生成物は手で直さない。CSV か定義を変えたときだけ実行する）: `powershell -NoProfile -File masterdata/gen.ps1 code-gen`（定義から生成ソース）、`... master-gen`（CSV の検証とバイナリの生成。省略時）、`... check`（検証だけ。何も書かない）。実行ポリシーで読めないときは `-ExecutionPolicy Bypass` を足す
 - wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
 
