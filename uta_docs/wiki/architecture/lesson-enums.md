@@ -20,7 +20,7 @@ updated: 2026-11-01
 - **数値はこのページで固定する**。以後は値を変えず、追加は末尾に足す（マスタ・保存の値に使うため）。このページを作る前のコードの数値は、保存したデータがまだ無いので付け直す（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）
 - **効果の入れ子の深さは 1**: `AddPersistent`・`ScheduleEffect` の子の効果に、`AddPersistent`・`ScheduleEffect` を置かない。グループの循環もこれで起きない [決定。2026-10-31。[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章]
 - 参照（`RefConditionGroupId` などの効果内条件）は**どの `Op` でも同じ意味**（満たさないとその行だけ飛ばす。判定はコストの前。lesson-card.md 6.2）。`AddPersistent` でも、その行の条件は「持続効果を付与するかどうか」の条件で、例外を作らない。発動のたびに見る条件は、発動する効果（子）の効果内条件に付ける（lesson-card.md 7.5）
-- 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する
+- 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する。いまの Domain の検証は `Status`・`Trigger` の列だけ（[enum の改名の計画](../../plans/2026-10-31-lesson-enums-rename.md)。2026-11-01。ユーザーの判断）。`Value`・`Arg`・参照の列は、下の表の「—」が「空欄でなければエラー」か「読まない」かと、各列の下限を決めてから入れる（未決事項）
 - 「フェーズ」は**コードで処理できるようになるフェーズ**（[lesson-phases.md](lesson-phases.md)）。カードで使い始めるフェーズとは限らない（使うカードがないものは合成カードで確かめる。[lesson-phases.md](lesson-phases.md) 1章）。enum には最初から全部を定義し、まだ動かせない `Op` を使うカードは読み込み時にエラーにする（[lesson-phases.md](lesson-phases.md) 1章）
 - lesson-card.md 7.6 の後回しのプリミティブ（`RepeatNext` / `AddLessonTurn` / `DeckManipulate`）は enum に入れず、そのカードを採用するときにこのページの末尾に足す
 
@@ -180,7 +180,8 @@ updated: 2026-11-01
 - `CreateCard` の生成する位置の持ち方（採用時）
 - `AddStatusPercent` の持続ターンの数え方（採用時。lesson-domain-types.md 3章）
 - 引数が 3 つで足りない `Op` が出たときの扱い（masterdata-pipeline.md 3章）
+- 1章の表の「—」の意味（空欄でなければエラーか、読まないか）と、`Value`・`Arg` の下限。決めたら `CardDefinitionValidator` とマスタの `IValidatable` に入れる（マスタの最初の計画の前に決める）
 
 ## 実装メモ
 
-- 2026-10-31: このページを作った時点で、コード（`LessonEnums.cs`・`EffectExecutor.cs`・`CardDefinitionValidator.cs`）はまだ古い名前・数値（`EffectOp.Param`、`RatioSource`、`ResourceKind`、`Arg1` にステータスを数値で入れる形）のまま。直す手順は [実装計画](../../plans/2026-10-31-lesson-enums-rename.md)
+- 2026-11-01: コード（`shared/Uta.Shared.Domain/Lesson`）をこのページに合わせた（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）。`Op` ごとの `Value`・`Arg`・参照の列の検証は未実装（未決事項）

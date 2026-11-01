@@ -35,6 +35,15 @@
 - 存在しないビルドコマンドやファイルを、あるものとして書かない。
 - **.NET SDK / Unity がない環境では、ビルド・テストの結果を推測で「通った」と書かない。** 確認できていないと明記し、ユーザーに実行を依頼する。
 - シークレット（接続文字列・鍵・パスワード）をリポジトリに入れない。
+- 日本語のファイルを Bash で読むときは、`cut -c` などで行を文字数で切らない（UTF-8 の途中で切れて文字化けし、読み直しになる）。必要な行だけを `sed -n 'N,Mp'` や Read の範囲指定で読む。
+
+## セッションの区切り（コンテキストの節約）
+
+1 回の呼び出しごとに、それまでの会話をすべて読み直す。会話が長いほど、1 回の呼び出しが高くつく（2026-10-31〜11-01 のセッションでは、文脈が 50〜59 万トークンのまま enum の計画を実装し、90 回の呼び出しで約 4,900 万トークンを読み直した）。
+
+- **作業の区切りでは、次の作業を新しいセッションで始める。** 区切りは、PR を作った・マージした、実装計画を `status: done` にした、レビューの判断を反映し終えた、のどれか。Claude は区切りに来たら、続けずに新しいセッション（`start_session`）を提案する。引き継ぐことは、wiki・計画・PR に書いてあるものとし、ブリーフには読むファイルのパスを書く
+- 同じセッションで続けるときは、ユーザーに `/compact` を頼む
+- 会話が長くなってからは、小さい Bash・Read を何回も回さない。読むものはまとめて 1 回で読み、直すものはまとめて 1 回で直す
 
 ## IP方針（最重要）
 
@@ -141,7 +150,10 @@ uta/
 - 改行は LF 固定（`.gitattributes`）。`.bat` / `.cmd` のみ CRLF
 - Unity の `.meta` ファイルは必ずコミットする。`client/uta/Library/` などの自動生成物は入れない（`.gitignore`）
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
-- コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。履歴は `git log -- uta_docs/wiki` などで引く
+- コミットメッセージは日本語
+- **GitHub の操作（PR・Issue・API）は `gh` コマンドを使う**（2026-11-01 に確定）。GitHub の MCP は使わない
+- コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
+- 履歴は `git log -- uta_docs/wiki` などで引く
 - サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
   - 共通基盤は Uta の開発を通して整え、別のアプリでも使える形でリリースする。Uta 固有のものを共通基盤に入れない。固定はコミット（タグを待たない）。ルールは [repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 3.1
   - clone: `git clone --recurse-submodules <Uta の URL>`（済みの clone では `git submodule update --init`）

@@ -46,6 +46,8 @@ namespace Uta.Shared.Domain.Lesson
 
         public EffectDef(
             EffectOp op,
+            StatusKind status = StatusKind.Nothing,
+            PersistentTrigger trigger = PersistentTrigger.Nothing,
             int value = 0,
             int arg1 = 0,
             int arg2 = 0,
@@ -55,6 +57,8 @@ namespace Uta.Shared.Domain.Lesson
             IReadOnlyList<EffectDef> children = null)
         {
             Op = op;
+            Status = status;
+            Trigger = trigger;
             Value = value;
             Arg1 = arg1;
             Arg2 = arg2;
@@ -65,6 +69,13 @@ namespace Uta.Shared.Domain.Lesson
         }
 
         public EffectOp Op { get; }
+
+        /// <summary>対象のステータス（AddStatus など）。使わないときは Nothing</summary>
+        public StatusKind Status { get; }
+
+        /// <summary>持続効果のトリガー（AddPersistent）。使わないときは Nothing</summary>
+        public PersistentTrigger Trigger { get; }
+
         public int Value { get; }
         public int Arg1 { get; }
         public int Arg2 { get; }
@@ -76,7 +87,7 @@ namespace Uta.Shared.Domain.Lesson
         /// <summary>効果内条件。すべて満たすときだけ発動する</summary>
         public IReadOnlyList<ConditionDef> Conditions { get; }
 
-        /// <summary>Schedule / Persistent が発動する効果</summary>
+        /// <summary>ScheduleEffect / AddPersistent が発動する効果</summary>
         public IReadOnlyList<EffectDef> Children { get; }
     }
 
@@ -153,25 +164,14 @@ namespace Uta.Shared.Domain.Lesson
         CardDefinition Get(int cardId);
     }
 
-    /// <summary>レッスンのルールの値（lesson-card.md 4.1）。</summary>
-    public sealed class LessonRules
+    /// <summary>レッスンのルールの値（lesson-card.md 4.1）。差し替えない（lesson-domain-types.md 2章）。</summary>
+    public static class LessonRules
     {
-        public static readonly LessonRules Default = new LessonRules(3, 3, 5, 1, 2);
-
-        public LessonRules(int drawPerTurn, int firstTurnMinHand, int startInHandMax, int baseUses, int skipHpRecover)
-        {
-            DrawPerTurn = drawPerTurn;
-            FirstTurnMinHand = firstTurnMinHand;
-            StartInHandMax = startInHandMax;
-            BaseUses = baseUses;
-            SkipHpRecover = skipHpRecover;
-        }
-
-        public int DrawPerTurn { get; }
-        public int FirstTurnMinHand { get; }
-        public int StartInHandMax { get; }
-        public int BaseUses { get; }
-        public int SkipHpRecover { get; }
+        public const int DrawPerTurn = 3;
+        public const int FirstTurnMinHand = 3;
+        public const int StartInHandMax = 5;
+        public const int BaseUses = 1;
+        public const int SkipHpRecover = 2;
     }
 
     /// <summary>1回のレッスンに渡す値。ターン数・目標は produce.md のマスタから。</summary>
@@ -183,6 +183,16 @@ namespace Uta.Shared.Domain.Lesson
             if (maxTurns <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(maxTurns));
+            }
+
+            if (kind == LessonKind.Nothing)
+            {
+                throw new ArgumentOutOfRangeException(nameof(kind));
+            }
+
+            if (targetParam == ParamKind.Nothing)
+            {
+                throw new ArgumentOutOfRangeException(nameof(targetParam));
             }
 
             Kind = kind;

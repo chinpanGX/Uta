@@ -136,7 +136,7 @@ namespace Uta.Shared.Domain.Lesson
             LessonPhase phase,
             int hp,
             int maxHp,
-            int genki,
+            int shield,
             int usesLeft,
             int paramGained,
             long nextGrantOrder)
@@ -164,7 +164,7 @@ namespace Uta.Shared.Domain.Lesson
             Phase = phase;
             Hp = hp;
             MaxHp = maxHp;
-            Genki = genki;
+            Shield = shield;
             UsesLeft = usesLeft;
             ParamGained = paramGained;
             NextGrantOrder = nextGrantOrder;
@@ -193,7 +193,7 @@ namespace Uta.Shared.Domain.Lesson
         public int Hp { get; internal set; }
 
         public int MaxHp { get; }
-        public int Genki { get; internal set; }
+        public int Shield { get; internal set; }
 
         /// <summary>このターンに残っているスキルカードの使用数</summary>
         public int UsesLeft { get; internal set; }

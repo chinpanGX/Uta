@@ -10,7 +10,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
     public sealed class LessonEngineTests
     {
         private static readonly Phase1Cards Catalog = new Phase1Cards();
-        private static readonly LessonEngine Engine = new LessonEngine(Catalog, LessonRules.Default);
+        private static readonly LessonEngine Engine = new LessonEngine(Catalog);
 
         private static readonly LessonSetup NormalLesson = new LessonSetup(LessonKind.Normal, ParamKind.Singing, 6, 40, 80);
 
@@ -59,7 +59,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         }
 
         [Fact]
-        public void UseCard_ConsumeCost_PaysGenkiBeforeHp()
+        public void UseCard_ConsumeCost_PaysShieldBeforeHp()
         {
             var state = new LessonState(NormalLesson, Deck(Enumerable.Repeat(Phase1Cards.F02, 9)), 30, 30);
             var random = NewRandom();
@@ -67,12 +67,12 @@ namespace Uta.Shared.Domain.Tests.Lesson
 
             Engine.Apply(state, LessonCommand.UseCard(state.Zones.Hand[0]), random);
             Assert.Equal(27, state.Hp);
-            Assert.Equal(2, state.Genki);
+            Assert.Equal(2, state.Shield);
 
             // 消費3 を元気2 → 体力1 の順に払い、そのあと元気+2
             Engine.Apply(state, LessonCommand.UseCard(state.Zones.Hand[0]), random);
             Assert.Equal(26, state.Hp);
-            Assert.Equal(2, state.Genki);
+            Assert.Equal(2, state.Shield);
             Assert.Equal(4, state.ParamGained);
         }
 
@@ -271,7 +271,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         [Fact]
         public void Validator_UnsupportedOp_ReportsError()
         {
-            var face = new CardFace(new CostDef[0], new ConditionDef[0], new[] { new EffectDef(EffectOp.ScaleResource, 50) });
+            var face = new CardFace(new CostDef[0], new ConditionDef[0], new[] { new EffectDef(EffectOp.ScaleShield, value: 50) });
             var card = new CardDefinition(999, Plan.Logic, CardType.Active, Rarity.SR, 1, true, false, false, face, null);
 
             Assert.Single(CardDefinitionValidator.Validate(card));
@@ -332,7 +332,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
                 s.Phase,
                 s.Hp,
                 s.MaxHp,
-                s.Genki,
+                s.Shield,
                 s.UsesLeft,
                 s.ParamGained,
                 s.NextGrantOrder);
@@ -346,7 +346,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
                 s.Turn,
                 s.Phase,
                 s.Hp,
-                s.Genki,
+                s.Shield,
                 s.ParamGained,
                 s.UsesLeft,
                 string.Join(",", s.Zones.DrawPile),

@@ -63,10 +63,10 @@ namespace Uta.Shared.Domain.Tests.Lesson
         }
 
         [Fact]
-        public void GenkiGain_Blocked_ReturnsZero()
+        public void ShieldGain_Blocked_ReturnsZero()
         {
-            Assert.Equal(0, LessonFormulas.GenkiGain(4, 2, true));
-            Assert.Equal(6, LessonFormulas.GenkiGain(4, 2, false));
+            Assert.Equal(0, LessonFormulas.ShieldGain(4, 2, true));
+            Assert.Equal(6, LessonFormulas.ShieldGain(4, 2, false));
         }
 
         [Fact]

@@ -27,8 +27,8 @@ namespace Uta.Shared.Domain.Lesson
                 case ConditionSubject.Motivation:
                     left = state.Statuses.Get(StatusKind.Motivation);
                     break;
-                case ConditionSubject.Genki:
-                    left = state.Genki;
+                case ConditionSubject.Shield:
+                    left = state.Shield;
                     break;
                 case ConditionSubject.HpPercent:
                     // 体力 / 最大体力 と 値% を、割り算せずに比べる

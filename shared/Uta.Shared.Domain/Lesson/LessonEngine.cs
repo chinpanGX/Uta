@@ -11,12 +11,10 @@ namespace Uta.Shared.Domain.Lesson
     public sealed class LessonEngine
     {
         private readonly ICardCatalog catalog;
-        private readonly LessonRules rules;
 
-        public LessonEngine(ICardCatalog catalog, LessonRules rules)
+        public LessonEngine(ICardCatalog catalog)
         {
             this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-            this.rules = rules ?? throw new ArgumentNullException(nameof(rules));
         }
 
         /// <summary>レッスンを始め、1ターン目の入力待ちまで進める（L1・L2、T1〜T7）。</summary>
@@ -88,7 +86,7 @@ namespace Uta.Shared.Domain.Lesson
                     return UseCard(state, command.Arg, random);
                 case LessonCommandKind.Skip:
                     // スキップの体力回復は E1 より前に行う（lesson-domain-types.md 5章）
-                    state.Hp = Math.Min(state.MaxHp, state.Hp + rules.SkipHpRecover);
+                    state.Hp = Math.Min(state.MaxHp, state.Hp + LessonRules.SkipHpRecover);
                     EndTurn(state, random, true);
                     return LessonApplyResult.Accepted;
                 case LessonCommandKind.UseDrink:
@@ -158,7 +156,7 @@ namespace Uta.Shared.Domain.Lesson
         {
             state.Turn++;
             state.Phase = LessonPhase.TurnStart;
-            state.UsesLeft = rules.BaseUses;
+            state.UsesLeft = LessonRules.BaseUses;
 
             // T1. 発動予約の残りターンを1減らす
             foreach (var scheduled in state.Scheduled)
@@ -178,8 +176,8 @@ namespace Uta.Shared.Domain.Lesson
 
             // T4. ドロー。1ターン目は開始時手札を含めて最低枚数まで
             var drawCount = state.Turn == 1
-                ? Math.Max(0, rules.FirstTurnMinHand - state.Zones.Hand.Count)
-                : rules.DrawPerTurn;
+                ? Math.Max(0, LessonRules.FirstTurnMinHand - state.Zones.Hand.Count)
+                : LessonRules.DrawPerTurn;
             state.Zones.Draw(drawCount, random);
 
             // T5. 「ターン開始後」
@@ -285,12 +283,12 @@ namespace Uta.Shared.Domain.Lesson
             }
 
             var hand = startCards;
-            if (startCards.Count > rules.StartInHandMax)
+            if (startCards.Count > LessonRules.StartInHandMax)
             {
                 // 上限を超えたら、開始時手札の組をシャッフルして先頭から手札へ。残りは山札に混ぜる
                 RandomOps.Shuffle(random, startCards);
-                hand = startCards.GetRange(0, rules.StartInHandMax);
-                others.AddRange(startCards.GetRange(rules.StartInHandMax, startCards.Count - rules.StartInHandMax));
+                hand = startCards.GetRange(0, LessonRules.StartInHandMax);
+                others.AddRange(startCards.GetRange(LessonRules.StartInHandMax, startCards.Count - LessonRules.StartInHandMax));
                 others.Sort();
             }
 
@@ -343,7 +341,7 @@ namespace Uta.Shared.Domain.Lesson
                 switch (cost.Kind)
                 {
                     case CostKind.Consume:
-                        if ((long)state.Genki + state.Hp < FinalConsume(state, cost.Value))
+                        if ((long)state.Shield + state.Hp < FinalConsume(state, cost.Value))
                         {
                             return false;
                         }
@@ -379,9 +377,9 @@ namespace Uta.Shared.Domain.Lesson
                     {
                         // 元気から先に払い、足りない分を体力から
                         var amount = FinalConsume(state, cost.Value);
-                        var fromGenki = Math.Min(state.Genki, amount);
-                        state.Genki -= fromGenki;
-                        state.Hp -= amount - fromGenki;
+                        var fromShield = Math.Min(state.Shield, amount);
+                        state.Shield -= fromShield;
+                        state.Hp -= amount - fromShield;
                         break;
                     }
                     case CostKind.HpDirect:
