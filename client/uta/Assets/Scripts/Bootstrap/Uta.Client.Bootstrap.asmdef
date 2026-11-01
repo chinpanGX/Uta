@@ -5,6 +5,7 @@
         "Uta.Client.Application",
         "Uta.Client.Infrastructure",
         "Uta.Client.Presentation",
+        "Uta.Shared.Domain",
         "VolTech.MagicOnion.Client",
         "UniTask",
         "VContainer"
