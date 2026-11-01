@@ -119,7 +119,7 @@ updated: 2026-11-01
 | レッスン・試験 | スキップ | — | `ExecuteLessonActionAsync` |
 | 終了以外 | 放棄する | — | `AbandonAsync`(操作の記録には残さない。セッションが終わるため) |
 
-- **操作の表し方は 1 つにする** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` の操作のコマンドの型(レッスンの `LessonCommand` と同じ形で、プロデュースの局面ごとの操作を表す型)を、そのまま記録の 1 件にする。記録だけの種類の enum は作らない(コマンドの種類が下の enum `OperationKind`)。型は `ProduceCommand`(種類と引数 3 つ)で、記録 `OperationRecord` はコマンドに操作番号・週・挑戦回数・ターンを付けたもの [Uta案。2026-11-01。実装計画 [2026-11-01-produce-week-progress.md](../../plans/2026-11-01-produce-week-progress.md)]。DTO(`Uta.Shared.Contracts`)からコマンドへの変換はサーバーの `Api` だけで行い、記録の保存の形(MessagePack)はサーバーの `Infrastructure` で作る
+- **操作の表し方は 1 つにする** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` の操作のコマンドの型(レッスンの `LessonCommand` と同じ形で、プロデュースの局面ごとの操作を表す型)を、そのまま記録の 1 件にする。記録だけの種類の enum は作らない(コマンドの種類が下の enum `OperationKind`)。型は `ProduceCommand`(種類と引数 3 つ)で、記録 `OperationRecord` はコマンドに操作番号・週・挑戦回数・ターンを付けたもの [決定。2026-11-01。実装済み。実装計画 [2026-11-01-produce-week-progress.md](../../plans/2026-11-01-produce-week-progress.md)]。DTO(`Uta.Shared.Contracts`)からコマンドへの変換はサーバーの `Api` だけで行い、記録の保存の形(MessagePack)はサーバーの `Infrastructure` で作る
 - 局面は 6章の「進行」の局面。**試験の結果**は、再挑戦が残るときの入力待ち(合否にかかわらず。[produce.md](../systems/produce.md) 5.1.1)。**ドリンクの整理**は、ドリンクを3つ持っているときに4つ目を受け取ったときの入力待ちで、4つから1つ捨てるまで先へ進まない [決定。2026-10-31]
 - **MVP で受ける操作**は、週の選択・カードの選択肢(選ぶ・受け取らないだけ。再抽選・除去は残り回数 0 なので常に拒否)・試験の結果・レッスン・試験(カードを使う・スキップだけ)・放棄。相談中・ドリンクの整理・ドリンクを使う / 捨てるは MVP の後(`OperationKind` の値は予約して残す)
 - 要求の局面が今の局面と違えば拒否する(`PRODUCE_UNEXPECTED_PHASE`)。例外は「ドリンクを捨てる」で、終了以外のどの入力待ちでも受ける(MVP の後)
@@ -148,7 +148,7 @@ updated: 2026-11-01
 | 15 | `Skip` | | | |
 
 - **カードはインスタンス ID で指す**。手札の位置では指さない(表示の並びに左右されない)。インスタンス ID はセッションの中だけの連番の `int`(初期デッキは [idol-support.md](../systems/idol-support.md) 1.3 の並びで 1 から、以降は入手順)。セッションの外には出ないので ULID にしない([repository-layout.md](repository-layout.md) 10.1 の「サーバーが発行する ID」には当たらない、という整理)
-- **要求には次の操作番号を入れる**。サーバーの番号と違えば拒否し、クライアントは `GetState` で取り直す。**番号の判定はサーバーの `Api` が行う**。`Uta.Shared.Domain` の `ProduceEngine.Apply` は要求の番号を見ず、受け付けたとき次の操作番号を 1 増やして記録を足す [Uta案。2026-11-01。実装計画で仮置き。実装後に確定する]。同じターンにカードとドリンクを続けて使うと、ターン番号だけでは古い要求と新しい要求を区別できないため([api-design.md](api-design.md) 1章にも反映)
+- **要求には次の操作番号を入れる**。サーバーの番号と違えば拒否し、クライアントは `GetState` で取り直す。**番号の判定はサーバーの `Api` が行う**。`Uta.Shared.Domain` の `ProduceEngine.Apply` は要求の番号を見ず、受け付けたとき次の操作番号を 1 増やして記録を足す [決定。2026-11-01。実装済み]。同じターンにカードとドリンクを続けて使うと、ターン番号だけでは古い要求と新しい要求を区別できないため([api-design.md](api-design.md) 1章にも反映)
 - **古い要求の拒否は操作番号だけで行う** [決定。2026-10-31]。要求は週・ターン・挑戦回数を持たない(サーバーの状態から分かる)。エラーは `PRODUCE_STALE_OPERATION` の 1 つ
 - 記録は状態の1列(6章)の中に持つ。1回のプロデュースで数百件・数 KB の見込み(推測)で、ADR 0010 の「1ターンの読み書きが1行」を変えずに済む。調査で SQL から見たくなったら、別テーブルに追記する形に移す
 
@@ -159,7 +159,7 @@ updated: 2026-11-01
 | 区分 | 内容 |
 |---|---|
 | 形式 | 状態の形式のバージョン |
-| 開始時の入力 | セッション ID、ユーザー ID、シナリオ、**育成アイドルとサポートカード(0〜5枚)の開始時点の性能**(育成アイドル: ID・トレーニング・覚醒。MVP は ID だけ持ち、トレーニング・覚醒は作るときに足す [Uta案。2026-11-01]。サポートカード: カード ID・レベル・上限解放回数。所持IDは持たない)、開始時のプレイヤーLv(カードの `unlockLv` の絞り込みに使う。[produce.md](../systems/produce.md) 3.5)、マスターシード。開始時の体力は最大体力と同じ |
+| 開始時の入力 | セッション ID、ユーザー ID、シナリオ、**育成アイドルとサポートカード(0〜5枚)の開始時点の性能**(育成アイドル: ID・トレーニング・覚醒。MVP は ID だけ持ち、トレーニング・覚醒は作るときに足す [決定。2026-11-01。実装済み]。サポートカード: カード ID・レベル・上限解放回数。所持IDは持たない)、開始時のプレイヤーLv(カードの `unlockLv` の絞り込みに使う。[produce.md](../systems/produce.md) 3.5)、マスターシード。開始時の体力は最大体力と同じ |
 | 乱数 | 使用中のストリームごとに、種類・キーと `xoshiro256**` の状態(64 ビット × 4)、引いた回数(調査用) |
 | 進行 | 局面(週の選択 / カードの選択肢 / レッスン / 試験 / 試験の結果 / 終了。入力待ちの種類のこと)、試験の開始直前の状態(再挑戦の戻り先。[produce.md](../systems/produce.md) 5.1.1)、週番号、**挑戦回数**(今の試験の中で 0 始まり。[produce.md](../systems/produce.md) 5.1.1)、次の操作番号、確定した週構成、その週に提示した内容(4章 で引いたもの) |
 | 育成 | パラメータ3種、体力・最大体力、デッキ(インスタンス ID・カード ID・強化済みか)、次のインスタンス ID、試験の再挑戦の残り回数、中間試験の結果 |
@@ -248,4 +248,15 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 
 ## 実装メモ
 
-(実装後に設計とのズレをここに記録する)
+2026-11-01 に順 4(`Uta.Shared.Domain` の週の進行)を実装した([計画](../../plans/2026-11-01-produce-week-progress.md))。`shared/Uta.Shared.Domain/Produce/`、テストは `shared/Uta.Shared.Domain.Tests/Produce/`。
+
+- 型: `ProduceEngine`(`Start`・`Apply`・`GetWeekChoices`・`GetClassOptions`・`CanUse`)、`ProduceState`、`ProduceCommand`/`OperationRecord`、`ProduceStartInput`、`ProduceCatalog`(マスタの行の型 `ProduceRows` から `Create`。検査は構造と、計算が壊れる列だけ。値の妥当性は masterdata の `IValidatable`)、`OfferPool`(選択肢の候補と抽選)、`ExamTurnBuilder`(審査ターンの列)、`ProduceFormulas`(加算・回復・配分・スコアボーナス・NPC・順位・評価)、`FormationValidator`(編成の検証 5・6)、`ProduceStateComparer`(状態の比較)
+- 5章の操作の表し方(`ProduceCommand` ＋ `OperationRecord`)、操作番号の判定は `Api`、`ProduceStartInput` は育成アイドルの ID だけ、は実装したとおりで確定とする
+- `IRandomStreamSource` の契約: 同じ `ProduceState` に対して、要求をまたいでも同じキーには前の続きから引けるストリームを返す。`Apply` は拒否する要求でも `Get` を呼ぶことがある(レッスン・試験中の操作。引かずに拒否する)。サーバーは、受け付けた要求のあとだけストリームの状態を保存する
+- `Attempt` は Exam / ExamResult の間だけ意味を持ち、試験を出ると 0 に戻る。直近の試験の挑戦回数は `LastExam.Attempt`
+- `Apply` は、レッスン・試験の `LessonApplyResult` の拒否(手札にない・使用数なし・条件を満たさない・ドリンク)をすべて `InvalidArgument` にまとめる。引数は正規形(使わない引数は 0 / -1)かを検査せず、受け付けた値をそのまま記録に残す。正規化は `Api` の責務
+- 処理の途中で例外が出たときの `ProduceState` は不定。サーバーは保存せず、保存済みの状態から取り直す
+- テストのマスタは `masterdata/csv/` を直接読む(`TestProduceMaster`)。バランス調整で値を変えたら、期待値のテストも直す
+- マスタ・乱数の参照で、タプルをキーにした辞書を使わない(IL2CPP の AOT でリフレクション依存の比較子を避けるため。`long` のキーにした)
+- 未確認: Unity(IL2CPP)でのコンパイルと再生。`ProduceCatalog.Create` を `SharedDomainReplay` の確認に含めるかは順 7 の前に決める
+- `ProduceSnapshot`(保存の形)は順 6

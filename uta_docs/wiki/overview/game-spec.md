@@ -108,8 +108,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 2b | **done**（2026-11-01）masterdata の最初の計画 2/2（[計画](../../plans/2026-11-01-masterdata-rest.md)。プロデュース・育成アイドル・サポートカード・ガチャの 26 テーブル） | — | 2a |
 | 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6。2026-11-01 に実装済み: [計画](../../plans/2026-11-01-shared-lesson-phases.md)） | — | なし（1・2 と並行できる） |
 | 2c | マスタを Unity に取り込む（[計画](../../plans/2026-11-01-masterdata-unity.md)。クライアント用の出力・MasterMemory の導入・StreamingAssets からの読み込み） | — | 2b |
-| 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
-| 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
+| 4 | **done**（2026-11-01）`Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章。[計画](../../plans/2026-11-01-produce-week-progress.md)） | 5 の再生の部分 | 2・3 |
 | 5a | server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足す。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
 | 5 | server/ のプレイヤー（初期付与）・ガチャ・強化（骨組みは 1 で作る） | 1・2・3 | 1、2、5a |
 | 6 | server/ のプロデュース | 4・5 | 4・5 |

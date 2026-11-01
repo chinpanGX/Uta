@@ -1,6 +1,6 @@
 ---
 title: 実装計画: Uta.Shared.Domain の週の進行
-status: in-progress
+status: done
 updated: 2026-11-01
 spec: ../wiki/systems/produce.md, ../wiki/architecture/produce-domain.md, ../wiki/systems/idol-support.md, ../wiki/architecture/lesson-phases.md
 ---
@@ -869,9 +869,13 @@ public static List<ProduceCommand> RunUntil(ProduceEngine engine, ProduceCatalog
 
 なし。実装担当が設計判断に出会ったら、止まって報告する。
 
-## 7. 実装後に wiki へ反映すること（メインのセッションが行う。実装担当はやらない）
+## 7. wiki への反映（2026-11-01 に済み）
 
-- [produce-domain.md](../wiki/architecture/produce-domain.md): 5章の表の崩れ（`スキップ`・`放棄する` の行が箇条書きの後ろにある）を直す。上の「決めたこと [Uta案]」を [決定] にして反映する。`ProduceSnapshot` は順 6 で作る旨を 6章に書く。Shared.Domain の型の節を足す。実装メモを書く
-- [lesson-domain-types.md](../wiki/architecture/lesson-domain-types.md): `ICardCatalog.CardIds` を足したことを書く
-- [game-spec.md](../wiki/overview/game-spec.md): 順 4 に done の印と計画へのリンクを付ける（重複している順 3 の行を整理する）
-- 計画を `status: done` にする
+[produce-domain.md](../wiki/architecture/produce-domain.md)（5章の表の崩れの修正、決めたことの確定、実装メモ）、[lesson-domain-types.md](../wiki/architecture/lesson-domain-types.md)（`CardIds`）、[glossary.md](../wiki/glossary.md)（挑戦回数）、[game-spec.md](../wiki/overview/game-spec.md)（順 4 を done に）。
+
+## 8. 実装結果の補足
+
+- `EvaluationScoreBandRow` のコンストラクタの引数名は `@fixed`（`fixed` が予約語のため）
+- `ProduceCatalog.Create` は、計画の V1〜V10 に加えて、参照の存在（存在しないシナリオを指す週など）も検査する
+- タプルをキーにした辞書は使わず `long` のキーにした（コードレビューの指摘。IL2CPP の AOT 対策）
+- 新しい `.cs` に `.meta` を足した（Unity が `shared/` を取り込むため）

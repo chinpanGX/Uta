@@ -18,8 +18,8 @@ namespace Uta.Shared.Domain.Produce
         private readonly Dictionary<int, SupportCardDefinition> supportCards;
         private readonly Dictionary<int, ExamPatternDefinition> examPatterns;
         private readonly Dictionary<Rarity, int> offerWeights;
-        private readonly Dictionary<(Rarity, int), int> maxLevels;
-        private readonly Dictionary<(ExamKind, int), int> examRankParamAll;
+        private readonly Dictionary<long, int> maxLevels;
+        private readonly Dictionary<long, int> examRankParamAll;
         private readonly int scoreBonusA;
         private readonly int[] scoreBonusB;
 
@@ -31,8 +31,8 @@ namespace Uta.Shared.Domain.Produce
             Dictionary<int, ExamPatternDefinition> examPatterns,
             IReadOnlyList<int> commonDeckCardIds,
             Dictionary<Rarity, int> offerWeights,
-            Dictionary<(Rarity, int), int> maxLevels,
-            Dictionary<(ExamKind, int), int> examRankParamAll,
+            Dictionary<long, int> maxLevels,
+            Dictionary<long, int> examRankParamAll,
             int scoreBonusA,
             int[] scoreBonusB,
             IReadOnlyList<EvaluationScoreBandRow> scoreBands,
@@ -112,7 +112,7 @@ namespace Uta.Shared.Domain.Produce
         /// <summary>SupportLevelCap の MaxLevel。無ければ ArgumentOutOfRangeException</summary>
         public int GetMaxLevel(Rarity rarity, int limitBreak)
         {
-            if (!maxLevels.TryGetValue((rarity, limitBreak), out var value))
+            if (!maxLevels.TryGetValue(Key((int)rarity, limitBreak), out var value))
             {
                 throw new ArgumentOutOfRangeException(nameof(limitBreak));
             }
@@ -128,7 +128,7 @@ namespace Uta.Shared.Domain.Produce
                 return 0;
             }
 
-            return examRankParamAll.TryGetValue((kind, rank), out var value) ? value : 0;
+            return examRankParamAll.TryGetValue(Key((int)kind, rank), out var value) ? value : 0;
         }
 
         /// <summary>1 → BFirst、2 → BSecond、3 → BThird。それ以外は ArgumentOutOfRangeException</summary>
@@ -140,6 +140,17 @@ namespace Uta.Shared.Domain.Produce
             }
 
             return scoreBonusB[rank - 1];
+        }
+
+        // 複合キーを long に詰める（各要素は 0 以上 2^20 未満。AOT で ValueTuple の比較子が作られないようにする）
+        private static long Key(int a, int b)
+        {
+            return ((long)a << 20) | (long)b;
+        }
+
+        private static long Key(int a, int b, int c)
+        {
+            return ((long)a << 40) | ((long)b << 20) | (long)c;
         }
 
         private sealed class Builder
@@ -161,17 +172,17 @@ namespace Uta.Shared.Domain.Produce
             {
                 // V1: 主キーの重複
                 var scenarioRows = Index(rows.Scenarios, r => r.ScenarioId, k => "Scenario " + k);
-                var weekRows = Index(rows.ScenarioWeeks, r => (r.ScenarioId, r.Week), k => "ScenarioWeek " + k.Item1 + " week " + k.Item2);
-                var slotRows = Index(rows.WeekActionSlots, r => (r.ScenarioId, r.Week, r.Order), k => "WeekActionSlot " + k.Item1 + " week " + k.Item2 + " order " + k.Item3);
-                var optionRows = Index(rows.ClassOptions, r => (r.ScenarioId, r.Week, r.Order), k => "ClassOption " + k.Item1 + " week " + k.Item2 + " order " + k.Item3);
+                var weekRows = IndexComposite(rows.ScenarioWeeks, r => Key(r.ScenarioId, r.Week), r => "ScenarioWeek " + r.ScenarioId + " week " + r.Week);
+                var slotRows = IndexComposite(rows.WeekActionSlots, r => Key(r.ScenarioId, r.Week, r.Order), r => "WeekActionSlot " + r.ScenarioId + " week " + r.Week + " order " + r.Order);
+                var optionRows = IndexComposite(rows.ClassOptions, r => Key(r.ScenarioId, r.Week, r.Order), r => "ClassOption " + r.ScenarioId + " week " + r.Week + " order " + r.Order);
                 var patternRows = Index(rows.ExamPatterns, r => r.ExamPatternId, k => "ExamPattern " + k);
                 var idolRows = Index(rows.Idols, r => r.IdolId, k => "Idol " + k);
                 var supportRows = Index(rows.SupportCards, r => r.SupportCardId, k => "SupportCard " + k);
-                var capRows = Index(rows.SupportLevelCaps, r => (r.Rarity, r.LimitBreak), k => "SupportLevelCap " + k.Item1 + "/" + k.Item2);
+                var capRows = IndexComposite(rows.SupportLevelCaps, r => Key((int)r.Rarity, r.LimitBreak), r => "SupportLevelCap " + r.Rarity + "/" + r.LimitBreak);
                 var commonRows = Index(rows.CommonDeckCards, r => r.Order, k => "CommonDeckCard " + k);
-                var recommendRows = Index(rows.IdolRecommendDecks, r => (r.Recommend, r.Order), k => "IdolRecommendDeck " + k.Item1 + "/" + k.Item2);
-                var abilityRows = Index(rows.SupportAbilities, r => (r.SupportCardId, r.Order), k => "SupportAbility " + k.Item1 + "/" + k.Item2);
-                var rewardRows = Index(rows.ExamRankRewards, r => (r.ExamKind, r.Rank), k => "ExamRankReward " + k.Item1 + "/" + k.Item2);
+                var recommendRows = IndexComposite(rows.IdolRecommendDecks, r => Key((int)r.Recommend, r.Order), r => "IdolRecommendDeck " + r.Recommend + "/" + r.Order);
+                var abilityRows = IndexComposite(rows.SupportAbilities, r => Key(r.SupportCardId, r.Order), r => "SupportAbility " + r.SupportCardId + "/" + r.Order);
+                var rewardRows = IndexComposite(rows.ExamRankRewards, r => Key((int)r.ExamKind, r.Rank), r => "ExamRankReward " + r.ExamKind + "/" + r.Rank);
                 var weightRows = Index(rows.OfferRarityWeights, r => r.Rarity, k => "OfferRarityWeight " + k);
                 var bandRows = Index(rows.EvaluationScoreBands, r => r.Order, k => "EvaluationScoreBand " + k);
                 var rankRows = Index(rows.EvaluationRanks, r => r.Rank, k => "EvaluationRank " + k);
@@ -215,6 +226,25 @@ namespace Uta.Shared.Domain.Produce
                 {
                     problems.Add(message);
                 }
+            }
+
+            // 複合主キー版（キーは Key で詰めた long。ラベルは行から作る）。
+            private Dictionary<long, TRow> IndexComposite<TRow>(IReadOnlyList<TRow> source, Func<TRow, long> key, Func<TRow, string> label)
+            {
+                var result = new Dictionary<long, TRow>();
+                foreach (var row in source)
+                {
+                    var k = key(row);
+                    if (result.ContainsKey(k))
+                    {
+                        Problem(label(row) + ": 重複");
+                        continue;
+                    }
+
+                    result.Add(k, row);
+                }
+
+                return result;
             }
 
             // 主キーごとに引ける辞書にする。重複は問題にして、最初の行を残す。
@@ -286,9 +316,9 @@ namespace Uta.Shared.Domain.Produce
             // V2・V3
             private Dictionary<int, ScenarioDefinition> BuildScenarios(
                 Dictionary<int, ScenarioRow> scenarioRows,
-                Dictionary<(int, int), ScenarioWeekRow> weekRows,
-                Dictionary<(int, int, int), WeekActionSlotRow> slotRows,
-                Dictionary<(int, int, int), ClassOptionRow> optionRows)
+                Dictionary<long, ScenarioWeekRow> weekRows,
+                Dictionary<long, WeekActionSlotRow> slotRows,
+                Dictionary<long, ClassOptionRow> optionRows)
             {
                 foreach (var week in weekRows.Values)
                 {
@@ -304,7 +334,7 @@ namespace Uta.Shared.Domain.Produce
 
                 foreach (var slot in slotRows.Values)
                 {
-                    if (!weekRows.ContainsKey((slot.ScenarioId, slot.Week)))
+                    if (!weekRows.ContainsKey(Key(slot.ScenarioId, slot.Week)))
                     {
                         Problem("WeekActionSlot " + slot.ScenarioId + " week " + slot.Week + ": ScenarioWeek がない");
                     }
@@ -312,17 +342,17 @@ namespace Uta.Shared.Domain.Produce
 
                 foreach (var option in optionRows.Values)
                 {
-                    if (!weekRows.ContainsKey((option.ScenarioId, option.Week)))
+                    if (!weekRows.ContainsKey(Key(option.ScenarioId, option.Week)))
                     {
                         Problem("ClassOption " + option.ScenarioId + " week " + option.Week + ": ScenarioWeek がない");
                     }
                 }
 
                 var slotsByWeek = slotRows.Values
-                    .GroupBy(x => (x.ScenarioId, x.Week))
+                    .GroupBy(x => Key(x.ScenarioId, x.Week))
                     .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Order).ToArray());
                 var optionsByWeek = optionRows.Values
-                    .GroupBy(x => (x.ScenarioId, x.Week))
+                    .GroupBy(x => Key(x.ScenarioId, x.Week))
                     .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Order).ToArray());
 
                 var result = new Dictionary<int, ScenarioDefinition>();
@@ -347,18 +377,18 @@ namespace Uta.Shared.Domain.Produce
                     var weeks = new List<WeekDefinition>();
                     for (var w = 1; w <= scenario.WeekCount; w++)
                     {
-                        if (!weekRows.TryGetValue((scenario.ScenarioId, w), out var weekRow))
+                        if (!weekRows.TryGetValue(Key(scenario.ScenarioId, w), out var weekRow))
                         {
                             Problem(name + " week " + w + ": 週がない");
                             continue;
                         }
 
-                        slotsByWeek.TryGetValue((scenario.ScenarioId, w), out var slots);
-                        optionsByWeek.TryGetValue((scenario.ScenarioId, w), out var options);
+                        slotsByWeek.TryGetValue(Key(scenario.ScenarioId, w), out var slots);
+                        optionsByWeek.TryGetValue(Key(scenario.ScenarioId, w), out var options);
                         weeks.Add(BuildWeek(name + " week " + w, weekRow, slots ?? new WeekActionSlotRow[0], options ?? new ClassOptionRow[0]));
                     }
 
-                    if (weekRows.TryGetValue((scenario.ScenarioId, scenario.WeekCount), out var last) && last.Kind != WeekKind.FinalExam)
+                    if (weekRows.TryGetValue(Key(scenario.ScenarioId, scenario.WeekCount), out var last) && last.Kind != WeekKind.FinalExam)
                     {
                         Problem(name + ": 最後の週: FinalExam でなければならない");
                     }
@@ -449,7 +479,7 @@ namespace Uta.Shared.Domain.Produce
             // V5
             private Dictionary<int, IdolDefinition> BuildIdols(
                 Dictionary<int, IdolRow> idolRows,
-                Dictionary<(RecommendKind, int), IdolRecommendDeckRow> recommendRows,
+                Dictionary<long, IdolRecommendDeckRow> recommendRows,
                 Dictionary<int, ExamPatternRow> patternRows)
             {
                 var result = new Dictionary<int, IdolDefinition>();
@@ -500,7 +530,7 @@ namespace Uta.Shared.Domain.Produce
                     var recommend = new List<int>();
                     for (var o = 1; o <= 3; o++)
                     {
-                        if (!recommendRows.TryGetValue((idol.Recommend, o), out var deckRow))
+                        if (!recommendRows.TryGetValue(Key((int)idol.Recommend, o), out var deckRow))
                         {
                             Problem(name + ": おすすめデッキ " + idol.Recommend + " の Order " + o + " の行がない");
                             continue;
@@ -539,8 +569,8 @@ namespace Uta.Shared.Domain.Produce
             // V6
             private Dictionary<int, SupportCardDefinition> BuildSupportCards(
                 Dictionary<int, SupportCardRow> supportRows,
-                Dictionary<(int, int), SupportAbilityRow> abilityRows,
-                Dictionary<(Rarity, int), SupportLevelCapRow> capRows)
+                Dictionary<long, SupportAbilityRow> abilityRows,
+                Dictionary<long, SupportLevelCapRow> capRows)
             {
                 foreach (var cap in capRows.Values)
                 {
@@ -601,7 +631,7 @@ namespace Uta.Shared.Domain.Produce
                     {
                         for (var lb = 0; lb <= ProduceRules.MaxLimitBreak; lb++)
                         {
-                            if (!capRows.ContainsKey((card.Rarity, lb)))
+                            if (!capRows.ContainsKey(Key((int)card.Rarity, lb)))
                             {
                                 Problem(name + ": SupportLevelCap " + card.Rarity + "/" + lb + " がない");
                             }
@@ -617,19 +647,19 @@ namespace Uta.Shared.Domain.Produce
                     var abilities = (abilityList ?? new SupportAbilityRow[0])
                         .Select(x => new SupportAbilityDefinition(x.Kind, x.Param, x.ValueAtLv1, x.ValueAtMax))
                         .ToArray();
-                    var maxLevel = capRows.TryGetValue((card.Rarity, ProduceRules.MaxLimitBreak), out var fullCap) ? fullCap.MaxLevel : 0;
+                    var maxLevel = capRows.TryGetValue(Key((int)card.Rarity, ProduceRules.MaxLimitBreak), out var fullCap) ? fullCap.MaxLevel : 0;
                     result.Add(card.SupportCardId, new SupportCardDefinition(card.SupportCardId, card.Name, card.Rarity, card.Type, card.Plan, abilities, maxLevel));
                 }
 
                 return result;
             }
 
-            private static Dictionary<(Rarity, int), int> BuildMaxLevels(Dictionary<(Rarity, int), SupportLevelCapRow> capRows)
+            private static Dictionary<long, int> BuildMaxLevels(Dictionary<long, SupportLevelCapRow> capRows)
             {
-                var result = new Dictionary<(Rarity, int), int>();
+                var result = new Dictionary<long, int>();
                 foreach (var cap in capRows.Values)
                 {
-                    result.Add((cap.Rarity, cap.LimitBreak), cap.MaxLevel);
+                    result.Add(Key((int)cap.Rarity, cap.LimitBreak), cap.MaxLevel);
                 }
 
                 return result;
@@ -679,14 +709,14 @@ namespace Uta.Shared.Domain.Produce
             }
 
             // V10 の ExamRankReward
-            private Dictionary<(ExamKind, int), int> BuildRewards(Dictionary<(ExamKind, int), ExamRankRewardRow> rewardRows)
+            private Dictionary<long, int> BuildRewards(Dictionary<long, ExamRankRewardRow> rewardRows)
             {
-                var result = new Dictionary<(ExamKind, int), int>();
+                var result = new Dictionary<long, int>();
                 foreach (var kind in new[] { ExamKind.Mid, ExamKind.Final })
                 {
                     for (var rank = 1; rank <= 3; rank++)
                     {
-                        if (!rewardRows.ContainsKey((kind, rank)))
+                        if (!rewardRows.ContainsKey(Key((int)kind, rank)))
                         {
                             Problem("ExamRankReward " + kind + "/" + rank + ": 行がない");
                         }
@@ -700,7 +730,7 @@ namespace Uta.Shared.Domain.Produce
                         Problem("ExamRankReward " + row.ExamKind + "/" + row.Rank + ": ParamAll が負");
                     }
 
-                    result.Add((row.ExamKind, row.Rank), row.ParamAll);
+                    result.Add(Key((int)row.ExamKind, row.Rank), row.ParamAll);
                 }
 
                 return result;
