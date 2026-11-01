@@ -17,4 +17,9 @@ public interface IPlayerRepository
     Task<int?> TrySpendGachaCurrencyAsync(TxContext tx, Ulid playerId, int cost);
 
     Task AddSupportPointsAsync(TxContext tx, Ulid playerId, int points);
+
+    /// <summary>強化ptとゴールドを 1 文で払い、残りを返す。どちらかが足りなければ null（更新は 0 行）。</summary>
+    Task<PlayerBalance?> TrySpendSupportAndGoldAsync(TxContext tx, Ulid playerId, int supportPoints, int gold);
 }
+
+public sealed record PlayerBalance(int SupportPoints, int Gold);

@@ -2,6 +2,7 @@
 using Uta.Server.Application.Common;
 using Uta.Shared.Contracts.Gacha;
 using Uta.Shared.Contracts.Player;
+using Uta.Shared.Contracts.Support;
 using VolTech.Server;
 using VolTech.Server.Abstractions;
 
@@ -35,6 +36,12 @@ public sealed class UtaServiceAttribute : MagicOnionFilterAttribute
         UseCaseError.GachaCostMismatch => GachaErrors.CostMismatch,
         UseCaseError.GachaNotEnoughCurrency => GachaErrors.NotEnoughCurrency,
         UseCaseError.GachaNotEnoughPoints => GachaErrors.NotEnoughPoints,
+        UseCaseError.SupportInvalidTargetLevel => SupportErrors.InvalidTargetLevel,
+        UseCaseError.SupportNotEnoughPoints => SupportErrors.NotEnoughPoints,
+        UseCaseError.SupportMaxLimitBreak => SupportErrors.MaxLimitBreak,
+        UseCaseError.SupportNotOwned => SupportErrors.NotOwned,
+        UseCaseError.SupportInvalidMaterial => SupportErrors.InvalidMaterial,
+        UseCaseError.PlayerNotEnoughGold => PlayerErrors.NotEnoughGold,
         _ => throw new ArgumentOutOfRangeException(nameof(error), error, null),
     };
 }

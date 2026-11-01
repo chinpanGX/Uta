@@ -36,6 +36,47 @@ public sealed class SupportCardRepository : ISupportCardRepository
         return rows.Select(x => new OwnedSupportCard(Ulid.Parse(x.Uid), x.CardId, x.Level, x.LimitBreak)).ToList();
     }
 
+    public async Task<OwnedSupportCard?> FindAsync(TxContext tx, Ulid playerId, Ulid uid)
+    {
+        var row = await tx.Connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
+            "SELECT support_card_uid AS Uid, card_id AS CardId, level AS Level, limit_break AS LimitBreak " +
+            "FROM player_support_cards WHERE support_card_uid = @uid AND player_id = @playerId",
+            new { uid = uid.ToString(), playerId = playerId.ToString() },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+        return row is null ? null : new OwnedSupportCard(Ulid.Parse(row.Uid), row.CardId, row.Level, row.LimitBreak);
+    }
+
+    public async Task UpdateLevelAsync(TxContext tx, Ulid uid, int level)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE player_support_cards SET level = @level WHERE support_card_uid = @uid",
+            new { uid = uid.ToString(), level },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task<bool> TryDeleteMaterialAsync(TxContext tx, Ulid playerId, Ulid uid, int cardId)
+    {
+        var affected = await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM player_support_cards WHERE support_card_uid = @uid AND player_id = @playerId AND card_id = @cardId",
+            new { uid = uid.ToString(), playerId = playerId.ToString(), cardId },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+        return affected == 1;
+    }
+
+    public async Task<int?> TryLimitBreakAsync(TxContext tx, Ulid playerId, Ulid uid)
+    {
+        return await tx.Connection.QuerySingleOrDefaultAsync<int?>(new CommandDefinition(
+            "UPDATE player_support_cards SET limit_break = limit_break + 1 " +
+            "WHERE support_card_uid = @uid AND player_id = @playerId AND limit_break < @max " +
+            "RETURNING limit_break",
+            new { uid = uid.ToString(), playerId = playerId.ToString(), max = SupportRules.MaxLimitBreak },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
     private sealed class Row
     {
         public string Uid { get; set; } = "";

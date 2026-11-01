@@ -57,6 +57,24 @@ public sealed class PlayerRepository : IPlayerRepository
             cancellationToken: tx.CancellationToken));
     }
 
+    public async Task<PlayerBalance?> TrySpendSupportAndGoldAsync(TxContext tx, Ulid playerId, int supportPoints, int gold)
+    {
+        var row = await tx.Connection.QuerySingleOrDefaultAsync<BalanceRow>(new CommandDefinition(
+            "UPDATE players SET support_points = support_points - @supportPoints, gold = gold - @gold " +
+            "WHERE player_id = @playerId AND support_points >= @supportPoints AND gold >= @gold " +
+            "RETURNING support_points AS SupportPoints, gold AS Gold",
+            new { playerId = playerId.ToString(), supportPoints, gold },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+        return row is null ? null : new PlayerBalance(row.SupportPoints, row.Gold);
+    }
+
+    private sealed class BalanceRow
+    {
+        public int SupportPoints { get; set; }
+        public int Gold { get; set; }
+    }
+
     private sealed class Row
     {
         public int Level { get; set; }

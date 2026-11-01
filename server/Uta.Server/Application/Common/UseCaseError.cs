@@ -7,4 +7,10 @@ public enum UseCaseError
     GachaCostMismatch,
     GachaNotEnoughCurrency,
     GachaNotEnoughPoints,
+    SupportInvalidTargetLevel,
+    SupportNotEnoughPoints,
+    SupportMaxLimitBreak,
+    SupportNotOwned,
+    SupportInvalidMaterial,
+    PlayerNotEnoughGold,
 }
