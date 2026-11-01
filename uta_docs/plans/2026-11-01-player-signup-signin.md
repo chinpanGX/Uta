@@ -7,7 +7,7 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 
 # 実装計画: プレイヤーのサインアップ・サインイン（サーバー）
 
-**初期案（ブレスト用）。** 「未決事項」の案をユーザーと固めてから、設計レビューに出す。
+ブレストで未決事項を決めた版。設計レビューに出す。
 
 ## 1. 目的と前提
 
@@ -36,7 +36,7 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 
 （Api・Application の置き方は [repository-layout.md](../wiki/architecture/repository-layout.md) 3章。ここまでのサーバーは Infrastructure しか無いので、層のフォルダを足す）
 
-## 3. 型とシグネチャ（初期案）
+## 3. 型とシグネチャ
 
 ```csharp
 // shared/Uta.Shared.Contracts/Player/IPlayerService.cs（C# 9・netstandard2.1）
@@ -64,7 +64,7 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 
 `SignUpAsync`: `INSERT INTO players (player_id) VALUES (@id) ON CONFLICT DO NOTHING`。挿入できたら `Created = true`。`SignInAsync`: 行が無ければ `PLAYER_NOT_CREATED`、あれば列を読んで返す。
 
-## 4. タスク（初期案）
+## 4. タスク
 
 1. **Contracts**: IF と DTO、マーカーの削除。Unity 側の `.meta`・asmdef を確認（Unity のビルドは 1b の側）。確かめ: `dotnet build Uta.slnx`
 2. **マイグレーション**: `0002` と、`UtaDatabase` が拾うことの確認。確かめ: 既存のマイグレーションの結合テスト
@@ -74,7 +74,7 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 
 境界: `SignUpAsync` の 2 回目以降は何もしない（`Created = false`）。同じ `x-request-id` の再送は基盤が保存済みのレスポンスを返す。`SignInAsync` も副作用ありの扱い（冪等性の対象）。
 
-## 5. テスト（初期案）
+## 5. テスト
 
 - `SignUp_NewPlayer_CreatesRow`（`Created = true`、`players` に 1 行）
 - `SignUp_Twice_DoesNothing`（別の `x-request-id` で 2 回目、`Created = false`、行は 1 行のまま）
@@ -86,7 +86,7 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 
 実行: `dotnet test --project server/Uta.Server.Tests`（Docker が要る）
 
-## 6. 未決事項（ブレストの論点。案つき）
+## 6. 未決事項（ブレストで決めた。残りなし）
 
 1. ~~初期付与をこの計画に入れるか~~ [決定。2026-11-01。ユーザーの判断]: 入れない（案 A）。`players` の行だけ作り、付与は masterdata と所持テーブルの計画で `SignUpAsync` の中身に足す。
 2. ~~`SignInResponse` の中身~~ [決定。2026-11-01。ユーザーの判断]: `players` の列（Level・Exp・通貨 3 種）と、破棄・再開の 2 値だけ。育成アイドル・サポートカードの一覧は、それぞれのテーブルの計画で `[Key]` を後ろに足す。RPC に属さない型には切らず、`SignInResponse` が直接持つ。`GetPlayerAsync` は作らない（api-design.md の表から外した）。
