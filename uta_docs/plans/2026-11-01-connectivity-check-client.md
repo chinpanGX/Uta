@@ -115,10 +115,11 @@ asmdef（名前はアセンブリ名と同じ。`autoReferenced` は `false`）:
 | `jp.hadashikick.vcontainer` | `https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.19.0` | 1 |
 | `com.uta.shared.contracts` | `file:../../../shared/Uta.Shared.Contracts` | 2 |
 | `com.harumak.unityscreennavigator` | `file:../../../external/UnityScreenNavigator/Assets/UnityScreenNavigator`（相対パス。絶対パスで入れない） | 2 |
-| `com.chinpangx.supplement` | `file:../../../external/Supplement/Assets/Supplement`（依存の Addressables 2.7.6 が増える） | 2 |
+| `com.unity.addressables` | `4.1.2`（下の説明） | 2 |
+| `com.chinpangx.supplement` | `file:../../../external/Supplement/Assets/Supplement`（依存の Addressables を引き込む） | 2 |
 | `com.chinpangx.supplement.messagepack` | `file:../../../external/Supplement/Assets/Supplement.MessagePack`（依存が `com.chinpangx.supplement` 1.4.0、取り込むのは 1.5.0 なので、Unity のログに版の警告が出るかを控える） | 2 |
 
-| `com.unity.addressables` | `4.1.2`（Supplement の依存。Supplement は 2.7.6 を求めるが、Unity 7 の a12 は 4.1.1 に解決し、4.1.1 は `ScriptCompilationOptions.DevelopmentBuild` が obsolete で CS0619 のコンパイルエラーになる。4.1.2 で通ることを Editor（2026-11-01）で確認した。ユーザーの判断で 4.1.2 を直接指定する） | 2 |
+`com.unity.addressables` を 4.1.2 にした理由: Supplement は 2.7.6 を求めるが、Unity 7 の a12 は 4.1.1 に解決し、4.1.1 は `ScriptCompilationOptions.DevelopmentBuild` が obsolete で CS0619 のコンパイルエラーになる。4.1.2 で通ることを Editor（2026-11-01）で確認した。ユーザーの判断で 4.1.2 を直接指定する。
 
 UnityScreenNavigator・Supplement は、ユーザーの判断（2026-11-01）で、この計画で取り込みまで行う（使うのは画面・ローカル保存の計画）。`com.chinpangx.supplement.zeromessenger` は入れない。`manifest.json` の並びは、Unity が書き直したアルファベット順のままにして、元の順に戻さない（差分を小さくするためには戻さない）。
 
