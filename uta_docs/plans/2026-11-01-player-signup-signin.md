@@ -88,10 +88,10 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 
 ## 6. 未決事項（ブレストの論点。案つき）
 
-1. **初期付与をこの計画に入れるか**: 案 A（推奨）= 入れない。`players` の行だけ作り、付与は masterdata と所持テーブルの計画で足す（`SignUpAsync` の中身を後で足すだけ）。案 B = 初期値を定数で仮に入れる（ゴールド 10,000 など。マスタ導入時に作り直し）。案 C = masterdata の計画を先に進めてから、付与まで含めて作る。
+1. ~~初期付与をこの計画に入れるか~~ [決定。2026-11-01。ユーザーの判断]: 入れない（案 A）。`players` の行だけ作り、付与は masterdata と所持テーブルの計画で `SignUpAsync` の中身に足す。
 2. **`SignInResponse` の中身**: 案 = `players` の列（Level・Exp・通貨 3 種）と、破棄・再開の 2 値だけ。育成アイドル・サポートカードの一覧は、`player_idols`・`player_support_cards` の計画で足す。DTO は RPC に属さない型（`PlayerData`）に切るか（api-design 未決事項）。`GetPlayerAsync` を残すか。
 3. **`PLAYER_NOT_CREATED` の実装**: 例外の型（MagicOnion の `ReturnStatusException` ＋ `ErrorCode`）、クライアントが受け取る条件（`handledCodes`）、`SignUpAsync` 以外を弾く仕組み（フィルターか、`ServiceBase` を継承した共通の基底クラスか）。基盤の `ErrorDefinition` と `ApiCore` の扱いを読んで案を出す。
 4. **Level の初期値と `exp`**: 仕様（produce.md 7）の初期値の確認。
 5. **`HasActiveProduce` / `DiscardedProduce` の仮実装**: 常に false で問題ないか（プロデュースの計画で本実装）。
-6. **ゲームログ**: 初期付与を入れない場合、`SignUpAsync` は `game_logs` を書かない。それでよいか。
+6. ~~ゲームログ~~: 1 の決定により、付与が無いので `SignUpAsync` は `game_logs` を書かない（付与を足す計画で書く）。
 7. 起動の流れを 1 本にするか（screen-design 4章）。この計画のサーバーには影響しないが、クライアントの計画の前に決める。
