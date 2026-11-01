@@ -9,9 +9,9 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 
 ## 1. 目的と前提
 
-[game-spec.md](../wiki/overview/game-spec.md)「実装計画の単位と順」の 1 番目「通信の疎通」のうち、**サーバーと `shared/` の側（1a）**。ローカルのサーバーで、VolTech-MagicOnion の RPC のうち**端末の登録（`IDeviceService.RegisterAsync`）とトークンの発行（`IssueTokenAsync`）**が、結合テストで通るところまで作る。Uta の RPC（`SyncAsync` など）は作らない。中身の決定は [repository-layout.md](../wiki/architecture/repository-layout.md) 12章（手順 1・2・4。手順 3 は済み）が正で、この計画はそれを「どのファイルに何を書くか」に落とす。Unity の側（手順 5・6。1b「通信の疎通（クライアント）」）は別の計画・別のセッションで進め、手順 6 は 1a のマージ後に行う。1 番目の計画を 1a・1b に分けることは、ユーザーの指示（2026-11-01）による。wiki の分割はこの計画の完了時に同じ PR で反映する（7章）。
+[game-spec.md](../wiki/overview/game-spec.md)「実装計画の単位と順」の 1 番目「通信の疎通」のうち、**サーバーと `shared/` の側（1a）**。ローカルのサーバーで、VolTech-MagicOnion の RPC のうち**端末の登録（`IDeviceService.RegisterAsync`）とトークンの発行（`IssueTokenAsync`）**が、結合テストで通るところまで作る。Uta の RPC（`SignUpAsync`・`SignInAsync` など）は作らない。中身の決定は [repository-layout.md](../wiki/architecture/repository-layout.md) 12章（手順 1・2・4。手順 3 は済み）が正で、この計画はそれを「どのファイルに何を書くか」に落とす。Unity の側（手順 5・6。1b「通信の疎通（クライアント）」）は別の計画・別のセッションで進め、手順 6 は 1a のマージ後に行う。1 番目の計画を 1a・1b に分けることは、ユーザーの指示（2026-11-01）による。wiki の分割はこの計画の完了時に同じ PR で反映する（7章）。
 
-- 用語: 計画・テストの名前では「端末の登録」（`RegisterAsync`）、「トークンの発行」（`IssueTokenAsync`）と書く。ユーザーの整理（2026-11-01）では、サインアップ＝端末の登録、サインイン＝トークンの発行で、Uta のプレイヤーを作る `SyncAsync` とは別。この計画は `SyncAsync` を作らない。（基盤の `IDeviceService.cs` はサインアップを「登録の後にアプリがプレイヤーを作ること」の意味でも使う。語の定義は glossary.md に未登録で、ユーザーの判断待ち）
+- 用語: 計画・テストの名前では「端末の登録」（`RegisterAsync`）、「トークンの発行」（`IssueTokenAsync`）と書く。ユーザーの決定（2026-11-01。当初の整理を改めた）では、サインアップ＝プレイヤーを作る RPC（`SignUpAsync`）、サインイン＝起動時に所持データなどを一括で取る RPC（`SignInAsync`）で、端末の登録・トークンの発行とは別。この計画は `SignUpAsync`・`SignInAsync` を作らない。語の定義は [glossary.md](../wiki/glossary.md)
 - 関係する ADR: [0002](../wiki/decisions/0002-magiconion.md)、[0005](../wiki/decisions/0005-foundation-submodule.md)、[0008](../wiki/decisions/0008-shared-domain-and-onion.md)、[0010](../wiki/decisions/0010-database.md)、[0012](../wiki/decisions/0012-migration-dbup.md)
 - 受け持つ完了条件: なし（[game-spec.md](../wiki/overview/game-spec.md) 完了条件 0 は 1b が受け持つ）。この計画の終わりの形は、`dotnet build Uta.slnx` と既存のテスト、アーキテクチャテスト、VolTech-MagicOnion の端末登録の結合テスト（Docker）が通ること
 - 範囲外（後の計画に回す）:
@@ -514,5 +514,5 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
 - 3.1 の依存の表の前の段落（許可の一覧から書く）を、表の後の箇条書き（禁止を 1 つずつ）に合わせて直す
 - 2章のツリーの「（未作成）」の印を実際に合わせる（ツリーは主なファイルだけなので、`.env.example`・`appsettings.json` などは足さない。`server/.gitkeep` は消す。`Uta.slnx`・`Directory.Build.props`・`Directory.Packages.props`・`Uta.Shared.Contracts`・`server/` の 3 つ）。12章の手順 4 の「アーキテクチャテスト 1 件と、端末登録の結合テスト 1 件」を実際の件数に直す
 - [server-foundation.md](../wiki/architecture/server/server-foundation.md) の ZLogger の版の記述を、決めた版（2.5.10）に直す
-- [glossary.md](../wiki/glossary.md): 「サインアップ」「サインイン」の範囲の定義は、サインアップ・サインインの範囲がユーザーの判断待ちので、この計画では足さない
+- [glossary.md](../wiki/glossary.md): 「端末の登録」「トークンの発行」「サインアップ」「サインイン」は、サインアップ・サインインの分割（2026-11-01）のときに足した
 - CLAUDE.md の「ビルド・テスト・実行」に、動いたコマンドを足す。リポジトリ構成の「未作成」の表記も合わせる

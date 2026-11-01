@@ -57,7 +57,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 - **ガチャ → プロデュース**: 育成アイドルとサポートカードを介して接続。編成は育成アイドル1人+サポートカード6枚（自分の5枚+サーバーのマスタから借りるレンタル1枚）（[idol-support.md](../systems/idol-support.md)）。MVP はレンタルなしの自分の 0〜5 枚
 - **プロデュース → 報酬**: 最終評価のランクに応じて、ガチャ通貨・ゴールド・サポート強化pt・プレイヤー経験値を付与する（決定。2026-10-28、強化pt は 2026-10-31。[produce.md](../systems/produce.md) 6.1）
 - **通貨**: 課金は実装しない。ガチャ通貨は無償の1種類だけ（決定。[gacha.md](../systems/gacha.md)）。入手は初期付与とプロデュースの報酬（[gacha.md](../systems/gacha.md) 8章）。ほかに持つ値はゴールドとサポート強化pt（報酬で得て、サポートカードの強化に使う）。交換メダルは MVP では作らない
-- **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の最初の `SyncAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500・ゴールド 10,000・サポート強化pt 10,000（どれもマスタの値。初期値。ゴールドと強化pt は、最初のプロデュースの前に強化を試せるように置く [仮]）を付与する。置き場のマスタは [idol-support-tables.md](../architecture/master/idol-support-tables.md)。これでガチャを引かなくても最初のプロデュースを始められる
+- **初期の所持品** [決定。2026-10-31]: アカウントを作ったとき（端末の登録の後の `SignUpAsync`。[api-design.md](../architecture/api-design.md) 1章）に、R の育成アイドル全員、初期サポートカード（マスタで定義した 5 種。カード ID はすべて別）、ガチャ通貨 2,500・ゴールド 10,000・サポート強化pt 10,000（どれもマスタの値。初期値。ゴールドと強化pt は、最初のプロデュースの前に強化を試せるように置く [仮]）を付与する。置き場のマスタは [idol-support-tables.md](../architecture/master/idol-support-tables.md)。これでガチャを引かなくても最初のプロデュースを始められる
 - **認証**: MVP は VolTech-MagicOnion の匿名デバイス認証だけで、引き継ぎは作らない（決定。2026-10-28）。アンインストールや機種変更でデータは失われる。いまは 1 つの端末が 1 人のプレイヤーになり、引き継ぎを作るときに 1 人のプレイヤーに複数の端末を結べるようにする（2026-10-31 に「今のうちに 1 対多にしておく」から直した。実装は [api-design.md](../architecture/api-design.md) 3章）
 
 ## 最小実装範囲（MVP）[決定。2026-10-31]
@@ -72,13 +72,13 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | # | 条件 | 確かめ方 |
 |---|---|---|
-| 0 | Unity 7 のクライアントから、MagicOnion の Unary で、ローカルのサーバーの VolTech-MagicOnion の RPC（端末の登録 `RegisterAsync` → トークンの発行）が通る。Uta の RPC は使わない | Unity Editor（Mono）と Windows の IL2CPP スタンドアロンで手で確かめる。結果は `architecture/unity7-evaluation.md`（未作成。ここで作る）に残す。Uta の RPC（`SyncAsync` → `GetPlayerAsync`）が通ることは条件 6 で確かめる |
+| 0 | Unity 7 のクライアントから、MagicOnion の Unary で、ローカルのサーバーの VolTech-MagicOnion の RPC（端末の登録 `RegisterAsync` → トークンの発行）が通る。Uta の RPC は使わない | Unity Editor（Mono）と Windows の IL2CPP スタンドアロンで手で確かめる。結果は `architecture/unity7-evaluation.md`（未作成。ここで作る）に残す。Uta の RPC（`SignUpAsync` → `SignInAsync`）が通ることは条件 6 で確かめる |
 | 1 | 匿名デバイス認証でプレイヤーを作り、初期の所持品を付与して保存できる | サーバーの結合テスト（Testcontainers の PostgreSQL。[repository-layout.md](../architecture/repository-layout.md) 10.4） |
 | 2 | ガチャを引いて所持品が更新される（単発・10 連・確定枠・天井の交換・重複のかけらとサポート強化pt への変換） | サーバーの結合テスト。天井は、テストが `gacha_exchange_points` の行を直接入れて前提を作る（マスタは変えない） |
 | 3 | サポートカードのレベル上げ・上限解放ができ、次のプロデュースの開始時の性能に反映される | サーバーの結合テスト。残高は初期の所持品で足りる。上限解放の素材は、テストが `player_support_cards` の行を直接入れて用意する |
 | 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件）。最短シナリオで通らない局面（授業・支給・休む・スキルカードの選択肢・中間試験・再挑戦・不合格での終了）は、`Uta.Shared.Domain` の単体テストで、初級のシナリオを操作列から回して確かめる（[produce-domain.md](../architecture/produce-domain.md) 7章） |
 | 5 | 途中で中断しても再開できる | 結合テストで途中に `GetStateAsync` を呼んで続ける。状態の再生は `Uta.Shared.Domain` の単体テスト（[produce-domain.md](../architecture/produce-domain.md) 7章） |
-| 6 | Windows のクライアントで、起動（`SyncAsync` → `GetPlayerAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
+| 6 | Windows のクライアントで、起動（`SignUpAsync` → `SignInAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
 | 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Shared.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 
 - iOS の実機ビルドは、Unity 7 の対応状況（[ADR 0006](../decisions/0006-adopt-unity-7-early.md)）次第の別の項目（`architecture/unity7-evaluation.md` に書く）

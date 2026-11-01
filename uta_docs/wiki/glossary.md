@@ -127,7 +127,10 @@ updated: 2026-11-01
 | `Op`（`EffectOp`） | マスタと Shared.Domain の効果の種類を表す enum（operation の略）。効果エンジンはこれで処理を切り替える。名前・数値・列の対応は lesson-enums が正 | [lesson-enums](architecture/lesson-enums.md) |
 | 効果グループ / 条件グループ | 記載順に処理する効果の並び、すべて満たすと真になる条件の並びを、1つの ID でまとめたもの。カード・持続効果・育成アイテムなどから ID で指す | [masterdata-pipeline](architecture/master/masterdata-pipeline.md) 3章 |
 | 中断 / 放棄 / 破棄 | プロデュースの止め方。中断はアプリの終了で、いつでも再開できる。放棄はプレイヤーの明示の操作。破棄はアプリのバージョン（または状態の形式）が開始時と違うときにサーバーが行う。放棄・破棄は報酬なし | [api-design](architecture/api-design.md) 5章 |
-| 同期（`SyncAsync`） | 起動時に1回呼ぶ、副作用のある RPC。プレイヤーの作成と初期付与（初回だけ）、バージョン違いのプロデュースの破棄をまとめて行う | [api-design](architecture/api-design.md) 1章 |
+| 端末の登録（`RegisterAsync`） | 端末を登録し、`player_id` を発行するだけの RPC。プレイヤーの行は作らない。VolTech-MagicOnion の `IDeviceService` | [server-foundation](architecture/server/server-foundation.md) |
+| トークンの発行（`IssueTokenAsync`） | 端末の `device_id` からアクセストークンを発行する RPC。起動のたびに、無効・期限切れのときも呼ぶ。VolTech-MagicOnion の `IDeviceService` | 同上 |
+| サインアップ（`SignUpAsync`） | プレイヤーを作り、初期の所持品を付与する RPC（初回だけ。2 回目以降の扱いは [案] で何もしない。api-design 未決事項）。端末の登録とは別 | [api-design](architecture/api-design.md) 1章 |
+| サインイン（`SignInAsync`） | 起動の流れで呼ぶ（起動時に1回）、所持データなどを一括で取る RPC。クライアントがキャッシュする。バージョン違いのプロデュースの破棄もここで行う。日付の更新（`DATE_CHANGED`）のときも、サインインし直して全件を取り直す。トークンの発行とは別 | 同上 |
 | ULID | 時刻順に並ぶ一意な ID。サーバーが発行する ID に使う（マスタの ID は `int`） | [repository-layout](architecture/repository-layout.md) 10.1 |
 | 日付の更新 | 日ごとの区切り。12:00 JST | 同 10.2 |
 | Testcontainers | テストのときに Docker でコンテナ（PostgreSQL など）を立ち上げるライブラリ。サーバーの結合テストに使う | [repository-layout](architecture/repository-layout.md) 10.4 |
