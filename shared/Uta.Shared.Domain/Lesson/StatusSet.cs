@@ -75,12 +75,25 @@ namespace Uta.Shared.Domain.Lesson
             }
         }
 
+        /// <summary>低下状態か（低下状態無効で打ち消せる）。</summary>
+        public static bool IsDebuff(StatusKind kind)
+        {
+            return kind == StatusKind.CostDouble || kind == StatusKind.ShieldGainBlock;
+        }
+
         /// <summary>値を足す。0 未満にはならない。</summary>
         internal void Add(StatusKind kind, int amount, LessonPhase phase)
         {
             if (kind == StatusKind.Nothing)
             {
                 throw new ArgumentOutOfRangeException(nameof(kind));
+            }
+
+            // 低下状態無効: 1 以上の付与を 1 回打ち消す（lesson-card.md 8章）。打ち消したときは付与しないので、初付与の印も立てない
+            if (amount >= 1 && IsDebuff(kind) && values[(int)StatusKind.DebuffGuard] > 0)
+            {
+                values[(int)StatusKind.DebuffGuard]--;
+                return;
             }
 
             var index = (int)kind;

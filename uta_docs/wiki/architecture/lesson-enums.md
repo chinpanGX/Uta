@@ -65,6 +65,7 @@ updated: 2026-11-01
 | `SetShield` | 元気増加無効のときも値を設定する([lesson-card.md](../systems/lesson-card.md) 7.2)。`Value` は 0 以上 |
 | `ScaleShield` | `Value` は 0〜100(減らすだけ)。端数は切り捨て |
 | `RecoverHp` | `Value` は 1 以上。最大体力で止める |
+| `GainParamByShield` / `GainParamByMotivation` / `AddFixedShield` | `Value` は 1 以上(2026-11-01。マスタの検証の規則と同じ。Domain の検証にも入れた) |
 | `AddStatus` | `Value` は 1 以上(減らす効果はない) |
 | `DrawCards` | `Value` は 1 以上。引ける分だけ引く(lesson-card.md 4章) |
 | どの `Op` も | 負の値は読み込み時にエラー(`CardDefinitionValidator`) |
@@ -204,6 +205,8 @@ updated: 2026-11-01
 - `CardDefinitionValidator` をマスタの検証の規則にそろえる時期（実装メモの差）
 
 ## 実装メモ
+
+- 2026-11-01: マスタの行から `CardDefinition` を組み立てるために、Domain に `CardFaceKind`（`Nothing` = 0・`Normal` = 1・`Enhanced` = 2。マスタの同名の enum と同じ）を足した。サーバーのテストの `EnumPairs` で名前・数値の一致を確かめる
 
 - 2026-11-01: コード（`shared/Uta.Shared.Domain/Lesson`）をこのページに合わせた（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）。`Op` ごとの `Value`・`Arg`・参照の列の検証は、Domain では未実装
 - 2026-11-01: マスタ（`masterdata/Definitions/Lesson.cs` の `Effect`）に上の「マスタの検証の規則」を実装した（[計画](../../plans/2026-11-01-masterdata-first.md)）。**`CardDefinitionValidator` との差**: Domain は今、負の値・`AddStatus`/`DrawCards` の下限・`Status`/`Trigger` の使わない列・持続効果の子・入れ子の深さを検証している。マスタとの差は、`Value`・`Arg`・参照の列の使わない列の検査と、ほかの `Op` の下限（`GainParam` など）。後の計画でそろえる

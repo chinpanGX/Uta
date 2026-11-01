@@ -21,6 +21,7 @@ public class MasterDataTests
         { typeof(Uta.MasterData.CostKind), typeof(Uta.Shared.Domain.Lesson.CostKind) },
         { typeof(Uta.MasterData.ConditionSubject), typeof(Uta.Shared.Domain.Lesson.ConditionSubject) },
         { typeof(Uta.MasterData.Comparator), typeof(Uta.Shared.Domain.Lesson.Comparator) },
+        { typeof(Uta.MasterData.CardFaceKind), typeof(Uta.Shared.Domain.Lesson.CardFaceKind) },
     };
 
     [Fact]

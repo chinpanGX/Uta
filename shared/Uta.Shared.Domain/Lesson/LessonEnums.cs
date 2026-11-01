@@ -175,4 +175,12 @@
         TurnEnd = 4,
         Finished = 5,
     }
+
+    /// <summary>カードの面（通常版 / 強化版）。マスタの cardFace・cardCost の Face 列と同じ名前・数値。</summary>
+    public enum CardFaceKind
+    {
+        Nothing = 0,
+        Normal = 1,
+        Enhanced = 2,
+    }
 }

@@ -373,7 +373,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 - 試験の細部 [決定。2026-10-31]:
   - 試験はクリア目標・パーフェクト目標を持たない。条件の「クリア目標の N%」(`ClearTargetPercent`)の試験での扱いは、使うカードを採用するときに決める(36 枚にはない。7.6 と同じ扱い)。それまで `ClearTargetPercent` を使うカードは採用しない
   - 中間試験の早期終了: スコアが早期終了スコアに届いたら、そのターンの処理を終えてから試験を終える。判定は E5 の後・E6 の前に 1 回行い、届いていれば残りターンがあっても終える(終了理由 `EarlyEnd`。最後のターンでも `EarlyEnd`)。P8 で使用数が残っていれば、届いた後もプレイヤーの操作を受ける。届いた後の分も含めてスコアは止めない(超えた分を残す)
-  - 審査ターンの列は、試験の開始時に週の進行([produce.md](produce.md) 5.1、[produce-domain.md](../architecture/produce-domain.md) 4章)が作って、レッスンの設定として渡す。列の 1 つは「そのターンのパラメータ(`ParamKind`)」と「審査比率の何番目か(1〜3)」の組
+  - 審査ターンの列は、試験の開始時に週の進行([produce.md](produce.md) 5.1、[produce-domain.md](../architecture/produce-domain.md) 4章)が作って、レッスンの設定として渡す。列の 1 つは「そのターンのパラメータ(`ParamKind`)」と、そのターンの「最終スコアボーナス(%)」(5.2。MVP は信頼度補正 0 固定)の組。審査比率の何番目かは、週の進行がボーナスを計算するときに使う
   - 5.2 の式の「そのターンのパラメータの値」は、**試験の開始時**の育成アイドルのそのパラメータの値(試験中は変わらない)
   - スコアへの換算は、**パラメータが上がる 1 回ごと**に行う: `GainParam` の 1 回の呼び出し(連撃は 1 発ずつ)、`GainParamBy*` の 1 回、E3 の好印象の 1 回。それぞれ 9.2 の値を出してから 9.5 の式でスコアにし、得た値(試験ではスコア)に足す
   - 渡す値の型は [lesson-domain-types.md](../architecture/lesson-domain-types.md) 2章の `ExamSetup`
@@ -434,6 +434,7 @@ L13 のように「参照してから変化させる」カードは、効果の�
 | 得たパラメータ | レッスンで得た量(パーフェクト目標で止めた後の値)。試験ならスコア |
 | 終わったターンの番号 | 最後に処理したターン |
 | 終了理由 | enum `LessonEndReason`: `Nothing` / `TurnsOver`(ターン切れ)/ `Perfect`(パーフェクト)/ `EarlyEnd`(中間試験の早期終了)。最後のターンでパーフェクトや早期終了に届いたら、そちらにする |
+| 体力 | 終了時の体力 |
 
 - 作るのはフェーズ 6 の計画(試験と一緒に。週の進行もフェーズ 6 の後に作るので間に合う)。取り出し方は `LessonEngine.GetResult(LessonState)`。終了理由は状態に保存せず導く: 試験でなく `PerfectTarget > 0` かつ得た量 = `PerfectTarget` なら `Perfect`、試験で早期終了スコア > 0 かつスコア ≥ 早期終了スコアなら `EarlyEnd`、ほかは `TurnsOver`
 | 体力 | 終了時の体力 |
@@ -553,4 +554,4 @@ MVP で作るカードは 14章の 36 枚(F08 を除く。[game-spec.md](../over
 
 - 2026-10-28: フェーズ0・1のエンジンを `shared/Uta.Shared.Domain` に実装（型は [lesson-domain-types.md](../architecture/lesson-domain-types.md)）。試験・ドリンク・育成アイテムは未実装。仕様に無い細部（使ったカードを捨札へ移す時点、スキップの回復の時点など）は lesson-domain-types.md 5章に [Uta案] として書いた
 - 2026-10-31: フェーズ 1 のコストは、カードで使う 2 種だけでなく全種類を先に入れた([lesson-phases.md](../architecture/lesson-phases.md) 2章)。9章から外した低下状態の 2 項は、コードでは `LessonFormulas.FinalConsume` / `LessonFormulas.ParamGain` の引数として残り、呼び出す側(`LessonEngine`・`EffectExecutor`)が 0 を渡している。結果は変わらないので、低下状態を採用するまでそのままにする
-- 2026-10-31 時点でコードが未対応の決定: 10章の「L1 の効果はゾーンを操作しない」の読み込み時エラー(フェーズ 2)、低下状態無効の打ち消し(フェーズ 2)、10.1 の `LessonResult` と終了理由(フェーズ 6)、試験([lesson-phases.md](../architecture/lesson-phases.md) 7章)、[lesson-enums.md](../architecture/lesson-enums.md) 1章の効果ごとの境界(値が 1 以上・負の値はエラーなど。[改名の計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.4 で入れる)、`AddStatusPercent` の読み込み時エラー(9.2。同じ計画 3.4)
+- 2026-11-01: 上の項目（L1 の読み込み時エラー、低下状態無効の打ち消し、`LessonResult` と終了理由、試験）はフェーズ 2〜4・6 で実装した（[計画](../../plans/2026-11-01-shared-lesson-phases.md)）。残り:ドリンク・育成アイテム（フェーズ 5）。2026-10-31 時点の記録: [lesson-enums.md](../architecture/lesson-enums.md) 1章の効果ごとの境界(値が 1 以上・負の値はエラーなど。[改名の計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.4 で入れる)、`AddStatusPercent` の読み込み時エラー(9.2。同じ計画 3.4)

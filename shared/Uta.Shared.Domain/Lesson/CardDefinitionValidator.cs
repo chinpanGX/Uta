@@ -7,13 +7,19 @@ namespace Uta.Shared.Domain.Lesson
     /// </summary>
     public static class CardDefinitionValidator
     {
-        /// <summary>いまのエンジンが処理できる Op（フェーズ1。lesson-domain-types.md 6章）。</summary>
+        /// <summary>いまのエンジンが処理できる Op（フェーズ2まで。lesson-domain-types.md 6章）。</summary>
         public static bool IsSupported(EffectOp op)
         {
             switch (op)
             {
                 case EffectOp.GainParam:
                 case EffectOp.GainParamByImpression:
+                case EffectOp.GainParamByShield:
+                case EffectOp.GainParamByMotivation:
+                case EffectOp.AddFixedShield:
+                case EffectOp.RecoverHp:
+                case EffectOp.ScaleShield:
+                case EffectOp.SetShield:
                 case EffectOp.AddShield:
                 case EffectOp.AddStatus:
                 case EffectOp.DrawCards:
@@ -96,6 +102,17 @@ namespace Uta.Shared.Domain.Lesson
                 errors.Add(prefix + effect.Op + " の値が 1 未満");
             }
 
+            if ((effect.Op == EffectOp.GainParamByShield || effect.Op == EffectOp.GainParamByMotivation
+                    || effect.Op == EffectOp.AddFixedShield || effect.Op == EffectOp.RecoverHp) && effect.Value < 1)
+            {
+                errors.Add(prefix + effect.Op + " の値が 1 未満");
+            }
+
+            if (effect.Op == EffectOp.ScaleShield && effect.Value > 100)
+            {
+                errors.Add(prefix + effect.Op + " の値が 100 を超える");
+            }
+
             if (effect.Op == EffectOp.AddStatus && !IsAddableStatus(effect.Status))
             {
                 errors.Add(prefix + effect.Op + " のステータスが不正");
@@ -122,6 +139,18 @@ namespace Uta.Shared.Domain.Lesson
                 if (insidePersistent)
                 {
                     errors.Add(prefix + "持続効果の中に持続効果がある");
+                }
+
+                if (effect.Trigger == PersistentTrigger.LessonStart)
+                {
+                    foreach (var child in effect.Children)
+                    {
+                        if (child.Op == EffectOp.DrawCards || child.Op == EffectOp.ReplaceHand
+                            || child.Op == EffectOp.EnhanceHand || child.Op == EffectOp.CreateCard)
+                        {
+                            errors.Add(prefix + "レッスン開始時の効果が " + child.Op + " でゾーンを操作している");
+                        }
+                    }
                 }
 
                 foreach (var child in effect.Children)

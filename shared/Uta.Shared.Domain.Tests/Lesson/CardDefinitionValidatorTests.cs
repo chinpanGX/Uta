@@ -76,12 +76,75 @@ namespace Uta.Shared.Domain.Tests.Lesson
         }
 
         [Fact]
-        public void Validate_GainParamByShield_ReturnsError()
+        public void Validate_AddParamBonus_ReturnsError()
         {
-            var card = CardWith(new EffectDef(EffectOp.GainParamByShield, value: 50));
+            var card = CardWith(new EffectDef(EffectOp.AddParamBonus, value: 50));
             var errors = CardDefinitionValidator.Validate(card);
             Assert.Single(errors);
             Assert.Contains("未対応の効果", errors[0]);
+        }
+
+        [Theory]
+        [InlineData(EffectOp.GainParamByShield)]
+        [InlineData(EffectOp.GainParamByMotivation)]
+        [InlineData(EffectOp.AddFixedShield)]
+        [InlineData(EffectOp.RecoverHp)]
+        public void Validate_Phase2OpValueZero_ReturnsError(EffectOp op)
+        {
+            var errors = CardDefinitionValidator.Validate(CardWith(new EffectDef(op, value: 0)));
+            Assert.Single(errors);
+            Assert.Contains("の値が 1 未満", errors[0]);
+        }
+
+        [Fact]
+        public void Validate_ScaleShield100_NoErrors()
+        {
+            Assert.Empty(CardDefinitionValidator.Validate(CardWith(new EffectDef(EffectOp.ScaleShield, value: 100))));
+        }
+
+        [Fact]
+        public void Validate_ScaleShield101_ReturnsError()
+        {
+            var errors = CardDefinitionValidator.Validate(CardWith(new EffectDef(EffectOp.ScaleShield, value: 101)));
+            Assert.Single(errors);
+            Assert.Contains("の値が 100 を超える", errors[0]);
+        }
+
+        [Fact]
+        public void Validate_SetShieldZero_NoErrors()
+        {
+            Assert.Empty(CardDefinitionValidator.Validate(CardWith(new EffectDef(EffectOp.SetShield, value: 0))));
+        }
+
+        [Fact]
+        public void Validate_SetShieldNegative_ReturnsError()
+        {
+            var errors = CardDefinitionValidator.Validate(CardWith(new EffectDef(EffectOp.SetShield, value: -1)));
+            Assert.Single(errors);
+            Assert.Contains("の値が負", errors[0]);
+        }
+
+        [Fact]
+        public void Validate_LessonStartPersistentWithDrawCards_ReturnsError()
+        {
+            var card = CardWith(new EffectDef(EffectOp.AddPersistent, trigger: PersistentTrigger.LessonStart, children: new[] { new EffectDef(EffectOp.DrawCards, value: 1) }));
+            var errors = CardDefinitionValidator.Validate(card);
+            Assert.Single(errors);
+            Assert.Contains("ゾーンを操作している", errors[0]);
+        }
+
+        [Fact]
+        public void Validate_LessonStartPersistentWithAddStatus_NoErrors()
+        {
+            var card = CardWith(new EffectDef(EffectOp.AddPersistent, trigger: PersistentTrigger.LessonStart, children: new[] { new EffectDef(EffectOp.AddStatus, status: StatusKind.Impression, value: 1) }));
+            Assert.Empty(CardDefinitionValidator.Validate(card));
+        }
+
+        [Fact]
+        public void Validate_TurnStartPersistentWithDrawCards_NoErrors()
+        {
+            var card = CardWith(new EffectDef(EffectOp.AddPersistent, trigger: PersistentTrigger.TurnStart, children: new[] { new EffectDef(EffectOp.DrawCards, value: 1) }));
+            Assert.Empty(CardDefinitionValidator.Validate(card));
         }
 
         [Fact]

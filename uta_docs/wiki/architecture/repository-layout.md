@@ -339,6 +339,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 - テストプロジェクトはテスト対象の隣に置く。`Uta.Shared.Domain` は `shared/Uta.Shared.Domain.Tests/`（2026-10-28 決定）
 - サーバーは `server/Uta.Server.Tests/` の 1 プロジェクトに、単体テスト・アーキテクチャテスト（NetArchTest。3章）・結合テスト（Testcontainers）をまとめ、フォルダで分ける（2026-10-31 決定。VolTech-MagicOnion の `VolTech.Server.Tests` と同じ形）。Docker が無いと結合テストは通らない
 - 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。サーバーのテストの版（Testcontainers.PostgreSql・NetArchTest.Rules・Mvc.Testing など）は `Directory.Packages.props` が正。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
+- `Uta.Server.Tests` は `Uta.Shared.Domain.Tests`（Exe の xunit.v3 のテスト）を ProjectReference で参照する [2026-11-01]。マスタのカードとテストのカードの一致テスト（[計画](../../plans/2026-11-01-card-master-match.md)）が、テスト側の `Phase*Cards` を使うため。ビルド・実行で問題は出なかった（テストの二重発見もない）
 
 ### 10.5 アプリのバージョン
 

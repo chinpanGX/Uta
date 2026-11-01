@@ -25,12 +25,6 @@ namespace Uta.Shared.Domain.Lesson
                 throw new InvalidOperationException("レッスンはすでに始まっています。");
             }
 
-            if (state.Setup.IsExam)
-            {
-                // 試験（審査ターン・スコア）は後のフェーズで実装する
-                throw new NotSupportedException("試験はまだ対応していません。");
-            }
-
             state.Phase = LessonPhase.LessonStart;
 
             // L1. 「レッスン開始時」効果
@@ -40,6 +34,28 @@ namespace Uta.Shared.Domain.Lesson
             PlaceInitialCards(state, random);
 
             BeginTurn(state, random);
+        }
+
+        /// <summary>終わったレッスン・試験の結果を返す。</summary>
+        public static LessonResult GetResult(LessonState state)
+        {
+            if (!state.IsFinished)
+            {
+                throw new InvalidOperationException("レッスンはまだ終わっていません。");
+            }
+
+            var setup = state.Setup;
+            var reason = LessonEndReason.TurnsOver;
+            if (!setup.IsExam && setup.PerfectTarget > 0 && state.ParamGained == setup.PerfectTarget)
+            {
+                reason = LessonEndReason.Perfect;
+            }
+            else if (setup.IsExam && setup.Exam.EarlyEndScore > 0 && state.ParamGained >= setup.Exam.EarlyEndScore)
+            {
+                reason = LessonEndReason.EarlyEnd;
+            }
+
+            return new LessonResult(state.ParamGained, state.Turn, reason, state.Hp);
         }
 
         /// <summary>カードを使えるか。乱数を使わず、状態も変えない。</summary>
@@ -255,6 +271,14 @@ namespace Uta.Shared.Domain.Lesson
             }
 
             state.RemoveExpired();
+
+            // 試験の早期終了（lesson-card.md 9.5）。判定はここ 1 か所だけ
+            var exam = state.Setup.Exam;
+            if (exam != null && exam.EarlyEndScore > 0 && state.ParamGained >= exam.EarlyEndScore)
+            {
+                state.Phase = LessonPhase.Finished;
+                return;
+            }
 
             // E6. 残りターンがあれば次のターンへ
             if (state.Turn >= state.Setup.MaxTurns)

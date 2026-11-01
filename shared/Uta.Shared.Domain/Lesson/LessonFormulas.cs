@@ -110,6 +110,24 @@ namespace Uta.Shared.Domain.Lesson
             return shieldGainBlocked ? 0 : Math.Max(0, value + motivation);
         }
 
+        /// <summary>固定元気の増加量。やる気を足さない。元気増加無効中は 0（lesson-card.md 9.3）。</summary>
+        public static int FixedShieldGain(int value, bool shieldGainBlocked)
+        {
+            return shieldGainBlocked ? 0 : Math.Max(0, value);
+        }
+
+        /// <summary>元気を percent% にする（端数は切り捨て。lesson-card.md 7.2）。</summary>
+        public static int ScaledShield(int shield, int percent)
+        {
+            return FixedMath.ToInt(FixedMath.FloorDiv((long)shield * percent, Percent));
+        }
+
+        /// <summary>9.5 試験のスコア = ceil(パラメータ上昇値 × 最終スコアボーナス / 100)。</summary>
+        public static int ExamScore(int paramGain, int scoreBonusPercent)
+        {
+            return FixedMath.ToInt(FixedMath.CeilDiv((long)paramGain * scoreBonusPercent, Percent));
+        }
+
         /// <summary>9.4 好印象による上昇値 = ceil( 好印象 × (1 + 好印象強化) × (1 + 上昇量増加の総和) )。好調倍率は乗せない。</summary>
         public static int ImpressionGain(int impression, int impressionBoostPercent, IReadOnlyList<int> bonusPercents)
         {

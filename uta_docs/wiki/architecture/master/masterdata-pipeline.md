@@ -234,6 +234,8 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 - 生成ソースに `MemoryDatabase` は含まれず、ビルドのときに MasterMemory のソースジェネレーターが作る
 - MVP のカード 36 枚の ID は規則で振った（カード ID: F01〜F07 = 1〜7、S01〜S14 = 101〜114、L01〜L15 = 201〜215。効果・条件のグループ ID: `カードID × 100 + 面 × 10 + 連番`）。**この 36 枚の便宜であり、以後の計画は従わなくてよい**
 - CI への `check` の組み込み、`masterdata.bytes` が CSV と一致するかの検出（今の `--check` は生成ソースしか見ない。8章）は未実施
+- 
+- 2026-11-01: サーバーに `MasterCardCatalog.Create(MemoryDatabase)`（行を `Uta.Shared.Domain` の行の型に詰めるだけ）を足し、組み立ては `CardCatalog.Create` に任せた（repository-layout.md 4章の決定）。テストのカード 36 枚とマスタが全項目（`UnlockLv` を除く）一致することを `TestCardsMatchMasterTests` で確かめた（[計画](../../../plans/2026-11-01-card-master-match.md)）
 
 2026-11-01 の実装（[計画: マスタを Unity に取り込む](../../../plans/2026-11-01-masterdata-unity.md)）で、仕様とのズレとして記録すること。
 
