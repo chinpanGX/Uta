@@ -87,6 +87,16 @@ namespace Uta.Shared.Domain.Tests.Lesson
             Assert.Equal(expected, LessonFormulas.ScaledShield(shield, percent));
         }
 
+        [Theory]
+        [InlineData(9, 150, 14)]
+        [InlineData(3, 120, 4)]
+        [InlineData(5, 130, 7)]
+        [InlineData(10, 0, 0)]
+        public void ExamScore_Cases(int paramGain, int scoreBonusPercent, int expected)
+        {
+            Assert.Equal(expected, LessonFormulas.ExamScore(paramGain, scoreBonusPercent));
+        }
+
         [Fact]
         public void ImpressionGain_Boost10Percent_RoundsUp()
         {

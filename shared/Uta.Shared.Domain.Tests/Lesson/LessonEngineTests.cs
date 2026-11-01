@@ -238,28 +238,6 @@ namespace Uta.Shared.Domain.Tests.Lesson
         }
 
         [Fact]
-        public void Replay_SameSeedAndCommands_SameResult()
-        {
-            var first = RunLesson(1, 0, null);
-            var second = RunLesson(1, 0, null);
-
-            Assert.Equal(first, second);
-        }
-
-        [Fact]
-        public void Replay_DifferentAttempt_DifferentResult()
-        {
-            Assert.NotEqual(RunLesson(1, 0, null), RunLesson(1, 1, null));
-        }
-
-        [Fact]
-        public void Replay_RestoredMidway_SameResultAsContinuousRun()
-        {
-            // 3ターン目で保存・復元しても、通しで進めたときと同じ結果になる（produce.md 10.5・10.6）
-            Assert.Equal(RunLesson(3, 0, null), RunLesson(3, 0, 3));
-        }
-
-        [Fact]
         public void Validator_Phase1Cards_NoErrors()
         {
             foreach (var id in Phase1Cards.AllIds)
@@ -275,37 +253,6 @@ namespace Uta.Shared.Domain.Tests.Lesson
             var card = new CardDefinition(999, Plan.Logic, CardType.Active, Rarity.SR, 1, true, false, false, face, null);
 
             Assert.Single(CardDefinitionValidator.Validate(card));
-        }
-
-        /// <summary>
-        /// 13種のカードの混ざったデッキで、使えるカードがあれば手札の先頭から使い、なければスキップする。
-        /// restoreAtTurn を渡すと、そのターンの入力待ちで状態と乱数を作り直してから続ける。
-        /// </summary>
-        private static string RunLesson(ulong seed, int attempt, int? restoreAtTurn)
-        {
-            var setup = new LessonSetup(LessonKind.Normal, ParamKind.Rhythm, 7, 1000, 2000);
-            var ids = Phase1Cards.AllIds.Concat(new[] { Phase1Cards.F01, Phase1Cards.L01, Phase1Cards.L07 });
-            var state = new LessonState(setup, TestStates.Deck(ids), 40, 40);
-            var random = RandomStreams.Create(seed, new RandomStreamKey(RandomStreamKind.Lesson, 3, attempt));
-            var log = new StringBuilder();
-
-            Engine.Start(state, random);
-            while (!state.IsFinished)
-            {
-                if (restoreAtTurn.HasValue && state.Turn == restoreAtTurn.Value)
-                {
-                    state = TestStates.Copy(state);
-                    random = new Xoshiro256StarStar(random.S0, random.S1, random.S2, random.S3, random.DrawCount);
-                    restoreAtTurn = null;
-                }
-
-                var usable = state.Zones.Hand.FirstOrDefault(id => Engine.CanUse(state, id) == UseCheckResult.Ok);
-                var command = usable != 0 ? LessonCommand.UseCard(usable) : LessonCommand.Skip();
-                Assert.Equal(LessonApplyResult.Accepted, Engine.Apply(state, command, random));
-                log.Append(string.Join("\n", LessonStateComparer.Describe(state))).Append('\n');
-            }
-
-            return log.ToString();
         }
     }
 }

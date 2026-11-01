@@ -178,7 +178,7 @@ namespace Uta.Shared.Domain.Lesson
     public sealed class LessonSetup
     {
         /// <param name="perfectTarget">パーフェクト目標。0 は無し（試験など）</param>
-        public LessonSetup(LessonKind kind, ParamKind targetParam, int maxTurns, int clearTarget, int perfectTarget)
+        public LessonSetup(LessonKind kind, ParamKind targetParam, int maxTurns, int clearTarget, int perfectTarget, ExamSetup exam = null)
         {
             if (maxTurns <= 0)
             {
@@ -190,9 +190,34 @@ namespace Uta.Shared.Domain.Lesson
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
-            if (targetParam == ParamKind.Nothing)
+            var isExamKind = kind == LessonKind.MidExam || kind == LessonKind.FinalExam;
+            if (isExamKind != (exam != null))
+            {
+                throw new ArgumentException("試験の種類のときだけ exam が必要です。", nameof(exam));
+            }
+
+            // 試験の対象のパラメータは使わない（審査ターンごとに決まる）ので Nothing を許す
+            if (!isExamKind && targetParam == ParamKind.Nothing)
             {
                 throw new ArgumentOutOfRangeException(nameof(targetParam));
+            }
+
+            if (isExamKind)
+            {
+                if (exam.Turns.Count != maxTurns)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(maxTurns));
+                }
+
+                if (clearTarget != 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(clearTarget));
+                }
+
+                if (perfectTarget != 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(perfectTarget));
+                }
             }
 
             Kind = kind;
@@ -200,6 +225,7 @@ namespace Uta.Shared.Domain.Lesson
             MaxTurns = maxTurns;
             ClearTarget = clearTarget;
             PerfectTarget = perfectTarget;
+            Exam = exam;
         }
 
         public LessonKind Kind { get; }
@@ -208,6 +234,8 @@ namespace Uta.Shared.Domain.Lesson
         public int ClearTarget { get; }
         public int PerfectTarget { get; }
 
-        public bool IsExam => Kind == LessonKind.MidExam || Kind == LessonKind.FinalExam;
+        public ExamSetup Exam { get; }
+
+        public bool IsExam => Exam != null;
     }
 }

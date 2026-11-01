@@ -122,6 +122,12 @@ namespace Uta.Shared.Domain.Lesson
             return FixedMath.ToInt(FixedMath.FloorDiv((long)shield * percent, Percent));
         }
 
+        /// <summary>9.5 試験のスコア = ceil(パラメータ上昇値 × 最終スコアボーナス / 100)。</summary>
+        public static int ExamScore(int paramGain, int scoreBonusPercent)
+        {
+            return FixedMath.ToInt(FixedMath.CeilDiv((long)paramGain * scoreBonusPercent, Percent));
+        }
+
         /// <summary>9.4 好印象による上昇値 = ceil( 好印象 × (1 + 好印象強化) × (1 + 上昇量増加の総和) )。好調倍率は乗せない。</summary>
         public static int ImpressionGain(int impression, int impressionBoostPercent, IReadOnlyList<int> bonusPercents)
         {

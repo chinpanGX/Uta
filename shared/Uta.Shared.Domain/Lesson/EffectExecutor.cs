@@ -112,6 +112,14 @@ namespace Uta.Shared.Domain.Lesson
                 return;
             }
 
+            if (state.Setup.IsExam)
+            {
+                // スコア = ceil(パラメータ上昇値 × 最終スコアボーナス / 100)（lesson-card.md 9.5）。L1（Turn 0）は 1 ターン目の倍率
+                var turns = state.Setup.Exam.Turns;
+                var bonus = turns[Math.Max(0, state.Turn - 1)].ScoreBonusPercent;
+                amount = LessonFormulas.ExamScore(amount, bonus);
+            }
+
             var perfect = state.Setup.PerfectTarget;
             var gained = state.ParamGained + amount;
             if (perfect > 0 && gained >= perfect)

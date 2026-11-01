@@ -29,6 +29,16 @@ namespace Uta.Shared.Domain.Lesson
                 setup.ClearTarget,
                 setup.PerfectTarget));
 
+            if (setup.Exam == null)
+            {
+                lines.Add("exam=none");
+            }
+            else
+            {
+                lines.Add("exam=" + Text(setup.Exam.EarlyEndScore) + ";"
+                    + string.Join(",", setup.Exam.Turns.Select(t => Text((int)t.Param) + ":" + Text(t.ScoreBonusPercent))));
+            }
+
             lines.Add("turn=" + Text(state.Turn));
             lines.Add("phase=" + Text((int)state.Phase));
             lines.Add("hp=" + Text(state.Hp));
