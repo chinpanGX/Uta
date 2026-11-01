@@ -86,4 +86,4 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 ### 5. 索引から見えること
 
 - 合計 31 テーブル（2026-11-01 にレッスンの見出し 2 つとプロデュースの `LessonSetting`・`ExamRivalScore` を減らした）。ServerOnly は `EvaluationRankReward` の 1 つ（`InitialSupportCard`・`InitialSetting` は 2026-11-01 に Common にした）。`[ClientOnly]` のテーブル・列はまだ無い（表示名・アイコンは未定義）
-- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（`EvaluationRankReward.Rank` → `EvaluationRank`）はあるが、両側に出すテーブルを指すので問題にならない見込み（推測。[repository-layout.md](../repository-layout.md) 8章の `[Exists]` の確認で確かめる）
+- ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（`EvaluationRankReward.Rank` → `EvaluationRank`）はあるが、両側に出すテーブルを指すので問題にならない（2026-11-01 にアドオンのツールで確認。Common → ServerOnly の向きも通る。[Unity に取り込む計画](../../../plans/2026-11-01-masterdata-unity.md) 2章）
