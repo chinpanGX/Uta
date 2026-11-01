@@ -202,7 +202,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 | 項目 | 内容 | 状態 |
 |---|---|---|
-| Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の確認になる | Windows の Editor（Mono）で確認済み（2026-11-01）。IL2CPP・Android・iOS は未確認 |
+| Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の確認になる | Windows の Editor（Mono）と Windows の IL2CPP のプレイヤーで確認済み（2026-11-01）。Android・iOS は未確認 |
 | `[Exists]` が別の側を参照する場合 | `[ClientOnly]` / `[ServerOnly]` の列・テーブルを参照したとき、片側の生成物や検証がどうなるか | 確認済み（4章。問題なし） |
 | Windows での実行 | アドオンは make を前提にしている。Uta は `masterdata/gen.ps1` で回避する（7章）。アドオン側に PowerShell のスクリプトを用意してもよい | 回避済み |
 | 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
@@ -220,8 +220,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 ## 未決事項
 
 - 表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある
-- **IL2CPP でのマスタ読み込み（最優先のリスク）**: マスタの型は `[MessagePackObject(true)]`（文字列キー）で、IL2CPP ではフォーマッターの事前生成が要る。2026-11-01 に Editor で、`Uta.Client.Infrastructure` の生成済みの `MessagePackGeneratedResolver`（MagicOnion のクライアントの初期化にある）に `Card`・`Gacha`・`Effect`・`Scenario` のフォーマッターが**入っていない**（`GetFormatter` が `null`）ことを確かめた。MasterMemory の生成物が自前で持つかは未確認。Editor（Mono）は動的生成で動くので、テストでは見つからない。Windows の IL2CPP ビルドで確かめ、足りなければマスタ用のリゾルバーを生成する（フォローアップの計画）
-- Android（`jar:file://` の `UnityWebRequest`）・iOS の実機でのマスタ読み込み。Windows の Editor では確認済み（[実装メモ](#実装メモ)）。Windows の IL2CPP は `IL1009` が解決済み（[unity7-evaluation.md](../unity7-evaluation.md) 3.1）なので、ビルドして確かめられる
+- Android（`jar:file://` の `UnityWebRequest`）・iOS の実機でのマスタ読み込み。Windows の Editor と Windows の IL2CPP のプレイヤーでは確認済み（[実装メモ](#実装メモ)）
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか
 - ゲーム仕様の変更時の運用（定義の変更でスキーマ ID が変わる → 古いアプリとの互換）
 
@@ -243,4 +242,5 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 - クライアント用の出力は 30 テーブル（`EvaluationRankReward` を除く）。`encrypt: true`
 - 読み込みは `Uta.Client.Infrastructure.MasterDataLoader`（`Load(byte[])`、`LoadFromStreamingAssetsAsync`。全プラットフォームで `UnityWebRequest`）。DI には登録していない（使う計画で作る）
 - Unity のテスト: `client/uta/Assets/Tests/EditMode`（Unity Test Framework 1.9.0）。実行は `unity test --mode EditMode`（同じプロジェクトを開いた Editor があると使えない。先に `unity close .`）
+- Windows の IL2CPP のプレイヤー（`BuildCommands.BuildWindowsIl2Cpp`）で、`MasterDataLoader.LoadFromStreamingAssetsAsync` が同梱のバイナリを読めた（card=36・gacha=1・effect=129。一時の確認用スクリプトで実行し、コミットしていない）。生成済みの `MessagePackGeneratedResolver` にはマスタの型のフォーマッターが無い（`GetFormatter` が `null`）が、実行できたので、MasterMemory の生成物が自前のフォーマッターを持つか、型が AOT で扱える形になっている。理由は未調査
 - アドオンを Uta のツリーの中で `dotnet build`・`dotnet test` すると、Uta の `Directory.Packages.props`（版の一括管理）と `global.json`（テストランナー）が効いて失敗する。ビルドは `-p:ManagePackageVersionsCentrally=false`、テストはツリーの外にコピーして実行する
