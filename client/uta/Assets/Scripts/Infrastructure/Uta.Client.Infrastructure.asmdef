@@ -4,6 +4,7 @@
     "references": [
         "Uta.Client.Application",
         "Uta.Shared.Domain",
+        "Uta.Shared.Contracts",
         "VolTech.Server.Abstractions",
         "VolTech.MagicOnion.Client",
         "UniTask"

@@ -17,7 +17,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/overview/game-spec.md, 
 - **この計画が触るのは `client/uta/` の下、`shared/Uta.Shared.Domain/`・`shared/Uta.Shared.Contracts/` の直下の新規ファイル（`package.json`・asmdef・`.meta`・タスク 2 の印のクラス）、計画・wiki だけ**。ルートの props・`shared/` の既存ファイル・`server/` は 1a が触るので変えない
 - 範囲外:
   - `ApiCore`（順番待ち・再認証・エラーハンドラー）の組み立て。認証が要る RPC が出る計画で入れる。「無効・期限切れなら 1 回だけ取り直して再送する」は `ApiCore` の振る舞い（[auth.md](../../external/VolTech-MagicOnion/docs/spec/auth.md)）なので、ここでは `DeviceTokenProvider` の「トークンを捨てて取り直す」までを確かめる。**`ApiCore` 経由の再送と、`ApiServiceBase` が属性をリフレクションで読む部分の IL2CPP（基盤の [client.md](../../external/VolTech-MagicOnion/docs/design/client.md) が未確認と書いている）は未確認のまま残る**
-  - UnityScreenNavigator・Supplement・MasterMemory、Android / iOS の実機ビルド、Uta の RPC・DTO、画面
+  - UnityScreenNavigator・Supplement を**使うこと**（パッケージの取り込みだけを行い、asmdef の参照とコードは、使う計画で足す）、MasterMemory・MasterMemoryAddons（Unity のパッケージ（`package.json`・asmdef）が無く、入れ方は masterdata-pipeline.md の未決。マスタの計画で決める。2026-11-01 にユーザーが「今回は入れない」と判断）、Android / iOS の実機ビルド、Uta の RPC・DTO、画面
   - 共通基盤（`external/`）の変更。必要とわかったら、実装担当は止まって報告する（3.1 のルール）
 
 ### この計画で決めたこと（wiki に書いていなかった細部）
@@ -114,6 +114,13 @@ asmdef（名前はアセンブリ名と同じ。`autoReferenced` は `false`）:
 | `com.github-glitchenzo.nugetforunity` | Sandbox の行（v4.5.0） | 1 |
 | `jp.hadashikick.vcontainer` | `https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.19.0` | 1 |
 | `com.uta.shared.contracts` | `file:../../../shared/Uta.Shared.Contracts` | 2 |
+| `com.harumak.unityscreennavigator` | `file:../../../external/UnityScreenNavigator/Assets/UnityScreenNavigator`（相対パス。絶対パスで入れない） | 2 |
+| `com.chinpangx.supplement` | `file:../../../external/Supplement/Assets/Supplement`（依存の Addressables 2.7.6 が増える） | 2 |
+| `com.chinpangx.supplement.messagepack` | `file:../../../external/Supplement/Assets/Supplement.MessagePack`（依存が `com.chinpangx.supplement` 1.4.0、取り込むのは 1.5.0 なので、Unity のログに版の警告が出るかを控える） | 2 |
+
+| `com.unity.addressables` | `4.1.2`（Supplement の依存。Supplement は 2.7.6 を求めるが、Unity 7 の a12 は 4.1.1 に解決し、4.1.1 は `ScriptCompilationOptions.DevelopmentBuild` が obsolete で CS0619 のコンパイルエラーになる。4.1.2 で通ることを Editor（2026-11-01）で確認した。ユーザーの判断で 4.1.2 を直接指定する） | 2 |
+
+UnityScreenNavigator・Supplement は、ユーザーの判断（2026-11-01）で、この計画で取り込みまで行う（使うのは画面・ローカル保存の計画）。`com.chinpangx.supplement.zeromessenger` は入れない。`manifest.json` の並びは、Unity が書き直したアルファベット順のままにして、元の順に戻さない（差分を小さくするためには戻さない）。
 
 `Assets/packages.config` と `Assets/NuGet.config` は `external/VolTech-MagicOnion/Unity/VolTech.Sandbox/Assets/` のものをそのまま写す（NuGet の版はここで固定される。getting-started.md の「使う版」と一致）。`Assets/Plugins/Microsoft.Bcl.AsyncInterfaces/` は、Sandbox の同じ場所のフォルダを `.meta`（Editor を外す設定が入っている）ごと写し、`Assets/Plugins.meta` も写す。`.gitignore` に `client/*/[Aa]ssets/Packages/` と `client/*/[Aa]ssets/Packages.meta` を足す。
 
@@ -293,11 +300,11 @@ namespace Uta.Client.Editor
 - 境界: **`shared/Uta.Shared.Domain/` に `obj/`・`bin/`（`dotnet build` の生成物。`.gitignore` 済み）が残っていると、Unity が中の `.cs` を拾って型が重複する**。書き始める前に、これらを削除する（メインのセッションが行う）。1a の `shared/Directory.Build.props` が main に入るまで、この作業ツリーでは `shared/` を `dotnet build`・`dotnet test` しない（`obj/`・`bin/` が再び作られる）。入ったら `obj~/`・`bin~/` に出る
 - 確かめ方（ファイルを書いたあと、**メインのセッションが**）: Unity をバッチモードで開き（`"C:\Program Files\Unity\Hub\Editor\7000.0.0a12\Editor\Unity.exe" -batchmode -nographics -quit -projectPath C:\Work\Uta\client\uta -logFile <ログ>`。NuGet が復元されなければ `-executeMethod NugetForUnity.NugetHelper.Restore`）、ログに `error CS`・`Assembly has missing references`・パッケージの解決の失敗が無いことを確かめる。通らなければ、ユーザーに Editor での確認を頼む。asmdef の参照名が実際と違えば直す。VContainer の asmdef の `versionDefines` を見て、`VCONTAINER_UNITASK_INTEGRATION` が UniTask の存在で付くかを控える（`unity7-evaluation.md` に書く）。Unity が書いた `ProjectSettings/` の差分は 1章の方針で扱う。Unity の警告は一覧にする
 
-### タスク 2: `com.uta.shared.contracts` の追加（**1a が main に入ってから**）
+### タスク 2: `com.uta.shared.contracts` の追加と、相対パスの外部パッケージの取り込み（1a は main に入った）
 
 - 前提: `gh pr list` と main で、1a がマージされ、`shared/Uta.Shared.Contracts/` があること。main を取り込む
 - 触るファイル: 2章のタスク 2 の行、`Uta.Client.Infrastructure.asmdef`（`Uta.Shared.Contracts` を `references` に足す）
-- 手順: 3.1（Contracts の分）・3.4 のとおりに作り、`manifest.json` に `com.uta.shared.contracts` を足す
+- 手順: 3.1（Contracts の分）・3.4 のとおりに作り、`manifest.json` に `com.uta.shared.contracts` と、3.2 の表の相対パスの 3 つ（UnityScreenNavigator・Supplement・Supplement.MessagePack）を足す。Unity のエディターが `manifest.json` を書き直していた場合（アルファベット順の並べ替え、絶対パスの追加）は、絶対パスの行を 3.2 の相対パスの行に置き換え、並びは Unity のままにする
 - 確かめ方: タスク 1 と同じ（メインのセッションのバッチモード）。**ログに「スクリプトが無い asmdef」の警告・参照側のエラーが出るか**を結果に書く。`dotnet build Uta.slnx` と `dotnet test --project shared/Uta.Shared.Domain.Tests` が通る（Unity が `shared/` に作った `.meta` が .NET に影響しないこと）
 
 ### タスク 3: サインアップ・サインイン（手順 6）
