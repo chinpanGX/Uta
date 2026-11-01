@@ -33,17 +33,17 @@ updated: 2026-11-01
 ```
 masterdata/Definitions/*.cs        … 全列入りの定義（正本）
         │  code-gen
-        ├──▶ client/uta/.../MasterData/Generated/   クライアント用ソース（ServerOnly を除く）
-        └──▶ server/Uta.Server/MasterData/Generated/ サーバー用ソース（ClientOnly を除く）
+        ├──▶ （クライアント用ソース。今は作らない。Unity に取り込む計画で足す）
+        └──▶ server/Uta.Server/Infrastructure/MasterData/Generated/ サーバー用ソース（ClientOnly を除く）
                    │  各プロジェクトで MasterMemory の Source Generator が MemoryDatabase を生成
 
 masterdata/csv/*.csv               … スプレッドシートから書き出した CSV
         │  master-gen（検証 → バイナリ生成）
-        ├──▶ クライアント用 masterdata.bytes（暗号化）＋ manifest.json
-        └──▶ サーバー用 masterdata.bytes ＋ manifest.json
+        ├──▶ （クライアント用 masterdata.bytes。今は作らない）
+        └──▶ サーバー用 masterdata.bytes ＋ masterdata.manifest.json（Infrastructure/MasterData/）
                    │
                    ├─ クライアント: Addressables などで配信（Uta 側の仕事。アドオンに配信の仕組みはない）
-                   └─ サーバー: ファイルから読み込み
+                   └─ サーバー: 埋め込みリソースにして起動時に読む（MasterDataLoader）
 ```
 
 - コード生成（`code-gen`）とマスタ生成（`master-gen`）は別の機能。マスタ生成は、生成ソースが古ければコード生成をやり直す [確認]
@@ -60,10 +60,12 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - **マスタの列の enum は `masterdata/Definitions` に写しを置く** [決定。2026-10-31。ユーザーの判断]: `master-gen` は `Uta.Shared.Domain` を参照できず、CSV で使う enum はすべてのメンバーに `[InputName]` が要るため（アドオンの docs）。写しは `Uta.Shared.Domain`・`Uta.Shared.Contracts` の enum と**同じ名前・同じ数値**にする（名前・数値の正は、レッスンの enum は [lesson-enums.md](../lesson-enums.md)、ほかはその列を持つ `*-tables.md`）。各側の Infrastructure が数値のまま変換する（`(Uta.Shared.Domain.Rarity)(int)row.Rarity`）。ずれはサーバーのテストで、写しと元の enum の名前と数値をすべて比べて見つける（リフレクションはテストの中だけで使う）
 - 検証は属性で書く: `[Unique]`、`[Exists(typeof(T))]`（空欄を許すなら `AllowEmpty = true`）。違反は `master-gen` が「ファイル 行 列」で報告する。生成ソースには残らない
 - Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要（Uta では `Uta.Client.Infrastructure` に置く。[repository-layout.md](../repository-layout.md) 5章）
+- **生成ソースの名前空間は定義の名前空間のまま**出る（出力先の `namespace` は `MasterDataSchema.cs` にだけ効く）。`MemoryDatabase` の名前空間は、サーバー側の `Infrastructure/MasterData/MasterDataAssembly.cs` に `[assembly: MasterMemoryGeneratorOptions(Namespace = "Uta.MasterData")]` を置いて `Uta.MasterData` にそろえる [決定。2026-11-01]。付けないと `RootNamespace` に出る
+- **検証の置き場** [決定。2026-11-01]: 自分の行の列だけで決まる検査は、行のクラスの `IValidatable<T>`（明示的実装）。表をまたぐ検査（ほかの表を読む、`[Exists]` で書けない）はサーバーのテスト（`MasterDataInvariantTests`）。例外として、`Effect` の入れ子の深さは `IValidatable` の `CallOnce()` で `Effect` の全行を読んで検査する。`IValidatable` の違反は `master-gen` が主キー付きで報告し、バイナリを書かない [確認]
 - 空欄は型の既定値（`0` / `false` / `""` / enum の 0）。主キーの空欄はエラー
 - `IValidatable<T>` は使えるが、検証のコードがクライアント用の出力にも入る。**`[ServerOnly]` の列・テーブルを参照する検証は書けない**。できるだけ属性で書く
 
-定義の置き場 `masterdata/Definitions/` は、C# 9 の範囲で書く（クライアント用の生成ソースを Unity と同じ制約でコンパイルして検証されるため。[確認]）。`masterdata/.editorconfig` に `shared/` と同じ設定を置く案 [Uta案]。
+定義の置き場 `masterdata/Definitions/` は、C# 9 の範囲で書く（クライアント用の生成ソースを Unity と同じ制約でコンパイルして検証されるため。[確認]）。`masterdata/.editorconfig` に `shared/` と同じ設定を置いた [決定]。**C# 9 に収めることを強制する仕組みはない**（クライアント用の出力を作らず、`masterdata/` に csproj もないため）。レビューで見る。クライアント用の出力を足すとき、アドオンが netstandard2.1・C# 9 でコンパイルして検証する。
 
 ## 3. 表現の規約 [決定]
 
@@ -137,23 +139,29 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 ## 5. 出力先と設定 [決定／パスは Uta案]
 
-`masterdata/masterdata.yaml` の例。パスは設定ファイルのあるディレクトリからの相対 [確認]。
+`masterdata/masterdata.yaml`（実物）。パスは設定ファイルのあるディレクトリからの相対 [確認]。**クライアント用の出力は今は作らない**（Unity に MasterMemory が入っておらず、生成ソースを置くとコンパイルできないため）。Unity に取り込む計画で、下の `unity` の出力先を足す。
 
 ```yaml
 definitions: Definitions
 csv: csv
+
 outputs:
+  - name: server
+    target: server
+    source: ../server/Uta.Server/Infrastructure/MasterData/Generated
+    namespace: Uta.MasterData
+    binary: ../server/Uta.Server/Infrastructure/MasterData/masterdata.bytes   # コミットする。埋め込みリソース
+```
+
+Unity に取り込むときに足す出力先（案）:
+
+```yaml
   - name: unity
     target: client
     source: ../client/uta/Assets/Scripts/Infrastructure/MasterData/Generated
     namespace: Uta.MasterData
     binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes   # 同梱。コミットする
     encrypt: true
-  - name: server
-    target: server
-    source: ../server/Uta.Server/MasterData/Generated
-    namespace: Uta.MasterData
-    binary: ../server/Uta.Server/MasterData/masterdata.bytes                   # コミットする
 ```
 
 - **`source` のディレクトリは生成のたびに中身を丸ごと入れ替える**。生成専用のディレクトリにし、手書きのファイルを置かない [確認]
@@ -183,13 +191,13 @@ outputs:
 
 ## 7. 導入と運用
 
-- ツール（`net10.0`）の実行方法: `external/MasterMemoryAddons` を `dotnet run --project ...Tools -- code-gen --config masterdata/masterdata.yaml` で呼ぶ。アドオンは Makefile を前提にしているが、Uta では make を使わず PowerShell のスクリプトで包む（下記）
-- アプリが参照する MasterMemory / MessagePack のバージョンは、**アドオンのツールと同じにする**（アドオンの docs 時点で MasterMemory 3.0.4、MessagePack 3.1.12）[確認]。MagicOnion が要求する MessagePack のバージョンと揃うかは未確認（基盤の設計書は「MagicOnion 7 系なら MessagePack は 3 系」と書いている）
+- ツール（`net10.0`）の実行方法: `masterdata/gen.ps1`（`code-gen`・`master-gen`・`check`）が `dotnet run --project external/MasterMemoryAddons/src/MasterMemory.Addons.Tools -p:ManagePackageVersionsCentrally=false -- <command> --config masterdata/masterdata.yaml` を呼ぶ。**`-p:ManagePackageVersionsCentrally=false` が要る**: Uta のルートの `Directory.Packages.props`（パッケージ版の一括管理）がツールにも効き、付けないと `NU1008` で止まる [確認。2026-11-01]。実行ポリシーで `gen.ps1` が読めない環境では `powershell -NoProfile -ExecutionPolicy Bypass -File masterdata/gen.ps1 <command>` で呼ぶ。アドオンは Makefile を前提にしているが、Uta では make を使わず PowerShell のスクリプトで包む（下記）
+- アプリが参照する MasterMemory / MessagePack のバージョンは、**アドオンのツールと同じにする**（MasterMemory 3.0.4、MessagePack 3.1.12。サーバーは `Directory.Packages.props` で 3.1.12 に一致している [確認。2026-11-01]）
 - アドオンの変更は、サブモジュール側を先に push してから Uta のポインタを更新する（[ADR 0005](../../decisions/0005-foundation-submodule.md)）
 - **CSV は Git の `masterdata/csv/` を正本にする** [決定]。差分をレビューでき、ビルドが再現できる
   - ファイル名＝テーブル名。水平分割は `item_weapon.csv` のように `_` で区切る [確認]
   - **最初はスプレッドシートを使わず、CSV を直接編集する** [決定。2026-10-28]。書き出しの手順が要らない。グループ ID を使う入れ子の表（3章）を手で編集するのがつらくなったら、スプレッドシートと書き出しのスクリプトを足す（そのときは、タブ名をテーブル名にそろえる）
-- **ツールは PowerShell のスクリプトで包む** [決定。2026-10-28]。`masterdata/gen.ps1` から `dotnet run --project external/MasterMemoryAddons/...` を呼ぶ（`code-gen`・`master-gen`・`--check` を引数で切り替える案）。Windows で make が要らず、GitHub Actions でも `pwsh` で動く。スクリプトの中身は、実装するときに書く
+- **ツールは PowerShell のスクリプトで包む** [決定。2026-10-28]。`masterdata/gen.ps1` から呼ぶ（`code-gen`・`master-gen`・`check` を引数で切り替える。`check` は `master-gen --check`）。Windows で make が要らず、GitHub Actions でも `pwsh` で動く。CI への組み込みは未実施
 
 ## 8. アドオンの改善バックログ
 
@@ -219,10 +227,15 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 - Unity にマスタの実行時ライブラリ（MasterMemory と `MasterMemory.Addons.Core`）を入れる方法。アドオンに Unity パッケージが無い（[repository-layout.md](../repository-layout.md) 3章）
 - Android で `StreamingAssets` のバイナリを読む方法（`File` の API では読めない。`UnityWebRequest` など）
 - クライアントでの実機読み込み（Windows / Android / iOS）。アドオンの docs は「Unity での読み込みは未確認」と明記している
-- MasterMemory・MessagePack・MagicOnion のバージョン整合
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか
 - ゲーム仕様の変更時の運用（定義の変更でスキーマ ID が変わる → 古いアプリとの互換）
 
 ## 実装メモ
 
-（実装後に仕様とのズレをここに記録する）
+2026-11-01 の実装（[計画 1/2](../../../plans/2026-11-01-masterdata-first.md)）で、仕様とのズレとして記録すること。
+
+- 出力先はサーバーの 1 つだけ。置き場所は `Infrastructure/MasterData/`（生成ソース・`masterdata.bytes`・`masterdata.manifest.json`）。バイナリは埋め込みリソースで、`MasterDataLoader` が起動時に 1 回読む
+- マニフェストのファイル名は `masterdata.manifest.json`
+- 生成ソースに `MemoryDatabase` は含まれず、ビルドのときに MasterMemory のソースジェネレーターが作る
+- MVP のカード 36 枚の ID は規則で振った（カード ID: F01〜F07 = 1〜7、S01〜S14 = 101〜114、L01〜L15 = 201〜215。効果・条件のグループ ID: `カードID × 100 + 面 × 10 + 連番`）。**この 36 枚の便宜であり、以後の計画は従わなくてよい**
+- CI への `check` の組み込み、`masterdata.bytes` が CSV と一致するかの検出（今の `--check` は生成ソースしか見ない。8章）は未実施

@@ -46,7 +46,7 @@ uta/
 │  ├─ Supplement/            #   Unity 補助パッケージ
 │  └─ UnityScreenNavigator/  #   画面遷移
 ├─ uta_docs/
-├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない（未作成）
+├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない（作成済み。2026-11-01）
 │  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）
 │  ├─ csv/                   #   スプレッドシートから書き出した CSV
 │  ├─ masterdata.yaml        #   出力先の設定
@@ -62,9 +62,9 @@ uta/
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
-│     ├─ Infrastructure/     #   DB、マスタの読み込み
-│     ├─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
-│     └─ MasterData/         #   生成物（サーバー用）: Generated/ のソースと masterdata.bytes（ADR 0013）
+│     ├─ Infrastructure/     #   DB、マスタの読み込み（MasterDataLoader）
+│     │  └─ MasterData/      #   生成物（サーバー用）: Generated/ のソース、masterdata.bytes（埋め込みリソース）、masterdata.manifest.json（ADR 0013）
+│     └─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
 └─ client/
    ├─ Directory.Build.props  # [決定] 上の階層の設定を Unity の csproj に効かせない（2.1）
    └─ uta/                   # [決定] Unity プロジェクトのルート
@@ -167,7 +167,9 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 | `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain` | `Infrastructure` |
 | `Application` | `Domain`、`Uta.Shared.Domain`、`TxContext`（`VolTech.Server.Transaction`。ポートの引数に使う） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
 | `Domain` | `Uta.Shared.Domain` | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
-| `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Shared.Domain`、生成したマスタ | `Api` |
+| `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`） | `Api` |
+
+`Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。
 
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
 - **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`、クライアントは `Assets/Scripts/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。生成物を参照してよいのは Infrastructure だけ

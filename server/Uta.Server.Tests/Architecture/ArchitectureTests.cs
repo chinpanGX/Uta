@@ -40,6 +40,17 @@ public class ArchitectureTests
     }
 
     [Fact]
+    public void MasterData_IsReferencedOnlyByInfrastructure()
+    {
+        var result = Types.InAssembly(typeof(PlayerResolver).Assembly).That()
+            .ResideInNamespaceStartingWith("Uta.Server.Api")
+            .Or().ResideInNamespaceStartingWith("Uta.Server.Application")
+            .Or().ResideInNamespaceStartingWith("Uta.Server.Domain")
+            .ShouldNot().HaveDependencyOnAny("Uta.MasterData").GetResult();
+        Assert.True(result.IsSuccessful);
+    }
+
+    [Fact]
     public void InfrastructureNamespace_HasTypes()
     {
         Assert.NotEmpty(LayerTypes("Infrastructure").GetTypes());

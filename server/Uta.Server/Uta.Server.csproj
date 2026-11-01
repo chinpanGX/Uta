@@ -11,6 +11,8 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Dapper" />
     <PackageReference Include="dbup-postgresql" />
+    <PackageReference Include="MasterMemory" />
+    <PackageReference Include="MessagePack" />
     <PackageReference Include="Ulid" />
     <PackageReference Include="ZLogger" />
     <PackageReference Include="Grpc.AspNetCore.HealthChecks" />
@@ -19,12 +21,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\external\VolTech-MagicOnion\src\VolTech.Server\VolTech.Server.csproj" />
     <ProjectReference Include="..\..\external\VolTech-MagicOnion\src\VolTech.Server.Abstractions\VolTech.Server.Abstractions.csproj" />
+    <ProjectReference Include="..\..\external\MasterMemoryAddons\src\MasterMemory.Addons.Core\MasterMemory.Addons.Core.csproj" />
     <ProjectReference Include="..\..\shared\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
     <ProjectReference Include="..\..\shared\Uta.Shared.Contracts\Uta.Shared.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Migrations\*.sql" />
+    <EmbeddedResource Include="Infrastructure\MasterData\masterdata.bytes" LogicalName="Uta.Server.MasterData.masterdata.bytes" />
   </ItemGroup>
 
 </Project>

@@ -20,7 +20,7 @@ updated: 2026-11-01
 - **数値はこのページで固定する**。以後は値を変えず、追加は末尾に足す（マスタ・保存の値に使うため）。このページを作る前のコードの数値は、保存したデータがまだ無いので付け直す（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）
 - **効果の入れ子の深さは 1**: `AddPersistent`・`ScheduleEffect` の子の効果に、`AddPersistent`・`ScheduleEffect` を置かない。グループの循環もこれで起きない [決定。2026-10-31。[masterdata-pipeline.md](master/masterdata-pipeline.md) 3章]
 - 参照（`RefConditionGroupId` などの効果内条件）は**どの `Op` でも同じ意味**（満たさないとその行だけ飛ばす。判定はコストの前。lesson-card.md 6.2）。`AddPersistent` でも、その行の条件は「持続効果を付与するかどうか」の条件で、例外を作らない。発動のたびに見る条件は、発動する効果（子）の効果内条件に付ける（lesson-card.md 7.5）
-- 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する。いまの Domain の検証は `Status`・`Trigger` の列だけ（[enum の改名の計画](../../plans/2026-10-31-lesson-enums-rename.md)。2026-11-01。ユーザーの判断）。`Value`・`Arg`・参照の列は、下の表の「—」が「空欄でなければエラー」か「読まない」かと、各列の下限を決めてから入れる（未決事項）
+- 使わない列は空欄にする。`Op` ごとの必須・不要の列を、マスタは `IValidatable`、Domain は `CardDefinitionValidator` で検証する。いまの Domain の検証は `Status`・`Trigger` の列だけ（[enum の改名の計画](../../plans/2026-10-31-lesson-enums-rename.md)。2026-11-01。ユーザーの判断）。`Value`・`Arg`・参照の列の規則は、下の「マスタの検証の規則」で決めた（2026-11-01）。Domain の検証は、まだ `Status`・`Trigger` の列だけ（差は実装メモ）
 - 「フェーズ」は**コードで処理できるようになるフェーズ**（[lesson-phases.md](lesson-phases.md)）。カードで使い始めるフェーズとは限らない（使うカードがないものは合成カードで確かめる。[lesson-phases.md](lesson-phases.md) 1章）。enum には最初から全部を定義し、まだ動かせない `Op` を使うカードは読み込み時にエラーにする（[lesson-phases.md](lesson-phases.md) 1章）
 - lesson-card.md 7.6 の後回しのプリミティブ（`RepeatNext` / `AddLessonTurn` / `DeckManipulate`）は enum に入れず、そのカードを採用するときにこのページの末尾に足す
 
@@ -173,6 +173,27 @@ updated: 2026-11-01
 | `Effect`（1401） | 1: `AddStatus` `Impression` 3 ／ 2: `AddPersistent` `OnMentalCardUse` → `RefEffectGroupId` 1402 |
 | `Effect`（1402） | 1: `AddStatus` `Impression` 1 |
 
+### マスタの検証の規則 [決定。2026-11-01。ユーザーの確認済み]
+
+「使う」列だけに値を置き、**使わない列は空欄（0）でなければエラー**（CSV では空のセル）。`RefConditionGroupId` は、どの `Op` でも使ってよい（空欄も可）。マスタの `Effect` の `IValidatable` が検証する。
+
+| `Op` | 使う列と下限 |
+|---|---|
+| `GainParam` | `Value` ≥ 1、`Arg1`・`Arg2`・`Arg3`（0 以上。0 は既定値） |
+| `GainParamByImpression` / `GainParamByShield` / `GainParamByMotivation` | `Value` ≥ 1 |
+| `AddParamBonus` | `Value` ≥ 1、`Arg1` ≥ 1 |
+| `AddShield` / `AddFixedShield` / `RecoverHp` / `DrawCards` / `AddCardUses` | `Value` ≥ 1 |
+| `ScaleShield` | `Value` 0〜100 |
+| `SetShield` | `Value` ≥ 0 |
+| `AddStatus` | `Status`（`FocusBoost`・`ImpressionBoost` と `Nothing` は不可）、`Value` ≥ 1 |
+| `AddStatusPercent` | `Status`（`FocusBoost` か `ImpressionBoost` のみ）、`Value` ≥ 1、`Arg1`（0 以上） |
+| `ReplaceHand` / `EnhanceHand` | なし（`Value` も空欄） |
+| `CreateCard` | `Value` ≥ 1、`RefCardId`（空欄不可） |
+| `ScheduleEffect` | `Value` ≥ 1、`RefEffectGroupId`（空欄不可） |
+| `AddPersistent` | `Trigger`（`Nothing` と `EveryNTurns` は不可。`EveryNTurns` は採用時まで弾く。`CardDefinitionValidator` と同じ）、`RefEffectGroupId`（空欄不可）、`Arg1`・`Arg2`（0 以上）。`Value` は空欄 |
+
+`Status` は `AddStatus`・`AddStatusPercent` 以外で空欄、`Trigger` は `AddPersistent` 以外で空欄、`RefEffectGroupId` は `ScheduleEffect`・`AddPersistent` 以外で空欄、`RefCardId` は `CreateCard` 以外で空欄。入れ子の深さは 1（`RefEffectGroupId` が指すグループに `AddPersistent` / `ScheduleEffect` がない）。
+
 条件付きの持続効果の例（説明用）: 「好印象が 3 以上なら、以降ターン開始時に好印象+1」は、`AddPersistent` の行の `RefConditionGroupId` に「`Impression` `GreaterOrEqual` 3」を付ける（付与するときに判定）。「以降、ターン開始時に好印象が 3 以上なら好印象+1」は、子（`AddStatus`）の行に付ける（発動のたびに判定）。
 
 ## 未決事項
@@ -180,8 +201,9 @@ updated: 2026-11-01
 - `CreateCard` の生成する位置の持ち方（採用時）
 - `AddStatusPercent` の持続ターンの数え方（採用時。lesson-domain-types.md 3章）
 - 引数が 3 つで足りない `Op` が出たときの扱い（masterdata-pipeline.md 3章）
-- 1章の表の「—」の意味（空欄でなければエラーか、読まないか）と、`Value`・`Arg` の下限。決めたら `CardDefinitionValidator` とマスタの `IValidatable` に入れる（マスタの最初の計画の前に決める）
+- `CardDefinitionValidator` をマスタの検証の規則にそろえる時期（実装メモの差）
 
 ## 実装メモ
 
-- 2026-11-01: コード（`shared/Uta.Shared.Domain/Lesson`）をこのページに合わせた（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）。`Op` ごとの `Value`・`Arg`・参照の列の検証は未実装（未決事項）
+- 2026-11-01: コード（`shared/Uta.Shared.Domain/Lesson`）をこのページに合わせた（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）。`Op` ごとの `Value`・`Arg`・参照の列の検証は、Domain では未実装
+- 2026-11-01: マスタ（`masterdata/Definitions/Lesson.cs` の `Effect`）に上の「マスタの検証の規則」を実装した（[計画](../../plans/2026-11-01-masterdata-first.md)）。**`CardDefinitionValidator` との差**: Domain は今、負の値・`AddStatus`/`DrawCards` の下限・`Status`/`Trigger` の使わない列・持続効果の子・入れ子の深さを検証している。マスタとの差は、`Value`・`Arg`・参照の列の使わない列の検査と、ほかの `Op` の下限（`GainParam` など）。後の計画でそろえる
