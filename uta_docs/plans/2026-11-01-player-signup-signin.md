@@ -1,6 +1,6 @@
 ---
 title: 実装計画: プレイヤーのサインアップ・サインイン（サーバー）
-status: draft
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/overview/game-spec.md
 ---
@@ -66,10 +66,14 @@ public sealed class SignUpResponse
     [Key(0)] public bool Created { get; }   // 今回作ったか。2 回目以降は false
 }
 
-// Player/SignInResponse.cs   （7 引数のコンストラクタに [SerializationConstructor]。引数の順は Key の番号）
+// Player/SignInResponse.cs
 [MessagePackObject]
 public sealed class SignInResponse
 {
+    // 引数名はプロパティ名の camelCase（level, exp, gold, supportPoints, gachaCurrency, hasActiveProduce, discardedProduce）。順は Key の番号
+    [SerializationConstructor]
+    public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce) { /* 各プロパティに代入 */ }
+
     [Key(0)] public int Level { get; }
     [Key(1)] public int Exp { get; }              // 今のレベルの中の経験値（produce.md 7章）
     [Key(2)] public int Gold { get; }
@@ -133,7 +137,7 @@ public sealed class SignInUseCase(IPlayerRepository players)
 -- InsertIfAbsentAsync（ExecuteAsync の戻り値、つまり影響した行数が 1 なら true）
 INSERT INTO players (player_id) VALUES (@playerId) ON CONFLICT (player_id) DO NOTHING
 -- FindAsync
-SELECT level, exp, gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency
+SELECT level AS Level, exp AS Exp, gold AS Gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency
 FROM players WHERE player_id = @playerId
 ```
 
@@ -147,7 +151,7 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
 {
     public async UnaryResult<SignUpResponse> SignUpAsync()
     {
-        var playerId = Context.GetAuthContext().PlayerId;   // using VolTech.Server.Hosting;
+        var playerId = Context.GetAuthContext().PlayerId;   // using VolTech.Server;（GetAuthContext は VolTech.Server 名前空間の拡張メソッド）
         return await transactions.RunAsync(Context, async tx => new SignUpResponse(await signUp.ExecuteAsync(tx, playerId)));
     }
 
@@ -164,6 +168,7 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
 }
 ```
 
+- `PlayerService.cs` の先頭（`namespace` の前）に、理由の 1 行コメントと `#pragma warning disable CS8644` を置く。Contracts は Nullable なし、サーバーは Nullable 有効で、`ServiceBase<T>` が `IService<T>` の `With*` を実装していないという CS8644 が 5 件出るため（2026-11-01 実装時にユーザーが決定。csproj の `NoWarn` にはしない）。
 - 両方とも `ITransactions.RunAsync` の中で動かす。これで本体と同じトランザクション、`x-request-id` による冪等性（同じ ID の再送は保存済みのレスポンスを返し、本体を呼ばない）が効く。
 - `BusinessException` は `RunAsync` の中で投げる。トランザクションはロールバックされ（`last_responses` の保存もされない）、基盤のフィルターが `FAILED_PRECONDITION` と `google.rpc.ErrorInfo`（domain `uta`・reason `PLAYER_NOT_CREATED`）に変換する。
 - 冪等性の帰結: `x-request-id` が無い・形が違うと `INVALID_ARGUMENT`。別の RPC で使った ID の再利用も `INVALID_ARGUMENT`。同じ ID の再送は、最初の応答（`SignUp` なら `Created = true`）をそのまま返す。
@@ -194,8 +199,8 @@ public sealed class PlayerClient
 {
     public static async Task<PlayerClient> CreateAsync(GrpcChannel channel, string secret = "0123456789abcdef-secret");  // 端末の登録 → トークンの発行
     public string PlayerId { get; }
-    // 同じチャンネルで IPlayerService を呼ぶ。headers に authorization: Bearer <token> と x-request-id を付ける
-    public Task<T> CallAsync<T>(Func<IPlayerService, UnaryResult<T>> call, string requestId);
+    // 同じチャンネルで IPlayerService を呼ぶ。headers に authorization: Bearer <token> を付け、requestId が null でなければ x-request-id も付ける（null なら付けない）
+    public Task<T> CallAsync<T>(Func<IPlayerService, UnaryResult<T>> call, string? requestId);
 }
 ```
 
@@ -205,15 +210,15 @@ public sealed class PlayerClient
 
 | テスト名 | 手順 | 期待 |
 |---|---|---|
-| `SignUp_NewPlayer_CreatesRow` | 登録 → `SignUpAsync`（`req-1`） | `Created == true`。`SELECT count(*) FROM players WHERE player_id = $1` が 1 |
+| `SignUp_NewPlayer_CreatesRow` | 登録 → `SignUpAsync`（`req-1`） | `Created == true`。`postgres.QueryScalarAsync<long>("SELECT count(*) FROM players WHERE player_id = $1", playerId)` が 1（`count(*)` は bigint なので `long`） |
 | `SignUp_Twice_DoesNothing` | `SignUpAsync`（`req-1`）→ `SignUpAsync`（`req-2`） | 2 回目は `Created == false`。行は 1 のまま |
 | `SignUp_SameRequestId_ReturnsStoredResponse` | `SignUpAsync`（`req-1`）を 2 回 | 2 回目も `Created == true`（保存済みのレスポンス）。行は 1 |
 | `SignIn_AfterSignUp_ReturnsDefaults` | `SignUpAsync` → `SignInAsync`（`req-2`） | `Level == 1`・`Exp == 0`・`Gold == 0`・`SupportPoints == 0`・`GachaCurrency == 0`・`HasActiveProduce == false`・`DiscardedProduce == false` |
-| `SignIn_BeforeSignUp_ReturnsPlayerNotCreated` | 登録 → `SignInAsync` | `RpcException`。`StatusCode == FailedPrecondition`。`Trailers` の `grpc-status-details-bin`（`GetValueBytes`）の UTF-8 化に `PLAYER_NOT_CREATED` と `uta` を含む。`players` に行は無い |
+| `SignIn_BeforeSignUp_ReturnsPlayerNotCreated` | 登録 → `SignInAsync` | `RpcException`。`StatusCode == FailedPrecondition`。`RpcException.Trailers` の `grpc-status-details-bin`（`Metadata.GetValueBytes("grpc-status-details-bin")`。無ければ `Metadata.Entry.ValueBytes` を key で探す）の UTF-8 化に `PLAYER_NOT_CREATED` と `uta` を含む。`players` に行は無い |
 | `SignIn_ThenSignUp_ThenSignIn_Works` | `SignInAsync`（失敗）→ `SignUpAsync` → `SignInAsync`（それぞれ別の `x-request-id`） | 最後の `SignInAsync` が成功する（クライアントの経路の確認） |
-| `SignIn_WithoutToken_Unauthenticated` | トークンなしで `IPlayerService.SignInAsync` | `StatusCode == Unauthenticated` |
-| `SignIn_WithoutRequestId_InvalidArgument` | トークンあり・`x-request-id` なしで `SignInAsync` | `StatusCode == InvalidArgument` |
-| `Migration_AddsPlayerColumns` | `information_schema.columns` を `players` で引く | `level`・`exp`・`gold`・`support_points`・`gacha_currency` の 5 列がある |
+| `SignIn_WithoutToken_Unauthenticated` | `PlayerClient` を使わず、`MagicOnionClient.Create<IPlayerService>(channel)` をヘッダーなしで直に呼ぶ（`SignInAsync`） | `StatusCode == Unauthenticated` |
+| `SignIn_WithoutRequestId_InvalidArgument` | 登録 → `SignUpAsync`（`req-1`）→ `CallAsync(..SignInAsync.., requestId: null)` | `StatusCode == InvalidArgument` |
+| `Migration_AddsPlayerColumns` | `postgres.QueryScalarAsync<long>("SELECT count(*) FROM information_schema.columns WHERE table_name = 'players' AND column_name = ANY(ARRAY['level','exp','gold','support_points','gacha_currency'])")` | 5 |
 
 ### アーキテクチャテスト（`ArchitectureTests.cs` に足す。`InfrastructureNamespace_HasTypes` と同じ形）
 
@@ -229,4 +234,5 @@ public sealed class PlayerClient
 なし（ブレストの決定は下のとおり）。
 
 - 初期付与は入れない（案 A）。`SignInResponse` は `players` の列と 2 値だけ、`GetPlayerAsync` は作らない。`PLAYER_NOT_CREATED` は `SignInAsync` が直接投げる。破棄・再開は常に false。起動の流れは畳まない（以上、2026-11-01 ユーザーの判断）。
+- 5a で作ったプレイヤーは初期付与を受けない。5 の計画で付与を足したあとの扱いは、その計画で決める（開発環境だけで本番が無いので、DB を作り直すのが基本。バックフィルは作らない想定）。
 - 判定の材料は `players` の行の有無（レビュー指摘への対応。決定 3 の「直接投げる・フィルターを作らない」は変えない）。`TxContext` は引数で渡す。DTO はコンストラクタと読み取り専用プロパティ（repository-layout 4章に従う）。`.meta` はこの計画で書く。
