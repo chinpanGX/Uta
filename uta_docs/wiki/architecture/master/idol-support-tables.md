@@ -37,4 +37,7 @@ updated: 2026-11-01
 
 ## 実装メモ
 
-(実装後に設計とのズレをここに記録する)
+- 実装 [2026-11-01。計画 `plans/2026-11-01-masterdata-rest.md`]: `masterdata/Definitions/IdolSupport.cs`、CSV 9 ファイル。育成アイドル 4 人・サポートカード 10 種。**名前とステータス・アビリティは仮の値**（ユーザーの許可。レアリティごとに段階を付け、SSR は参考作品の最大値に合わせた）
+- この計画で名前を付けた enum: `RecommendKind`（`GoodCondition` / `Focus` / `Impression` / `Motivation`）、`SupportType`（`Singing` / `Rhythm` / `Expression` / `Assist`）、`SupportAbilityKind`（`InitialParam` / `ParamBonus` / `MaxHp`）。0 は `Nothing`、あとは書かれた順に 1 から
+- 検証の置き場: 行の検査は `IValidatable`、表をまたぐ検査はサーバーのテスト（`MasterDataInvariantTests`）。上に加えて次を検査する: `Idol.Recommend` はプランと合う（`Sense` は `GoodCondition` / `Focus`、`Logic` は `Impression` / `Motivation`）、`UniqueCardId` のカードの `Plan` はアイドルと同じか `Free`、`IdolRecommendDeck` は 4 つのおすすめ効果それぞれに `Order` 1〜3、`CommonDeckCard` は 5 行、`SupportLevelCost` の最後の `Level` + 1 が `SupportLevelCap` の `LimitBreak` 4 の `MaxLevel` と等しい、`SupportLevelCap` はレアごとに 5 行で `MaxLevel` が単調増加、`InitialSupportCard` は重複なし
+- `supportLevelCost`（147 行）は `基準 × Level`（R 39・SR 65・SSR 117）で、`Gold` は `SupportPoints` と同じ。テストで全行の式を確かめる

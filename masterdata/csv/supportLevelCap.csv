@@ -1,0 +1,19 @@
+SupportLevelCap,,
+出典: uta_docs/wiki/systems/idol-support.md,,
+Rarity,int,int
+Rarity,LimitBreak,MaxLevel
+R,0,20
+R,1,25
+R,2,30
+R,3,35
+R,4,40
+SR,0,30
+SR,1,35
+SR,2,40
+SR,3,45
+SR,4,50
+SSR,0,40
+SSR,1,45
+SSR,2,50
+SSR,3,55
+SSR,4,60

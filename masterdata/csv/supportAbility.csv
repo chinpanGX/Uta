@@ -1,0 +1,20 @@
+SupportAbility,,,,,
+出典: uta_docs/wiki/systems/idol-support.md,,,,,
+int,int,SupportAbilityKind,ParamKind,int,int
+SupportCardId,Order,Kind,Param,ValueAtLv1,ValueAtMax
+1,1,InitialParam,Singing,3,20
+2,1,InitialParam,Rhythm,3,20
+3,1,InitialParam,Expression,3,20
+4,1,MaxHp,,1,3
+5,1,ParamBonus,Singing,10,30
+6,1,InitialParam,Singing,8,40
+6,2,ParamBonus,Singing,20,60
+7,1,InitialParam,Rhythm,8,40
+7,2,MaxHp,,2,6
+8,1,ParamBonus,Expression,20,60
+8,2,MaxHp,,2,6
+9,1,InitialParam,Singing,15,65
+9,2,ParamBonus,Singing,30,85
+10,1,InitialParam,Expression,15,65
+10,2,ParamBonus,Expression,30,85
+10,3,MaxHp,,3,9

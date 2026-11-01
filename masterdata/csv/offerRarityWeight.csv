@@ -1,0 +1,8 @@
+OfferRarityWeight,
+出典: uta_docs/wiki/systems/produce.md,
+Rarity,int
+Rarity,Weight
+N,30
+R,30
+SR,30
+SSR,10

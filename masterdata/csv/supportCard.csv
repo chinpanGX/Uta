@@ -1,0 +1,14 @@
+SupportCard,,,,
+出典: uta_docs/wiki/systems/idol-support.md,,,,
+int,string,Rarity,SupportType,Plan
+SupportCardId,Name,Rarity,Type,Plan
+1,仮サポート1,R,Singing,Free
+2,仮サポート2,R,Rhythm,Free
+3,仮サポート3,R,Expression,Free
+4,仮サポート4,R,Assist,Free
+5,仮サポート5,R,Singing,Free
+6,仮サポート6,SR,Singing,Sense
+7,仮サポート7,SR,Rhythm,Logic
+8,仮サポート8,SR,Expression,Free
+9,仮サポート9,SSR,Singing,Sense
+10,仮サポート10,SSR,Expression,Logic

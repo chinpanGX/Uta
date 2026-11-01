@@ -1,0 +1,10 @@
+ExamRankReward,,
+出典: uta_docs/wiki/systems/produce.md,,
+ExamKind,int,int
+ExamKind,Rank,ParamAll
+Mid,1,20
+Mid,2,10
+Mid,3,5
+Final,1,30
+Final,2,20
+Final,3,10

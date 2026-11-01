@@ -1,0 +1,9 @@
+CommonDeckCard,
+出典: uta_docs/wiki/systems/idol-support.md,
+int,int
+Order,CardId
+1,1
+2,1
+3,2
+4,3
+5,3

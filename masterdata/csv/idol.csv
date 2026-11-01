@@ -1,0 +1,8 @@
+Idol,,,,,,,,,,,,,,,,
+出典: uta_docs/wiki/systems/idol-support.md,,,,,,,,,,,,,,,,
+int,string,Rarity,Plan,RecommendKind,int,int,int,int,int,int,int,int,ParamKind,ParamKind,ParamKind,int
+IdolId,Name,Rarity,Plan,Recommend,MaxHp,InitialSinging,InitialRhythm,InitialExpression,BonusSingingPerThousand,BonusRhythmPerThousand,BonusExpressionPerThousand,ExamPatternId,FirstParam,SecondParam,ThirdParam,UniqueCardId
+1,仮アイドル1（感性R）,R,Sense,GoodCondition,30,30,20,10,50,30,20,1,Singing,Rhythm,Expression,107
+2,仮アイドル2（理論R）,R,Logic,Impression,30,10,30,20,20,50,30,2,Rhythm,Expression,Singing,207
+3,仮アイドル3（感性SR）,SR,Sense,Focus,32,40,30,20,70,50,30,3,Expression,Singing,Rhythm,107
+4,仮アイドル4（理論SSR）,SSR,Logic,Motivation,35,50,40,30,100,70,50,4,Singing,Expression,Rhythm,207
