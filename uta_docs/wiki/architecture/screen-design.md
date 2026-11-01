@@ -52,7 +52,7 @@ updated: 2026-11-01
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
 | ガチャ（結果） | ページ／モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
 | 交換 | ページ | GAC-03 | Exchange | 交換pt の設定（MVP では作らない。天井は結合テストで確かめる） |
-| 所持一覧・詳細 | ページ | IDL-01、SUP-01 | GetPlayer | 育成アイドル、サポートカード |
+| 所持一覧・詳細 | ページ | IDL-01、SUP-01 | サインインで取った所持データ（キャッシュ） | 育成アイドル、サポートカード |
 | 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定（MVP では作らない） |
 | サポートカードの強化 | ページ | SUP-02 | LevelUp、LimitBreak | サポートカードのレベル・上限解放の設定（`SupportLevelCost`・`SupportLevelCap`）。MVP で作る（[game-spec.md](../overview/game-spec.md)。2026-11-01） |
 | 編成 | ページ | PRD-01 | Start | アイドル、サポートカード、シナリオ（シナリオを選ぶ。レンタル枠の `GetRentalCandidates` は MVP では作らない） |

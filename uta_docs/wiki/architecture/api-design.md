@@ -38,7 +38,7 @@ updated: 2026-11-01
 | サービス | RPC | 機能ID | 副作用 | 冪等性の対象 |
 |---|---|---|---|---|
 | `IDeviceService`（VolTech-MagicOnion） | `RegisterAsync` / `IssueTokenAsync` | — | あり | VolTech-MagicOnion の仕様に従う |
-| `IPlayerService` | `SignUpAsync`（サインアップ。プレイヤーの作成）、`SignInAsync`（サインイン。起動時の全件取得。下記）、`GetPlayerAsync`（所持品・通貨・Lv。残すかは未決） | — | `SignUpAsync`・`SignInAsync` はあり | `SignUpAsync`・`SignInAsync` |
+| `IPlayerService` | `SignUpAsync`（サインアップ。プレイヤーの作成）、`SignInAsync`（サインイン。起動時の全件取得。下記） | — | `SignUpAsync`・`SignInAsync` はあり | `SignUpAsync`・`SignInAsync` |
 | `IGachaService` | `GetGachasAsync`（ガチャごとの交換pt）、`DrawAsync`（単発・10連）、`GetHistoryAsync`、`ExchangeAsync`（交換pt で天井の交換） | GAC-01〜04 | `DrawAsync`・`ExchangeAsync` はあり | `DrawAsync`・`ExchangeAsync` |
 | `IIdolService` | `TrainAsync`（トレーニング）、`AwakenAsync`（覚醒）。MVP では作らない | IDL-02 | あり | 両方 |
 | `ISupportService` | `LevelUpAsync`（所持IDと目標のレベル。強化pt とゴールドを使う）、`LimitBreakAsync`（解放する所持IDと素材の所持ID。[idol-support.md](../systems/idol-support.md) 2.2.1） | SUP-02 | あり | 両方 |
@@ -50,13 +50,13 @@ updated: 2026-11-01
 - **サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）** [決定。2026-11-01。ユーザーの判断。2026-10-31 の `SyncAsync` を二つに分けた]: 起動時に 1 回呼ぶ RPC の役割は、サーバーから所持データなどを一括で取る「サインイン」なので、プレイヤーの作成（サインアップ）と分ける。VolTech-MagicOnion も、サインアップ（プレイヤー作成）とサインイン（全件取得）をアプリが作る RPC として想定し、「サインアップ済みかは端末に保存せず、サインインの結果で判断する」としている。用語は [glossary.md](../glossary.md)。流れは [screen-design.md](screen-design.md) 4章: 端末に保存なし → 端末の登録（`RegisterAsync`）→ トークンの発行（`IssueTokenAsync`）→ サインアップ → サインイン。保存あり → トークンの発行 → サインイン。どちらも起動フローでホームに入る前に呼ぶ
   - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[決定。2026-11-01。ユーザーの判断]。「独自の重複防止を作らない」（冒頭）の例外で、サインアップは作成の RPC なので、別の `x-request-id` で再び来ても何もしない。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[決定。2026-11-01。ユーザーの判断]
   - **`SignInAsync`**: 起動の流れで呼ぶ（起動時に 1 回。タイトルへ戻ったあと、未作成のときのサインアップの後にも呼び直す）。副作用のある「起動時の処理」と全件取得をまとめる。クライアントは受け取った所持データをキャッシュする。Request なし
-    - 所持データなどを全件返す（項目は `GetPlayerAsync` の Response と同じ型を使う。型の項目は未決）
+    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル・サポートカードは、それぞれのテーブルを作る計画で足す）[決定。2026-11-01。ユーザーの判断]。MessagePack の `[Key]` は後ろに足せる
     - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
     - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
     - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
     - Response（`SignInResponse`）[決定。2026-11-01。`SyncResponse` の項目を引き継ぐ]: 所持データのほか、進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、このサインインでプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
   - **プレイヤー未作成のとき**: `SignInAsync` は `PLAYER_NOT_CREATED` を返す（`SignUpAsync` 以外の Uta の RPC の共通の扱い。[server-foundation.md](server/server-foundation.md)）[決定。2026-11-01。ユーザーの判断]。クライアントはそれを受けたら `SignUpAsync` を呼び、あらためて `SignInAsync` を呼ぶ。サインアップの途中で通信が切れた後の再起動（端末には保存あり）も、この経路で直る
-  - `GetPlayerAsync` は `[NoSideEffects]`（読み取り専用のトランザクション）なので、破棄を入れられない。そのため `SignInAsync` と分ける。サインインが全件を返すので、`GetPlayerAsync` を残すか（取り直しに使うか）は未決
+  - `GetPlayerAsync` は作らない（サインインが全件を返し、クライアントがキャッシュするため。必要になったら足す）[決定。2026-11-01。ユーザーの判断]
   - ガチャの交換pt の変換は持たない（MVP のガチャは期間を持たない。[gacha.md](../systems/gacha.md) 4章）
 - **操作の RPC は局面ごとに分ける** [決定]
   - `ChooseWeekActionAsync`: 週の行動を選ぶ（レッスン、授業、支給、休む、相談に入る、など。PRD-02）
@@ -220,12 +220,9 @@ updated: 2026-11-01
 ## 未決事項
 
 - 報酬の具体の値（評価ランクごとの量。[produce.md](../systems/produce.md) 6.1 は仮の値）
-- `SignInResponse` に載せる所持データの項目（`GetPlayerAsync` の Response と同じ型。型の項目も未決）
-- `GetPlayerAsync` を残すか（サインインが全件を返すため）
 - 起動の流れを 1 本にするか。初回の「登録 → 発行 → サインアップ → サインイン」と、「サインイン → `PLAYER_NOT_CREATED` → サインアップ → サインイン」は同じ状態に着くので、常にサインインから入る形に畳める案がある（レビューの指摘）
 - クライアントが `PLAYER_NOT_CREATED` を受け取る条件。VolTech-MagicOnion の `ApiCore` は `handledCodes` に無い業務エラーを共通ハンドラーに回し、未登録のコードの既定はタイトルへ戻る。`SignInAsync` の呼び出しで `handledCodes` に指定するか、`ErrorDefinition` の既定の action を決める
 - 「`SignUpAsync` 以外を未作成なら弾く」仕組み（フィルターか、共通の基底クラスの呼び出しか。[server-foundation.md](server/server-foundation.md)）
-- 所持データの DTO を RPC に属さない型として切り、`SignInResponse` が持つ形にするか（DTO は RPC ごとに 1 組の規則の例外になるため）
 
 ## 実装メモ
 

@@ -89,7 +89,7 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 ## 6. 未決事項（ブレストの論点。案つき）
 
 1. ~~初期付与をこの計画に入れるか~~ [決定。2026-11-01。ユーザーの判断]: 入れない（案 A）。`players` の行だけ作り、付与は masterdata と所持テーブルの計画で `SignUpAsync` の中身に足す。
-2. **`SignInResponse` の中身**: 案 = `players` の列（Level・Exp・通貨 3 種）と、破棄・再開の 2 値だけ。育成アイドル・サポートカードの一覧は、`player_idols`・`player_support_cards` の計画で足す。DTO は RPC に属さない型（`PlayerData`）に切るか（api-design 未決事項）。`GetPlayerAsync` を残すか。
+2. ~~`SignInResponse` の中身~~ [決定。2026-11-01。ユーザーの判断]: `players` の列（Level・Exp・通貨 3 種）と、破棄・再開の 2 値だけ。育成アイドル・サポートカードの一覧は、それぞれのテーブルの計画で `[Key]` を後ろに足す。RPC に属さない型には切らず、`SignInResponse` が直接持つ。`GetPlayerAsync` は作らない（api-design.md の表から外した）。
 3. ~~`PLAYER_NOT_CREATED` の実装~~ [決定。2026-11-01。ユーザーの判断]: `SignInAsync` が、`ServiceContext` の `AuthContext.PlayerCreated`（`AuthFilter` が `PlayerResolver` の結果から詰める。追加の DB 問い合わせは無し）が false のとき、`BusinessException`（`ErrorCode` は domain `uta`、reason `PLAYER_NOT_CREATED`）を直接投げる。基盤が `FAILED_PRECONDITION` に変換する。「`SignUpAsync` 以外を弾く」共通のフィルターは作らない（Uta の RPC が 2 つだけのため。3 つ目の RPC の計画で、`SignUpAsync` を除く印つきのフィルターとして作る）。クライアントが `handledCodes` に渡すこと・`ErrorDefinition` への登録は、クライアント側の計画の仕事。
 4. ~~Level の初期値と `exp`~~ [決定。仕様どおり]: Lv 1、経験値は「今のレベルの中の経験値」で 0（[produce.md](../wiki/systems/produce.md) 7章）。
 5. **`HasActiveProduce` / `DiscardedProduce` の仮実装**: 常に false で問題ないか（プロデュースの計画で本実装）。
