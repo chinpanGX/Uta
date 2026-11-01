@@ -152,6 +152,7 @@ uta/
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
 - コミットメッセージは日本語
 - **GitHub の操作（PR・Issue・API）は `gh` コマンドを使う**（2026-11-01 に確定）。GitHub の MCP は使わない
+- **前提のタスク（未マージの PR）がある作業は、積み PR にする**: 前提のブランチから新しいブランチを切り（`git switch -c <新ブランチ> <前提ブランチ>`）、PR の base も前提のブランチにする（`gh pr create --base <前提ブランチ>`）。PR の本文に前提の PR を書く。前提の PR を先に main へマージしていき、後続の PR は base を main にリターゲットする（`gh pr edit --base main`）。リターゲットとマージはユーザーが進める。前提がない作業は main（または指定の base）に向ける
 - コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
 - 履歴は `git log -- uta_docs/wiki` などで引く
 - サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
