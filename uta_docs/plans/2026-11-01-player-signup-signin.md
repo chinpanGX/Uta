@@ -194,8 +194,8 @@ public sealed class PlayerClient
 {
     public static async Task<PlayerClient> CreateAsync(GrpcChannel channel, string secret = "0123456789abcdef-secret");  // 端末の登録 → トークンの発行
     public string PlayerId { get; }
-    // 同じチャンネルで IPlayerService を呼ぶ。headers に authorization: Bearer <token> と x-request-id を付ける
-    public Task<T> CallAsync<T>(Func<IPlayerService, UnaryResult<T>> call, string requestId);
+    // 同じチャンネルで IPlayerService を呼ぶ。headers に authorization: Bearer <token> を付け、requestId が null でなければ x-request-id も付ける（null なら付けない）
+    public Task<T> CallAsync<T>(Func<IPlayerService, UnaryResult<T>> call, string? requestId);
 }
 ```
 
@@ -205,15 +205,15 @@ public sealed class PlayerClient
 
 | テスト名 | 手順 | 期待 |
 |---|---|---|
-| `SignUp_NewPlayer_CreatesRow` | 登録 → `SignUpAsync`（`req-1`） | `Created == true`。`SELECT count(*) FROM players WHERE player_id = $1` が 1 |
+| `SignUp_NewPlayer_CreatesRow` | 登録 → `SignUpAsync`（`req-1`） | `Created == true`。`postgres.QueryScalarAsync<long>("SELECT count(*) FROM players WHERE player_id = $1", playerId)` が 1（`count(*)` は bigint なので `long`） |
 | `SignUp_Twice_DoesNothing` | `SignUpAsync`（`req-1`）→ `SignUpAsync`（`req-2`） | 2 回目は `Created == false`。行は 1 のまま |
 | `SignUp_SameRequestId_ReturnsStoredResponse` | `SignUpAsync`（`req-1`）を 2 回 | 2 回目も `Created == true`（保存済みのレスポンス）。行は 1 |
 | `SignIn_AfterSignUp_ReturnsDefaults` | `SignUpAsync` → `SignInAsync`（`req-2`） | `Level == 1`・`Exp == 0`・`Gold == 0`・`SupportPoints == 0`・`GachaCurrency == 0`・`HasActiveProduce == false`・`DiscardedProduce == false` |
 | `SignIn_BeforeSignUp_ReturnsPlayerNotCreated` | 登録 → `SignInAsync` | `RpcException`。`StatusCode == FailedPrecondition`。`Trailers` の `grpc-status-details-bin`（`GetValueBytes`）の UTF-8 化に `PLAYER_NOT_CREATED` と `uta` を含む。`players` に行は無い |
 | `SignIn_ThenSignUp_ThenSignIn_Works` | `SignInAsync`（失敗）→ `SignUpAsync` → `SignInAsync`（それぞれ別の `x-request-id`） | 最後の `SignInAsync` が成功する（クライアントの経路の確認） |
-| `SignIn_WithoutToken_Unauthenticated` | トークンなしで `IPlayerService.SignInAsync` | `StatusCode == Unauthenticated` |
-| `SignIn_WithoutRequestId_InvalidArgument` | トークンあり・`x-request-id` なしで `SignInAsync` | `StatusCode == InvalidArgument` |
-| `Migration_AddsPlayerColumns` | `information_schema.columns` を `players` で引く | `level`・`exp`・`gold`・`support_points`・`gacha_currency` の 5 列がある |
+| `SignIn_WithoutToken_Unauthenticated` | `PlayerClient` を使わず、`MagicOnionClient.Create<IPlayerService>(channel)` をヘッダーなしで直に呼ぶ（`SignInAsync`） | `StatusCode == Unauthenticated` |
+| `SignIn_WithoutRequestId_InvalidArgument` | 登録 → `SignUpAsync`（`req-1`）→ `CallAsync(..SignInAsync.., requestId: null)` | `StatusCode == InvalidArgument` |
+| `Migration_AddsPlayerColumns` | `postgres.QueryScalarAsync<long>("SELECT count(*) FROM information_schema.columns WHERE table_name = 'players' AND column_name = ANY(ARRAY['level','exp','gold','support_points','gacha_currency'])")` | 5 |
 
 ### アーキテクチャテスト（`ArchitectureTests.cs` に足す。`InfrastructureNamespace_HasTypes` と同じ形）
 
