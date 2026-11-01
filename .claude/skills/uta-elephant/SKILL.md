@@ -28,7 +28,7 @@ egm 標準の `docs/designs/` と `SITEMAP.md` は**使わない**。Uta の wik
 | 仕様として反映 | （なし） | `uta_docs/wiki/systems/` か `architecture/` のページに、Uta の書式で反映する（下記） |
 
 - `uta_docs/raw/` のファイルは一度置いたら書き換えない（`uta_docs/raw/README.md`）。直すときは新しいファイルを置く。
-- raw に置いただけでは終わらない。必ず wiki に反映し、そのフォルダの `README.md` と `log.md` を更新する。
+- raw に置いただけでは終わらない。必ず wiki に反映し、そのフォルダの `README.md` を更新する。変更の記録はコミットメッセージに書く。
 
 ## wiki に反映するときの書式
 
@@ -69,7 +69,7 @@ ADR で決まっていることへの反対意見は、「ADR を見直す提案
 `/egm:egm-drift-report` で設計のフォルダを聞かれたら `uta_docs/wiki/` を指定する（主に `systems/` と `architecture/`）。
 
 - ズレが見つかったら、文書とコードのどちらを直すかはユーザーが決める（egm の標準どおり）。
-- 文書を直したら `updated` を更新し、`log.md` に1行追記する。
+- 文書を直したら `updated` を更新し、直したことをコミットメッセージに書く。
 
 ## bootstrap
 

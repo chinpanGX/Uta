@@ -223,7 +223,7 @@ def check_index_and_orphans(root, inbound, report):
             registry, where = (path.parent / "README.md").resolve(), f"{path.parent.name}/README.md"
         if registry not in sources:
             report.add("エラー", "目次に未登録", rel(root, path), f"{where} からリンクされていない")
-        if path.name not in ("log.md", "0000-template.md", "README.md") and not (sources - {index, registry, resolved}):
+        if path.name not in ("0000-template.md", "README.md") and not (sources - {index, registry, resolved}):
             report.add("警告", "孤立ページ", rel(root, path), "目次（index.md・README.md）以外のページからリンクされていない")
 
 

@@ -1,7 +1,7 @@
 ---
 title: Uta wiki 目次
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # Uta wiki 目次
@@ -19,9 +19,9 @@ wiki の入口。ページの一覧と一行要約は、各フォルダの READM
 
 ## 全体
 
-- [log.md](log.md) — 時系列の更新履歴
 - [glossary.md](glossary.md) — 用語集(仮称を含む)
 
 ## 一次資料（raw）
 
 - [../raw/2026-10-26-reference-structure-research.md](../raw/2026-10-26-reference-structure-research.md) — 参考作品の構造調査メモ（名称・出典URLは残さない）
+- [../raw/2026-11-01-wiki-log.md](../raw/2026-11-01-wiki-log.md) — 2026-11-01 までの wiki の更新履歴（追記しない。以後は `git log -- uta_docs/wiki`。[ADR 0018](decisions/0018-change-log-from-git.md)）
