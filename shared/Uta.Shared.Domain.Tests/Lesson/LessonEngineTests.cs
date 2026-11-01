@@ -271,7 +271,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         [Fact]
         public void Validator_UnsupportedOp_ReportsError()
         {
-            var face = new CardFace(new CostDef[0], new ConditionDef[0], new[] { new EffectDef(EffectOp.ScaleShield, value: 50) });
+            var face = new CardFace(new CostDef[0], new ConditionDef[0], new[] { new EffectDef(EffectOp.AddParamBonus, value: 50) });
             var card = new CardDefinition(999, Plan.Logic, CardType.Active, Rarity.SR, 1, true, false, false, face, null);
 
             Assert.Single(CardDefinitionValidator.Validate(card));

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Uta.Shared.Domain.Numerics;
 using Uta.Shared.Domain.Rng;
 
 namespace Uta.Shared.Domain.Lesson
@@ -48,12 +49,26 @@ namespace Uta.Shared.Domain.Lesson
                     break;
                 }
                 case EffectOp.GainParamByImpression:
-                {
-                    var source = state.Statuses.Get(StatusKind.Impression);
-                    var cardParam = LessonFormulas.RatioParam(source, effect.Value);
-                    GainParam(state, ComputeParamGain(state, cardParam, 100, 100));
+                    GainParamByRatio(state, state.Statuses.Get(StatusKind.Impression), effect.Value);
                     break;
-                }
+                case EffectOp.GainParamByShield:
+                    GainParamByRatio(state, state.Shield, effect.Value);
+                    break;
+                case EffectOp.GainParamByMotivation:
+                    GainParamByRatio(state, state.Statuses.Get(StatusKind.Motivation), effect.Value);
+                    break;
+                case EffectOp.AddFixedShield:
+                    state.Shield += LessonFormulas.FixedShieldGain(effect.Value, state.Statuses.Get(StatusKind.ShieldGainBlock) > 0);
+                    break;
+                case EffectOp.RecoverHp:
+                    state.Hp = FixedMath.ToInt(Math.Min(state.MaxHp, (long)state.Hp + effect.Value));
+                    break;
+                case EffectOp.ScaleShield:
+                    state.Shield = LessonFormulas.ScaledShield(state.Shield, effect.Value);
+                    break;
+                case EffectOp.SetShield:
+                    state.Shield = effect.Value; // 元気増加無効でも設定する（lesson-card.md 7.2）
+                    break;
                 case EffectOp.AddShield:
                     state.Shield += LessonFormulas.ShieldGain(
                         effect.Value,
@@ -82,6 +97,11 @@ namespace Uta.Shared.Domain.Lesson
                     // CardDefinitionValidator で読み込み時に弾く
                     throw new NotSupportedException("未対応の効果です: " + effect.Op);
             }
+        }
+
+        private static void GainParamByRatio(LessonState state, int source, int percent)
+        {
+            GainParam(state, ComputeParamGain(state, LessonFormulas.RatioParam(source, percent), 100, 100));
         }
 
         /// <summary>レッスンで得たパラメータを足す。パーフェクト目標に届いたら、その値で止めてレッスンを終える（4.2）。</summary>

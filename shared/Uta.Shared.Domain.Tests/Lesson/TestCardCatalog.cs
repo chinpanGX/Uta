@@ -12,6 +12,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         public TestCardCatalog()
         {
             AddAll(Phase1Cards.All());
+            AddAll(Phase2Cards.All());
             AddAll(SyntheticCards.All());
         }
 

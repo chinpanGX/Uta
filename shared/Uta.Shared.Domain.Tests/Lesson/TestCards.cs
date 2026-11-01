@@ -91,6 +91,41 @@ namespace Uta.Shared.Domain.Tests.Lesson
             return new ConditionDef(ConditionSubject.Impression, Comparator.GreaterOrEqual, value);
         }
 
+        public static CostDef StatusCost(CostKind kind, int value)
+        {
+            return new CostDef(kind, value);
+        }
+
+        public static EffectDef FixedShield(int value)
+        {
+            return new EffectDef(EffectOp.AddFixedShield, value: value);
+        }
+
+        public static EffectDef Recover(int value)
+        {
+            return new EffectDef(EffectOp.RecoverHp, value: value);
+        }
+
+        public static EffectDef ScaleShield(int percent)
+        {
+            return new EffectDef(EffectOp.ScaleShield, value: percent);
+        }
+
+        public static EffectDef SetShield(int value)
+        {
+            return new EffectDef(EffectOp.SetShield, value: value);
+        }
+
+        public static EffectDef ParamByShield(int percent)
+        {
+            return new EffectDef(EffectOp.GainParamByShield, value: percent);
+        }
+
+        public static EffectDef ParamByMotivation(int percent)
+        {
+            return new EffectDef(EffectOp.GainParamByMotivation, value: percent);
+        }
+
         /// <summary>effect と同じ列で、Conditions だけを condition 1 つにした新しい EffectDef を返す。</summary>
         public static EffectDef If(EffectDef effect, ConditionDef condition)
         {

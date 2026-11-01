@@ -69,6 +69,24 @@ namespace Uta.Shared.Domain.Tests.Lesson
             Assert.Equal(6, LessonFormulas.ShieldGain(4, 2, false));
         }
 
+        [Theory]
+        [InlineData(4, false, 4)]
+        [InlineData(4, true, 0)]
+        public void FixedShieldGain_Cases(int value, bool blocked, int expected)
+        {
+            Assert.Equal(expected, LessonFormulas.FixedShieldGain(value, blocked));
+        }
+
+        [Theory]
+        [InlineData(7, 50, 3)]
+        [InlineData(7, 0, 0)]
+        [InlineData(7, 100, 7)]
+        [InlineData(1, 50, 0)]
+        public void ScaledShield_Cases(int shield, int percent, int expected)
+        {
+            Assert.Equal(expected, LessonFormulas.ScaledShield(shield, percent));
+        }
+
         [Fact]
         public void ImpressionGain_Boost10Percent_RoundsUp()
         {
