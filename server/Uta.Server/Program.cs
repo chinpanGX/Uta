@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
+using Uta.Server.Application.Idol;
 using Uta.Server.Application.Player;
+using Uta.Server.Application.Support;
 using Uta.Server.Infrastructure;
 using VolTech.Server.Auth;
 using VolTech.Server.Hosting;
@@ -39,6 +41,9 @@ builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(li
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<IPlayerResolver, PlayerResolver>();
 builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
+builder.Services.AddScoped<IIdolRepository, IdolRepository>();
+builder.Services.AddScoped<ISupportCardRepository, SupportCardRepository>();
+builder.Services.AddSingleton<IInitialGrantCatalog, MasterInitialGrantCatalog>();
 builder.Services.AddScoped<SignUpUseCase>();
 builder.Services.AddScoped<SignInUseCase>();
 builder.Services.AddVoltechServer(options => builder.Configuration.GetSection("Voltech").Bind(options));

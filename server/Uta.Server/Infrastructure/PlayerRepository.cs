@@ -27,6 +27,16 @@ public sealed class PlayerRepository : IPlayerRepository
         return row is null ? null : new PlayerSnapshot(row.Level, row.Exp, row.Gold, row.SupportPoints, row.GachaCurrency);
     }
 
+    public async Task GrantCurrenciesAsync(TxContext tx, Ulid playerId, int gachaCurrency, int gold, int supportPoints)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE players SET gacha_currency = gacha_currency + @gachaCurrency, gold = gold + @gold, support_points = support_points + @supportPoints " +
+            "WHERE player_id = @playerId",
+            new { playerId = playerId.ToString(), gachaCurrency, gold, supportPoints },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
     private sealed class Row
     {
         public int Level { get; set; }
