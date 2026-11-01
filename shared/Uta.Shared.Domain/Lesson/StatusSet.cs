@@ -8,8 +8,8 @@ namespace Uta.Shared.Domain.Lesson
     /// </summary>
     public sealed class StatusSet
     {
-        /// <summary>StatusKind の数。</summary>
-        public const int KindCount = 12;
+        /// <summary>StatusKind の数。添字は (int)kind で、添字 0（Nothing）は使わない。</summary>
+        public const int KindCount = (int)StatusKind.DebuffGuard + 1;
 
         private readonly int[] values = new int[KindCount];
         private readonly bool[] skipNextDecrement = new bool[KindCount];
@@ -29,6 +29,11 @@ namespace Uta.Shared.Domain.Lesson
             if (skipNextDecrement == null || skipNextDecrement.Count != KindCount)
             {
                 throw new ArgumentException("値の数が合いません。", nameof(skipNextDecrement));
+            }
+
+            if (values[0] != 0 || skipNextDecrement[0])
+            {
+                throw new ArgumentException("添字 0（Nothing）は使えません。", nameof(values));
             }
 
             for (var i = 0; i < KindCount; i++)
@@ -63,7 +68,7 @@ namespace Uta.Shared.Domain.Lesson
                 case StatusKind.Excellent:
                 case StatusKind.CostHalf:
                 case StatusKind.CostDouble:
-                case StatusKind.GenkiBlock:
+                case StatusKind.ShieldGainBlock:
                     return true;
                 default:
                     return false;
@@ -73,6 +78,11 @@ namespace Uta.Shared.Domain.Lesson
         /// <summary>値を足す。0 未満にはならない。</summary>
         internal void Add(StatusKind kind, int amount, LessonPhase phase)
         {
+            if (kind == StatusKind.Nothing)
+            {
+                throw new ArgumentOutOfRangeException(nameof(kind));
+            }
+
             var index = (int)kind;
             var before = values[index];
             values[index] = Math.Max(0, before + amount);

@@ -1,168 +1,168 @@
 ﻿namespace Uta.Shared.Domain.Lesson
 {
-    // マスタ・保存の値に使うので、enum の数値は変えない。追加は末尾に足す。
+    // 名前・数値の正は uta_docs/wiki/architecture/lesson-enums.md。マスタ・保存の値に使うので数値は変えない。追加は末尾に足す。
 
     /// <summary>プラン（lesson-card.md 3.1）。</summary>
     public enum Plan
     {
-        Free = 0,
-        Sense = 1,
-        Logic = 2,
+        Nothing = 0,
+        Free = 1,
+        Sense = 2,
+        Logic = 3,
     }
 
     /// <summary>カードの種別。</summary>
     public enum CardType
     {
-        Active = 0,
-        Mental = 1,
-        Trouble = 2,
+        Nothing = 0,
+        Active = 1,
+        Mental = 2,
+        Trouble = 3,
     }
 
     public enum Rarity
     {
-        N = 0,
-        R = 1,
-        SR = 2,
-        SSR = 3,
+        Nothing = 0,
+        N = 1,
+        R = 2,
+        SR = 3,
+        SSR = 4,
     }
 
     /// <summary>パラメータの種類（歌唱 / 律動 / 表現）。</summary>
     public enum ParamKind
     {
-        Singing = 0,
-        Rhythm = 1,
-        Expression = 2,
+        Nothing = 0,
+        Singing = 1,
+        Rhythm = 2,
+        Expression = 3,
     }
 
-    /// <summary>コストの種類（lesson-card.md 5章）。</summary>
+    /// <summary>コストの種類（lesson-card.md 5章。lesson-enums.md 4章）。</summary>
     public enum CostKind
     {
+        Nothing = 0,
         /// <summary>元気→体力の順に払う。補正を受ける</summary>
-        Consume = 0,
+        Consume = 1,
         /// <summary>体力から直接払う。補正を受けない</summary>
-        HpDirect = 1,
-        GoodConditionTurns = 2,
+        HpDirect = 2,
+        GoodConditionTurns = 3,
+        ExcellentTurns = 4,
+        Focus = 5,
+        Impression = 6,
+        Motivation = 7,
+    }
+
+    /// <summary>条件の対象（lesson-card.md 6.1。lesson-enums.md 5章）。</summary>
+    public enum ConditionSubject
+    {
+        Nothing = 0,
+        GoodConditionTurns = 1,
+        ExcellentTurns = 2,
         Focus = 3,
         Impression = 4,
         Motivation = 5,
-        ExcellentTurns = 6,
-    }
-
-    /// <summary>条件の対象（lesson-card.md 6.1）。</summary>
-    public enum ConditionSubject
-    {
-        GoodConditionTurns = 0,
-        ExcellentTurns = 1,
-        Focus = 2,
-        Impression = 3,
-        Motivation = 4,
-        Genki = 5,
+        Shield = 6,
         /// <summary>体力の割合（%）。最大体力に対して比べる</summary>
-        HpPercent = 6,
+        HpPercent = 7,
         /// <summary>何ターン目か</summary>
-        TurnNumber = 7,
+        TurnNumber = 8,
         /// <summary>得たパラメータの、クリア目標に対する割合（%）</summary>
-        ClearTargetPercent = 8,
+        ClearTargetPercent = 9,
     }
 
+    /// <summary>比較（lesson-enums.md 5章）。</summary>
     public enum Comparator
     {
-        GreaterOrEqual = 0,
-        LessOrEqual = 1,
-        Equal = 2,
+        Nothing = 0,
+        GreaterOrEqual = 1,
+        LessOrEqual = 2,
+        Equal = 3,
     }
 
-    /// <summary>効果の種類（lesson-card.md 7章）。引数の意味は lesson-domain-types.md 2.1。</summary>
+    /// <summary>効果の種類（lesson-card.md 7章。lesson-enums.md 1章）。列の意味は lesson-domain-types.md 2.1。</summary>
     public enum EffectOp
     {
-        Param = 0,
-        ParamByRatio = 1,
-        ParamBonus = 2,
-        AddGenki = 3,
-        AddFixedGenki = 4,
-        RecoverHp = 5,
-        ScaleResource = 6,
-        SetResource = 7,
-        AddTurns = 8,
-        AddStack = 9,
-        AddPercent = 10,
-        Draw = 11,
-        AddUses = 12,
-        ReplaceHand = 13,
-        EnhanceHand = 14,
-        CreateCard = 15,
-        Schedule = 16,
-        Persistent = 17,
+        Nothing = 0,
+        GainParam = 1,
+        GainParamByImpression = 2,
+        GainParamByShield = 3,
+        GainParamByMotivation = 4,
+        AddParamBonus = 5,
+        AddShield = 6,
+        AddFixedShield = 7,
+        RecoverHp = 8,
+        ScaleShield = 9,
+        SetShield = 10,
+        AddStatus = 11,
+        AddStatusPercent = 12,
+        DrawCards = 13,
+        AddCardUses = 14,
+        ReplaceHand = 15,
+        EnhanceHand = 16,
+        CreateCard = 17,
+        ScheduleEffect = 18,
+        AddPersistent = 19,
     }
 
-    /// <summary>ParamByRatio が参照する値。</summary>
-    public enum RatioSource
-    {
-        Impression = 0,
-        Genki = 1,
-        Motivation = 2,
-    }
-
-    /// <summary>ScaleResource / SetResource の対象。</summary>
-    public enum ResourceKind
-    {
-        Genki = 0,
-    }
-
-    /// <summary>ステータス（lesson-card.md 8章）。元気と体力は LessonState に持つ。</summary>
+    /// <summary>ステータス（lesson-card.md 8章。lesson-enums.md 3章）。元気と体力は LessonState に持つ。</summary>
     public enum StatusKind
     {
+        Nothing = 0,
         /// <summary>好調（ターン）</summary>
-        GoodCondition = 0,
+        GoodCondition = 1,
         /// <summary>絶好調（ターン）</summary>
-        Excellent = 1,
+        Excellent = 2,
         /// <summary>集中（値）</summary>
-        Focus = 2,
+        Focus = 3,
         /// <summary>集中強化（%）</summary>
-        FocusBoost = 3,
+        FocusBoost = 4,
         /// <summary>好印象（値）。ターン開始時に1減る</summary>
-        Impression = 4,
+        Impression = 5,
         /// <summary>好印象強化（%）</summary>
-        ImpressionBoost = 5,
+        ImpressionBoost = 6,
         /// <summary>やる気（値）</summary>
-        Motivation = 6,
+        Motivation = 7,
         /// <summary>消費体力減少（ターン）</summary>
-        CostHalf = 7,
+        CostHalf = 8,
         /// <summary>消費体力増加（ターン）</summary>
-        CostDouble = 8,
+        CostDouble = 9,
         /// <summary>消費体力削減（値）</summary>
-        CostReduce = 9,
+        CostReduce = 10,
         /// <summary>元気増加無効（ターン）</summary>
-        GenkiBlock = 10,
+        ShieldGainBlock = 11,
         /// <summary>低下状態無効（回数）</summary>
-        DebuffGuard = 11,
+        DebuffGuard = 12,
     }
 
-    /// <summary>持続効果が反応するタイミング（lesson-card.md 10章）。</summary>
+    /// <summary>持続効果が反応するタイミング（lesson-card.md 10章。lesson-enums.md 2章）。</summary>
     public enum PersistentTrigger
     {
-        LessonStart = 0,
-        TurnStart = 1,
-        AfterTurnStart = 2,
-        OnCostHpDecrease = 3,
-        OnCardUse = 4,
-        OnActiveCardUse = 5,
-        OnMentalCardUse = 6,
-        AfterCardUse = 7,
-        AfterActiveCardUse = 8,
-        AfterMentalCardUse = 9,
-        OnSkip = 10,
-        TurnEnd = 11,
+        Nothing = 0,
+        LessonStart = 1,
+        TurnStart = 2,
+        AfterTurnStart = 3,
+        EveryNTurns = 4,
+        OnCostHpDecrease = 5,
+        OnCardUse = 6,
+        OnActiveCardUse = 7,
+        OnMentalCardUse = 8,
+        AfterCardUse = 9,
+        AfterActiveCardUse = 10,
+        AfterMentalCardUse = 11,
+        OnSkip = 12,
+        TurnEnd = 13,
     }
 
     /// <summary>レッスンの種類。</summary>
     public enum LessonKind
     {
-        Normal = 0,
-        Special = 1,
-        Finishing = 2,
-        MidExam = 3,
-        FinalExam = 4,
+        Nothing = 0,
+        Normal = 1,
+        Special = 2,
+        Finishing = 3,
+        MidExam = 4,
+        FinalExam = 5,
     }
 
     /// <summary>処理の局面（lesson-card.md 10章・11章）。</summary>

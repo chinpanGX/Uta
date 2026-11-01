@@ -105,9 +105,9 @@ namespace Uta.Shared.Domain.Lesson
         }
 
         /// <summary>9.3 元気増加量 = 効果の値 + やる気。元気増加無効中は 0。</summary>
-        public static int GenkiGain(int value, int motivation, bool genkiBlocked)
+        public static int ShieldGain(int value, int motivation, bool shieldGainBlocked)
         {
-            return genkiBlocked ? 0 : Math.Max(0, value + motivation);
+            return shieldGainBlocked ? 0 : Math.Max(0, value + motivation);
         }
 
         /// <summary>9.4 好印象による上昇値 = ceil( 好印象 × (1 + 好印象強化) × (1 + 上昇量増加の総和) )。好調倍率は乗せない。</summary>

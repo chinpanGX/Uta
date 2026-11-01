@@ -33,24 +33,24 @@ namespace Uta.Shared.Domain.Tests.Lesson
                 Face(Consume(4), Param(9)),
                 Face(Consume(3), Param(14)));
             Add(F02, Plan.Free, CardType.Active, Rarity.N, false, false,
-                Face(Consume(3), Param(2), Genki(2)),
-                Face(Consume(3), Param(6), Genki(4)));
+                Face(Consume(3), Param(2), Shield(2)),
+                Face(Consume(3), Param(6), Shield(4)));
             Add(F03, Plan.Free, CardType.Mental, Rarity.N, true, false,
-                Face(Consume(0), Genki(4)),
-                Face(Consume(0), Genki(7)));
+                Face(Consume(0), Shield(4)),
+                Face(Consume(0), Shield(7)));
             Add(F04, Plan.Free, CardType.Mental, Rarity.R, false, false,
-                Face(Consume(0), Genki(2), Turns(StatusKind.CostHalf, 2)),
-                Face(Consume(0), Genki(2), Turns(StatusKind.CostHalf, 3)));
+                Face(Consume(0), Shield(2), Turns(StatusKind.CostHalf, 2)),
+                Face(Consume(0), Shield(2), Turns(StatusKind.CostHalf, 3)));
             Add(F05, Plan.Free, CardType.Mental, Rarity.R, true, true,
-                Face(Consume(0), Genki(3), StackIf(StatusKind.CostReduce, 1, HpAtLeast(50))),
-                Face(Consume(0), Genki(6), StackIf(StatusKind.CostReduce, 1, HpAtLeast(50))));
+                Face(Consume(0), Shield(3), StackIf(StatusKind.CostReduce, 1, HpAtLeast(50))),
+                Face(Consume(0), Shield(6), StackIf(StatusKind.CostReduce, 1, HpAtLeast(50))));
             Add(F06, Plan.Free, CardType.Mental, Rarity.SR, true, true,
                 Face(HpDirect(1), Uses(1), Draw(2)),
                 Face(Consume(0), Uses(1), Draw(2), Turns(StatusKind.CostHalf, 1)));
 
             Add(L01, Plan.Logic, CardType.Mental, Rarity.N, false, false,
-                Face(Consume(2), Genki(1), Impression(2)),
-                Face(Consume(2), Genki(2), Impression(3)));
+                Face(Consume(2), Shield(1), Impression(2)),
+                Face(Consume(2), Shield(2), Impression(3)));
             Add(L02, Plan.Logic, CardType.Mental, Rarity.N, true, false,
                 FaceWithCondition(Consume(2), ImpressionAtLeast(1), Impression(4)),
                 FaceWithCondition(Consume(2), ImpressionAtLeast(1), Impression(5)));
@@ -109,47 +109,47 @@ namespace Uta.Shared.Domain.Tests.Lesson
 
         private static EffectDef Param(int value)
         {
-            return new EffectDef(EffectOp.Param, value);
+            return new EffectDef(EffectOp.GainParam, value: value);
         }
 
-        private static EffectDef Genki(int value)
+        private static EffectDef Shield(int value)
         {
-            return new EffectDef(EffectOp.AddGenki, value);
+            return new EffectDef(EffectOp.AddShield, value: value);
         }
 
         private static EffectDef Impression(int value)
         {
-            return new EffectDef(EffectOp.AddStack, value, (int)StatusKind.Impression);
+            return new EffectDef(EffectOp.AddStatus, status: StatusKind.Impression, value: value);
         }
 
         private static EffectDef Turns(StatusKind kind, int value)
         {
-            return new EffectDef(EffectOp.AddTurns, value, (int)kind);
+            return new EffectDef(EffectOp.AddStatus, status: kind, value: value);
         }
 
         private static EffectDef StackIf(StatusKind kind, int value, ConditionDef condition)
         {
-            return new EffectDef(EffectOp.AddStack, value, (int)kind, conditions: new[] { condition });
+            return new EffectDef(EffectOp.AddStatus, status: kind, value: value, conditions: new[] { condition });
         }
 
         private static EffectDef Uses(int value)
         {
-            return new EffectDef(EffectOp.AddUses, value);
+            return new EffectDef(EffectOp.AddCardUses, value: value);
         }
 
         private static EffectDef Draw(int value)
         {
-            return new EffectDef(EffectOp.Draw, value);
+            return new EffectDef(EffectOp.DrawCards, value: value);
         }
 
         private static EffectDef RatioOfImpression(int percent)
         {
-            return new EffectDef(EffectOp.ParamByRatio, percent, (int)RatioSource.Impression);
+            return new EffectDef(EffectOp.GainParamByImpression, value: percent);
         }
 
         private static EffectDef OnMentalUse(EffectDef effect)
         {
-            return new EffectDef(EffectOp.Persistent, 0, (int)PersistentTrigger.OnMentalCardUse, children: new[] { effect });
+            return new EffectDef(EffectOp.AddPersistent, trigger: PersistentTrigger.OnMentalCardUse, children: new[] { effect });
         }
 
         private static ConditionDef HpAtLeast(int percent)

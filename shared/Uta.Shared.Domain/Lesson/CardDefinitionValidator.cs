@@ -12,14 +12,13 @@ namespace Uta.Shared.Domain.Lesson
         {
             switch (op)
             {
-                case EffectOp.Param:
-                case EffectOp.ParamByRatio:
-                case EffectOp.AddGenki:
-                case EffectOp.AddTurns:
-                case EffectOp.AddStack:
-                case EffectOp.Draw:
-                case EffectOp.AddUses:
-                case EffectOp.Persistent:
+                case EffectOp.GainParam:
+                case EffectOp.GainParamByImpression:
+                case EffectOp.AddShield:
+                case EffectOp.AddStatus:
+                case EffectOp.DrawCards:
+                case EffectOp.AddCardUses:
+                case EffectOp.AddPersistent:
                     return true;
                 default:
                     return false;
@@ -30,6 +29,11 @@ namespace Uta.Shared.Domain.Lesson
         public static IReadOnlyList<string> Validate(CardDefinition card)
         {
             var errors = new List<string>();
+            if (card.Plan == Plan.Nothing || card.Type == CardType.Nothing || card.Rarity == Rarity.Nothing)
+            {
+                errors.Add("カード " + card.Id + ": カードの区分が不正");
+            }
+
             ValidateFace(card, card.Base, "通常版", errors);
             if (card.Enhanced != null)
             {
@@ -42,9 +46,30 @@ namespace Uta.Shared.Domain.Lesson
         private static void ValidateFace(CardDefinition card, CardFace face, string faceName, List<string> errors)
         {
             var prefix = "カード " + card.Id + " の" + faceName + ": ";
+            foreach (var cost in face.Costs)
+            {
+                if (!IsDefined(cost.Kind))
+                {
+                    errors.Add(prefix + "コストの種類が不正");
+                }
+            }
+
+            foreach (var condition in face.UseConditions)
+            {
+                ValidateCondition(condition, prefix, errors);
+            }
+
             foreach (var effect in face.Effects)
             {
                 ValidateEffect(effect, prefix, errors, false);
+            }
+        }
+
+        private static void ValidateCondition(ConditionDef condition, string prefix, List<string> errors)
+        {
+            if (!IsDefined(condition.Subject) || !IsDefined(condition.Comparator))
+            {
+                errors.Add(prefix + "条件が不正");
             }
         }
 
@@ -56,78 +81,85 @@ namespace Uta.Shared.Domain.Lesson
                 return;
             }
 
-            switch (effect.Op)
+            foreach (var condition in effect.Conditions)
             {
-                case EffectOp.Param:
-                    if (effect.Value < 0 || effect.Arg1 < 0 || effect.Arg2 < 0 || effect.Arg3 < 0)
-                    {
-                        errors.Add(prefix + "Param の値が負");
-                    }
+                ValidateCondition(condition, prefix, errors);
+            }
 
-                    break;
-                case EffectOp.ParamByRatio:
-                    if (effect.Value < 0 || !IsDefined((RatioSource)effect.Arg1))
-                    {
-                        errors.Add(prefix + "ParamByRatio の引数が不正");
-                    }
+            if (effect.Value < 0 || effect.Arg1 < 0 || effect.Arg2 < 0 || effect.Arg3 < 0)
+            {
+                errors.Add(prefix + effect.Op + " の値が負");
+            }
 
-                    break;
-                case EffectOp.AddTurns:
-                case EffectOp.AddStack:
-                    if (!IsDefined((StatusKind)effect.Arg1))
-                    {
-                        errors.Add(prefix + effect.Op + " のステータスが不正");
-                    }
+            if ((effect.Op == EffectOp.AddStatus || effect.Op == EffectOp.DrawCards) && effect.Value < 1)
+            {
+                errors.Add(prefix + effect.Op + " の値が 1 未満");
+            }
 
-                    break;
-                case EffectOp.Draw:
-                case EffectOp.AddUses:
-                case EffectOp.AddGenki:
-                    if (effect.Value < 0)
-                    {
-                        errors.Add(prefix + effect.Op + " の値が負");
-                    }
+            if (effect.Op == EffectOp.AddStatus && !IsAddableStatus(effect.Status))
+            {
+                errors.Add(prefix + effect.Op + " のステータスが不正");
+            }
 
-                    break;
-                case EffectOp.Persistent:
-                    if (insidePersistent)
-                    {
-                        errors.Add(prefix + "持続効果の中に持続効果がある");
-                    }
+            if (effect.Op == EffectOp.AddPersistent && !IsPersistentTrigger(effect.Trigger))
+            {
+                errors.Add(prefix + effect.Op + " のトリガーが不正");
+            }
 
-                    if (!IsDefined((PersistentTrigger)effect.Arg1) || effect.Arg2 < 0 || effect.Arg3 < 0)
-                    {
-                        errors.Add(prefix + "Persistent の引数が不正");
-                    }
+            if ((effect.Op != EffectOp.AddStatus && effect.Status != StatusKind.Nothing)
+                || (effect.Op != EffectOp.AddPersistent && effect.Trigger != PersistentTrigger.Nothing))
+            {
+                errors.Add(prefix + effect.Op + " に使わない列がある");
+            }
 
-                    if (effect.Children.Count == 0)
-                    {
-                        errors.Add(prefix + "Persistent に発動する効果が無い");
-                    }
+            if (effect.Op == EffectOp.AddPersistent)
+            {
+                if (effect.Children.Count == 0)
+                {
+                    errors.Add(prefix + "持続効果に発動する効果が無い");
+                }
 
-                    foreach (var child in effect.Children)
-                    {
-                        ValidateEffect(child, prefix, errors, true);
-                    }
+                if (insidePersistent)
+                {
+                    errors.Add(prefix + "持続効果の中に持続効果がある");
+                }
 
-                    break;
+                foreach (var child in effect.Children)
+                {
+                    ValidateEffect(child, prefix, errors, true);
+                }
             }
         }
 
         // Enum.IsDefined はリフレクションを使うため、範囲で確かめる
-        private static bool IsDefined(RatioSource value)
+        private static bool IsAddableStatus(StatusKind value)
         {
-            return value >= RatioSource.Impression && value <= RatioSource.Motivation;
+            return value >= StatusKind.GoodCondition
+                && value <= StatusKind.DebuffGuard
+                && value != StatusKind.FocusBoost
+                && value != StatusKind.ImpressionBoost;
         }
 
-        private static bool IsDefined(StatusKind value)
+        private static bool IsPersistentTrigger(PersistentTrigger value)
         {
-            return value >= StatusKind.GoodCondition && value <= StatusKind.DebuffGuard;
+            return value >= PersistentTrigger.LessonStart
+                && value <= PersistentTrigger.TurnEnd
+                && value != PersistentTrigger.EveryNTurns;
         }
 
-        private static bool IsDefined(PersistentTrigger value)
+        private static bool IsDefined(CostKind value)
         {
-            return value >= PersistentTrigger.LessonStart && value <= PersistentTrigger.TurnEnd;
+            return value >= CostKind.Consume && value <= CostKind.Motivation;
+        }
+
+        private static bool IsDefined(ConditionSubject value)
+        {
+            return value >= ConditionSubject.GoodConditionTurns && value <= ConditionSubject.ClearTargetPercent;
+        }
+
+        private static bool IsDefined(Comparator value)
+        {
+            return value >= Comparator.GreaterOrEqual && value <= Comparator.Equal;
         }
     }
 }

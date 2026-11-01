@@ -44,10 +44,10 @@ updated: 2026-11-01
 | `StatusKind` | 8章のステータスの enum |
 | `PersistentTrigger` | 持続効果が反応するタイミングの enum |
 | `ICardCatalog` | ID からカード定義を返すポート |
-| `LessonRules` | lesson-card.md 4.1 の値。`static class` の `const` にする（差し替えない。保存する状態にルールが入らないので、差し替えられると再生の結果が黙って変わるため）[決定。2026-11-01。ユーザーの判断]。今のコードは `Default` を持つクラスなので、[enum の改名の計画](../../plans/2026-10-31-lesson-enums-rename.md) で直す |
-| `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。試験なら `ExamSetup` も持つ(`ExamSetup` を渡す引数は未実装) |
+| `LessonRules` | lesson-card.md 4.1 の値。`static class` の `const` にする（差し替えない。保存する状態にルールが入らないので、差し替えられると再生の結果が黙って変わるため）[決定。2026-11-01。ユーザーの判断]|
+| `LessonSetup` | 1回のレッスンに渡す値(種類・ターン数・目標・対象のパラメータ)。種類か対象のパラメータが `Nothing` なら `ArgumentOutOfRangeException`。試験なら `ExamSetup` も持つ(`ExamSetup` を渡す引数は未実装) |
 | `ExamSetup` [未実装] | 試験に渡す値(フェーズ 6。lesson-card.md 9.5)。`ExamSetup(IReadOnlyList<ExamTurn> turns, int earlyEndScore)`: 審査ターンの列と早期終了スコア(0 ＝なし)。`ExamTurn(ParamKind param, int scoreBonusPercent)` は 1 ターン分で、`scoreBonusPercent` は [produce.md](../systems/produce.md) 5.2 の「スコアボーナス(%)」。**週の進行(プロデュースのドメイン)が試験の開始時のパラメータから先に計算して渡す**。レッスンのエンジンは 5.2 の式を持たない(試験中にパラメータは変わらないので先に計算できる) [決定。2026-11-01。ユーザーの判断]。`LessonSetup` にはコンストラクタの省略可能な引数 `ExamSetup exam = null` で渡し、`IsExam` は `exam != null`。試験のとき `MaxTurns` は列の長さと同じでなければ例外 |
-| `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。[lesson-phases.md](lesson-phases.md) 1章） |
+| `CardDefinitionValidator` | 引数の検査と、未対応の `Op` の検出（読み込み時にエラーにする。[lesson-phases.md](lesson-phases.md) 1章）。検査する列は `Status`・`Trigger`・`Value`・`Arg` の負・コスト・条件・カードの区分。エラーの文言と検査の順は [実装計画](../../plans/2026-10-31-lesson-enums-rename.md) 3.4 |
 
 ### 2.1 `Op` ごとの引数
 
@@ -56,7 +56,6 @@ updated: 2026-11-01
 - `EffectDef` は `Status`（`StatusKind`）と `Trigger`（`PersistentTrigger`）を型付きのプロパティで持つ。`Arg1`〜`Arg3` に enum を数値で入れない
 - 持続効果の「アクティブ使用時」「メンタル使用時」は、`PersistentTrigger` の種類で区別する（`OnActiveCardUse` など）
 - `AddPersistent` の効果内条件は、付与するかどうかの条件（ほかの `Op` と同じ）。発動のたびに見る条件は、子の効果の効果内条件で表す
-- コードはまだ古い名前・数値のまま。直す手順は [実装計画](../../plans/2026-10-31-lesson-enums-rename.md)
 
 ## 3. 状態（lesson-card.md 4章・8章・11章）
 
@@ -64,7 +63,7 @@ updated: 2026-11-01
 |---|---|
 | `CardInstance` | インスタンス ID・カード ID・強化済みか（[produce-domain.md](produce-domain.md) 5章） |
 | `Zones` | 山札・手札・捨札・除外を、インスタンス ID の並びで持つ。山札の先頭が一番上。ドロー、再シャッフル、ランダムな位置への挿入 |
-| `StatusSet` | 8章のステータスの値と、「プレイヤー操作中に初めて付与したか」の印（11章） |
+| `StatusSet` | 8章のステータスの値と、「プレイヤー操作中に初めて付与したか」の印（11章）。添字は `(int)StatusKind` で、添字 0（`Nothing`）は使わない（長さ 13。作り直すときに 0 番目が 0 でなければ例外） |
 | `ParamBonusEntry` | パラメータ上昇量増加の、% と残りターンと「プレイヤー操作中に初めて付与したか」の印 |
 | `ScheduledEffect` / `PersistentEffect` | 発動予約と持続効果。付与した順番を持つ |
 | `LessonPhase` | レッスン開始 / ターン開始 / プレイヤー操作 / ターン終了 / 終了 |

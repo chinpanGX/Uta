@@ -34,7 +34,7 @@ namespace Uta.Shared.Domain.Lesson
         {
             switch (effect.Op)
             {
-                case EffectOp.Param:
+                case EffectOp.GainParam:
                 {
                     var hits = Math.Max(1, effect.Arg1);
                     var focusScale = effect.Arg2 == 0 ? 100 : effect.Arg2;
@@ -47,37 +47,36 @@ namespace Uta.Shared.Domain.Lesson
 
                     break;
                 }
-                case EffectOp.ParamByRatio:
+                case EffectOp.GainParamByImpression:
                 {
-                    var source = ReadRatioSource(state, (RatioSource)effect.Arg1);
+                    var source = state.Statuses.Get(StatusKind.Impression);
                     var cardParam = LessonFormulas.RatioParam(source, effect.Value);
                     GainParam(state, ComputeParamGain(state, cardParam, 100, 100));
                     break;
                 }
-                case EffectOp.AddGenki:
-                    state.Genki += LessonFormulas.GenkiGain(
+                case EffectOp.AddShield:
+                    state.Shield += LessonFormulas.ShieldGain(
                         effect.Value,
                         state.Statuses.Get(StatusKind.Motivation),
-                        state.Statuses.Get(StatusKind.GenkiBlock) > 0);
+                        state.Statuses.Get(StatusKind.ShieldGainBlock) > 0);
                     break;
-                case EffectOp.AddTurns:
-                case EffectOp.AddStack:
-                    state.Statuses.Add((StatusKind)effect.Arg1, effect.Value, state.Phase);
+                case EffectOp.AddStatus:
+                    state.Statuses.Add(effect.Status, effect.Value, state.Phase);
                     break;
-                case EffectOp.Draw:
+                case EffectOp.DrawCards:
                     state.Zones.Draw(effect.Value, random);
                     break;
-                case EffectOp.AddUses:
+                case EffectOp.AddCardUses:
                     state.UsesLeft += effect.Value;
                     break;
-                case EffectOp.Persistent:
+                case EffectOp.AddPersistent:
                     state.AddPersistent(new PersistentEffect(
-                        (PersistentTrigger)effect.Arg1,
+                        effect.Trigger,
                         effect.Children,
+                        effect.Arg1 == 0 ? PersistentEffect.Unlimited : effect.Arg1,
                         effect.Arg2 == 0 ? PersistentEffect.Unlimited : effect.Arg2,
-                        effect.Arg3 == 0 ? PersistentEffect.Unlimited : effect.Arg3,
                         state.TakeGrantOrder(),
-                        effect.Arg2 > 0 && state.Phase == LessonPhase.Player));
+                        effect.Arg1 > 0 && state.Phase == LessonPhase.Player));
                     break;
                 default:
                     // CardDefinitionValidator で読み込み時に弾く
@@ -129,21 +128,6 @@ namespace Uta.Shared.Domain.Lesson
                 goodScale,
                 CollectBonusPercents(state),
                 0);
-        }
-
-        private static int ReadRatioSource(LessonState state, RatioSource source)
-        {
-            switch (source)
-            {
-                case RatioSource.Impression:
-                    return state.Statuses.Get(StatusKind.Impression);
-                case RatioSource.Genki:
-                    return state.Genki;
-                case RatioSource.Motivation:
-                    return state.Statuses.Get(StatusKind.Motivation);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(source));
-            }
         }
     }
 
