@@ -126,6 +126,16 @@ namespace Uta.Shared.Domain.Tests.Lesson
             return new EffectDef(EffectOp.GainParamByMotivation, value: percent);
         }
 
+        public static ConditionDef AtLeast(ConditionSubject subject, int value)
+        {
+            return new ConditionDef(subject, Comparator.GreaterOrEqual, value);
+        }
+
+        public static EffectDef OnActiveUse(EffectDef effect)
+        {
+            return new EffectDef(EffectOp.AddPersistent, trigger: PersistentTrigger.OnActiveCardUse, children: new[] { effect });
+        }
+
         /// <summary>effect と同じ列で、Conditions だけを condition 1 つにした新しい EffectDef を返す。</summary>
         public static EffectDef If(EffectDef effect, ConditionDef condition)
         {

@@ -13,6 +13,8 @@ namespace Uta.Shared.Domain.Tests.Lesson
         {
             AddAll(Phase1Cards.All());
             AddAll(Phase2Cards.All());
+            AddAll(Phase3Cards.All());
+            AddAll(Phase4Cards.All());
             AddAll(SyntheticCards.All());
         }
 
