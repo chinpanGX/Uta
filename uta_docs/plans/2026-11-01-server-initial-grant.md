@@ -1,6 +1,6 @@
 ---
 title: 実装計画: プレイヤーの初期付与と所持テーブル（サーバー）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/systems/idol-support.md, ../wiki/overview/game-spec.md
 ---

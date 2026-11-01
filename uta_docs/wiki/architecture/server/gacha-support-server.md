@@ -1,7 +1,7 @@
 ---
 title: ガチャ・サポートカードのサーバー処理
 status: draft
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # ガチャ・サポートカードのサーバー処理
@@ -12,8 +12,8 @@ updated: 2026-10-31
 
 - 乱数は `xoshiro256**`(CLAUDE.md・[repository-layout.md](../repository-layout.md) 10.3)。**要求ごとに**、サーバーが暗号用乱数(.NET の `RandomNumberGenerator`)で 64 ビットのシードを作り、SplitMix64 で 4 回引いて `Xoshiro256StarStar` の状態にする([lesson-domain-types.md](../lesson-domain-types.md) 4章と同じ初期化)。シードは保存しない(ガチャは再現を求めない。結果は履歴に残る)
 - 1 枠につき 1 回、`RandomOps.WeightedIndex`(棄却法。偏りなし)でテーブルから 1 行を選ぶ。候補は `GachaTableEntry` の `Order` の昇順に並べて渡す。レア → カードのような 2 段階には分けない
-- 置き場: 抽選とシードの作成はサーバー専用([api-design.md](../api-design.md) 4章)なので、どちらも `server/` の Domain 層に置く([ADR 0008](../../decisions/0008-shared-domain-and-onion.md)・[repository-layout.md](../repository-layout.md) 6.1。2026-10-31 に「シードの作成は Application 層」から直した)。抽選の関数は、候補の重みの並び(生成したマスタの型ではなく Domain の入力の型。Application が `GachaTableEntry` から作って渡す)と `IRandom` を受け取り、選んだ添字を返す純粋な関数にする。シードを作って `IRandom` を返す関数も Domain に置く。型名・シグネチャはガチャの実装計画で決める
-- 確かめ方: テストでは、決まった値を返す `IRandom` を渡して、重みから期待どおりの行が選ばれることを単体テストで確かめる。大量に引いて率を見る統計のテストはしない。`RandomOps.WeightedIndex` のテストは今は重み 0 の 1 件だけなので、累積の境界(どの値がどの行に当たるか)のテストをガチャの実装計画で `RandomTests` に足す
+- 置き場: 抽選とシードの作成はサーバー専用([api-design.md](../api-design.md) 4章)なので、どちらも `server/` の Domain 層に置く([ADR 0008](../../decisions/0008-shared-domain-and-onion.md)・[repository-layout.md](../repository-layout.md) 6.1。2026-10-31 に「シードの作成は Application 層」から直した)。抽選の関数は、候補の重みの並び(生成したマスタの型ではなく Domain の入力の型。Application が `GachaTableEntry` から作って渡す)と `IRandom` を受け取り、選んだ添字を返す純粋な関数にする。シードを作って `IRandom` を返す関数も Domain に置く。型名は `GachaPicker.Pick`・`GachaRandom.FromSeed`/`CreateSecure`（`Uta.Server.Domain.Gacha`。実装 2026-11-01）
+- 確かめ方: テストでは、決まった値を返す `IRandom` を渡して、重みから期待どおりの行が選ばれることを単体テストで確かめる。大量に引いて率を見る統計のテストはしない。`RandomOps.WeightedIndex` のテストは今は重み 0 の 1 件だけなので、累積の境界(どの値がどの行に当たるか)のテストは、`shared/Uta.Shared.Domain.Tests` ではなく `server/Uta.Server.Tests/Domain/GachaPickerTests.cs` に置いた(2026-11-01。Domain の抽選の関数を通して確かめる。`Uta.Shared.Domain` を別の作業と同時に触らないため)
 - テスト用の `IRandom` は、選ばせたい値 `r`(0 以上・重みの合計 `total` 未満)に対して **`r + total` を返す**。`NextInt` の棄却法は `2^64 mod total` 未満の値を捨てて引き直すので、`r` をそのまま返すと永遠に引き直すことがある。`r + total` はしきい値以上で、`total` で割った余りが `r` になる
 
 ## 2. ガチャの処理の手順 [決定。2026-10-31]
@@ -76,4 +76,14 @@ updated: 2026-10-31
 
 ## 実装メモ
 
-(実装後に設計とのズレをここに記録する)
+実装 [2026-11-01。計画 `plans/2026-11-01-server-initial-grant.md`・`server-gacha.md`・`server-support-upgrade.md`]。設計とのズレと、設計に足したこと:
+
+- **業務エラー**: Application は `Uta.Shared.Contracts` を参照しないので、`UseCaseException(UseCaseError)` を投げ、Api の共通フィルター `[UtaService]`(`UtaServiceAttribute`)が `BusinessException(ErrorCode)` に変換する(ユーザーの判断)。例外はサービスの本体から `RunAsync` を抜けて出るので、ロールバックは変換の前に済む
+- **`[UtaService]`** は同時に、`AuthContext.PlayerCreated` が false なら `PLAYER_NOT_CREATED` で弾く。`IPlayerService` 以外のサービスの実装クラスに付ける(付け忘れは `ArchitectureTests.Services_HaveUtaServiceAttribute` で検出)
+- **乱数**: `IRandomSource`(Application のポート)越しに要求ごとに作る。実装は `SecureRandomSource`(`GachaRandom.CreateSecure`)。結合テストは `ScriptedRandomSource` に差し替えて、決まった値(`r + 重みの合計`)で結果を確かめる
+- **New / Duplicate の判定**は `Uta.Server.Domain.Gacha.ItemGrantRules.Decide`(純粋な関数)。DB を読み書きする手順は Application の `ItemGranter`。育成アイドルの所持は枠ごとに `ExistsAsync` で読む
+- **ゲームログ**(`game_logs`)は 1 RPC 1 件: `SignUpAsync`(kind `player`・reason `sign_up`)、`DrawAsync`(`gacha`・`gacha_draw`)、`ExchangeAsync`(`gacha`・`gacha_exchange`)、`LevelUpAsync`(`support`・`support_level_up`)、`LimitBreakAsync`(`support`・`support_limit_break`)。中身は各ユースケースの `GameLog.Event(...).Field(...)`
+- **直列化への依存**: `UpdateLevelAsync`(読んだ `level` を前提にした無条件の UPDATE)と、育成アイドルの `ExistsAsync` → `TryInsertAsync`(読んでから書く)は、同じプレイヤーの要求が `last_responses` の行ロックで直列になることに依存して正しい(2026-10-31 に決めた「`players` を明示的にロックしない」の帰結)。残高の消費・交換pt・上限解放は条件付きの 1 文の UPDATE なので、直列化に頼らない。基盤のロックの仕様が変わるときは、この 2 か所を条件付きの UPDATE に直す
+- DTO の一覧(`Results`・`Gachas`・`Idols`・`SupportCards`)は配列。`IReadOnlyList<T>` は IL2CPP での MessagePack が未確認のため
+- 素材の上限解放回数は問わない(仕様に制限がない。`LimitBreakAsync`)
+- `GetHistoryAsync` は作っていない(履歴の保存だけ)

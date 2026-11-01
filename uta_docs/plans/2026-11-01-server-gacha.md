@@ -1,6 +1,6 @@
 ---
 title: 実装計画: ガチャ（サーバー）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/systems/gacha.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/architecture/api-design.md, ../wiki/architecture/master/gacha-tables.md
 ---

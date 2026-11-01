@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サポートカードのレベル上げ・上限解放（サーバー）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/systems/idol-support.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/architecture/api-design.md
 ---
