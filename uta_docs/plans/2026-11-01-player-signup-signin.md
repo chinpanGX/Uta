@@ -147,7 +147,7 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
 {
     public async UnaryResult<SignUpResponse> SignUpAsync()
     {
-        var playerId = Context.GetAuthContext().PlayerId;   // using VolTech.Server.Hosting;
+        var playerId = Context.GetAuthContext().PlayerId;   // using VolTech.Server;（GetAuthContext は VolTech.Server 名前空間の拡張メソッド）
         return await transactions.RunAsync(Context, async tx => new SignUpResponse(await signUp.ExecuteAsync(tx, playerId)));
     }
 
@@ -229,4 +229,5 @@ public sealed class PlayerClient
 なし（ブレストの決定は下のとおり）。
 
 - 初期付与は入れない（案 A）。`SignInResponse` は `players` の列と 2 値だけ、`GetPlayerAsync` は作らない。`PLAYER_NOT_CREATED` は `SignInAsync` が直接投げる。破棄・再開は常に false。起動の流れは畳まない（以上、2026-11-01 ユーザーの判断）。
+- 5a で作ったプレイヤーは初期付与を受けない。5 の計画で付与を足したあとの扱いは、その計画で決める（開発環境だけで本番が無いので、DB を作り直すのが基本。バックフィルは作らない想定）。
 - 判定の材料は `players` の行の有無（レビュー指摘への対応。決定 3 の「直接投げる・フィルターを作らない」は変えない）。`TxContext` は引数で渡す。DTO はコンストラクタと読み取り専用プロパティ（repository-layout 4章に従う）。`.meta` はこの計画で書く。

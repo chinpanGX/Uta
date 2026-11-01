@@ -165,7 +165,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 | フォルダ（名前空間） | 参照してよいもの | 禁止 |
 |---|---|---|
 | `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain` | `Infrastructure` |
-| `Application` | `Domain`、`Uta.Shared.Domain` | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
+| `Application` | `Domain`、`Uta.Shared.Domain`、`TxContext`（`VolTech.Server.Transaction`。ポートの引数に使う） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
 | `Domain` | `Uta.Shared.Domain` | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
 | `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Shared.Domain`、生成したマスタ | `Api` |
 
