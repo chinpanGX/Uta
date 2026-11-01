@@ -264,6 +264,10 @@ public class MasterDataTests
 
         Assert.Equal(200L, Share(ItemKind.Idol, Rarity.SSR));
         Assert.Equal(300L, Share(ItemKind.SupportCard, Rarity.SSR));
+        Assert.Equal(680L, Share(ItemKind.Idol, Rarity.SR));
+        Assert.Equal(1020L, Share(ItemKind.SupportCard, Rarity.SR));
+        Assert.Equal(3120L, Share(ItemKind.Idol, Rarity.R));
+        Assert.Equal(4680L, Share(ItemKind.SupportCard, Rarity.R));
         Assert.Equal(1700L, Share(ItemKind.Idol, Rarity.SR) + Share(ItemKind.SupportCard, Rarity.SR));
         Assert.Equal(7800L, Share(ItemKind.Idol, Rarity.R) + Share(ItemKind.SupportCard, Rarity.R));
     }
