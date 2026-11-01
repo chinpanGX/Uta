@@ -419,7 +419,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 **サーバーの骨組み**（手順 4。VolTech-MagicOnion の `docs/guide/server.md` の形に従う）[決定。2026-10-31]:
 
 - `Program.cs`: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
-- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、5 番目の計画（プレイヤー・ガチャ・強化）で別のマイグレーションとして足す。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
+- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、別のマイグレーションとして足す（`players` の Lv・経験値・通貨の列は 5a の計画、育成アイドル・サポートカードなどのテーブルは 5 番目の計画（プレイヤー・ガチャ・強化））。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
 - **設定**（`appsettings.json`）: `Voltech:GameDay:ResetHour` は `12`、`Voltech:GameDay:TimeZone` は `"Asia/Tokyo"`（10.2。既定は 0 時・UTC なので必ず書く）。`Voltech:AccessTokenLifetime` は既定の 1 時間のまま
 - **接続文字列**は `ConnectionStrings:Default`（VolTech-MagicOnion のガイドと同じ名前）。リポジトリに入れない。ローカルは `dotnet user-secrets`、Cloud Run は環境変数 `ConnectionStrings__Default`（Secret Manager から渡す。11.4）。`server/.env` は Compose の PostgreSQL のパスワードだけに使う
 - **`migrate`**: 最初の引数が `migrate` なら、Web ホストを起動せずに、`VoltechDatabase.Migrate(接続文字列)` → Uta の DbUp（`Migrations/*.sql` を埋め込みリソースにし、記録は DbUp の既定の `schemaversions`）の順に流して、終了コード 0 で終わる。失敗したら 0 以外。ほかの引数は取らない（接続文字列は上と同じ経路）

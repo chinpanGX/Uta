@@ -22,7 +22,7 @@ Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使�
 
 - **ログの出力は ZLogger**。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める。標準出力に JSON で出す（Cloud Run が Cloud Logging に送る）。`Program.cs` で `AddZLoggerConsole` を構成し、版は 2.5.10（2026-11-01 に決めた。VolTech-MagicOnion と衝突しない）
 - **ゲームログ（`game_logs`）は書く**。所持品・通貨を変える RPC（`DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`SignUpAsync` の初期付与・プロデュースの報酬の付与）は、本体と同じトランザクションで 1 件書く。中身（種類・増減した量・関係する ID）は各 RPC の実装計画で決める
-- **プレイヤーがまだいないとき**: `AuthFilter` はプレイヤー未作成（`NotCreated`）でも RPC を通す。Uta は `Api` の共通処理で、`SignUpAsync` 以外の Uta の RPC が未作成のプレイヤーから来たら `PLAYER_NOT_CREATED`（domain `uta`）を返す。`SignInAsync` もこれで未作成を知らせ（基盤の「サインアップ済みかはサインインの結果で判断する」に合わせる）、クライアントは `SignUpAsync` を呼んでからサインインし直す [決定。2026-11-01。ユーザーの判断]。ふつうの起動の流れでは、操作の RPC が未作成のプレイヤーから来ることは起きない
+- **プレイヤーがまだいないとき**: `AuthFilter` はプレイヤー未作成（`NotCreated`）でも RPC を通す。`SignInAsync` は、`players` の行が無ければ `PLAYER_NOT_CREATED`（domain `uta`）の `BusinessException` を自分で投げて未作成を知らせ（基盤の「サインアップ済みかはサインインの結果で判断する」に合わせる）、クライアントは `SignUpAsync` を呼んでからサインインし直す [決定。2026-11-01。ユーザーの判断]。`SignUpAsync` 以外の Uta の RPC を弾く共通のフィルターは、3 つ目の Uta の RPC の計画で作る（`SignUpAsync` を除く印つき。それまでは Uta の RPC が `SignUpAsync` と `SignInAsync` だけなので要らない）。クライアントは `SignInAsync` を呼ぶとき `handledCodes` に `PLAYER_NOT_CREATED` を渡す（渡さないと共通ハンドラーに回り、既定ではタイトルへ戻る）
 - **SQL を書く層**: SQL（Dapper）は Infrastructure のリポジトリに置き、Application はポート（インターフェース）越しに呼ぶ。ガチャの New / Duplicate の判定などの決まりはサーバーの Domain に置く。トランザクション（VolTech-MagicOnion の `TxContext`）は Api が `RunAsync` で開き、リクエストごとのスコープでリポジトリに渡す（[repository-layout.md](../repository-layout.md) 3章の依存の表）
 
 ## プロジェクト構成
@@ -101,4 +101,4 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 - （2026-10-31 に解決）DB の最終決定 → [ADR 0010](../../decisions/0010-database.md)
 - （2026-10-31 に解決）`server_status.toml` と同じ設定形式にするか → 強制アップデート・メンテナンスを実装しないので不要。ゲーム日付は `Voltech` セクション
 - （2026-10-31 に解決）分岐元にする VolTech-MagicOnion のタグ → タグを待たず、サブモジュールのポインタ（コミット）で固定する。区切りで VolTech-MagicOnion の版を出す（[repository-layout.md](../repository-layout.md) 3.1）
-- 基盤の機能のうち Uta で使うか未定のもの（MVP には要らない）: Tracing（gRPC の呼び出しの記録）、`StoredAccount`（クライアントが端末の資格情報を保存する形式）のシリアライズ形式
+- 基盤の機能のうち Uta で使うか未定のもの（MVP には要らない）: Tracing（gRPC の呼び出しの記録）。端末の資格情報の保存（`StoredAccount`）は、基盤の `EncryptedFileAccountStore` をそのまま使う（2026-11-01 ユーザーの判断。[repository-layout.md](../repository-layout.md) 10.6）

@@ -220,9 +220,6 @@ updated: 2026-11-01
 ## 未決事項
 
 - 報酬の具体の値（評価ランクごとの量。[produce.md](../systems/produce.md) 6.1 は仮の値）
-- 起動の流れを 1 本にするか。初回の「登録 → 発行 → サインアップ → サインイン」と、「サインイン → `PLAYER_NOT_CREATED` → サインアップ → サインイン」は同じ状態に着くので、常にサインインから入る形に畳める案がある（レビューの指摘）
-- クライアントが `PLAYER_NOT_CREATED` を受け取る条件。VolTech-MagicOnion の `ApiCore` は `handledCodes` に無い業務エラーを共通ハンドラーに回し、未登録のコードの既定はタイトルへ戻る。`SignInAsync` の呼び出しで `handledCodes` に指定するか、`ErrorDefinition` の既定の action を決める
-- 「`SignUpAsync` 以外を未作成なら弾く」仕組み（フィルターか、共通の基底クラスの呼び出しか。[server-foundation.md](server/server-foundation.md)）
 
 ## 実装メモ
 

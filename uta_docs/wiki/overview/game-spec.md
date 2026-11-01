@@ -107,7 +107,8 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 2 | masterdata の最初の計画（定義・CSV・生成。MVP の最小のコンテンツの行） | — | なし |
 | 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
 | 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
-| 5 | server/ のプレイヤー・ガチャ・強化（骨組みは 1 で作る） | 1・2・3 | 1、2 |
+| 5a | server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足す。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
+| 5 | server/ のプレイヤー（初期付与）・ガチャ・強化（骨組みは 1 で作る） | 1・2・3 | 1、2、5a |
 | 6 | server/ のプロデュース | 4・5 | 4・5 |
 | 7 | client/ の画面 | 6・7 | 1・6 |
 
