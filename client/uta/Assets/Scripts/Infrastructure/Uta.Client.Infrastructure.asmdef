@@ -7,7 +7,8 @@
         "Uta.Shared.Contracts",
         "VolTech.Server.Abstractions",
         "VolTech.MagicOnion.Client",
-        "UniTask"
+        "UniTask",
+        "MasterMemory.Addons.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

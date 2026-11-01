@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.chinpangx.voltech.magiconion": "file:../../../external/VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion",
+    "com.chinpangx.mastermemory.addons": "file:../../../external/MasterMemoryAddons/src/MasterMemory.Addons.Core",
     "com.chinpangx.supplement": "file:../../../external/Supplement/Assets/Supplement",
     "com.chinpangx.supplement.messagepack": "file:../../../external/Supplement/Assets/Supplement.MessagePack",
     "com.cysharp.magiconion.client.unity": "https://github.com/Cysharp/MagicOnion.git?path=src/MagicOnion.Client.Unity/Assets/Scripts/MagicOnion.Client.Unity#7.11.0",

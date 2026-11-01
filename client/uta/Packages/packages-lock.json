@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.chinpangx.mastermemory.addons": {
+      "version": "file:../../../external/MasterMemoryAddons/src/MasterMemory.Addons.Core",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.chinpangx.supplement": {
       "version": "file:../../../external/Supplement/Assets/Supplement",
       "depth": 0,
