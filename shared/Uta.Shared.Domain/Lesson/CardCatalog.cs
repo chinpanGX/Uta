@@ -160,7 +160,6 @@ namespace Uta.Shared.Domain.Lesson
             /// <summary>作れなければ（エラーを足して）null。</summary>
             public CardDefinition BuildCard(CardRow row)
             {
-                var errorCount = Errors.Count;
                 var normal = FindFace(row.CardId, CardFaceKind.Normal);
                 var enhanced = FindFace(row.CardId, CardFaceKind.Enhanced);
                 if (normal == null)
@@ -170,7 +169,9 @@ namespace Uta.Shared.Domain.Lesson
 
                 var baseFace = normal == null ? null : BuildFace(normal.Value);
                 var enhancedFace = enhanced == null ? null : BuildFace(enhanced.Value);
-                if (Errors.Count > errorCount || baseFace == null)
+
+                // 面が作れなかったか（エラー文言は重複排除されるので、件数の増減では判定しない）
+                if (baseFace == null || (enhanced != null && enhancedFace == null))
                 {
                     return null;
                 }
@@ -234,7 +235,13 @@ namespace Uta.Shared.Domain.Lesson
                 IReadOnlyList<ConditionDef> useConditions = new ConditionDef[0];
                 if (row.UseConditionGroupId != 0)
                 {
-                    useConditions = BuildConditions(row.UseConditionGroupId) ?? useConditions;
+                    var built = BuildConditions(row.UseConditionGroupId);
+                    if (built == null)
+                    {
+                        return null;
+                    }
+
+                    useConditions = built;
                 }
 
                 var effects = BuildEffects(row.EffectGroupId, 1);
@@ -278,10 +285,17 @@ namespace Uta.Shared.Domain.Lesson
                 }
 
                 var result = new List<EffectDef>();
+                var failed = false;
                 foreach (var row in rows.OrderBy(x => x.Order))
                 {
                     var conditions = row.RefConditionGroupId == 0 ? null : BuildConditions(row.RefConditionGroupId);
                     var children = row.RefEffectGroupId == 0 ? null : BuildEffects(row.RefEffectGroupId, depth + 1);
+                    if ((row.RefConditionGroupId != 0 && conditions == null) || (row.RefEffectGroupId != 0 && children == null))
+                    {
+                        failed = true;
+                        continue;
+                    }
+
                     result.Add(new EffectDef(
                         row.Op,
                         row.Status,
@@ -295,7 +309,7 @@ namespace Uta.Shared.Domain.Lesson
                         children));
                 }
 
-                return result;
+                return failed ? null : result;
             }
         }
     }

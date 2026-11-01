@@ -121,7 +121,7 @@ updated: 2026-11-01
 - `LessonState` を保存の形へ変換する型（サーバーの `Infrastructure`。サーバーの実装時）
 
 - 表示用のイベント列
-- マスタの行を受け取る型（効果・条件の 1 行と同じ列）と、グループ ID を解決して `CardDefinition` を組み立てる関数（[repository-layout.md](repository-layout.md) 4章。マスタを作るとき）
+- ~~マスタの行を受け取る型と、グループ ID を解決して `CardDefinition` を組み立てる関数~~: 2026-11-01 に実装した。行の型は `CardRow`・`CardFaceRow`・`CardCostRow`・`EffectRow`・`ConditionRow`（`CardRows.cs`）、組み立ては `CardCatalog.Create`（`CardCatalog.cs`。`ICardCatalog` の実装。問題があれば `InvalidOperationException`、`CardDefinitionValidator` も通す）。サーバーの詰め替えは `server/Uta.Server/Infrastructure/MasterData/MasterCardCatalog.cs`。クライアント側の詰め替えは未実装（[計画](../../plans/2026-11-01-card-master-match.md)）
 
 ## 実装メモ
 

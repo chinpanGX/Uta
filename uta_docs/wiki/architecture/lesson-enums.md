@@ -206,5 +206,7 @@ updated: 2026-11-01
 
 ## 実装メモ
 
+- 2026-11-01: マスタの行から `CardDefinition` を組み立てるために、Domain に `CardFaceKind`（`Nothing` = 0・`Normal` = 1・`Enhanced` = 2。マスタの同名の enum と同じ）を足した。サーバーのテストの `EnumPairs` で名前・数値の一致を確かめる
+
 - 2026-11-01: コード（`shared/Uta.Shared.Domain/Lesson`）をこのページに合わせた（[実装計画](../../plans/2026-10-31-lesson-enums-rename.md)）。`Op` ごとの `Value`・`Arg`・参照の列の検証は、Domain では未実装
 - 2026-11-01: マスタ（`masterdata/Definitions/Lesson.cs` の `Effect`）に上の「マスタの検証の規則」を実装した（[計画](../../plans/2026-11-01-masterdata-first.md)）。**`CardDefinitionValidator` との差**: Domain は今、負の値・`AddStatus`/`DrawCards` の下限・`Status`/`Trigger` の使わない列・持続効果の子・入れ子の深さを検証している。マスタとの差は、`Value`・`Arg`・参照の列の使わない列の検査と、ほかの `Op` の下限（`GainParam` など）。後の計画でそろえる

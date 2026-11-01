@@ -1,6 +1,6 @@
 ---
 title: 実装計画: マスタのカードを CardDefinition に組み立て、テストのカードと一致を確かめる
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/lesson-phases.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/master/masterdata-pipeline.md
 ---
@@ -164,7 +164,14 @@ public static class MasterCardCatalog
 
 なし。
 
-## 7. 実装後の wiki の更新（メインのセッションが行う）
+## 6.1 実装メモ（2026-11-01）
+
+- 実装後: shared 186 本・server 123 本成功、ビルド警告 0。一致テストは 36 枚が全項目一致。コードレビューは Critical・Important なし。
+- 計画から外れた点: `MemoryDatabase` は `MasterMemory.Addons` でなく `Uta.MasterData` の名前空間にある。エラー文言のうち計画にない 2 つ（面の重複、入れ子が深すぎる）を実装で決めた。
+- レビューの Minor で直したもの: カードを作れなかったかの判定をエラー件数でなく戻り値の null に、複数エラーの集約・Describe の検出力のテスト。深さ 4 の通過テストは、`CardDefinitionValidator` が持続効果の入れ子を拒むため書けない（深さ 1 が仕様）。
+- 見送った Minor: `CardFaceRow?`（nullable の値型）、`Order` の重複の検出、`IReadOnlyList` の実体が `List<T>`、マスタ `UnlockLv` の期待値のテスト。
+
+## 7. 実装後の wiki の更新（済み。`repository-layout.md` 10.4 は下で更新）
 
 - [lesson-domain-types.md](../wiki/architecture/lesson-domain-types.md): 未決事項の「マスタの行を受け取る型と…組み立てる関数」を実装済みにし、2章に行の型と `CardCatalog` を足す
 - [repository-layout.md](../wiki/architecture/repository-layout.md) 10.4: `Uta.Server.Tests` が `Uta.Shared.Domain.Tests` を参照することを書く

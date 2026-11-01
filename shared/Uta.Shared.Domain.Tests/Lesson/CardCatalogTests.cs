@@ -194,7 +194,22 @@ namespace Uta.Shared.Domain.Tests.Lesson
             rows.Effects.Clear();
             rows.Effects.Add(new EffectRow(10, 1, EffectOp.AddPersistent, StatusKind.Nothing, PersistentTrigger.TurnStart, 0, 0, 0, 0, 0, 10, 0));
 
-            Assert.Throws<InvalidOperationException>(() => rows.Create());
+            var exception = Assert.Throws<InvalidOperationException>(() => rows.Create());
+            Assert.Contains("入れ子が深すぎる", exception.Message);
+        }
+
+        [Fact]
+        public void Create_MultipleProblems_ReportsAllInOneException()
+        {
+            var rows = OneCard();
+            rows.Faces.Clear();
+            rows.Faces.Add(new CardFaceRow(1, CardFaceKind.Enhanced, 10, 0));
+            rows.Cards.Add(Card(2));
+            rows.Faces.Add(new CardFaceRow(2, CardFaceKind.Normal, 77, 0));
+
+            var exception = Assert.Throws<InvalidOperationException>(() => rows.Create());
+            Assert.Contains("カード 1: 通常版の面がない", exception.Message);
+            Assert.Contains("効果グループ 77 がない", exception.Message);
         }
 
         [Fact]
