@@ -34,7 +34,7 @@ if (args.Length > 0 && args[0] == "migrate")
 builder.Logging.ClearProviders();
 builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(listen => listen.Protocols = HttpProtocols.Http2));
-builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
+builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<IPlayerResolver, PlayerResolver>();
 builder.Services.AddVoltechServer(options => builder.Configuration.GetSection("Voltech").Bind(options));
 // 登録した確認が 0 件だと Check が Unknown を返すので、常に Healthy の確認を 1 つ入れる（DB の確認は入れない。11.4）

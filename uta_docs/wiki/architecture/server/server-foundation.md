@@ -20,7 +20,7 @@ Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使�
 
 ## Uta の決めごと [決定。2026-11-01。ユーザーの判断]
 
-- **ログの出力は ZLogger**。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める。標準出力に JSON で出す（Cloud Run が Cloud Logging に送る）。`Program.cs` で `AddZLoggerConsole` を構成し、版は 1 番目の実装計画で VolTech-MagicOnion と衝突しないものを選ぶ
+- **ログの出力は ZLogger**。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める。標準出力に JSON で出す（Cloud Run が Cloud Logging に送る）。`Program.cs` で `AddZLoggerConsole` を構成し、版は 2.5.10（2026-11-01 に決めた。VolTech-MagicOnion と衝突しない）
 - **ゲームログ（`game_logs`）は書く**。所持品・通貨を変える RPC（`DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`SyncAsync` の初期付与・プロデュースの報酬の付与）は、本体と同じトランザクションで 1 件書く。中身（種類・増減した量・関係する ID）は各 RPC の実装計画で決める
 - **プレイヤーがまだいないとき**: `AuthFilter` はプレイヤー未作成（`NotCreated`）でも RPC を通す。Uta は `Api` の共通処理で、`SyncAsync` 以外の Uta の RPC が未作成のプレイヤーから来たら `PLAYER_NOT_CREATED`（domain `uta`）を返す。クライアントは起動の流れで必ず `SyncAsync` を先に呼ぶので、ふつうは起きない
 - **SQL を書く層**: SQL（Dapper）は Infrastructure のリポジトリに置き、Application はポート（インターフェース）越しに呼ぶ。ガチャの New / Duplicate の判定などの決まりはサーバーの Domain に置く。トランザクション（VolTech-MagicOnion の `TxContext`）は Api が `RunAsync` で開き、リクエストごとのスコープでリポジトリに渡す（[repository-layout.md](../repository-layout.md) 3章の依存の表）

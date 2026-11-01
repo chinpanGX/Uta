@@ -102,7 +102,8 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | 順 | 実装計画 | 受け持つ完了条件 | 待つもの |
 |---|---|---|---|
-| 1 | 通信の疎通（ソリューションと版の管理、`Uta.Shared.Contracts`・`Uta.Server` の骨組み、Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。中身は [repository-layout.md](../architecture/repository-layout.md) 12章） | 0 | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
+| 1a | 通信の疎通（サーバー）（ソリューションと版の管理、`Uta.Shared.Contracts`・`Uta.Server` の骨組み。中身は [repository-layout.md](../architecture/repository-layout.md) 12章の手順 1・2・4） | — | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
+| 1b | 通信の疎通（クライアント）（Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。12章の手順 5・6） | 0 | 1a（手順 6 は 1a のマージ後） |
 | 2 | masterdata の最初の計画（定義・CSV・生成。MVP の最小のコンテンツの行） | — | なし |
 | 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
 | 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |

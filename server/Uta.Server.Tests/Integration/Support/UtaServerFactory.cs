@@ -11,15 +11,25 @@ namespace Uta.Server.Tests.Integration.Support;
 
 public sealed class UtaServerFactory : WebApplicationFactory<Program>
 {
+    private const string ConnectionStringVariable = "ConnectionStrings__Default";
+
+    private readonly string? previousConnectionString = Environment.GetEnvironmentVariable(ConnectionStringVariable);
+
     public UtaServerFactory(PostgresFixture postgres, DateTimeOffset? now = null)
     {
         // Program.cs が builder.Configuration から読むので、環境変数で渡す（ConfigureAppConfiguration は間に合わない）。
         // 環境変数は user-secrets より優先されるので、開発機のローカル DB には落ちない。コンストラクタで渡すので、フィクスチャの初期化前には作れない
-        Environment.SetEnvironmentVariable("ConnectionStrings__Default", postgres.ConnectionString);
+        Environment.SetEnvironmentVariable(ConnectionStringVariable, postgres.ConnectionString);
         Time = new FakeTimeProvider(now ?? new DateTimeOffset(2026, 11, 1, 3, 0, 0, TimeSpan.Zero));
     }
 
     public FakeTimeProvider Time { get; }
+
+    public override async ValueTask DisposeAsync()
+    {
+        Environment.SetEnvironmentVariable(ConnectionStringVariable, previousConnectionString);
+        await base.DisposeAsync();
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

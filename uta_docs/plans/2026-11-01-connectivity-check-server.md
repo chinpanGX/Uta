@@ -1,6 +1,6 @@
 ---
 title: 実装計画: 通信の疎通（サーバー）
-status: ready
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/server-foundation.md, ../wiki/overview/game-spec.md
 ---
@@ -189,7 +189,7 @@ if (args.Length > 0 && args[0] == "migrate")
 builder.Logging.ClearProviders();
 builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(listen => listen.Protocols = HttpProtocols.Http2));
-builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
+builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 builder.Services.AddScoped<IPlayerResolver, PlayerResolver>();
 builder.Services.AddVoltechServer(options => builder.Configuration.GetSection("Voltech").Bind(options));
 // 登録した確認が 0 件だと Check が Unknown を返すので、常に Healthy の確認を 1 つ入れる（DB の確認は入れない。11.4）
@@ -296,7 +296,7 @@ CREATE TABLE players (
 
 ### 3.12 `server/compose.yaml`・`server/.env.example`
 
-`compose.yaml`: サービス `postgres` の 1 つ。`image: postgres:18-alpine`、`environment` は `POSTGRES_DB: uta`・`POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?server/.env に POSTGRES_PASSWORD を書く}`、`ports: ["5432:5432"]`、名前付きボリューム `uta-postgres` を `/var/lib/postgresql` にマウント（PostgreSQL 18 のイメージはこのパス）、`healthcheck` は `pg_isready -U postgres -d uta`（間隔 5 秒・5 回）。`.env.example` は `POSTGRES_PASSWORD=` の 1 行（値は空。`.env` は `.gitignore` 済み）。ローカルの接続文字列は `Host=localhost;Port=5432;Database=uta;Username=postgres;Password=<.env と同じ値>`。
+`compose.yaml`: サービス `postgres` の 1 つ。`image: postgres:18-alpine`、`environment` は `POSTGRES_DB: uta`・`POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?server/.env に POSTGRES_PASSWORD を書く}`、`ports: ["127.0.0.1:5432:5432"]`、名前付きボリューム `uta-postgres` を `/var/lib/postgresql` にマウント（PostgreSQL 18 のイメージはこのパス）、`healthcheck` は `pg_isready -U postgres -d uta`（間隔 5 秒・5 回）。`.env.example` は `POSTGRES_PASSWORD=` の 1 行（値は空。`.env` は `.gitignore` 済み）。ローカルの接続文字列は `Host=localhost;Port=5432;Database=uta;Username=postgres;Password=<.env と同じ値>`。
 
 ### 3.13 `server/Uta.Server.Tests`
 
@@ -377,6 +377,9 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
     }
 
     public FakeTimeProvider Time { get; }
+
+    // 環境変数は元の値に戻す
+    public override async ValueTask DisposeAsync() { ... }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

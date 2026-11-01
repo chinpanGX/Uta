@@ -5,7 +5,7 @@ services:
       POSTGRES_DB: uta
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?server/.env に POSTGRES_PASSWORD を書く}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - uta-postgres:/var/lib/postgresql
     healthcheck:
