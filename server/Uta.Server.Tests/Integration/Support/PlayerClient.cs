@@ -48,4 +48,18 @@ public sealed class PlayerClient
     {
         return await call(client);
     }
+
+    /// <summary>任意のサービスを呼ぶ汎用版。requestId が null なら x-request-id を付けない。</summary>
+    public async Task<T> CallAsync<TService, T>(Func<TService, UnaryResult<T>> call, string? requestId)
+        where TService : IService<TService>
+    {
+        var headers = new Metadata { { ApiHeaders.Authorization, "Bearer " + token } };
+        if (requestId is not null)
+        {
+            headers.Add(ApiHeaders.RequestId, requestId);
+        }
+
+        var client = MagicOnionClient.Create<TService>(channel).WithHeaders(headers);
+        return await call(client);
+    }
 }

@@ -240,7 +240,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 - MasterMemory は NuGetForUnity（`Assets/packages.config`、3.0.4）。Source Generator は Unity 7 で動き、`Uta.MasterData.MemoryDatabase` が生成される（`MasterDataAssembly.cs` で名前空間を指定）。`MasterMemory.Addons.Core` は、アドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（アドオンの `main` に取り込み済み）
 - クライアント用の出力は 30 テーブル（`EvaluationRankReward` を除く）。`encrypt: true`
-- 読み込みは `Uta.Client.Infrastructure.MasterDataLoader`（`Load(byte[])`、`LoadFromStreamingAssetsAsync`。全プラットフォームで `UnityWebRequest`）。DI には登録していない（使う計画で作る）
+- 読み込みは `Uta.Client.Infrastructure.MasterDataLoader`（`Load(byte[])`、`LoadFromStreamingAssetsAsync`。全プラットフォームで `UnityWebRequest`）。`MemoryDatabase` 自体は DI に登録しない。カードは `MasterCardCatalog`（詰め替え）を `UtaBootstrap` が認証の前に読み、`ICardCatalog` として登録する（[計画](../../../plans/2026-11-01-masterdata-client-use.md)。読めなければ表示して止まる）。カード以外の変換を足すときは、`MemoryDatabase` を一度だけ読んで共有する形に直す
 - Unity のテスト: `client/uta/Assets/Tests/EditMode`（Unity Test Framework 1.9.0）。実行は `unity test --mode EditMode`（同じプロジェクトを開いた Editor があると使えない。先に `unity close .`）
 - Windows の IL2CPP のプレイヤー（`BuildCommands.BuildWindowsIl2Cpp`）で、`MasterDataLoader.LoadFromStreamingAssetsAsync` が同梱のバイナリを読めた（card=36・gacha=1・effect=129。一時の確認用スクリプトで実行し、コミットしていない）。生成済みの `MessagePackGeneratedResolver` にはマスタの型のフォーマッターが無い（`GetFormatter` が `null`）が、実行できたので、MasterMemory の生成物が自前のフォーマッターを持つか、型が AOT で扱える形になっている。理由は未調査
 - アドオンを Uta のツリーの中で `dotnet build`・`dotnet test` すると、Uta の `Directory.Packages.props`（版の一括管理）と `global.json`（テストランナー）が効いて失敗する。ビルドは `-p:ManagePackageVersionsCentrally=false`、テストはツリーの外にコピーして実行する

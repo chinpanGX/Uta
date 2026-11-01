@@ -6,7 +6,7 @@ namespace Uta.Shared.Contracts.Player
     public sealed class SignInResponse
     {
         [SerializationConstructor]
-        public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce)
+        public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards)
         {
             Level = level;
             Exp = exp;
@@ -15,6 +15,8 @@ namespace Uta.Shared.Contracts.Player
             GachaCurrency = gachaCurrency;
             HasActiveProduce = hasActiveProduce;
             DiscardedProduce = discardedProduce;
+            Idols = idols;
+            SupportCards = supportCards;
         }
 
         [Key(0)]
@@ -40,5 +42,11 @@ namespace Uta.Shared.Contracts.Player
         /// <summary>プロデュース未実装の間は常に false。</summary>
         [Key(6)]
         public bool DiscardedProduce { get; }
+
+        [Key(7)]
+        public OwnedIdolDto[] Idols { get; }
+
+        [Key(8)]
+        public OwnedSupportCardDto[] SupportCards { get; }
     }
 }

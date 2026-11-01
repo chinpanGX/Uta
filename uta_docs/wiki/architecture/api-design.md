@@ -50,7 +50,7 @@ updated: 2026-11-01
 - **サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）** [決定。2026-11-01。ユーザーの判断。2026-10-31 の `SyncAsync` を二つに分けた]: 起動時に 1 回呼ぶ RPC の役割は、サーバーから所持データなどを一括で取る「サインイン」なので、プレイヤーの作成（サインアップ）と分ける。VolTech-MagicOnion も、サインアップ（プレイヤー作成）とサインイン（全件取得）をアプリが作る RPC として想定し、「サインアップ済みかは端末に保存せず、サインインの結果で判断する」としている。用語は [glossary.md](../glossary.md)。流れは [screen-design.md](screen-design.md) 4章: 端末に保存なし → 端末の登録（`RegisterAsync`）→ トークンの発行（`IssueTokenAsync`）→ サインアップ → サインイン。保存あり → トークンの発行 → サインイン。どちらも起動フローでホームに入る前に呼ぶ
   - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[決定。2026-11-01。ユーザーの判断]。「独自の重複防止を作らない」（冒頭）の例外で、サインアップは作成の RPC なので、別の `x-request-id` で再び来ても何もしない。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[決定。2026-11-01。ユーザーの判断]
   - **`SignInAsync`**: 起動の流れで呼ぶ（起動時に 1 回。タイトルへ戻ったあと、未作成のときのサインアップの後にも呼び直す）。副作用のある「起動時の処理」と全件取得をまとめる。クライアントは受け取った所持データをキャッシュする。Request なし
-    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル・サポートカードは、それぞれのテーブルを作る計画で足す）[決定。2026-11-01。ユーザーの判断]。MessagePack の `[Key]` は後ろに足せる
+    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル `Idols`・サポートカード `SupportCards` は `[Key(7)]`・`[Key(8)]` の配列で返す。2026-11-01 実装）[決定。2026-11-01。ユーザーの判断]。DTO の一覧は配列にする（`IReadOnlyList<T>` は IL2CPP での MessagePack が未確認）。MessagePack の `[Key]` は後ろに足せる
     - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
     - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
     - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
@@ -78,7 +78,7 @@ updated: 2026-11-01
 | RPC | Request | Response |
 |---|---|---|
 | `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
-| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
+| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
 | `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
 

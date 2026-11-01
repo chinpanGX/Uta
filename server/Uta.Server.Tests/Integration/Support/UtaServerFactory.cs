@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
+using Uta.Server.Application.Common;
 
 namespace Uta.Server.Tests.Integration.Support;
 
@@ -15,8 +16,11 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
 
     private readonly string? previousConnectionString = Environment.GetEnvironmentVariable(ConnectionStringVariable);
 
-    public UtaServerFactory(PostgresFixture postgres, DateTimeOffset? now = null)
+    private readonly IRandomSource? randomSource;
+
+    public UtaServerFactory(PostgresFixture postgres, DateTimeOffset? now = null, IRandomSource? randomSource = null)
     {
+        this.randomSource = randomSource;
         // Program.cs が builder.Configuration から読むので、環境変数で渡す（ConfigureAppConfiguration は間に合わない）。
         // 環境変数は user-secrets より優先されるので、開発機のローカル DB には落ちない。コンストラクタで渡すので、フィクスチャの初期化前には作れない
         Environment.SetEnvironmentVariable(ConnectionStringVariable, postgres.ConnectionString);
@@ -38,6 +42,11 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Time);
+            if (randomSource is not null)
+            {
+                services.RemoveAll<IRandomSource>();
+                services.AddSingleton(randomSource);
+            }
         });
     }
 
