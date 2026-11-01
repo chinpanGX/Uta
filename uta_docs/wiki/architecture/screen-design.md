@@ -89,7 +89,7 @@ updated: 2026-11-01
 
 `Bootstrap` が行う。詳細は [server-foundation.md](server/server-foundation.md) と [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章。
 
-1. マスタ [Uta案。2026-11-01。ユーザーの確認待ち: [計画](../../plans/2026-11-01-masterdata-client-use.md) 7章]: 通信が要らないので**認証の前**に、アプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。読めなければ（`SchemaMismatch` を含む）リトライせず、エラーを表示して止まり、認証には進まない（同梱のバイナリは再試行しても同じ結果になる）。`SchemaMismatch` でアプリの更新を促すのは、Addressables に移ったあと
+1. マスタ [決定。2026-11-01。ユーザーの判断: [計画](../../plans/2026-11-01-masterdata-client-use.md) 7章]: 通信が要らないので**認証の前**に、アプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。読めなければ（`SchemaMismatch` を含む）リトライせず、エラーを表示して止まり、認証には進まない（同梱のバイナリは再試行しても同じ結果になる）。`SchemaMismatch` でアプリの更新を促すのは、Addressables に移ったあと
 2. 認証: 端末に保存が無ければ端末の登録（`RegisterAsync`）、そのあとトークンの発行（`IssueTokenAsync`）（どちらも `IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
 3. （サーバーの状態の判定は無い）強制アップデートとメンテナンスは実装しない（[repository-layout.md](repository-layout.md) 10.5）。VolTech-MagicOnion のクライアントは `UPDATE_REQUIRED`・`MAINTENANCE` の受け口を持つが、サーバーは返さないので、Uta の画面は作らない
 4. サインアップ・サインイン [決定。2026-11-01。ユーザーの判断。`SyncAsync` を分けた]: 端末の登録をした直後（初回）は `IPlayerService.SignUpAsync`（プレイヤーの作成と初期付与）を呼び、そのあと `SignInAsync`（所持データの全件取得とバージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）を呼ぶ。保存ありの起動は `SignInAsync` だけ。`SignInAsync` が `PLAYER_NOT_CREATED` を返したら、`SignUpAsync` を呼んでから `SignInAsync` をやり直す [決定。2026-11-01。ユーザーの判断]。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる。受け取った所持データはクライアントがキャッシュする

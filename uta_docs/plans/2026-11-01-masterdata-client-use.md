@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントでマスタを使う（マスタ → CardCatalog の詰め替えと、起動時の読み込み・DI 登録）
-status: draft
+status: ready
 updated: 2026-11-01
 spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/screen-design.md, ../wiki/architecture/master/masterdata-pipeline.md, ../wiki/architecture/lesson-domain-types.md
 ---
@@ -24,7 +24,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/screen-des
   - Addressables への移行、Android・iOS の実機での確認（`MasterDataLoader` と同じく未確認のまま）
   - `UnlockLv` の扱いなど、カードの中身の仕様
 
-## 2. この計画で決めたこと（確認事項の推奨案を採った。ユーザーの確認待ち。7章）
+## 2. この計画で決めたこと（7章の確認事項は、ユーザーが推奨どおりと決めた。2026-11-01）
 
 | 項目 | 決めたこと | 理由 |
 |---|---|---|
@@ -147,9 +147,6 @@ namespace Uta.Client.Infrastructure
 - Android・iOS での読み込み。Windows の IL2CPP での `CardCatalog.Create` は、タスク 2 の確かめ方 4（任意）で確かめられる
 - Bootstrap の失敗経路の自動テスト（手動で確かめる: タスク 2 の確かめ方 3・4）
 
-## 7. 確認してほしいこと（ユーザーの判断。回答が来るまで `draft`）
+## 7. 未決事項
 
-1. **マスタを読む順**: 認証より前に読む（推奨。2章。理由は通信が要らず失敗が端末の中で決まるため）か、screen-design.md どおり認証の後（`StartupPresenter` に組み込む）か
-2. **読み込み失敗時**: 表示して止まる（推奨。リトライなし）か、再試行ボタンを出すか。同梱のバイナリでは再試行で直らないので推奨は前者
-3. **`UtaBootstrap` が読み込む**（推奨。上の順番を実現しやすい）か、Application にポート（例: `ICardCatalogSource`）を足して `StartupPresenter` から読むか（層は正しいが `ICardCatalog` を DI 後に差し込む仕組みが要る）
-4. **Bootstrap が `MemoryDatabase`（`Uta.MasterData`）を直接触ってよいか**: [repository-layout.md](../wiki/architecture/repository-layout.md) 3章は Bootstrap を「すべて参照してよい」とし、3.1 は生成物を参照してよいのは Infrastructure だけとする。この計画は厳しい側（Infrastructure だけ）を採り、`MasterCardCatalog.LoadFromStreamingAssetsAsync` で包んだ（推奨）。この場合、カード以外の変換を足す計画で、`MemoryDatabase` を一度だけ読んで共有する形に直す（今回はカタログを作ったら `MemoryDatabase` を捨てる）。Bootstrap が触ってよいなら包みを削り、Bootstrap は `MasterDataLoader.LoadFromStreamingAssetsAsync()` → `MasterCardCatalog.Create(db)` の 2 行で、2 つ目のカタログも 1 行で足せる。どちらか
+なし。ユーザーが推奨どおりと決めた（2026-11-01）: (1) マスタは認証より前に読む。(2) 読み込みに失敗したらリトライせず、表示して止まる。(3) `UtaBootstrap` が読み込む（Application にポートは足さない）。(4) Bootstrap は `MemoryDatabase`（`Uta.MasterData`）を触らず、`MasterCardCatalog.LoadFromStreamingAssetsAsync` で包む。このため、カード以外の変換を足す計画で `MemoryDatabase` を一度だけ読んで共有する形に直す（今回はカタログを作ったら捨てる）。
