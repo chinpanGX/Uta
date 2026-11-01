@@ -75,6 +75,14 @@ namespace Uta.Client.Infrastructure.Tests
             Assert.Throws<InvalidOperationException>(() => MasterDataLoader.Load(bytes));
         }
 
+        [Test]
+        public void Load_Truncated_ThrowsInvalidOperation()
+        {
+            var bytes = ReadBundled();
+            Array.Resize(ref bytes, bytes.Length / 2);
+            Assert.Throws<InvalidOperationException>(() => MasterDataLoader.Load(bytes));
+        }
+
         [UnityTest]
         public IEnumerator LoadFromStreamingAssetsAsync_ReturnsDatabase()
         {

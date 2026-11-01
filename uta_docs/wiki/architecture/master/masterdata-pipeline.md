@@ -220,7 +220,8 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 ## 未決事項
 
 - 表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある
-- IL2CPP・Android（`jar:file://` の `UnityWebRequest`）・iOS の実機でのマスタ読み込み。Windows の Editor では確認済み（[実装メモ](#実装メモ)）。Windows の IL2CPP は `IL1009` が解決済み（[unity7-evaluation.md](../unity7-evaluation.md) 3.1）なので、ビルドして確かめられる
+- **IL2CPP でのマスタ読み込み（最優先のリスク）**: マスタの型は `[MessagePackObject(true)]`（文字列キー）で、IL2CPP ではフォーマッターの事前生成が要る。2026-11-01 に Editor で、`Uta.Client.Infrastructure` の生成済みの `MessagePackGeneratedResolver`（MagicOnion のクライアントの初期化にある）に `Card`・`Gacha`・`Effect`・`Scenario` のフォーマッターが**入っていない**（`GetFormatter` が `null`）ことを確かめた。MasterMemory の生成物が自前で持つかは未確認。Editor（Mono）は動的生成で動くので、テストでは見つからない。Windows の IL2CPP ビルドで確かめ、足りなければマスタ用のリゾルバーを生成する（フォローアップの計画）
+- Android（`jar:file://` の `UnityWebRequest`）・iOS の実機でのマスタ読み込み。Windows の Editor では確認済み（[実装メモ](#実装メモ)）。Windows の IL2CPP は `IL1009` が解決済み（[unity7-evaluation.md](../unity7-evaluation.md) 3.1）なので、ビルドして確かめられる
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか
 - ゲーム仕様の変更時の運用（定義の変更でスキーマ ID が変わる → 古いアプリとの互換）
 

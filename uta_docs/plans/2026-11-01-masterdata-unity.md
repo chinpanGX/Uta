@@ -344,4 +344,6 @@ namespace Uta.Client.Infrastructure
 - Source Generator は Unity 7 で動いた（`Uta.MasterData.MemoryDatabase` が生成された）。クライアント用の出力は 30 テーブル
 - テスト: `unity test --mode EditMode` で 6 件すべて通る（Windows の Editor・Mono）。`precompiledReferences` の追加は要らなかった
 - 計画との違い: 同じプロジェクトを開いた Editor があると `unity test` が使えない（先に `unity close .`）。アドオンを Uta のツリーの中でビルド・テストすると Uta の CPM と `global.json` が効くので、`-p:ManagePackageVersionsCentrally=false` を付け、テストはツリーの外にコピーして流した（31 + 211 件が通る）
+- コードレビューの指摘を直した: `MessagePackSerializationException` も `InvalidOperationException` に包む（切り詰めたバイナリのテストを足した。テストは 7 件）。キャンセル済みのトークンでは要求を送らない
+- **最優先のリスク（未解決）**: 生成済みの `MessagePackGeneratedResolver` にマスタの型のフォーマッターが入っていない（`GetFormatter` が `null`。Card・Gacha・Effect・Scenario で確認）。IL2CPP でマスタを読めるかは、Windows の IL2CPP ビルドで確かめるフォローアップが要る
 - 未確認のまま: IL2CPP（Windows の `IL1009` は解決済みなので、ビルドして確かめられる）・Android・iOS
