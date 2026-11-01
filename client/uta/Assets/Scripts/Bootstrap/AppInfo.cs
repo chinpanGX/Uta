@@ -7,6 +7,9 @@ namespace Uta.Client.Bootstrap
     {
         public const int Version = 1;
 
+        /// <summary>アカウントのファイルの鍵の元。Windows のプレイヤーでは Application.identifier が空なので、全プラットフォームでこの固定の値を使う。</summary>
+        public const string AccountKeySource = "Uta.IdolMaster.Hommage";
+
         public static string Platform
         {
             get
