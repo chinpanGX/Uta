@@ -68,8 +68,8 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 
 1. **Contracts**: IF と DTO、マーカーの削除。Unity 側の `.meta`・asmdef を確認（Unity のビルドは 1b の側）。確かめ: `dotnet build Uta.slnx`
 2. **マイグレーション**: `0002` と、`UtaDatabase` が拾うことの確認。確かめ: 既存のマイグレーションの結合テスト
-3. **Application・Infrastructure**: ユースケース、ポート、`PlayerRepository`。`PLAYER_NOT_CREATED` を返す例外の型と変換（未決事項 3）
-4. **Api**: `PlayerService`。未作成のプレイヤーを弾く共通処理（`SignUpAsync` 以外。未決事項 3）。`Program.cs` の登録
+3. **Application・Infrastructure**: ユースケース、ポート、`PlayerRepository`。`PLAYER_NOT_CREATED` の `BusinessException` を投げる（未決事項 3 の決定）
+4. **Api**: `PlayerService`。共通のフィルターは作らない（未決事項 3）。`Program.cs` の登録
 5. **結合テスト**: 下の 5章
 
 境界: `SignUpAsync` の 2 回目以降は何もしない（`Created = false`）。同じ `x-request-id` の再送は基盤が保存済みのレスポンスを返す。`SignInAsync` も副作用ありの扱い（冪等性の対象）。
@@ -90,8 +90,8 @@ DB（`0002_add_player_columns.sql`）: `players` に `level int NOT NULL DEFAULT
 
 1. ~~初期付与をこの計画に入れるか~~ [決定。2026-11-01。ユーザーの判断]: 入れない（案 A）。`players` の行だけ作り、付与は masterdata と所持テーブルの計画で `SignUpAsync` の中身に足す。
 2. **`SignInResponse` の中身**: 案 = `players` の列（Level・Exp・通貨 3 種）と、破棄・再開の 2 値だけ。育成アイドル・サポートカードの一覧は、`player_idols`・`player_support_cards` の計画で足す。DTO は RPC に属さない型（`PlayerData`）に切るか（api-design 未決事項）。`GetPlayerAsync` を残すか。
-3. **`PLAYER_NOT_CREATED` の実装**: 例外の型（MagicOnion の `ReturnStatusException` ＋ `ErrorCode`）、クライアントが受け取る条件（`handledCodes`）、`SignUpAsync` 以外を弾く仕組み（フィルターか、`ServiceBase` を継承した共通の基底クラスか）。基盤の `ErrorDefinition` と `ApiCore` の扱いを読んで案を出す。
-4. **Level の初期値と `exp`**: 仕様（produce.md 7）の初期値の確認。
+3. ~~`PLAYER_NOT_CREATED` の実装~~ [決定。2026-11-01。ユーザーの判断]: `SignInAsync` が、`ServiceContext` の `AuthContext.PlayerCreated`（`AuthFilter` が `PlayerResolver` の結果から詰める。追加の DB 問い合わせは無し）が false のとき、`BusinessException`（`ErrorCode` は domain `uta`、reason `PLAYER_NOT_CREATED`）を直接投げる。基盤が `FAILED_PRECONDITION` に変換する。「`SignUpAsync` 以外を弾く」共通のフィルターは作らない（Uta の RPC が 2 つだけのため。3 つ目の RPC の計画で、`SignUpAsync` を除く印つきのフィルターとして作る）。クライアントが `handledCodes` に渡すこと・`ErrorDefinition` への登録は、クライアント側の計画の仕事。
+4. ~~Level の初期値と `exp`~~ [決定。仕様どおり]: Lv 1、経験値は「今のレベルの中の経験値」で 0（[produce.md](../wiki/systems/produce.md) 7章）。
 5. **`HasActiveProduce` / `DiscardedProduce` の仮実装**: 常に false で問題ないか（プロデュースの計画で本実装）。
 6. ~~ゲームログ~~: 1 の決定により、付与が無いので `SignUpAsync` は `game_logs` を書かない（付与を足す計画で書く）。
 7. 起動の流れを 1 本にするか（screen-design 4章）。この計画のサーバーには影響しないが、クライアントの計画の前に決める。
