@@ -90,7 +90,8 @@ public class MasterDataInvariantTests
     {
         foreach (var slot in Db.WeekActionSlotTable.All)
         {
-            var week = Db.ScenarioWeekTable.All.Single(x => x.ScenarioId == slot.ScenarioId && x.Week == slot.Week);
+            var week = Db.ScenarioWeekTable.All.SingleOrDefault(x => x.ScenarioId == slot.ScenarioId && x.Week == slot.Week);
+            Assert.True(week is not null, $"weekActionSlot ({slot.ScenarioId}, {slot.Week}, {slot.Order}) の週が scenarioWeek にない");
             Assert.True(
                 week.Kind == WeekKind.Action || week.Kind == WeekKind.Finishing,
                 $"weekActionSlot ({slot.ScenarioId}, {slot.Week}, {slot.Order}) の週が Action でも Finishing でもない ({week.Kind})");
@@ -144,6 +145,7 @@ public class MasterDataInvariantTests
     public void EvaluationScoreBands_AreContiguousAndIncreasing()
     {
         var bands = Db.EvaluationScoreBandTable.All.OrderBy(x => x.Order).ToList();
+        Assert.NotEmpty(bands);
         Assert.True(
             bands.Select(x => x.Order).SequenceEqual(Enumerable.Range(1, bands.Count)),
             "evaluationScoreBand の Order が 1 から連続していない");
@@ -187,6 +189,7 @@ public class MasterDataInvariantTests
             Db.OfferRarityWeightTable.All.Sum(x => x.Weight) >= 1,
             "offerRarityWeight の Weight の合計が 1 未満");
         var levels = Db.PlayerLevelExpTable.All.Select(x => x.Level).OrderBy(x => x).ToList();
+        Assert.NotEmpty(levels);
         Assert.True(
             levels.SequenceEqual(Enumerable.Range(1, levels.Count)),
             "playerLevelExp の Level が 1 から連続していない");

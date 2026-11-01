@@ -174,6 +174,8 @@ namespace Uta.MasterData
         void IValidatable<ExamPattern>.Validate(IValidator<ExamPattern> validator)
         {
             validator.Validate(x => x.FirstPercent + x.SecondPercent + x.ThirdPercent == 100, "examPattern: Percent の合計が 100 でない");
+            validator.Validate(x => x.FirstPercent >= 0 && x.SecondPercent >= 0 && x.ThirdPercent >= 0, "examPattern: Percent が負");
+            validator.Validate(x => x.FirstPercent < 45 || x.FirstTurnSecondRatePerTenThousand == 0, "examPattern: FirstPercent が 45 以上なのに FirstTurnSecondRatePerTenThousand が 0 でない");
             validator.Validate(x => x.MidFirstTurns + x.MidSecondTurns + x.MidThirdTurns == 9, "examPattern: Mid のターン数の合計が 9 でない");
             validator.Validate(x => x.FinalSenseFirstTurns + x.FinalSenseSecondTurns + x.FinalSenseThirdTurns == 12, "examPattern: FinalSense のターン数の合計が 12 でない");
             validator.Validate(x => x.FinalLogicFirstTurns + x.FinalLogicSecondTurns + x.FinalLogicThirdTurns == 11, "examPattern: FinalLogic のターン数の合計が 11 でない");
