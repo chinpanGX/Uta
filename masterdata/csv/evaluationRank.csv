@@ -1,0 +1,17 @@
+EvaluationRank,
+出典: uta_docs/wiki/systems/produce.md,
+ProduceRank,int
+Rank,MinValue
+F,0
+E,1000
+D,2000
+C,3000
+CPlus,4500
+B,6000
+BPlus,8000
+A,10000
+APlus,11500
+S,13000
+SPlus,14500
+SS,16000
+SSPlus,18000

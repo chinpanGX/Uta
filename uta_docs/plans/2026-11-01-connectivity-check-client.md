@@ -1,6 +1,6 @@
 ---
 title: 実装計画: 通信の疎通（クライアント）
-status: in-progress
+status: done
 updated: 2026-11-01
 spec: ../wiki/architecture/repository-layout.md, ../wiki/overview/game-spec.md, ../wiki/architecture/screen-design.md
 ---
@@ -361,21 +361,19 @@ namespace Uta.Client.Editor
 
 ## 7. 結果（2026-11-01）
 
-実装は済んだが、完了条件 0 のうち **Windows の IL2CPP が未達**（ビルドが `IL1009` で失敗）なので、`status` は `done` にせず `in-progress` のまま。結果の詳細と確かめ方は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md)。
+完了条件 0 は満たした。結果の詳細と確かめ方は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md)。
 
 | 完了条件 0 の分 | 状態 |
 |---|---|
 | Editor で、端末の登録（サインアップ）とトークンの発行（サインイン）が通る | 通った（Play モード。`SignedUp` → `SignedIn`、取り直し、サーバーのエラーの到達、保存データの破損の検出） |
-| Windows の IL2CPP で通る | **未達**。ビルドが `Microsoft.Bcl.AsyncInterfaces` の `IL1009` で失敗する。基盤の Sandbox でも再現し、Uta の構成が原因ではない（基盤の変更が要る） |
+| Windows の IL2CPP で通る | 通った。`IL1009` の原因は `Microsoft.Bcl.AsyncInterfaces.dll.meta` の `Exclude Editor`（古い形式）で、`Any` 有効・`Editor` 無効に直した（基盤も同じ直し。PR #9）。`Uta.exe` で `SignedUp` → `SignedIn`、サーバーに繋がらないとき `FAILED`（終了コード 1） |
 
 計画から変えたこと:
 
 - UnityScreenNavigator・Supplement・Supplement.MessagePack を、ユーザーの判断で、取り込みまで行った（相対パスの `file:`。1章・3.2）。MasterMemoryAddons は Unity のパッケージが無いので入れていない
 - `com.unity.addressables` を 4.1.2 にした（3.2。4.1.1 は Unity 7 a12 でコンパイルエラー）
 - NuGetForUnity の復元は、コンパイルエラーがあると走らないので、一時的に 3 パッケージを外して復元させた（`unity7-evaluation.md` 2章）
-- `ProjectSettings/` の変更（Standalone の IL2CPP）は、ビルドが通らないので、`develop` に入れていない
+- 鍵の元を `Application.identifier` から固定の値 `AppInfo.AccountKeySource`（`Uta.Client.AccountKey.v1`）に変えた（Windows のプレイヤーでは `Application.identifier` が空のため。ユーザーの判断）。1章の `Application.identifier` の行は、この変更で置き換わった。値は、コードレビューで IP 方針（参考作品の名称を入れない）に反すると指摘されたので、オリジナルの値に差し替えた（保存済みのアカウントのファイルは `Corrupted` になるので消す）
+- glossary は「サインアップ」「サインイン」を `SignUpAsync`・`SignInAsync` の意味のまま残し、端末の登録・トークンの発行は別の用語として載せた（2章の glossary の行は、この形で済ませた）
 
-残ること（別の計画・基盤の変更）:
-
-- Windows の IL2CPP のビルドを通す（基盤の変更。3.1 のルール）。通ったら、Resolver が DTO のフォーマッタを持たない問題（`unity7-evaluation.md` 3.2）が実際に起きるかを確かめる
-- サーバーを止めた実行（タスク 3 の確認 4）
+未確認のまま残ること: `ApiCore` 経由の再送、エラー詳細のトレーラー、Android / iOS の実機ビルド（[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 3.3）。

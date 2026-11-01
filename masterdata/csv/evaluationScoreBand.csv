@@ -1,0 +1,11 @@
+EvaluationScoreBand,,,
+出典: uta_docs/wiki/systems/produce.md,,,
+int,int,int,int
+Order,MinScore,ScalePerThousand,Fixed
+1,0,300,0
+2,5001,150,750
+3,10001,80,1450
+4,20001,40,2250
+5,30001,20,2850
+6,40001,10,3250
+7,200000,0,5250

@@ -1,0 +1,5 @@
+InitialSetting,,,
+出典: uta_docs/wiki/systems/idol-support.md,,,
+int,int,int,int
+Id,GachaCurrency,Gold,SupportPoints
+1,2500,10000,10000

@@ -1,0 +1,16 @@
+IdolRecommendDeck,,
+出典: uta_docs/wiki/systems/idol-support.md,,
+RecommendKind,int,int
+Recommend,Order,CardId
+GoodCondition,1,104
+GoodCondition,2,101
+GoodCondition,3,101
+Focus,1,103
+Focus,2,102
+Focus,3,102
+Impression,1,204
+Impression,2,201
+Impression,3,201
+Motivation,1,206
+Motivation,2,203
+Motivation,3,203

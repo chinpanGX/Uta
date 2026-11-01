@@ -143,4 +143,143 @@ public class MasterDataTests
                 Convert.ToInt64(Enum.Parse(masterEnum, name)));
         }
     }
+
+    [Fact]
+    public void Produce_HaveExpectedCounts()
+    {
+        Assert.Equal(2, Db.ScenarioTable.Count);
+        Assert.Equal(16, Db.ScenarioWeekTable.Count);
+        Assert.Equal(17, Db.WeekActionSlotTable.Count);
+        Assert.Equal(12, Db.ClassOptionTable.Count);
+        Assert.Equal(4, Db.ExamPatternTable.Count);
+        Assert.Equal(6, Db.ExamRankRewardTable.Count);
+        Assert.Equal(1, Db.ScoreBonusSettingTable.Count);
+        Assert.Equal(7, Db.EvaluationScoreBandTable.Count);
+        Assert.Equal(13, Db.EvaluationRankTable.Count);
+        Assert.Equal(13, Db.EvaluationRankRewardTable.Count);
+        Assert.Equal(4, Db.OfferRarityWeightTable.Count);
+        Assert.Equal(99, Db.PlayerLevelExpTable.Count);
+    }
+
+    [Fact]
+    public void Scenario2_Week6_IsMidExamWithRival900()
+    {
+        var week = Db.ScenarioWeekTable.All.Single(x => x.ScenarioId == 2 && x.Week == 6);
+        Assert.Equal(WeekKind.MidExam, week.Kind);
+        Assert.Equal(900, week.ExamEarlyEndScore);
+        Assert.Equal(900, week.RivalBaseScore);
+    }
+
+    [Fact]
+    public void PlayerLevelExp_EveryRowIs40TimesLevel()
+    {
+        foreach (var row in Db.PlayerLevelExpTable.All)
+        {
+            Assert.True(row.RequiredExp == 40 * row.Level, $"playerLevelExp Level {row.Level} の RequiredExp が {row.RequiredExp}");
+        }
+    }
+
+    [Fact]
+    public void IdolSupport_HaveExpectedCounts()
+    {
+        Assert.Equal(4, Db.IdolTable.Count);
+        Assert.Equal(12, Db.IdolRecommendDeckTable.Count);
+        Assert.Equal(5, Db.CommonDeckCardTable.Count);
+        Assert.Equal(10, Db.SupportCardTable.Count);
+        Assert.Equal(16, Db.SupportAbilityTable.Count);
+        Assert.Equal(147, Db.SupportLevelCostTable.Count);
+        Assert.Equal(15, Db.SupportLevelCapTable.Count);
+        Assert.Equal(5, Db.InitialSupportCardTable.Count);
+        Assert.Equal(1, Db.InitialSettingTable.Count);
+    }
+
+    [Fact]
+    public void Idols_UniqueCardsAre107Or207()
+    {
+        Assert.Equal(107, Db.IdolTable.FindByIdolId(1).UniqueCardId);
+        Assert.Equal(207, Db.IdolTable.FindByIdolId(2).UniqueCardId);
+        Assert.Equal(107, Db.IdolTable.FindByIdolId(3).UniqueCardId);
+        Assert.Equal(207, Db.IdolTable.FindByIdolId(4).UniqueCardId);
+    }
+
+    [Fact]
+    public void SupportLevelCost_EveryRowIsBaseTimesLevel()
+    {
+        foreach (var row in Db.SupportLevelCostTable.All)
+        {
+            var baseCost = row.Rarity switch
+            {
+                Rarity.R => 39,
+                Rarity.SR => 65,
+                Rarity.SSR => 117,
+                _ => throw new InvalidOperationException($"supportLevelCost ({row.Rarity}, {row.Level}) の Rarity が想定外"),
+            };
+            Assert.True(
+                row.SupportPoints == baseCost * row.Level,
+                $"supportLevelCost ({row.Rarity}, {row.Level}) の SupportPoints が {row.SupportPoints}");
+            Assert.True(
+                row.Gold == row.SupportPoints,
+                $"supportLevelCost ({row.Rarity}, {row.Level}) の Gold が SupportPoints と違う");
+        }
+    }
+
+    [Fact]
+    public void InitialSetting_Is2500_10000_10000()
+    {
+        var row = Db.InitialSettingTable.FindById(1);
+        Assert.Equal(2500, row.GachaCurrency);
+        Assert.Equal(10000, row.Gold);
+        Assert.Equal(10000, row.SupportPoints);
+    }
+
+    [Fact]
+    public void Gacha_HaveExpectedCounts()
+    {
+        Assert.Equal(1, Db.GachaTable.Count);
+        Assert.Equal(2, Db.GachaDetailTableTable.Count);
+        Assert.Equal(21, Db.GachaTableEntryTable.Count);
+        Assert.Equal(2, Db.GachaCeilingItemTable.Count);
+        Assert.Equal(6, Db.DuplicateConversionTable.Count);
+    }
+
+    [Fact]
+    public void GachaTables_WeightSums()
+    {
+        Assert.Equal(10000L, Db.GachaTableEntryTable.All.Where(x => x.GachaTableId == 1).Sum(x => (long)x.Weight));
+        Assert.Equal(2200L, Db.GachaTableEntryTable.All.Where(x => x.GachaTableId == 2).Sum(x => (long)x.Weight));
+    }
+
+    [Fact]
+    public void GachaTables_RarityShares()
+    {
+        long Share(ItemKind kind, Rarity rarity)
+        {
+            return Db.GachaTableEntryTable.All
+                .Where(x => x.GachaTableId == 1 && x.ItemKind == kind)
+                .Where(x => (kind == ItemKind.Idol
+                    ? Db.IdolTable.FindByIdolId(x.IdolId).Rarity
+                    : Db.SupportCardTable.FindBySupportCardId(x.SupportCardId).Rarity) == rarity)
+                .Sum(x => (long)x.Weight);
+        }
+
+        Assert.Equal(200L, Share(ItemKind.Idol, Rarity.SSR));
+        Assert.Equal(300L, Share(ItemKind.SupportCard, Rarity.SSR));
+        Assert.Equal(680L, Share(ItemKind.Idol, Rarity.SR));
+        Assert.Equal(1020L, Share(ItemKind.SupportCard, Rarity.SR));
+        Assert.Equal(3120L, Share(ItemKind.Idol, Rarity.R));
+        Assert.Equal(4680L, Share(ItemKind.SupportCard, Rarity.R));
+        Assert.Equal(1700L, Share(ItemKind.Idol, Rarity.SR) + Share(ItemKind.SupportCard, Rarity.SR));
+        Assert.Equal(7800L, Share(ItemKind.Idol, Rarity.R) + Share(ItemKind.SupportCard, Rarity.R));
+    }
+
+    [Fact]
+    public void Gacha_CeilingItems()
+    {
+        var first = Db.GachaCeilingItemTable.FindByGachaIdAndOrder((1, 1));
+        Assert.Equal(ItemKind.Idol, first.ItemKind);
+        Assert.Equal(4, first.IdolId);
+        var second = Db.GachaCeilingItemTable.FindByGachaIdAndOrder((1, 2));
+        Assert.Equal(ItemKind.SupportCard, second.ItemKind);
+        Assert.Equal(9, second.SupportCardId);
+    }
 }

@@ -53,7 +53,7 @@ Shared.Domain（`shared/Uta.Shared.Domain`）の機能ごとの実装設計:
 
 検証の記録:
 
-- [unity7-evaluation.md](unity7-evaluation.md) — Unity 7 の検証結果：確かめたもの（Editor・パッケージの取り込み・サインアップ/サインイン）、失敗したもの（Windows の IL2CPP のビルド `IL1009`）、未確認のもの、警告・注意
+- [unity7-evaluation.md](unity7-evaluation.md) — Unity 7 の検証結果：確かめたもの（Editor・パッケージの取り込み・サインアップ/サインイン）、Windows の IL2CPP のビルドの `IL1009`（解決済み）、未確認のもの、警告・注意
 
 未作成:
 
