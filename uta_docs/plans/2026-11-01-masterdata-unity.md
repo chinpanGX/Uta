@@ -319,7 +319,7 @@ namespace Uta.Client.Infrastructure
 
 ### 確かめられないこと（この計画では未確認として残す）
 
-- IL2CPP（Windows の IL2CPP ビルドは `IL1009` で通らない）での読み込み。MasterMemory のデータ型は `[MessagePackObject(true)]`（文字列キー）なので、IL2CPP ではフォーマッターの事前生成が要る。MessagePack の Source Generator が `Uta.Client.Infrastructure` の `Resolver` に含めるか、MasterMemory が自前のリゾルバーを生成するかは、Editor のコンパイル後に生成物を見ればわかる（タスク 1 の後に報告する）が、動くかは IL2CPP のビルドが通るまで確かめられない
+- IL2CPP での読み込み（実装後に Windows で確認できた。9章）。MasterMemory のデータ型は `[MessagePackObject(true)]`（文字列キー）なので、IL2CPP ではフォーマッターの事前生成が要る。MessagePack の Source Generator が `Uta.Client.Infrastructure` の `Resolver` に含めるか、MasterMemory が自前のリゾルバーを生成するかは、Editor のコンパイル後に生成物を見ればわかる（タスク 1 の後に報告する）が、動くかは IL2CPP のビルドが通るまで確かめられない
 - Android（`jar:file://` の `UnityWebRequest`）・iOS の実機での読み込み
 - 起動フローからの利用（DI への登録）
 
@@ -345,5 +345,5 @@ namespace Uta.Client.Infrastructure
 - テスト: `unity test --mode EditMode` で 6 件すべて通る（Windows の Editor・Mono）。`precompiledReferences` の追加は要らなかった
 - 計画との違い: 同じプロジェクトを開いた Editor があると `unity test` が使えない（先に `unity close .`）。アドオンを Uta のツリーの中でビルド・テストすると Uta の CPM と `global.json` が効くので、`-p:ManagePackageVersionsCentrally=false` を付け、テストはツリーの外にコピーして流した（31 + 211 件が通る）
 - コードレビューの指摘を直した: `MessagePackSerializationException` も `InvalidOperationException` に包む（切り詰めたバイナリのテストを足した。テストは 7 件）。キャンセル済みのトークンでは要求を送らない
-- **最優先のリスク（未解決）**: 生成済みの `MessagePackGeneratedResolver` にマスタの型のフォーマッターが入っていない（`GetFormatter` が `null`。Card・Gacha・Effect・Scenario で確認）。IL2CPP でマスタを読めるかは、Windows の IL2CPP ビルドで確かめるフォローアップが要る
-- 未確認のまま: IL2CPP（Windows の `IL1009` は解決済みなので、ビルドして確かめられる）・Android・iOS
+- IL2CPP: Windows の IL2CPP のプレイヤーをビルドし、一時の確認用スクリプト（コミットしていない）で `LoadFromStreamingAssetsAsync` を実行した。`MASTERDATA SMOKE OK card=36 gacha=1 effect=129`。生成済みの `MessagePackGeneratedResolver` にはマスタの型のフォーマッターが無かったが、読めた
+- 未確認のまま: Android・iOS
