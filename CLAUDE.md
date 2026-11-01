@@ -161,7 +161,11 @@ uta/
   - サブモジュール内で作業する前にブランチを切る（`git switch -c <branch>`）。detached HEAD のまま commit しない
   - 追加: `git submodule add <URL> external/<名前>`（すでに clone 済みなら、その場所を指定すれば取り込める）。追加したら ADR 0005 の表も更新する
   - ポインタ更新: サブモジュール側を push → Uta で `git add external/<名前>` → commit
-- worktree を使うときは Uta の外に置く（例: `../Uta-wt/<ブランチ名>`）。サブモジュールは worktree ごとに `git submodule update --init` が必要
+- **worktree は固定のものを使い回す**（`../Uta-wt/1` 〜。Unity の Library を worktree ごとに 1 回だけ作り、使い捨てて作り直さないため）。Uta の外に置く。アプリが `.claude/worktrees/` に使い捨ての worktree を作る方式は、Unity を開く作業では使わない
+  - 作成と運用は `tools/worktree-pool.sh`: `init`（固定の worktree を作る。作ったら Unity Hub に登録して 1 回だけ開き、Library を作る）、`start <番号> <新ブランチ> [base]`（base は既定 `origin/main`。前提のタスクがあるときは前提のブランチを渡す）、`release <番号>`（PR のマージ後に `origin/main` へ戻して空ける）、`list`
+  - Claude のセッションは、新しい worktree を作らず、固定の worktree のフォルダを開いて始める
+  - 同じブランチを複数の worktree で同時に開けない。固定の worktree は detached HEAD で空けておく
+  - サブモジュールは worktree ごとに `git submodule update --init` が必要（スクリプトが実行する）
 
 ## ビルド・テスト・実行
 
