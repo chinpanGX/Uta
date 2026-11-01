@@ -1,0 +1,17 @@
+{
+    "name": "Uta.Shared.Contracts",
+    "rootNamespace": "Uta.Shared.Contracts",
+    "references": [
+        "Uta.Shared.Domain",
+        "VolTech.Server.Abstractions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

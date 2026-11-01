@@ -1,0 +1,7 @@
+{
+  "name": "com.uta.shared.contracts",
+  "version": "0.1.0",
+  "displayName": "Uta Shared Contracts",
+  "description": "Uta のクライアントとサーバーが共有する、通信のサービスIF・DTO（Shared.Contracts）。",
+  "unity": "7000.0"
+}

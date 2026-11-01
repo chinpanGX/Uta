@@ -38,7 +38,7 @@ updated: 2026-11-01
 
 | ワイヤー | screen-design の画面 | 機能ID | 呼ぶ API(仮) |
 |---|---|---|---|
-| ホーム | ホーム | — | GetPlayer、GetState(再開を押したとき) |
+| ホーム | ホーム | — | サインインで取った所持データ、GetState(再開を押したとき) |
 | 1. 編成 | 編成 | PRD-01、SUP-06 | GetRentalCandidates、Start |
 | 2. 週の行動選択 | 週の行動選択 | PRD-02 | ChooseWeekAction |
 | 3. レッスン・試験 | レッスン / 試験 | PRD-03〜08 | ExecuteLessonAction |
@@ -48,7 +48,7 @@ updated: 2026-11-01
 | 7. 試験結果 | 試験結果 | PRD-06 | DecideExamRetry(再挑戦する / しない) |
 | 8. 最終評価 | プロデュース結果 | PRD-13 | 終了の局面に入った操作のレスポンス(GetState では取らない。[produce-domain.md](../architecture/produce-domain.md) 8章) |
 | 9. ガチャ | ガチャ(一覧・排出率・結果)、交換 | GAC-01〜04 | GetGachas、Draw、Exchange |
-| 10. 一覧・強化 | 所持一覧・詳細、育成アイドルの強化、サポートカードの強化 | IDL-01・02、SUP-01・02 | GetPlayer、Train、Awaken、LevelUp、LimitBreak |
+| 10. 一覧・強化 | 所持一覧・詳細、育成アイドルの強化、サポートカードの強化 | IDL-01・02、SUP-01・02 | サインインで取った所持データ、Train、Awaken、LevelUp、LimitBreak |
 
 API の名前は [api-design.md](../architecture/api-design.md) と [produce-domain.md](../architecture/produce-domain.md) 8章が正。4〜7 の操作は [produce-domain.md](../architecture/produce-domain.md) 5章 の操作の記録に対応する。
 

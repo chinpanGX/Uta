@@ -6,6 +6,8 @@ client/*/[Oo]bj/
 client/*/[Bb]uild/
 client/*/[Bb]uilds/
 client/*/[Ll]ogs/
+client/*/[Aa]ssets/Packages/
+client/*/[Aa]ssets/Packages.meta
 client/*/[Uu]ser[Ss]ettings/
 client/*/[Mm]emoryCaptures/
 client/*/[Rr]ecordings/

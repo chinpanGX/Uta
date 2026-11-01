@@ -1,0 +1,21 @@
+{
+    "name": "Uta.Client.Bootstrap",
+    "rootNamespace": "Uta.Client.Bootstrap",
+    "references": [
+        "Uta.Client.Application",
+        "Uta.Client.Infrastructure",
+        "Uta.Client.Presentation",
+        "VolTech.MagicOnion.Client",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,17 @@
+{
+    "name": "Uta.Client.Application",
+    "rootNamespace": "Uta.Client.Application",
+    "references": [
+        "Uta.Shared.Domain",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

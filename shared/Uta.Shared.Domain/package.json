@@ -1,0 +1,7 @@
+{
+  "name": "com.uta.shared.domain",
+  "version": "0.1.0",
+  "displayName": "Uta Shared Domain",
+  "description": "Uta のクライアントとサーバーが共有する、ゲームのルールの計算（Shared.Domain）。",
+  "unity": "7000.0"
+}

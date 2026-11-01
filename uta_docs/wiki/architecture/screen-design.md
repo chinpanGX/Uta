@@ -46,13 +46,13 @@ updated: 2026-11-01
 
 | 画面 | 種類 | 機能ID | 呼ぶ API（仮） | 主なマスタ |
 |---|---|---|---|---|
-| 起動・ロード | ページ | — | RegisterAsync（初回）、IssueTokenAsync、SyncAsync（4章）。マスタは同梱を読む（RPC にしない） | マスタのバイナリ |
-| ホーム | ページ | — | GetPlayer。再開を押したら GetState（進行中かは起動時の `SyncAsync` で知る。[api-design.md](api-design.md) 1章） | — |
+| 起動・ロード | ページ | — | RegisterAsync（初回）、IssueTokenAsync、SignUpAsync（初回）、SignInAsync（4章）。マスタは同梱を読む（RPC にしない） | マスタのバイナリ |
+| ホーム | ページ | — | サインインで取った所持データ（キャッシュ）を表示。再開を押したら GetState（進行中かは起動時の `SignInAsync` で知る。[api-design.md](api-design.md) 1章） | — |
 | ガチャ（一覧） | ページ | GAC-01 | GetGachas | ガチャ、排出率 |
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
 | ガチャ（結果） | ページ／モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
 | 交換 | ページ | GAC-03 | Exchange | 交換pt の設定（MVP では作らない。天井は結合テストで確かめる） |
-| 所持一覧・詳細 | ページ | IDL-01、SUP-01 | GetPlayer | 育成アイドル、サポートカード |
+| 所持一覧・詳細 | ページ | IDL-01、SUP-01 | サインインで取った所持データ（キャッシュ） | 育成アイドル、サポートカード |
 | 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定（MVP では作らない） |
 | サポートカードの強化 | ページ | SUP-02 | LevelUp、LimitBreak | サポートカードのレベル・上限解放の設定（`SupportLevelCost`・`SupportLevelCap`）。MVP で作る（[game-spec.md](../overview/game-spec.md)。2026-11-01） |
 | 編成 | ページ | PRD-01 | Start | アイドル、サポートカード、シナリオ（シナリオを選ぶ。レンタル枠の `GetRentalCandidates` は MVP では作らない） |
@@ -89,10 +89,10 @@ updated: 2026-11-01
 
 `Bootstrap` が行う。詳細は [server-foundation.md](server/server-foundation.md) と [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章。
 
-1. 認証: 端末の登録・トークンの発行（`IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
+1. 認証: 端末に保存が無ければ端末の登録（`RegisterAsync`）、そのあとトークンの発行（`IssueTokenAsync`）（どちらも `IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
 2. （サーバーの状態の判定は無い）強制アップデートとメンテナンスは実装しない（[repository-layout.md](repository-layout.md) 10.5）。VolTech-MagicOnion のクライアントは `UPDATE_REQUIRED`・`MAINTENANCE` の受け口を持つが、サーバーは返さないので、Uta の画面は作らない
 3. マスタ: いまはアプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。`SchemaMismatch` はアプリの更新を促す
-4. 同期: `IPlayerService.SyncAsync` を呼ぶ（初回のプレイヤー作成と初期付与、バージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる
+4. サインアップ・サインイン [決定。2026-11-01。ユーザーの判断。`SyncAsync` を分けた]: 端末の登録をした直後（初回）は `IPlayerService.SignUpAsync`（プレイヤーの作成と初期付与）を呼び、そのあと `SignInAsync`（所持データの全件取得とバージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）を呼ぶ。保存ありの起動は `SignInAsync` だけ。`SignInAsync` が `PLAYER_NOT_CREATED` を返したら、`SignUpAsync` を呼んでから `SignInAsync` をやり直す [決定。2026-11-01。ユーザーの判断]。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる。受け取った所持データはクライアントがキャッシュする
 5. ホームへ遷移する
 
 Addressables に移ったあとの、更新確認のタイミングは未決。
@@ -102,7 +102,7 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - VolTech-MagicOnion のクライアント（`ApiCore`: 順番待ち、再認証、進行中通知、エラーハンドラー）を使う。画面は `ErrorPolicy` に従って、再試行・ダイアログ・タイトルへ戻る、を出し分ける（VolTech-MagicOnion の設計書「クライアント側」）
 - 通信中は入力を受け付けない表示（ブロッカー）を出す。進行中通知の受け口は VolTech-MagicOnion のものを使う
 - 通信の失敗後の再送は、同じ `x-request-id` で行う。画面側で独自の重複防止はしない
-- **日付の更新（12:00 JST）をまたいだとき** [決定。2026-10-31。ユーザーの判断]: VolTech-MagicOnion はどの RPC にも `DATE_CHANGED` を返し、既定の動作はタイトルへ戻る。MVP はこれを受け入れ、変えない。プロデュース中でも状態はサーバーに残っているので、起動の流れ（4章）からホームの「再開」で続ける（[api-design.md](api-design.md) 1章 `SyncAsync`）
+- **日付の更新（12:00 JST）をまたいだとき** [決定。2026-10-31。ユーザーの判断]: VolTech-MagicOnion は日付が変わったあとの RPC に `DATE_CHANGED` を返し、既定の動作はタイトルへ戻る。MVP はこれを受け入れ、変えない。プロデュース中でも状態はサーバーに残っているので、起動の流れ（4章）からホームの「再開」で続ける（[api-design.md](api-design.md) 1章 `SignInAsync`）。ただし `DATE_CHANGED` を受けたあとのサインインは、全件を取り直す
 
 ## 6. レッスン・試験画面とドメインの関係 [決定]
 

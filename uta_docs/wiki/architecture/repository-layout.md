@@ -68,12 +68,13 @@ uta/
 └─ client/
    ├─ Directory.Build.props  # [決定] 上の階層の設定を Unity の csproj に効かせない（2.1）
    └─ uta/                   # [決定] Unity プロジェクトのルート
-      └─ Assets/Scripts/     # [決定] 層ごとに asmdef（3章）（未作成）
+      └─ Assets/Scripts/     # [決定] 層ごとに asmdef（3章）（作成済み）
          ├─ Application/     #   ユースケース、ポート
          ├─ Infrastructure/  #   API 呼び出し、マスタ、ローカル保存
          │  └─ MasterData/Generated/   生成物（クライアント用のソース。バイナリは Assets/StreamingAssets/MasterData/。ADR 0013）
          ├─ Presentation/    #   View、Presenter
-         └─ Bootstrap/       #   Composition Root
+         ├─ Bootstrap/       #   Composition Root
+         └─ Editor/          #   Unity のビルドのコマンド（Editor 専用）
 ```
 
 - **マスタ型を `shared/` に置かない**。サーバー専用の列・テーブルをクライアントから見えなくするため（[ADR 0007](../decisions/0007-masterdata-with-addons.md)。ADR 0002 の当初の案から変えた）
@@ -266,11 +267,13 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 | 項目 | 関係するページ | 確かめ方 | ブロックする作業 |
 |---|---|---|---|
-| `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く | client/ の最初の実装計画 |
+| `shared/` を Unity からローカルパッケージ（`file:` 参照）で取り込めるか。`dotnet build` の後に Unity を開いても型が重複しないか | 2章、[ADR 0005](../decisions/0005-foundation-submodule.md) | Windows / Android / iOS の実機ビルド。`dotnet build` 後に Unity を開く。**2026-11-01 に確かめた範囲**: Unity 7（`7000.0.0a12`）の Editor とバッチモードで、`file:` 取り込み（Domain・Contracts）が通り、`dotnet build` の後も型は重複しなかった（[unity7-evaluation.md](unity7-evaluation.md)）。**未確認**: Windows の IL2CPP（ビルドが `IL1009` で失敗）・Android・iOS | client/ の最初の実装計画 |
 | MasterMemoryAddons のバイナリを Unity で読めるか | [masterdata-pipeline.md](master/masterdata-pipeline.md) 6章 | 実機で `MasterDataBinary.Read` → `MemoryDatabase` | クライアントのマスタ読み込み |
-| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認。サーバー側の MagicOnion・MessagePack は 2026-11-01 に確認済み（`Uta.Server` をビルドして NU1605 などが出ない） | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド | client/ の最初の実装計画 |
+| MasterMemory・MessagePack・MagicOnion・Supplement.MessagePack のバージョンが揃うか。机上では揃う（2026-10-31: VolTech-MagicOnion は MagicOnion 7.11.0・MessagePack 3.1.12、アドオンは MasterMemory 3.0.4・MessagePack 3.1.12）。Supplement.MessagePack は未確認。サーバー側の MagicOnion・MessagePack は 2026-11-01 に確認済み（`Uta.Server` をビルドして NU1605 などが出ない） | [masterdata-pipeline.md](master/masterdata-pipeline.md) 7章 | サーバーとクライアントでのビルド。**2026-11-01 に確かめた範囲**: Unity 7 の Editor で、MagicOnion 7.11.0・MessagePack 3.1.12・Supplement（1.5.0）・Supplement.MessagePack（1.0.0）を取り込み、コンパイルが通った（版の警告なし）。MasterMemory は未入れ。IL2CPP は未確認（[unity7-evaluation.md](unity7-evaluation.md)） | client/ の最初の実装計画 |
 | `[Exists]` が、別の側にだけあるテーブル・列を参照した場合の挙動 | [masterdata-pipeline.md](master/masterdata-pipeline.md) 4章 | アドオンのテストまたはサンプル | マスタの定義 |
-| UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド | client/ の最初の実装計画 |
+| UnityScreenNavigator・VContainer・UniTask が Unity 7（`7000.0.0a12`）で動くか | [ADR 0009](../decisions/0009-client-stack.md) | 実機ビルド。**2026-11-01 に確かめた範囲**: Editor で、UniTask 2.5.11・VContainer 1.19.0 の取り込みとコンパイル、VContainer の起動（Play モード）が通った。UnityScreenNavigator 1.8.0 は取り込みとコンパイルだけで、動作は未確認。IL2CPP は未確認（[unity7-evaluation.md](unity7-evaluation.md)） | client/ の最初の実装計画 |
+| Windows の IL2CPP のプレイヤーのビルドが `Microsoft.Bcl.AsyncInterfaces` の `IL1009` で失敗する。VolTech-MagicOnion のガイドの手順（`Assets/Plugins/` に DLL を置く）では直らず、基盤の Sandbox でも再現した | [unity7-evaluation.md](unity7-evaluation.md) 3.1、基盤の docs/guide/getting-started.md | 基盤の Sandbox で原因を調べ、基盤を直す（3.1 のルール）。`Microsoft.Bcl.TimeProvider` への依存を外す案など | Windows の IL2CPP のプレイヤー（完了条件 0）、実機ビルド |
+| Unity の IL2CPP で、`Abstractions` の MessagePack の型（`RegisterResult` など）が動くか。生成された `Resolver` はそれらのフォーマッタを持たない（`GetFormatter` が `null`。Editor では動く） | [unity7-evaluation.md](unity7-evaluation.md) 3.2 | IL2CPP のプレイヤー（上の行が通ってから）。直し方は、基盤に生成する Resolver を足すか、フォーマッタを足す | Windows の IL2CPP のプレイヤー（完了条件 0） |
 | Unity（実機）から Cloud Run へ HTTPS + HTTP/2 で MagicOnion をつなげるか | 11章、[ADR 0011](../decisions/0011-deploy-google-cloud.md) | デプロイ先に実機から接続 | dev へのデプロイ |
 | Cloud Run で gRPC を受ける設定（HTTP/2 の end-to-end、Kestrel の h2c） | 11章 | デプロイして確認 | dev へのデプロイ |
 | Cloud Run の gRPC のヘルスチェック（起動・生存のプローブ）が `grpc.health.v1` で動くか | 11.4 | デプロイして確認 | dev へのデプロイ |
@@ -349,7 +352,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 - **共通基盤の Supplement（`external/Supplement`）の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](../../../external/Supplement/docs/features/messagepack-save-data.md)）
 - MessagePack は通信とマスタでも使うので、Supplement が参照する MessagePack の版を、MagicOnion・MasterMemory とそろえる（8章の要検証）
-- 何を保存するか（認証トークン、設定など）は、**実装するときに決める**
+- 端末の資格情報（`device_id`・`secretKey`）は、基盤の `EncryptedFileAccountStore` で保存する（2026-11-01 ユーザーの判断。Supplement.MessagePack は、ゲームのセーブデータ用）。ほかに何を保存するか（設定など）は、**実装するときに決める**
 
 ## 11. 環境構成とデプロイ [決定／手順は Uta案]
 
@@ -419,7 +422,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 **サーバーの骨組み**（手順 4。VolTech-MagicOnion の `docs/guide/server.md` の形に従う）[決定。2026-10-31]:
 
 - `Program.cs`: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
-- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、5 番目の計画（プレイヤー・ガチャ・強化）で別のマイグレーションとして足す。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
+- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、別のマイグレーションとして足す（`players` の Lv・経験値・通貨の列は 5a の計画、育成アイドル・サポートカードなどのテーブルは 5 番目の計画（プレイヤー・ガチャ・強化））。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
 - **設定**（`appsettings.json`）: `Voltech:GameDay:ResetHour` は `12`、`Voltech:GameDay:TimeZone` は `"Asia/Tokyo"`（10.2。既定は 0 時・UTC なので必ず書く）。`Voltech:AccessTokenLifetime` は既定の 1 時間のまま
 - **接続文字列**は `ConnectionStrings:Default`（VolTech-MagicOnion のガイドと同じ名前）。リポジトリに入れない。ローカルは `dotnet user-secrets`、Cloud Run は環境変数 `ConnectionStrings__Default`（Secret Manager から渡す。11.4）。`server/.env` は Compose の PostgreSQL のパスワードだけに使う
 - **`migrate`**: 最初の引数が `migrate` なら、Web ホストを起動せずに、`VoltechDatabase.Migrate(接続文字列)` → Uta の DbUp（`Migrations/*.sql` を埋め込みリソースにし、記録は DbUp の既定の `schemaversions`）の順に流して、終了コード 0 で終わる。失敗したら 0 以外。ほかの引数は取らない（接続文字列は上と同じ経路）

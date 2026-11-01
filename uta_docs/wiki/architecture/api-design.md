@@ -31,13 +31,14 @@ updated: 2026-11-01
 - マイグレーションは DbUp。API とは別の `migrate` コマンドで流す [決定。[ADR 0012](../decisions/0012-migration-dbup.md)]
 - DTO ↔ Domain のマッピングはクライアントの Infrastructure に閉じる。DTO は enum とプリミティブ型で組む [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
 - 進行中のプロデュースは、開始時とアプリのバージョンが違えば破棄する [決定。2026-10-28。5章]
+- 起動時の `SyncAsync` は、サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）に分ける [決定。2026-11-01。1章]
 
 ## 1. サービスの一覧 [決定。2026-10-28]
 
 | サービス | RPC | 機能ID | 副作用 | 冪等性の対象 |
 |---|---|---|---|---|
 | `IDeviceService`（VolTech-MagicOnion） | `RegisterAsync` / `IssueTokenAsync` | — | あり | VolTech-MagicOnion の仕様に従う |
-| `IPlayerService` | `SyncAsync`（起動時の同期。下記）、`GetPlayerAsync`（所持品・通貨・Lv） | — | `SyncAsync` はあり | `SyncAsync` |
+| `IPlayerService` | `SignUpAsync`（サインアップ。プレイヤーの作成）、`SignInAsync`（サインイン。起動時の全件取得。下記） | — | `SignUpAsync`・`SignInAsync` はあり | `SignUpAsync`・`SignInAsync` |
 | `IGachaService` | `GetGachasAsync`（ガチャごとの交換pt）、`DrawAsync`（単発・10連）、`GetHistoryAsync`、`ExchangeAsync`（交換pt で天井の交換） | GAC-01〜04 | `DrawAsync`・`ExchangeAsync` はあり | `DrawAsync`・`ExchangeAsync` |
 | `IIdolService` | `TrainAsync`（トレーニング）、`AwakenAsync`（覚醒）。MVP では作らない | IDL-02 | あり | 両方 |
 | `ISupportService` | `LevelUpAsync`（所持IDと目標のレベル。強化pt とゴールドを使う）、`LimitBreakAsync`（解放する所持IDと素材の所持ID。[idol-support.md](../systems/idol-support.md) 2.2.1） | SUP-02 | あり | 両方 |
@@ -46,12 +47,16 @@ updated: 2026-11-01
 - MVP で作らない RPC(インターフェースにも宣言しない。作るときに足す): `IIdolService` の 2 つ、`GetRentalCandidatesAsync`、`ExecuteConsultActionAsync`、`DiscardDrinkAsync`、`GetHistoryAsync`（履歴を見る画面を MVP に置かないため。履歴の保存はする）（[game-spec.md](../overview/game-spec.md) 最小実装範囲）
 
 - 名前の付け方: 動詞から始める PascalCase に `Async`。DTO は RPC ごとに1組作り、名前は RPC 名から `Async` を除いて `Request` / `Response` を付ける（`DrawAsync` → `DrawRequest` / `DrawResponse`）。引数を後から足しても、ほかの RPC に影響しない。DTO の型が増えるのは受け入れる。例外は 2 つ [決定。2026-10-31]: 引数の無い RPC（`GetStateAsync`・`AbandonAsync`・`GetGachasAsync` など）は Request を作らない。プロデュースの操作の RPC は、共通の `ProduceStateResponse` を返す（[produce-domain.md](produce-domain.md) 8章）
-- **`SyncAsync`**: 起動フローでホームに入る前に1回呼ぶ（[screen-design.md](screen-design.md) 4章）。副作用のある「起動時の処理」をここにまとめる
-  - プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。端末の登録（VolTech-MagicOnion の `RegisterAsync`）の後の最初の `SyncAsync` が作る。2 回目からは何もしない [決定。2026-10-31]
-  - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
-  - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
-  - Response（`SyncResponse`）[決定。2026-10-31]: 進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、この同期でプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（サインインの流れ。[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
-  - `GetPlayerAsync` は `[NoSideEffects]`（読み取り専用のトランザクション）なので、これらを入れられない。そのため RPC を分ける
+- **サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）** [決定。2026-11-01。ユーザーの判断。2026-10-31 の `SyncAsync` を二つに分けた]: 起動時に 1 回呼ぶ RPC の役割は、サーバーから所持データなどを一括で取る「サインイン」なので、プレイヤーの作成（サインアップ）と分ける。VolTech-MagicOnion も、サインアップ（プレイヤー作成）とサインイン（全件取得）をアプリが作る RPC として想定し、「サインアップ済みかは端末に保存せず、サインインの結果で判断する」としている。用語は [glossary.md](../glossary.md)。流れは [screen-design.md](screen-design.md) 4章: 端末に保存なし → 端末の登録（`RegisterAsync`）→ トークンの発行（`IssueTokenAsync`）→ サインアップ → サインイン。保存あり → トークンの発行 → サインイン。どちらも起動フローでホームに入る前に呼ぶ
+  - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[決定。2026-11-01。ユーザーの判断]。「独自の重複防止を作らない」（冒頭）の例外で、サインアップは作成の RPC なので、別の `x-request-id` で再び来ても何もしない。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[決定。2026-11-01。ユーザーの判断]
+  - **`SignInAsync`**: 起動の流れで呼ぶ（起動時に 1 回。タイトルへ戻ったあと、未作成のときのサインアップの後にも呼び直す）。副作用のある「起動時の処理」と全件取得をまとめる。クライアントは受け取った所持データをキャッシュする。Request なし
+    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル・サポートカードは、それぞれのテーブルを作る計画で足す）[決定。2026-11-01。ユーザーの判断]。MessagePack の `[Key]` は後ろに足せる
+    - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
+    - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
+    - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
+    - Response（`SignInResponse`）[決定。2026-11-01。`SyncResponse` の項目を引き継ぐ]: 所持データのほか、進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、このサインインでプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
+  - **プレイヤー未作成のとき**: `SignInAsync` は `PLAYER_NOT_CREATED` を返す（`SignUpAsync` 以外の Uta の RPC の共通の扱い。[server-foundation.md](server/server-foundation.md)）[決定。2026-11-01。ユーザーの判断]。クライアントはそれを受けたら `SignUpAsync` を呼び、あらためて `SignInAsync` を呼ぶ。サインアップの途中で通信が切れた後の再起動（端末には保存あり）も、この経路で直る
+  - `GetPlayerAsync` は作らない（サインインが全件を返し、クライアントがキャッシュするため。必要になったら足す）[決定。2026-11-01。ユーザーの判断]
   - ガチャの交換pt の変換は持たない（MVP のガチャは期間を持たない。[gacha.md](../systems/gacha.md) 4章）
 - **操作の RPC は局面ごとに分ける** [決定]
   - `ChooseWeekActionAsync`: 週の行動を選ぶ（レッスン、授業、支給、休む、相談に入る、など。PRD-02）
@@ -93,7 +98,7 @@ updated: 2026-11-01
 
 | 接頭辞 | 機能 | 例 |
 |---|---|---|
-| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（`SyncAsync` の前に Uta の RPC が来た。[server-foundation.md](server/server-foundation.md)。2026-11-01） |
+| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [決定。2026-11-01。ユーザーの判断]。[server-foundation.md](server/server-foundation.md)。2026-11-01） |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
 | `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
@@ -203,10 +208,10 @@ updated: 2026-11-01
 
 破棄の流れ:
 
-1. `SyncAsync`（起動時）で、進行中のセッションの `app_version`・`state_version`・`rule_version`（サーバーの `RuleVersion`。[repository-layout.md](repository-layout.md) 10.5。2026-11-01 に追加）を確かめ、どれかが違えば破棄して、レスポンスで「破棄した」ことを返す。クライアントはダイアログで知らせる
+1. `SignInAsync`（起動時）で、進行中のセッションの `app_version`・`state_version`・`rule_version`（サーバーの `RuleVersion`。[repository-layout.md](repository-layout.md) 10.5。2026-11-01 に追加）を確かめ、どれかが違えば破棄して、レスポンスで「破棄した」ことを返す。クライアントはダイアログで知らせる
 2. `GetStateAsync` は `[NoSideEffects]` なので破棄しない。違うセッションは「進行中のセッション無し」(`Phase` が `Nothing`。エラーにしない。[produce-domain.md](produce-domain.md) 8章)として返す
 4. `StartAsync` のとき、バージョンが違うセッションが残っていれば、それを破棄してから始める(`PRODUCE_ALREADY_IN_PROGRESS` にしない) [決定。2026-10-31]
-3. 起動後にアプリのバージョンが変わることはないが、`SyncAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）でも確かめる。違えば破棄して `PRODUCE_SESSION_DISCARDED` を返す
+3. 起動後にアプリのバージョンが変わることはないが、`SignInAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）でも確かめる。違えば破棄して `PRODUCE_SESSION_DISCARDED` を返す
 
 - 比べるのは「違うかどうか」（新しいか古いかは見ない）。強制アップデートは実装しないので、古いアプリで接続し直すと、新しいアプリで始めたセッションも破棄される（受け入れる。[repository-layout.md](repository-layout.md) 10.5）
 - 開発中、Unity エディターから同じ `x-app-version` で接続し続ける間は破棄されない。ルールを変えた確認のときは、バージョンを上げるか、放棄してやり直す
