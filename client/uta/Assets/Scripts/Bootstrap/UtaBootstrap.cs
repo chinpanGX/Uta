@@ -30,7 +30,7 @@ namespace Uta.Client.Bootstrap
                         AppInfo.Platform,
                         AppInfo.Version,
                         Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl)),
-                        UnityEngine.Application.identifier),
+                        AppInfo.AccountKeySource),
                     Lifetime.Singleton);
                 builder.Register<SignInUseCase>(Lifetime.Singleton);
                 builder.RegisterEntryPoint<StartupPresenter>();
