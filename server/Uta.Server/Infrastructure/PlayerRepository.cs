@@ -37,6 +37,26 @@ public sealed class PlayerRepository : IPlayerRepository
             cancellationToken: tx.CancellationToken));
     }
 
+    public async Task<int?> TrySpendGachaCurrencyAsync(TxContext tx, Ulid playerId, int cost)
+    {
+        return await tx.Connection.QuerySingleOrDefaultAsync<int?>(new CommandDefinition(
+            "UPDATE players SET gacha_currency = gacha_currency - @cost " +
+            "WHERE player_id = @playerId AND gacha_currency >= @cost " +
+            "RETURNING gacha_currency",
+            new { playerId = playerId.ToString(), cost },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task AddSupportPointsAsync(TxContext tx, Ulid playerId, int points)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE players SET support_points = support_points + @points WHERE player_id = @playerId",
+            new { playerId = playerId.ToString(), points },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
     private sealed class Row
     {
         public int Level { get; set; }

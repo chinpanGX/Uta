@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Uta.Server.Application.Support;
+using Uta.Server.Domain.Support;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Infrastructure;
@@ -11,6 +12,15 @@ public sealed class SupportCardRepository : ISupportCardRepository
         await tx.Connection.ExecuteAsync(new CommandDefinition(
             "INSERT INTO player_support_cards (support_card_uid, player_id, card_id) VALUES (@uid, @playerId, @cardId)",
             new { uid = uid.ToString(), playerId = playerId.ToString(), cardId },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task<bool> HasMaxLimitBreakAsync(TxContext tx, Ulid playerId, int cardId)
+    {
+        return await tx.Connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "SELECT EXISTS (SELECT 1 FROM player_support_cards WHERE player_id = @playerId AND card_id = @cardId AND limit_break >= @max)",
+            new { playerId = playerId.ToString(), cardId, max = SupportRules.MaxLimitBreak },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
     }

@@ -1,4 +1,7 @@
-﻿using NetArchTest.Rules;
+﻿using System.Reflection;
+using MagicOnion.Server;
+using NetArchTest.Rules;
+using Uta.Server.Api;
 using Uta.Server.Infrastructure;
 
 namespace Uta.Server.Tests.Architecture;
@@ -66,6 +69,36 @@ public class ArchitectureTests
     public void ApplicationNamespace_HasTypes()
     {
         Assert.NotEmpty(LayerTypes("Application").GetTypes());
+    }
+
+    [Fact]
+    public void DomainNamespace_HasTypes()
+    {
+        Assert.NotEmpty(LayerTypes("Domain").GetTypes());
+    }
+
+    [Fact]
+    public void Services_HaveUtaServiceAttribute()
+    {
+        var services = typeof(PlayerResolver).Assembly.GetTypes()
+            .Where(t => !t.IsAbstract && IsServiceBase(t) && t != typeof(PlayerService))
+            .ToList();
+
+        Assert.NotEmpty(services);
+        Assert.All(services, t => Assert.NotNull(t.GetCustomAttribute<UtaServiceAttribute>()));
+    }
+
+    private static bool IsServiceBase(Type type)
+    {
+        for (var b = type.BaseType; b is not null; b = b.BaseType)
+        {
+            if (b.IsGenericType && b.GetGenericTypeDefinition() == typeof(ServiceBase<>))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     [Fact]

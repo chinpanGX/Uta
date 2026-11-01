@@ -12,4 +12,9 @@ public interface IPlayerRepository
 
     /// <summary>通貨を加算する（初期付与）。</summary>
     Task GrantCurrenciesAsync(TxContext tx, Ulid playerId, int gachaCurrency, int gold, int supportPoints);
+
+    /// <summary>ガチャ通貨を減らし、残りを返す。足りなければ null（更新は 0 行）。</summary>
+    Task<int?> TrySpendGachaCurrencyAsync(TxContext tx, Ulid playerId, int cost);
+
+    Task AddSupportPointsAsync(TxContext tx, Ulid playerId, int points);
 }

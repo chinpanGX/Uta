@@ -16,6 +16,24 @@ public sealed class IdolRepository : IIdolRepository
         return affected == 1;
     }
 
+    public async Task<bool> ExistsAsync(TxContext tx, Ulid playerId, int idolId)
+    {
+        return await tx.Connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "SELECT EXISTS (SELECT 1 FROM player_idols WHERE player_id = @playerId AND idol_id = @idolId)",
+            new { playerId = playerId.ToString(), idolId },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
+    public async Task AddShardsAsync(TxContext tx, Ulid playerId, int idolId, int shards)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE player_idols SET shards = shards + @shards WHERE player_id = @playerId AND idol_id = @idolId",
+            new { playerId = playerId.ToString(), idolId, shards },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
+    }
+
     public async Task<IReadOnlyList<OwnedIdol>> ListAsync(TxContext tx, Ulid playerId)
     {
         var rows = await tx.Connection.QueryAsync<Row>(new CommandDefinition(
