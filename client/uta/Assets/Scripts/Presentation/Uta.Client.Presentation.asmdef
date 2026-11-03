@@ -5,7 +5,8 @@
         "Uta.Client.Application",
         "Uta.Shared.Domain",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

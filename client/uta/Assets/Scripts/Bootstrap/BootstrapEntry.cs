@@ -3,6 +3,7 @@ using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Uta.Client.Application.Auth;
+using Uta.Client.Application.Navigation;
 using Uta.Client.Application.Player;
 using Uta.Client.Infrastructure;
 using Uta.Client.Infrastructure.Api;
@@ -16,10 +17,10 @@ using VContainer.Unity;
 
 namespace Uta.Client.Bootstrap
 {
-    internal static class UtaBootstrap
+    /// <summary>Bootstrap シーンの起点。マスタを読み、ルートの LifetimeScope を組んで Title へ進む。</summary>
+    public sealed class BootstrapEntry : MonoBehaviour
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Start()
+        private void Start()
         {
             RunAsync().Forget();
         }
@@ -31,10 +32,10 @@ namespace Uta.Client.Bootstrap
             var quitAfterCheck = Array.IndexOf(args, "-uta-quit-after-check") >= 0;
 
             var view = new GameObject("StartupView").AddComponent<StartupView>();
-            UnityEngine.Object.DontDestroyOnLoad(view.gameObject);
+            DontDestroyOnLoad(view.gameObject);
             var errorDialog = new GameObject("ErrorDialogView").AddComponent<ErrorDialogView>();
             errorDialog.Initialize(quitAfterCheck);
-            UnityEngine.Object.DontDestroyOnLoad(errorDialog.gameObject);
+            DontDestroyOnLoad(errorDialog.gameObject);
 
             CardCatalog cardCatalog;
             try
@@ -50,28 +51,38 @@ namespace Uta.Client.Bootstrap
                 {
                     UnityEngine.Application.Quit(1);
                 }
+
                 return;
             }
 
             Debug.Log("[Uta] master: ok cards=" + cardCatalog.CardIds.Count);
+            view.SetText(string.Empty);
 
             var accountPath = Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl));
             var scope = LifetimeScope.Create(builder =>
             {
-                builder.RegisterInstance(view);
                 builder.RegisterInstance<ICardCatalog>(cardCatalog);
                 builder.RegisterInstance(new StartupOptions(quitAfterCheck));
+                builder.Register<SceneNavigator>(Lifetime.Singleton).As<ISceneNavigator>();
+                builder.Register<ErrorNavigator>(Lifetime.Singleton).As<IErrorNavigator>();
                 builder.Register<UtaApiClient>(
-                    _ => UtaApiClient.Create(serverUrl, AppInfo.Platform, AppInfo.Version, accountPath, AppInfo.AccountKeySource, new DefaultCommonErrorHandler(errorDialog)),
+                    resolver => UtaApiClient.Create(
+                        serverUrl,
+                        AppInfo.Platform,
+                        AppInfo.Version,
+                        accountPath,
+                        AppInfo.AccountKeySource,
+                        new DefaultCommonErrorHandler(errorDialog),
+                        quitAfterCheck ? null : resolver.Resolve<IErrorNavigator>()),
                     Lifetime.Singleton);
                 builder.Register<DeviceAuthGateway>(Lifetime.Singleton).As<IDeviceAuthPort>();
                 builder.Register<PlayerGateway>(Lifetime.Singleton).As<IPlayerPort>();
                 builder.Register<PlayerCache>(Lifetime.Singleton);
                 builder.Register<SignInUseCase>(Lifetime.Singleton);
                 builder.Register<EnterPlayerUseCase>(Lifetime.Singleton);
-                builder.RegisterEntryPoint<StartupPresenter>();
             });
-            UnityEngine.Object.DontDestroyOnLoad(scope.gameObject);
+            DontDestroyOnLoad(scope.gameObject);
+            await scope.Container.Resolve<ISceneNavigator>().GoToTitleAsync();
         }
     }
 }
