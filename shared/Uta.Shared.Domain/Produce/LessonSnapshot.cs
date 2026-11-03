@@ -218,6 +218,11 @@ namespace Uta.Shared.Domain.Produce
             for (var i = 0; i < persistentEffects.Length; i++)
             {
                 var p = Persistents[i];
+                if (!ContainsCardId(cards, p.CardId))
+                {
+                    throw new ArgumentException(nameof(Persistents) + ": 未知のカード ID " + p.CardId + " です。");
+                }
+
                 var def = cards.Get(p.CardId);
                 if (p.Enhanced && def.Enhanced == null)
                 {
@@ -263,6 +268,32 @@ namespace Uta.Shared.Domain.Produce
                 UsesLeft,
                 ParamGained,
                 NextGrantOrder);
+        }
+
+        private static bool ContainsCardId(ICardCatalog cards, int cardId)
+        {
+            var ids = cards.CardIds;
+            var low = 0;
+            var high = ids.Count - 1;
+            while (low <= high)
+            {
+                var mid = low + (high - low) / 2;
+                if (ids[mid] == cardId)
+                {
+                    return true;
+                }
+
+                if (ids[mid] < cardId)
+                {
+                    low = mid + 1;
+                }
+                else
+                {
+                    high = mid - 1;
+                }
+            }
+
+            return false;
         }
 
         internal static CardInstanceSnapshot[] CopyCards(IReadOnlyList<CardInstance> cards)

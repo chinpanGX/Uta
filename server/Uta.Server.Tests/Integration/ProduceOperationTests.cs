@@ -1,6 +1,11 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Uta.Server.Application.Produce;
+using Uta.Server.Infrastructure;
 using Uta.Server.Tests.Integration.Support;
+using VolTech.Server.Transaction;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Domain.Lesson;
@@ -286,5 +291,113 @@ public class ProduceOperationTests(PostgresFixture postgres)
         Assert.Equal(versionBefore, await Scalar<int>("SELECT version FROM produce_sessions WHERE player_id = $1", player));
         var accepted = await ChooseAsync(player, "req-5", 0, 0, -1, ParamKind.Singing);
         Assert.Equal(ProducePhase.Lesson, accepted.Phase);
+    }
+
+
+    /// <summary>セッションを読んだ直後に別のリクエストが version を進めた状況を作る（読み込みと更新の間の競合）。</summary>
+    private sealed class ConflictInjector
+    {
+        public Func<Task>? AfterFind { get; set; }
+    }
+
+    private sealed class ConflictingSessionRepository(IProduceSessionRepository inner, ConflictInjector injector) : IProduceSessionRepository
+    {
+        public async Task<ProduceSessionRecord?> FindActiveAsync(TxContext tx, Ulid playerId)
+        {
+            var record = await inner.FindActiveAsync(tx, playerId);
+            if (injector.AfterFind is { } hook)
+            {
+                await hook();
+            }
+
+            return record;
+        }
+
+        public Task InsertAsync(TxContext tx, Ulid sessionId, Ulid playerId, int appVersion, ProduceSessionData data) =>
+            inner.InsertAsync(tx, sessionId, playerId, appVersion, data);
+
+        public Task<bool> TryUpdateAsync(TxContext tx, Ulid sessionId, int expectedVersion, ProduceSessionStatus status, ProduceSessionData data) =>
+            inner.TryUpdateAsync(tx, sessionId, expectedVersion, status, data);
+
+        public Task<bool> TrySetStatusAsync(TxContext tx, Ulid sessionId, int expectedVersion, ProduceSessionStatus status) =>
+            inner.TrySetStatusAsync(tx, sessionId, expectedVersion, status);
+
+        public Task InsertResultAsync(TxContext tx, ProduceResultRecord result) => inner.InsertResultAsync(tx, result);
+    }
+
+    private async Task<(UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player, ConflictInjector Injector)> StartConflictableAsync()
+    {
+        var injector = new ConflictInjector();
+        var factory = new UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL), configureServices: services =>
+        {
+            services.RemoveAll<IProduceSessionRepository>();
+            services.AddScoped<IProduceSessionRepository>(sp =>
+                new ConflictingSessionRepository(ActivatorUtilities.CreateInstance<ProduceSessionRepository>(sp), injector));
+        });
+        var channel = factory.CreateGrpcChannel();
+        var player = await PlayerClient.CreateAsync(channel, "0123456789abcdef-secret");
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+        await player.CallAsync(service => service.SignInAsync(), "req-2");
+        return (factory, channel, player, injector);
+    }
+
+    private async Task<(int GachaCurrency, int Gold, int SupportPoints, int Level, int Exp)> PlayerValuesAsync(PlayerClient player) =>
+        (await Scalar<int>("SELECT gacha_currency FROM players WHERE player_id = $1", player),
+            await Scalar<int>("SELECT gold FROM players WHERE player_id = $1", player),
+            await Scalar<int>("SELECT support_points FROM players WHERE player_id = $1", player),
+            await Scalar<int>("SELECT level FROM players WHERE player_id = $1", player),
+            await Scalar<int>("SELECT exp FROM players WHERE player_id = $1", player));
+
+    private static Func<Task> BumpVersion(PostgresFixture postgres, PlayerClient player) =>
+        () => postgres.ExecuteAsync("UPDATE produce_sessions SET version = version + 1 WHERE player_id = $1", player.PlayerId);
+
+    [Fact]
+    public async Task Operation_CompletingOperation_OptimisticLockConflict_RollsBackEverything()
+    {
+        var (factory, channel, player, injector) = await StartConflictableAsync();
+        await using var _ = factory;
+        using var __ = channel;
+        var current = await StartProduceAsync(player, "req-3");
+        var driver = new ProduceDriver(player);
+        for (var i = 0; current.Phase != ProducePhase.ExamResult; i++)
+        {
+            Assert.True(i < 3000, "ExamResult に届かなかった");
+            current = await driver.StepAsync(current);
+        }
+
+        var playerBefore = await PlayerValuesAsync(player);
+        var resultsBefore = await Scalar<long>("SELECT count(*) FROM produce_results WHERE player_id = $1", player);
+        injector.AfterFind = BumpVersion(postgres, player);
+
+        await AssertReasonAsync(
+            () => player.CallAsync<IProduceService, ProduceStateResponse>(
+                x => x.DecideExamRetryAsync(new DecideExamRetryRequest(current.OperationNumber, false)), "req-complete"),
+            "PRODUCE_STALE_OPERATION");
+
+        Assert.Equal(playerBefore, await PlayerValuesAsync(player));
+        Assert.Equal(resultsBefore, await Scalar<long>("SELECT count(*) FROM produce_results WHERE player_id = $1", player));
+        Assert.Equal(0, await Scalar<long>(
+            "SELECT count(*) FROM game_logs WHERE player_id = $1 AND kind = 'produce' AND body->>'reason' = 'produce_reward'", player));
+        Assert.Equal(0, await Scalar<int>("SELECT status FROM produce_sessions WHERE player_id = $1", player));
+    }
+
+    [Fact]
+    public async Task Abandon_OptimisticLockConflict_RollsBackEverything()
+    {
+        var (factory, channel, player, injector) = await StartConflictableAsync();
+        await using var _ = factory;
+        using var __ = channel;
+        await StartProduceAsync(player, "req-3");
+        var playerBefore = await PlayerValuesAsync(player);
+        var resultsBefore = await Scalar<long>("SELECT count(*) FROM produce_results WHERE player_id = $1", player);
+        injector.AfterFind = BumpVersion(postgres, player);
+
+        await AssertReasonAsync(
+            () => player.CallAsync<IProduceService, ProduceResultResponse>(x => x.AbandonAsync(), "req-abandon"),
+            "PRODUCE_STALE_OPERATION");
+
+        Assert.Equal(playerBefore, await PlayerValuesAsync(player));
+        Assert.Equal(resultsBefore, await Scalar<long>("SELECT count(*) FROM produce_results WHERE player_id = $1", player));
+        Assert.Equal(0, await Scalar<int>("SELECT status FROM produce_sessions WHERE player_id = $1", player));
     }
 }

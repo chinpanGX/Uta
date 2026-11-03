@@ -318,6 +318,14 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
+        public void ToState_UnknownPersistentCardId_ThrowsArgumentException()
+        {
+            var (catalog, _, snapshot) = PersistentSnapshotSource();
+            snapshot.Persistents[0].CardId = int.MaxValue;
+            Assert.Throws<ArgumentException>(() => snapshot.ToState(catalog));
+        }
+
+        [Fact]
         public void ToState_EffectIndexNegative_Throws()
         {
             var (catalog, _, snapshot) = PersistentSnapshotSource();

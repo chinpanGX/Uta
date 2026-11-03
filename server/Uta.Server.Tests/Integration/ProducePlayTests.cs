@@ -2,6 +2,7 @@
 using Grpc.Net.Client;
 using Uta.Server.Domain.Produce;
 using Uta.Server.Infrastructure;
+using Uta.Server.Infrastructure.Produce;
 using Uta.Server.Tests.Integration.Support;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Produce;
@@ -291,5 +292,39 @@ public class ProducePlayTests(PostgresFixture postgres)
         Assert.Null(retried.ExamResult);
         var final = await new ProduceDriver(player).PlayToEndAsync(retried);
         Assert.Equal(ProduceEnding.Completed, final.Result.Ending);
+    }
+
+    [Fact]
+    public async Task Replay_FromSavedOperations_MatchesSavedState()
+    {
+        await using var factory = NewFactory(postgres);
+        using var channel = factory.CreateGrpcChannel();
+        var (player, signIn) = await NewPlayerAsync(channel);
+        await PlayShortestAsync(player, signIn);
+
+        var bytes = await Scalar<byte[]>("SELECT state FROM produce_sessions WHERE player_id = $1", player);
+        Assert.NotNull(bytes);
+        var data = ProduceStateSerializer.Deserialize(bytes);
+        var master = MasterDataLoader.Load();
+        var catalog = MasterProduceCatalog.Create(master, MasterCardCatalog.Create(master));
+        var engine = new ProduceEngine(catalog);
+
+        var saved = data.Snapshot.ToState(catalog);
+
+        var supports = data.Snapshot.SupportCards
+            .Select(x => new SupportCardInput(x.CardId, x.Level, x.LimitBreak))
+            .ToArray();
+        var input = new ProduceStartInput(data.Snapshot.ScenarioId, data.Snapshot.IdolId, data.Snapshot.PlayerLevel, supports);
+        var streams = new SessionRandomStreams(data.MasterSeed, []);
+        var replayed = engine.Start(input, streams);
+        foreach (var operation in data.Snapshot.Operations)
+        {
+            var command = new ProduceCommand(operation.Kind, operation.Arg1, operation.Arg2, operation.Arg3);
+            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(replayed, command, streams));
+        }
+
+        Assert.Equal(ProducePhase.Finished, saved.Phase);
+        Assert.NotEmpty(data.Snapshot.Operations);
+        Assert.Empty(ProduceStateComparer.Diff(saved, replayed));
     }
 }

@@ -18,9 +18,12 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
 
     private readonly IRandomSource? randomSource;
 
-    public UtaServerFactory(PostgresFixture postgres, DateTimeOffset? now = null, IRandomSource? randomSource = null)
+    private readonly Action<IServiceCollection>? configureServices;
+
+    public UtaServerFactory(PostgresFixture postgres, DateTimeOffset? now = null, IRandomSource? randomSource = null, Action<IServiceCollection>? configureServices = null)
     {
         this.randomSource = randomSource;
+        this.configureServices = configureServices;
         // Program.cs が builder.Configuration から読むので、環境変数で渡す（ConfigureAppConfiguration は間に合わない）。
         // 環境変数は user-secrets より優先されるので、開発機のローカル DB には落ちない。コンストラクタで渡すので、フィクスチャの初期化前には作れない
         Environment.SetEnvironmentVariable(ConnectionStringVariable, postgres.ConnectionString);
@@ -47,6 +50,8 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
                 services.RemoveAll<IRandomSource>();
                 services.AddSingleton(randomSource);
             }
+
+            configureServices?.Invoke(services);
         });
     }
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Uta.Shared.Domain.Lesson;
 
 namespace Uta.Shared.Domain.Produce
