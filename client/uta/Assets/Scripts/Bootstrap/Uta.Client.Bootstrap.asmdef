@@ -7,6 +7,7 @@
         "Uta.Client.Presentation",
         "Uta.Shared.Domain",
         "VolTech.MagicOnion.Client",
+        "VolTech.Server.Abstractions",
         "UniTask",
         "VContainer"
     ],

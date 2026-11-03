@@ -1,41 +1,25 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using Grpc.Core;
-using Grpc.Net.Client;
 using VolTech.Client;
 using VolTech.Client.Auth;
-using VolTech.Client.Unity;
 using VolTech.Server.Abstractions;
 using Uta.Client.Application.Auth;
 using Uta.Client.Infrastructure.Api;
 
 namespace Uta.Client.Infrastructure.Auth
 {
-    public sealed class DeviceAuthGateway : IDeviceAuthPort, IDisposable
+    public sealed class DeviceAuthGateway : IDeviceAuthPort
     {
-        private readonly GrpcChannel channel;
+        private readonly UtaApiClient api;
         private readonly IDeviceService client;
         private readonly DeviceTokenProvider provider;
 
-        private DeviceAuthGateway(GrpcChannel channel, IDeviceService client, DeviceTokenProvider provider)
+        public DeviceAuthGateway(UtaApiClient api)
         {
-            this.channel = channel;
-            this.client = client;
-            this.provider = provider;
-        }
-
-        /// <param name="serverUrl">例: http://localhost:5000</param>
-        /// <param name="platform">AppVersion.Windows など（Bootstrap が決める）</param>
-        public static DeviceAuthGateway Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource)
-        {
-            var channel = ApiChannel.Create(serverUrl);
-            var callInvoker = ApiChannel.CreateCallInvoker(channel);
-            var client = ServiceClientFactory.Create<IDeviceService>(callInvoker);
-            var provider = new DeviceTokenProvider(
-                client,
-                new EncryptedFileAccountStore(accountFilePath, keySource),
-                new ApiCoreOptions(new AppVersion(platform, appVersion)));
-            return new DeviceAuthGateway(channel, client, provider);
+            this.api = api;
+            client = api.DeviceClient;
+            provider = api.TokenProvider;
         }
 
         public async UniTask<AccountState> GetAccountStateAsync()
@@ -81,9 +65,12 @@ namespace Uta.Client.Infrastructure.Auth
             }
         }
 
-        public void Dispose()
+        public async UniTask InvalidateServerSideTokenAsync()
         {
-            channel.Dispose();
+            var other = api.CreateTokenProvider();
+            await other.GetAccountStatusAsync();
+            other.Invalidate(null);
+            await other.GetTokenAsync();   // サーバーが新しいトークンを発行し、古いトークン（メインの持つもの）が無効になる
         }
     }
 }

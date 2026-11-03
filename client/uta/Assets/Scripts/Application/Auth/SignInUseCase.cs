@@ -38,5 +38,7 @@ namespace Uta.Client.Application.Auth
         {
             return port.CanReceiveServerErrorAsync();
         }
+
+        public UniTask InvalidateServerSideTokenAsync() => port.InvalidateServerSideTokenAsync();
     }
 }

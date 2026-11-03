@@ -15,5 +15,8 @@ namespace Uta.Client.Application.Auth
 
         /// <summary>存在しない端末でトークンを求め、サーバーの認証エラー（Unauthenticated）が届けば true。</summary>
         UniTask<bool> CanReceiveServerErrorAsync();
+
+        /// <summary>別のトークンの提供者で発行し直し、いまこの端末が持つトークンをサーバー側で無効にする（再認証の再送の診断用）。</summary>
+        UniTask InvalidateServerSideTokenAsync();
     }
 }

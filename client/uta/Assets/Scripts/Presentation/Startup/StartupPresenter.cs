@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Uta.Client.Application.Auth;
+using Uta.Client.Application.Player;
 using VContainer.Unity;
 
 namespace Uta.Client.Presentation.Startup
@@ -10,13 +11,15 @@ namespace Uta.Client.Presentation.Startup
     public sealed class StartupPresenter : IStartable
     {
         private readonly SignInUseCase signIn;
+        private readonly EnterPlayerUseCase enterPlayer;
         private readonly StartupView view;
         private readonly StartupOptions options;
         private readonly List<string> lines = new List<string>();
 
-        public StartupPresenter(SignInUseCase signIn, StartupView view, StartupOptions options)
+        public StartupPresenter(SignInUseCase signIn, EnterPlayerUseCase enterPlayer, StartupView view, StartupOptions options)
         {
             this.signIn = signIn;
+            this.enterPlayer = enterPlayer;
             this.view = view;
             this.options = options;
         }
@@ -31,13 +34,22 @@ namespace Uta.Client.Presentation.Startup
             var succeeded = false;
             try
             {
-                AddLine("sign-in: start");
+                AddLine("startup: start");
 
-                var signedUp = await signIn.ExecuteAsync();
-                AddLine(signedUp ? "sign-in: SignedUp" : "sign-in: SignedIn");
+                var registered = await signIn.ExecuteAsync();
+                AddLine(registered ? "device: registered" : "device: token issued");
+
+                var entered = await enterPlayer.ExecuteAsync(registered);
+                AddLine("sign-up: " + (!entered.SignedUp ? "skipped" : entered.Created ? "created" : "already exists"));
+                var s = entered.Snapshot;
+                AddLine("sign-in: ok level=" + s.Level + " exp=" + s.Exp + " gold=" + s.Gold + " supportPoints=" + s.SupportPoints + " gachaCurrency=" + s.GachaCurrency + " idols=" + s.Idols.Count + " supportCards=" + s.SupportCards.Count + " hasActiveProduce=" + s.HasActiveProduce + " discardedProduce=" + s.DiscardedProduce);
 
                 await signIn.ReissueAsync();
                 AddLine("reissue: ok");
+
+                await signIn.InvalidateServerSideTokenAsync();
+                await enterPlayer.ExecuteAsync(false);
+                AddLine("reauth retry: ok");
 
                 if (await signIn.CanReceiveServerErrorAsync())
                 {

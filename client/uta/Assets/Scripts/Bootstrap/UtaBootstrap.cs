@@ -3,10 +3,14 @@ using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Uta.Client.Application.Auth;
+using Uta.Client.Application.Player;
 using Uta.Client.Infrastructure;
+using Uta.Client.Infrastructure.Api;
 using Uta.Client.Infrastructure.Auth;
+using Uta.Client.Infrastructure.Player;
 using Uta.Client.Presentation.Startup;
 using Uta.Shared.Domain.Lesson;
+using VolTech.Client;
 using VContainer;
 using VContainer.Unity;
 
@@ -24,9 +28,13 @@ namespace Uta.Client.Bootstrap
         {
             var args = Environment.GetCommandLineArgs();
             var serverUrl = ServerEndpoint.Resolve(args);
+            var quitAfterCheck = Array.IndexOf(args, "-uta-quit-after-check") >= 0;
 
             var view = new GameObject("StartupView").AddComponent<StartupView>();
             UnityEngine.Object.DontDestroyOnLoad(view.gameObject);
+            var errorDialog = new GameObject("ErrorDialogView").AddComponent<ErrorDialogView>();
+            errorDialog.Initialize(quitAfterCheck);
+            UnityEngine.Object.DontDestroyOnLoad(errorDialog.gameObject);
 
             CardCatalog cardCatalog;
             try
@@ -38,7 +46,7 @@ namespace Uta.Client.Bootstrap
                 var message = "master: FAILED " + e.GetType().FullName + ": " + e.Message;
                 Debug.LogError("[Uta] " + message);
                 view.SetText(message);
-                if (Array.IndexOf(args, "-uta-quit-after-check") >= 0)
+                if (quitAfterCheck)
                 {
                     UnityEngine.Application.Quit(1);
                 }
@@ -47,20 +55,20 @@ namespace Uta.Client.Bootstrap
 
             Debug.Log("[Uta] master: ok cards=" + cardCatalog.CardIds.Count);
 
+            var accountPath = Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl));
             var scope = LifetimeScope.Create(builder =>
             {
                 builder.RegisterInstance(view);
                 builder.RegisterInstance<ICardCatalog>(cardCatalog);
-                builder.RegisterInstance(new StartupOptions(Array.IndexOf(args, "-uta-quit-after-check") >= 0));
-                builder.Register<IDeviceAuthPort>(
-                    _ => (IDeviceAuthPort)DeviceAuthGateway.Create(
-                        serverUrl,
-                        AppInfo.Platform,
-                        AppInfo.Version,
-                        Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl)),
-                        AppInfo.AccountKeySource),
+                builder.RegisterInstance(new StartupOptions(quitAfterCheck));
+                builder.Register<UtaApiClient>(
+                    _ => UtaApiClient.Create(serverUrl, AppInfo.Platform, AppInfo.Version, accountPath, AppInfo.AccountKeySource, new DefaultCommonErrorHandler(errorDialog)),
                     Lifetime.Singleton);
+                builder.Register<DeviceAuthGateway>(Lifetime.Singleton).As<IDeviceAuthPort>();
+                builder.Register<PlayerGateway>(Lifetime.Singleton).As<IPlayerPort>();
+                builder.Register<PlayerCache>(Lifetime.Singleton);
                 builder.Register<SignInUseCase>(Lifetime.Singleton);
+                builder.Register<EnterPlayerUseCase>(Lifetime.Singleton);
                 builder.RegisterEntryPoint<StartupPresenter>();
             });
             UnityEngine.Object.DontDestroyOnLoad(scope.gameObject);
