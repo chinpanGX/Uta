@@ -24,6 +24,7 @@ updated: 2026-11-03
 - **画面は uGUI + `UnityScreenNavigator`** で作る [決定。[ADR 0009](../decisions/0009-client-stack.md)]
 - **DI は VContainer、非同期処理は UniTask** [決定。ADR 0009]
 - **画面は縦向き**。Windows は縦長のウィンドウで動かす [決定。ADR 0009]
+- **シーンは Bootstrap / Title / Home / Produce の 4 つ**。Bootstrap が起動の起点。Title でスタートをタップすると、サインアップ・サインインの通信をする [決定。2026-11-03。ユーザーの判断。7章]
 - クライアントは `Uta.Shared.Domain` を、使用可否の判定と予測の表示まで使う。シードは持たない [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]
 
 ## 1. Presentation 層の構成 [Uta案]
@@ -95,6 +96,8 @@ updated: 2026-11-03
 4. サインアップ・サインイン [決定。2026-11-01。ユーザーの判断。`SyncAsync` を分けた]: 端末の登録をした直後（初回）は `IPlayerService.SignUpAsync`（プレイヤーの作成と初期付与）を呼び、そのあと `SignInAsync`（所持データの全件取得とバージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）を呼ぶ。保存ありの起動は `SignInAsync` だけ。`SignInAsync` が `PLAYER_NOT_CREATED` を返したら、`SignUpAsync` を呼んでから `SignInAsync` をやり直す [決定。2026-11-01。ユーザーの判断]。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる。受け取った所持データはクライアントがキャッシュする（`PlayerCache`）。実装の経路は [api-design.md](api-design.md) 1章「クライアントの実装」。診断用の IMGUI（`StartupView`・`ErrorDialogView`）に結果を出すところまでで、画面は順 7 [2026-11-03]
 5. ホームへ遷移する
 
+シーンとの対応 [決定。2026-11-03。ユーザーの判断。7章]: 手順 1 は Bootstrap シーン、手順 2〜4 は **Title シーンでスタートをタップしたとき**、手順 5 は Home シーンの読み込み。マスタの読み込みはタップの前（Bootstrap）に済ませる。
+
 Addressables に移ったあとの、更新確認のタイミングは未決。
 
 ## 5. 通信とエラーの画面側の扱い [Uta案]
@@ -109,6 +112,26 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - レッスン・試験の画面は、`Uta.Shared.Domain` の効果エンジンで**使用可否の判定と予測値の表示**をする（PRD-04、PRD-08）。確定はサーバーの結果（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - クライアントはシードを持たないので、ドローなど乱数が絡む結果は予測しない。操作後は、サーバーのレスポンスで画面を確定させる
 - 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
+
+## 7. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
+
+Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（順 7 の画面の計画で使う。この章の時点では各シーンに最小の uGUI を置くだけ）。
+
+| シーン | 役割 | 遷移 |
+|---|---|---|
+| `Bootstrap` | 起動の起点（Build Settings の先頭）。マスタを読み、アプリ全体で共有するもの（ルートの DI スコープ）を作り、`Title` を読み込む。マスタの読み込みに失敗したら、エラーを表示して止まる（4章） | → `Title` |
+| `Title` | 「スタートをタップ」を待つ。タップしたら端末の登録・トークンの発行・サインアップ・サインイン（4章 2〜4）を行い、成功したら `Home` へ。失敗したら状態を表示し、もう一度タップできる | → `Home` |
+| `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ | → `Produce` |
+| `Produce` | プロデュース。この章の時点では空（文字と `Home` へ戻るボタンだけ） | → `Home` |
+
+- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの View・Presenter（と、そのシーンだけの診断の補助）だけを登録する。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
+- **シーンの遷移は `ISceneNavigator`**（Application のポート: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
+- **通信エラーの後の遷移**: `ApiCore` に `IErrorNavigator`（VolTech-MagicOnion）を渡す。`GoToTitleAsync` は `Title` の読み込み、`GoToHomeAsync` は `Home` の読み込み、`OpenStoreAsync` は未実装（ログだけ。強制アップデートは実装しないため。[repository-layout.md](repository-layout.md) 10.5）。実装は `ISceneNavigator` を呼ぶだけの小さなクラスで、`Bootstrap` に置く。`ReturnToTitle` で `Title` が読み込み直されると、通信中だった古い Presenter の続きが破棄された View に触らないよう、Presenter は View が破棄済みなら何もしない。診断（下記）のときはナビゲーターを渡さない
+- **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
+- **Home に入ったとき `PlayerCache.Current` が無い**（サインインしていない）場合は、`Title` へ戻す
+- 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。画面の計画で、診断を別の入口に分ける [Uta案]
+- 最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする（手で組み立てを再現できるように）。文字は英語の組み込みフォント（`LegacyRuntime.ttf`）。日本語の文字・TextMeshPro・デザインは画面の計画（順 7）
+- 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）
 
 ## 未決事項
 
