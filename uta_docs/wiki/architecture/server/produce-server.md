@@ -65,7 +65,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 - `week` / `turn`: 保存のたびに状態の `Week` と `Lesson?.Turn ?? 0` を入れる(調査用。判定には使わない)
 - `exam_outcome` / `produce_rank`: `ExamOutcome` / `ProduceRank` の数値(放棄・破棄は 0)。`final_score` / `final_rank`: 最終試験を受けていなければ 0
 - 楽観ロック: `UPDATE produce_sessions SET ..., version = version + 1, updated_at = now() WHERE session_id = @id AND version = @version`。0 行なら `PRODUCE_STALE_OPERATION`
-- **バージョンの定数**(`Uta.Server.Application.Produce.ProduceVersions`): `StateVersion = 1`(`state` の形を変えたら上げる)、`RuleVersion = 1`([repository-layout.md](../repository-layout.md) 10.5。`Uta.Shared.Domain`・マスタ・サーバーのルールを変えたコミットで上げる)。セッションの 3 つのバージョン(`app_version`・`state_version`・`rule_version`)のどれかが今と違えば「古い」セッション。`state_version` が違うときは `state` を読まない
+- **バージョンの定数**(`Uta.Server.Application.Produce.ProduceVersions`): `StateVersion = 1`(`state` の形を変えたら上げる)、`RuleVersion = 1`([repository-layout.md](../repository-layout.md) 10.5。`Uta.Shared.Domain`・マスタ・サーバーのルールを変えたコミットで上げる)。セッションの 3 つのバージョン(`app_version`・`state_version`・`rule_version`)のどれかが今と違えば「古い」セッション。`state_version` が違うときは `state` を読まない。`state_version` が同じでも `state` が読めない(MessagePack の例外)ときは、`Data = null` にして古いセッションと同じに扱う(`SignInAsync` が起動できなくなるのを防ぐ)
 - **`state` の形**(`Uta.Server.Infrastructure.Produce` の `[MessagePackObject]` の型。整数キーは 0 から宣言順):
   - `ProduceStateBlob`: `MasterSeed`(`ulong`)、`Streams`(`RandomStreamBlob[]`)、`Snapshot`(`ProduceSnapshotBlob`)
   - `RandomStreamBlob`: `Kind`(`int`)、`Week`、`Attempt`、`S0` `S1` `S2` `S3`(`ulong`)、`DrawCount`(`long`)
@@ -90,13 +90,15 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 
 ### `StartAsync`
 
-1. `RentalCandidateId` が 0 でなければ `PRODUCE_INVALID_ARGUMENT`
-2. `ScenarioId` がマスタに無ければ `PRODUCE_INVALID_ARGUMENT`
-3. 編成の検証([idol-support.md](../../systems/idol-support.md) 2.1 の 1〜6。どれに当たっても `PRODUCE_INVALID_FORMATION`)。1 育成アイドルを所持していない、2 所持IDが 6 個以上、3 所持IDが自分の所持でない(形が違う文字列を含む)、4 同じ所持IDが 2 回、5・6 は `FormationValidator.Validate`(カード ID の重複・プランの不一致)
-4. 進行中のセッションがあるとき: 古ければ破棄する(下の「破棄」)。古くなければ `PRODUCE_ALREADY_IN_PROGRESS`
+1. `ScenarioId` がマスタに無ければ `PRODUCE_INVALID_ARGUMENT`
+2. 編成の検証([idol-support.md](../../systems/idol-support.md) 2.1 の 1〜6。どれに当たっても `PRODUCE_INVALID_FORMATION`)。1 育成アイドルを所持していない、2 所持IDが 6 個以上、3 所持IDが自分の所持でない(形が違う文字列を含む)、4 同じ所持IDが 2 回、5・6 は `FormationValidator.Validate`(カード ID の重複・プランの不一致)
+3. `RentalCandidateId` が 0 でなければ `PRODUCE_INVALID_ARGUMENT`([idol-support.md](../../systems/idol-support.md) 2.1 の 7。編成の検証のあと)
+4. 進行中のセッションがあるとき: 古ければ破棄する(下の「破棄」。破棄は 1〜3 の検証と同じトランザクションなので、検証に落ちれば破棄も巻き戻る)。古くなければ `PRODUCE_ALREADY_IN_PROGRESS`
 5. プレイヤーLv を `players` から読む。`ProduceStartInput(scenarioId, idolId, level, supportCards)` を作る(`supportCards` は所持IDの順に、`player_support_cards` の `card_id`・`level`・`limit_break`。開始時の性能の写し。完了条件 3)
 6. マスターシードを作り、`ProduceEngine.Start`。スナップショットを保存(新しいセッション ID(ULID)、`app_version` は引数、`state_version`・`rule_version` は定数)
 7. Response は 6 の状態
+
+同じプレイヤーの別の `x-request-id` の `StartAsync` が同時に来ることは、基盤の直列化([api-design.md](../api-design.md) 3章)で起きない。部分ユニークインデックス違反は想定せず、起きたら内部エラーのままにする
 
 ### `GetStateAsync`(`[NoSideEffects]`)
 

@@ -24,19 +24,19 @@ spec: ../wiki/architecture/server/produce-server.md, ../wiki/architecture/produc
 | 操作 | パス | 中身 | タスク |
 |---|---|---|---|
 | 作成 | `C/Produce/`（フォルダ）に 4.1 の表のファイル | DTO・サービス IF・エラー | 1 |
-| 作成 | `S/Migrations/0006_create_produce_tables.sql` | [produce-server.md](../wiki/architecture/server/produce-server.md) 3章の DDL（そのまま） | 2 |
-| 作成 | `S/Domain/Produce/RandomStreamState.cs`、`S/Domain/Produce/SessionRandomStreams.cs` | 4.2 | 2 |
-| 作成 | `S/Application/Produce/ProduceVersions.cs`、`ProduceSessionStatus.cs`、`ProduceSessionData.cs`（`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`）、`IProduceSessionRepository.cs` | 4.3 | 2 |
-| 作成 | `S/Infrastructure/Produce/ProduceStateBlobs.cs`、`S/Infrastructure/Produce/ProduceStateSerializer.cs`、`S/Infrastructure/ProduceSessionRepository.cs` | 4.4 | 2 |
+| 作成 | `S/Migrations/0006_create_produce_tables.sql` | [produce-server.md](../wiki/architecture/server/produce-server.md) 3章の DDL（そのまま） | 2a |
+| 作成 | `S/Domain/Produce/RandomStreamState.cs`、`S/Domain/Produce/SessionRandomStreams.cs` | 4.2 | 2a |
+| 作成 | `S/Application/Produce/ProduceVersions.cs`、`ProduceSessionStatus.cs`、`ProduceSessionData.cs`（`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`）、`IProduceSessionRepository.cs` | 4.3 | 2b |
+| 作成 | `S/Infrastructure/Produce/ProduceStateBlobs.cs`、`S/Infrastructure/Produce/ProduceStateSerializer.cs`、`S/Infrastructure/ProduceSessionRepository.cs` | 4.4 | 2b |
 | 作成 | `S/Infrastructure/MasterData/MasterProduceCatalog.cs` | 4.5 | 3 |
 | 変更 | `S/Program.cs` | 4.5・4.9 の登録 | 3、4 |
-| 作成 | `S/Application/Produce/ProduceView.cs`、`ProduceViewBuilder.cs`、`ProduceSessionDiscarder.cs`、`StartProduceUseCase.cs`、`GetProduceStateUseCase.cs`、`AbandonProduceUseCase.cs` | 4.6 | 4 |
-| 変更 | `S/Application/Common/UseCaseError.cs`、`S/Api/UtaServiceAttribute.cs` | 4.7 | 4 |
-| 作成 | `S/Api/AppVersionHeader.cs`、`S/Api/ProduceResponseMapper.cs`、`S/Api/ProduceService.cs` | 4.8 | 4 |
+| 作成 | `S/Application/Produce/ProduceView.cs`、`ProduceViewBuilder.cs`、`ProduceSessionDiscarder.cs`、`StartProduceUseCase.cs`、`GetProduceStateUseCase.cs`、`AbandonProduceUseCase.cs` | 4.6 | 4a・4b（`GetProduceStateUseCase`・`AbandonProduceUseCase` は 4b） |
+| 変更 | `S/Application/Common/UseCaseError.cs`、`S/Api/UtaServiceAttribute.cs` | 4.7 | 4a |
+| 作成 | `S/Api/AppVersionHeader.cs`、`S/Api/ProduceResponseMapper.cs`、`S/Api/ProduceService.cs` | 4.8 | 4a |
 | 変更 | `S/Application/Player/SignInUseCase.cs`、`SignInResult.cs`、`S/Api/PlayerService.cs` | 4.10 | 5 |
-| 変更 | `T/Integration/Support/PlayerClient.cs` | 4.11 | 4 |
-| 作成 | `T/Integration/Support/RpcAssert.cs` | 4.11 | 4 |
-| 作成 | `T/Domain/SessionRandomStreamsTests.cs`、`T/Infrastructure/ProduceStateSerializerTests.cs`、`T/MasterData/MasterProduceCatalogTests.cs`、`T/Integration/ProduceStartTests.cs` | 5章 | 2〜5 |
+| 変更 | `T/Integration/Support/PlayerClient.cs` | 4.11 | 4a |
+| 作成 | `T/Integration/Support/RpcAssert.cs` | 4.11 | 4a |
+| 作成 | `T/Domain/SessionRandomStreamsTests.cs`、`T/Integration/MigrationTests.cs`、`T/Infrastructure/ProduceStateSerializerTests.cs`、`T/MasterData/MasterProduceCatalogTests.cs`、`T/Integration/ProduceStartTests.cs` | 5章 | 2a〜5 |
 | 変更 | `uta_docs/wiki/architecture/server/produce-server.md` ほか | 実装で決めたことの反映（メインのセッション） | 6 |
 
 ## 3. 書式
@@ -51,7 +51,7 @@ spec: ../wiki/architecture/server/produce-server.md, ../wiki/architecture/produc
 
 | ファイル | 型 | フィールド（宣言順） |
 |---|---|---|
-| `IProduceService.cs` | `IProduceService : IService<IProduceService>` | `UnaryResult<ProduceStateResponse> StartAsync(StartProduceRequest request);`、`[NoSideEffects] UnaryResult<ProduceStateResponse> GetStateAsync();`、`UnaryResult<ProduceResultResponse> AbandonAsync();`（`using MagicOnion; using VolTech.Server.Abstractions;`。操作の 4 つは次の計画で足す） |
+| `IProduceService.cs` | `IProduceService : IService<IProduceService>` | `UnaryResult<ProduceStateResponse> StartAsync(StartProduceRequest request);` だけ（`using MagicOnion; using VolTech.Server.Abstractions;`。`[NoSideEffects] UnaryResult<ProduceStateResponse> GetStateAsync();` と `UnaryResult<ProduceResultResponse> AbandonAsync();` はタスク 4b で足す。操作の 4 つは次の計画） |
 | `StartProduceRequest.cs` | `StartProduceRequest` | `int idolId`、`string[] supportCardUids`、`int rentalCandidateId`、`int scenarioId` |
 | `ProduceEnding.cs` | `enum ProduceEnding` | `Nothing = 0`、`Completed = 1`、`Abandoned = 2`、`Discarded = 3` |
 | `ProduceStateResponse.cs` | `ProduceStateResponse` | `int operationNumber`、`ProducePhase phase`、`int scenarioId`、`int idolId`、`int week`、`int singing`、`int rhythm`、`int expression`、`int hp`、`int maxHp`、`int examRetryLeft`、`DeckCardDto[] deck`、`WeekActionDto[] weekActions`、`ClassOptionDto[] classOptions`、`int[] cardOffers`、`LessonDto lesson`、`ExamResultDto examResult`、`ProduceResultResponse result` |
@@ -71,7 +71,7 @@ spec: ../wiki/architecture/server/produce-server.md, ../wiki/architecture/produc
 `S/Domain/Produce/`（namespace `Uta.Server.Domain.Produce`）:
 
 ```csharp
-public sealed record RandomStreamState(RandomStreamKind Kind, int Week, int Attempt, ulong S0, ulong S1, ulong S2, ulong S3, long DrawCount);
+public sealed record RandomStreamState(RandomStreamKey Key, ulong S0, ulong S1, ulong S2, ulong S3, long DrawCount);
 
 public sealed class SessionRandomStreams : IRandomStreamSource
 {
@@ -135,8 +135,8 @@ public interface IProduceSessionRepository
 ### 4.4 Infrastructure（タスク 2）
 
 - `ProduceStateBlobs.cs`（namespace `Uta.Server.Infrastructure.Produce`）: [produce-server.md](../wiki/architecture/server/produce-server.md) 3章の `ProduceStateBlob`・`RandomStreamBlob`、`ProduceSnapshot` の 10 個の型それぞれの `…Blob`。すべて `public sealed class`、`[MessagePackObject]`、`[Key(n)]`（0 から宣言順）の `{ get; set; }`。プロパティの名前・型・順は元のスナップショットの型と同じ（produce-domain.md 6.1 の表）。違いは: enum は `int`、入れ子のスナップショットの型は対応する `…Blob`。配列は空の配列で初期化（`= []`）
-- `ProduceStateSerializer.cs`: `public static class ProduceStateSerializer { public static byte[] Serialize(ProduceSessionData data); public static ProduceSessionData Deserialize(byte[] bytes); }`。中で `ProduceSessionData` ↔ `ProduceStateBlob` を、型のペアごとの `private static` の変換関数（`ToBlob(X)` / `FromBlob(XBlob)`）で手書きし、`MessagePackSerializer.Serialize(blob)` / `MessagePackSerializer.Deserialize<ProduceStateBlob>(bytes)` を使う（オプションは既定）。`Streams` は `RandomStreamState` ↔ `RandomStreamBlob`（`Kind` は `int` との相互変換）
-- `ProduceSessionRepository.cs`（`S/Infrastructure/`）: `IProduceSessionRepository` を実装。SQL は Dapper（`CommandDefinition(sql, parameters, tx.Transaction, cancellationToken: tx.CancellationToken)`。`PlayerRepository` と同じ書き方）。`FindActiveAsync`: `SELECT session_id AS SessionId, app_version AS AppVersion, state_version AS StateVersion, rule_version AS RuleVersion, version AS Version, state AS State FROM produce_sessions WHERE player_id = @playerId AND status = 0`。`state_version == ProduceVersions.StateVersion` のときだけ `ProduceStateSerializer.Deserialize(State)`、違えば `Data = null`。ID は `x.ToString()` で渡し、`Ulid.Parse` で読む。`InsertAsync` / `TryUpdateAsync` / `TrySetStatusAsync` / `InsertResultAsync` は [produce-server.md](../wiki/architecture/server/produce-server.md) 3章の列に対応する `INSERT` / `UPDATE`（更新は `ExecuteAsync` の戻り値 == 1 を返す）。`produce_results.ending` は `(int)Ending`、`exam_outcome` は `(int)ExamOutcome`、`produce_rank` は `(int)Rank`
+- `ProduceStateSerializer.cs`: `public static class ProduceStateSerializer { public static byte[] Serialize(ProduceSessionData data); public static ProduceSessionData Deserialize(byte[] bytes); }`。中で `ProduceSessionData` ↔ `ProduceStateBlob` を、型のペアごとの `private static` の変換関数（`ToBlob(X)` / `FromBlob(XBlob)`）で手書きし、`MessagePackSerializer.Serialize(blob)` / `MessagePackSerializer.Deserialize<ProduceStateBlob>(bytes)` を使う（オプションは既定）。`Streams` は `RandomStreamState` ↔ `RandomStreamBlob`（`Key.Kind` は `int` との相互変換、`Key.Week`・`Key.Attempt` はそのまま。復元は `new RandomStreamKey((RandomStreamKind)blob.Kind, blob.Week, blob.Attempt)`）
+- `ProduceSessionRepository.cs`（`S/Infrastructure/`）: `IProduceSessionRepository` を実装。SQL は Dapper（`CommandDefinition(sql, parameters, tx.Transaction, cancellationToken: tx.CancellationToken)`。`PlayerRepository` と同じ書き方）。`FindActiveAsync`: `SELECT session_id AS SessionId, app_version AS AppVersion, state_version AS StateVersion, rule_version AS RuleVersion, version AS Version, state AS State FROM produce_sessions WHERE player_id = @playerId AND status = 0`。`state_version == ProduceVersions.StateVersion` のときだけ `ProduceStateSerializer.Deserialize(State)` を `try` で呼び、**例外が出たら（`Exception` 全部）`Data = null`**。違うときも `Data = null`。ID は `x.ToString()` で渡し、`Ulid.Parse` で読む。`InsertAsync` / `TryUpdateAsync` / `TrySetStatusAsync` / `InsertResultAsync` は [produce-server.md](../wiki/architecture/server/produce-server.md) 3章の列に対応する `INSERT` / `UPDATE`（更新は `ExecuteAsync` の戻り値 == 1 を返す）。`produce_results.ending` は `(int)Ending`、`exam_outcome` は `(int)ExamOutcome`、`produce_rank` は `(int)Rank`
 
 ### 4.5 マスタの詰め替えと登録（タスク 3）
 
@@ -205,14 +205,14 @@ public sealed class StartProduceUseCase(
 
 手順（上から。投げるのは `UseCaseException(UseCaseError.X, "メッセージ")`）:
 
-1. `rentalCandidateId != 0` → `ProduceInvalidArgument`
-2. `catalog.GetScenario(scenarioId)` を `try` で呼び、`KeyNotFoundException` なら `ProduceInvalidArgument`
-3. `await idols.ExistsAsync(tx, playerId, idolId)` が false → `ProduceInvalidFormation`（`IdolId` がマスタに無い場合も所持していないので同じ）
-4. `supportCardUids.Count > ProduceRules.MaxSupportCards` → `ProduceInvalidFormation`
-5. `uids`: 各文字列を `Ulid.TryParse` し、失敗したら `ProduceInvalidFormation`。同じ `Ulid` が 2 回あれば `ProduceInvalidFormation`。各 `uid` を `supportCards.FindAsync(tx, playerId, uid)` で読み、`null` なら `ProduceInvalidFormation`。読んだ `OwnedSupportCard`（`CardId`・`Level`・`LimitBreak`）を枠の順に集める
-6. `FormationValidator.Validate(catalog, idolId, cardIds)` が `Ok` でなければ `ProduceInvalidFormation`
+1. `catalog.GetScenario(scenarioId)` を `try` で呼び、`KeyNotFoundException` なら `ProduceInvalidArgument`
+2. `await idols.ExistsAsync(tx, playerId, idolId)` が false → `ProduceInvalidFormation`（`IdolId` がマスタに無い場合も所持していないので同じ）
+3. `supportCardUids.Count > ProduceRules.MaxSupportCards` → `ProduceInvalidFormation`
+4. `uids`: 各文字列を `Ulid.TryParse` し、失敗したら `ProduceInvalidFormation`。同じ `Ulid` が 2 回あれば `ProduceInvalidFormation`。各 `uid` を `supportCards.FindAsync(tx, playerId, uid)` で読み、`null` なら `ProduceInvalidFormation`。読んだ `OwnedSupportCard`（`CardId`・`Level`・`LimitBreak`）を枠の順に `var owned = new List<OwnedSupportCard>();` に集める
+5. `var cardIds = owned.Select(x => x.CardId).ToList();` `FormationValidator.Validate(catalog, idolId, cardIds)` が `Ok` でなければ `ProduceInvalidFormation`
+6. `rentalCandidateId != 0` → `ProduceInvalidArgument`（idol-support.md 2.1 の 7。編成の検証のあと）
 7. `var existing = await sessions.FindActiveAsync(tx, playerId);` があるとき、`ProduceVersions.IsCurrent(existing, appVersion)` なら `ProduceAlreadyInProgress`、そうでなければ `await discarder.DiscardAsync(tx, playerId, existing)`
-8. `var player = await players.FindAsync(tx, playerId) ?? throw new InvalidOperationException("player not found");` `input = new ProduceStartInput(scenarioId, idolId, player.Level, owned.Select(x => new SupportCardInput(x.CardId, x.Level, x.LimitBreak)).ToList())`
+8. （手順 7 の破棄も、1〜6 の検証と同じトランザクションで、検証に落ちれば巻き戻る。同時の `StartAsync` の部分ユニークインデックス違反は想定しない）`var player = await players.FindAsync(tx, playerId) ?? throw new InvalidOperationException("player not found");` `input = new ProduceStartInput(scenarioId, idolId, player.Level, owned.Select(x => new SupportCardInput(x.CardId, x.Level, x.LimitBreak)).ToList())`
 9. `var seed = randomSource.Create().NextUInt64(); var streams = new SessionRandomStreams(seed, []); var state = engine.Start(input, streams);`
 10. `var data = new ProduceSessionData(seed, streams.Export(), ProduceSnapshot.From(state, catalog.Cards)); await sessions.InsertAsync(tx, Ulid.NewUlid(), playerId, appVersion, data);`
 11. `return viewBuilder.Build(state, null, null);`
@@ -223,7 +223,7 @@ public sealed class StartProduceUseCase(
 
 ### 4.7 エラーの変換（タスク 4）
 
-`UseCaseError` に追加: `ProduceStaleOperation`、`ProduceUnexpectedPhase`、`ProduceInvalidArgument`、`ProduceInvalidFormation`、`ProduceNotInProgress`、`ProduceSessionDiscarded`、`ProduceAlreadyInProgress`。`UtaServiceAttribute.ToErrorCode` にそれぞれ `ProduceErrors.StaleOperation`・`UnexpectedPhase`・`InvalidArgument`・`InvalidFormation`・`NotInProgress`・`SessionDiscarded`・`AlreadyInProgress` を対応させる（`using Uta.Shared.Contracts.Produce;`）。`ToErrorCode` を `internal static` にする。`[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]` に変える（メソッドに付けられるようにする。4.10 で使う）。
+`UseCaseError` に追加: `ProduceStaleOperation`、`ProduceUnexpectedPhase`、`ProduceInvalidArgument`、`ProduceInvalidFormation`、`ProduceNotInProgress`、`ProduceSessionDiscarded`、`ProduceAlreadyInProgress`。`UtaServiceAttribute.ToErrorCode` にそれぞれ `ProduceErrors.StaleOperation`・`UnexpectedPhase`・`InvalidArgument`・`InvalidFormation`・`NotInProgress`・`SessionDiscarded`・`AlreadyInProgress` を対応させる（`using Uta.Shared.Contracts.Produce;`）。`ToErrorCode` を `internal static` にする。`[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]` に変える（メソッドに付けられるようにする。4.10 で使う）。クラスの XML コメントを「`IPlayerService` 以外のサービスの実装クラスと、`PlayerService.SignInAsync` のメソッドに付ける。…」に直す。
 
 ### 4.8 Api（タスク 4）
 
@@ -233,7 +233,7 @@ public sealed class StartProduceUseCase(
   - それ以外: `OperationNumber = state.NextOperationNumber`、`Phase`、`ScenarioId`・`IdolId` は `state.Input`、`Week`、`Singing` / `Rhythm` / `Expression` は `state.GetParam(...)`、`Hp` は `state.Lesson?.Hp ?? state.Hp`、`MaxHp = state.MaxHp`、`ExamRetryLeft`、`Deck` は `state.Deck` を `InstanceId` の昇順に `DeckCardDto`、`WeekActions` は `view.WeekChoices` を `WeekActionDto(SlotIndex, Kind, Selectable)`、`ClassOptions` は `view.ClassOptions` を `ClassOptionDto(Index, HpCost, Param, ParamGain, GivesCard, Selectable)`、`CardOffers = state.OfferCards.ToArray()`、`Lesson = state.Lesson == null ? null : ToLessonDto(state.Lesson, view.NpcScores)`、`ExamResult` は `view.ExamResult` を `ExamResultDto(Kind, Attempt, Score, Rank, NpcScores.ToArray(), Passed)`（`null` なら `null`）、`Result = view.End == null ? null : ToResultResponse(view.End)`
   - `ToLessonDto`: `Kind`・`TargetParam`・`MaxTurns`・`ClearTarget`・`PerfectTarget` は `lesson.Setup`、`ExamTurns` は `lesson.Setup.Exam` が `null` なら空、あれば `ExamTurnDto(Param, ScoreBonusPercent)`、`Turn`・`Shield`・`UsesLeft`・`ParamGained`、`Hand = lesson.Zones.Hand.ToArray()`（並びのまま）、`DrawPile` / `Discard` / `Exiled` は昇順に並べた配列、`StatusValues` は `i = 0..StatusSet.KindCount - 1` の `lesson.Statuses.Get((StatusKind)i)`、`ParamBonuses` は `ParamBonusDto(Percent, RemainingTurns)`、`Persistents` は `PersistentDto(Trigger, RemainingTurns, RemainingCount)`、`LessonEnhanced = lesson.LessonEnhanced.ToArray()`、`NpcScores = npcScores.ToArray()`
   - `ToResultResponse`: `ProduceEnding` は `(ProduceEnding)(int)end.Ending`。ほかは同名のフィールド（`PlayerLevel` / `PlayerExp`）
-- `ProduceService.cs`: `[UtaService] public sealed class ProduceService(ITransactions transactions, StartProduceUseCase start, GetProduceStateUseCase getState, AbandonProduceUseCase abandon) : ServiceBase<IProduceService>, IProduceService`。`GachaService` と同じ形（`#pragma warning disable CS8644`、`Context.GetAuthContext().PlayerId`、`transactions.RunAsync(Context, async tx => ...)`）。3 つの RPC とも先頭で `var appVersion = AppVersionHeader.Require(Context);`。`StartAsync` は `start.ExecuteAsync(tx, playerId, appVersion, request.IdolId, request.SupportCardUids ?? [], request.RentalCandidateId, request.ScenarioId)` → `ProduceResponseMapper.ToStateResponse`、`GetStateAsync` は `getState.ExecuteAsync` → `ToStateResponse`、`AbandonAsync` は `abandon.ExecuteAsync` → `ToResultResponse`
+- `ProduceService.cs`: `[UtaService] public sealed class ProduceService(ITransactions transactions, StartProduceUseCase start, GetProduceStateUseCase getState, AbandonProduceUseCase abandon) : ServiceBase<IProduceService>, IProduceService`。`GachaService` と同じ形（`#pragma warning disable CS8644`、`Context.GetAuthContext().PlayerId`、`transactions.RunAsync(Context, async tx => ...)`）。`StartAsync` はタスク 4a、`GetStateAsync`・`AbandonAsync` はタスク 4b で書く。3 つの RPC とも先頭で `var appVersion = AppVersionHeader.Require(Context);`。`StartAsync` は `start.ExecuteAsync(tx, playerId, appVersion, request.IdolId, request.SupportCardUids ?? [], request.RentalCandidateId, request.ScenarioId)` → `ProduceResponseMapper.ToStateResponse`、`GetStateAsync` は `getState.ExecuteAsync` → `ToStateResponse`、`AbandonAsync` は `abandon.ExecuteAsync` → `ToResultResponse`
 
 ### 4.9 DI の登録（タスク 4）
 
@@ -260,16 +260,20 @@ public sealed class StartProduceUseCase(
 
 4.1 のファイルを作る。確かめ方: ビルドが通る。
 
-### タスク 2: 保存の土台
+### タスク 2a: テーブルと乱数ストリーム
 
-マイグレーション、4.2・4.3・4.4。テスト（`T/Domain/SessionRandomStreamsTests.cs`、`T/Infrastructure/ProduceStateSerializerTests.cs`）:
+マイグレーション、4.2。テスト（`T/Domain/SessionRandomStreamsTests.cs`、`T/Integration/MigrationTests.cs`）:
 
 1. `SessionRandomStreams_ExportThenRestore_ContinuesSequence`: マスターシード 7、キー `(Week, 1, 0)` と `(Lesson, 1, 0)` から 5 個ずつ `NextUInt64()` を引き、`Export()` → 新しい `SessionRandomStreams(7, exported)` → 次の 5 個ずつが、続けて引いた場合（もう 1 つの `SessionRandomStreams(7, [])` で 10 個引く）の後半と一致する
 2. `SessionRandomStreams_SameKey_SameObject`、`SessionRandomStreams_Export_OrderedByKey`（キー `(Lesson, 3, 0)`、`(Week, 1, 0)`、`(Scenario, 0, 0)` の順に `Get` しても、`Export` は `ToUInt64()` の昇順）、`SessionRandomStreams_Export_IncludesLoadedStreamsNotRequested`
+### タスク 2b: 保存の形とリポジトリ
+
+4.3、4.4。テスト（`T/Infrastructure/ProduceStateSerializerTests.cs`）:
+
 3. `Serializer_RoundTrip_SameState`（`[Theory]`: シナリオ 2 のアイドル 1〜4、シード 1・2・3）: `catalog = TestProduceMaster.Create()`（`Uta.Shared.Domain.Tests.Produce`。テストプロジェクトは `Uta.Shared.Domain.Tests` を参照している）、`SessionRandomStreams` を乱数源にして `ProduceBot.Next` → `Apply` で最後まで進め、**10 回の操作ごとと最後に**、`ProduceSnapshot.From` → `ProduceStateSerializer.Serialize` → `Deserialize` → `ToState(catalog)` が元の状態と `ProduceStateComparer.Diff` が空
 4. `Serializer_ResumeWithStreams_SameFinalState`（同じ組み合わせ）: 同じシードで A（途中を保存せず最後まで）と B（**10 回の操作ごとに** `Serialize(new ProduceSessionData(seed, streams.Export(), snapshot))` → `Deserialize` → `new SessionRandomStreams(data.MasterSeed, data.Streams)` と `ToState` で作り直して続ける）を走らせ、最後の状態が一致し `Operations` の件数も同じ
 5. `Serializer_NullableParts_RoundTrip`: 開始直後（`Lesson` などが `null`）の往復で、`null` が `null` のまま
-6. `Migration_CreatesTables`: `PostgresFixture` で `SELECT count(*) FROM information_schema.tables WHERE table_name IN ('produce_sessions','produce_results')` が 2（`PostgresFixture` は `[Collection(PostgresCollection.Name)]` で受け取る）
+6. `Migration_CreatesTables`（`T/Integration/MigrationTests.cs`。2a のテスト）: `PostgresFixture` で `SELECT count(*) FROM information_schema.tables WHERE table_name IN ('produce_sessions','produce_results')` が 2（`PostgresFixture` は `[Collection(PostgresCollection.Name)]` で受け取る）
 
 確かめ方: 上のテストと既存のテストが通る。
 
@@ -282,19 +286,24 @@ public sealed class StartProduceUseCase(
 
 確かめ方: `dotnet test --project server/Uta.Server.Tests` が通る。
 
-### タスク 4: 開始・状態・放棄
+### タスク 4a: 開始
 
-4.6〜4.9、4.11。テスト（`T/Integration/ProduceStartTests.cs`。`[Collection(PostgresCollection.Name)]`。`SupportTests` の `StartAsync` と同じ形で、`UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL, 333UL, 444UL))` を使い、`SignUpAsync` のあと `player.CallAsync<IProduceService, ProduceStateResponse>(x => x.StartAsync(new StartProduceRequest(...)), "req-n")`。エラーの確認は `Assert.ThrowsAsync<RpcException>` で例外を受けて `RpcAssert.Reason(exception, StatusCode.FailedPrecondition, "PRODUCE_…")`）:
+4.6 の `ProduceView`・`ProduceViewBuilder`・`ProduceSessionDiscarder`・`StartProduceUseCase`、4.7〜4.9（`ProduceService` は `StartAsync` だけ。`GetProduceStateUseCase`・`AbandonProduceUseCase` は 4b）、4.11。テスト（`T/Integration/ProduceStartTests.cs`。`[Collection(PostgresCollection.Name)]`。`SupportTests` の `StartAsync` と同じ形で、`UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL, 333UL, 444UL))` を使い、`SignUpAsync` のあと `player.CallAsync<IProduceService, ProduceStateResponse>(x => x.StartAsync(new StartProduceRequest(...)), "req-n")`。エラーの確認は `Assert.ThrowsAsync<RpcException>` で例外を受けて `RpcAssert.Reason(exception, StatusCode.FailedPrecondition, "PRODUCE_…")`）:
 
 1. `Start_InitialHoldings_ReturnsWeekSelect`: アイドル 1、所持IDなし、`rentalCandidateId` 0、シナリオ 1。`Phase == WeekSelect`、`Week == 1`、`OperationNumber == 0`、`ScenarioId == 1`、`IdolId == 1`、`Hp == MaxHp == 30`、`Singing == 30`・`Rhythm == 20`・`Expression == 10`、`WeekActions` は 2 件（枠 0 がレッスンで選べる、枠 1 が休むで選べない）、`Deck` が空でなく `InstanceId` の昇順。DB: `produce_sessions` に 1 行（`status` 0、`app_version` 1、`state_version` 1、`rule_version` 1、`version` 0、`week` 1）
 2. `Start_SameRequestId_ReturnsSavedResponse`: 同じ `x-request-id` で 2 回呼ぶと同じレスポンスで、`produce_sessions` は 1 行のまま
 3. `Start_WhileInProgress_AlreadyInProgress`: 別の `x-request-id` で 2 回目は `PRODUCE_ALREADY_IN_PROGRESS`
 4. `Start_InvalidFormation_Rejected`（`[Theory]` か複数の `[Fact]`。いずれも `FAILED_PRECONDITION` + `PRODUCE_INVALID_FORMATION`）: 未所持のアイドル（3）、所持IDが 6 個（`SignInAsync` の `SupportCards` の 5 枚 + `Ulid.NewUlid().ToString()`）、形が違う文字列（`"x"`）、他人の所持ID（別の `PlayerClient`（別の `secret`）のカードの所持ID）、同じ所持ID が 2 回、同じカード ID の別の所持ID（`player_support_cards` に `card_id` 1 の行を `SupportTests.AddMaterialAsync` と同じ SQL で足し、元の所持IDと並べる）、プランの不一致（アイドル 1 は感性。`card_id` 7（理論）の行を足して並べる）
 5. `Start_ReflectsSupportCardLevel`: アイドル 1 で `card_id` 1 の所持ID を 1 枚つけて開始 → `Singing == 30 + ProduceFormulas.AbilityValue(3, 20, 1, 40)`。`AbandonAsync` → `ISupportService.LevelUpAsync` で目標 20 → 再び開始 → `Singing == 30 + ProduceFormulas.AbilityValue(3, 20, 20, 40)` で、前より大きい（`ScriptedRandomSource` の値は 2 個目を使う）
-6. `Start_RentalNotZero_InvalidArgument`、`Start_UnknownScenario_InvalidArgument`（99）
+6. `Start_RentalNotZero_InvalidArgument`（編成は正しく `rentalCandidateId` だけ 1）、`Start_RentalNotZeroAndInvalidFormation_InvalidFormation`（編成が不正で `rentalCandidateId` も 1 なら `PRODUCE_INVALID_FORMATION`）、`Start_UnknownScenario_InvalidArgument`（99）
+### タスク 4b: 状態・放棄
+
+`GetProduceStateUseCase`・`AbandonProduceUseCase`、`IProduceService` に `GetStateAsync`（`[NoSideEffects]`）と `AbandonAsync`、`ProduceService` の実装、DI の登録。テスト（`ProduceStartTests.cs` に足す）:
+
 7. `GetState_NoSession_ReturnsNothing`: `Phase == Nothing`、`Deck` と `WeekActions` が空、`Lesson` / `ExamResult` / `Result` が `null`
 8. `GetState_AfterStart_MatchesStartResponse`: `Phase`・`Week`・`OperationNumber`・`Hp`・`Singing`・`Deck.Length`・`WeekActions.Length` が開始のレスポンスと同じ
 9. `GetState_StaleVersions_ReturnsNothingWithoutWriting`: 開始後に `UPDATE produce_sessions SET rule_version = 0`（別のテストで `state_version = 0, state = '\x00'::bytea`）→ `GetStateAsync` は `Nothing`、`status` は 0 のまま
+9b. `GetState_CorruptState_ReturnsNothing_AndSignInDiscards`: `state_version` は今のまま `state = '\x00'::bytea` にすると、`GetStateAsync` は `Nothing`、`SignInAsync` は `DiscardedProduce == true`（`SignInAsync` はタスク 5 の後に確かめる。タスク 4b では `GetStateAsync` が `Nothing` になるところまで）
 10. `GetState_DifferentAppVersion_ReturnsNothing`: `player.WithAppVersion("2")` の `GetStateAsync` は `Nothing`。`WithAppVersion(null)` の `GetStateAsync` は `PRODUCE_INVALID_ARGUMENT`
 11. `Abandon_InProgress_RecordsResult`: 開始 → `AbandonAsync` → `Ending == Abandoned`、`PlayerLevel == 1`。DB: `produce_sessions.status` 2、`produce_results` に 1 行（`ending` 2、`produce_rank` 0、`gacha_currency` など 0）。`players.gacha_currency` は変わらない。そのあと `GetStateAsync` は `Nothing`、`StartAsync` がまた通る
 12. `Abandon_NoSession_NotInProgress`、`Abandon_DifferentAppVersion_SessionDiscardedWithoutWriting`（`WithAppVersion("2")` の `AbandonAsync` は `PRODUCE_SESSION_DISCARDED`、DB の `status` は 0 のまま）

@@ -18,6 +18,7 @@ spec: ../wiki/architecture/produce-domain.md, ../wiki/architecture/lesson-domain
   - `LessonState` には、保存した値から作り直す public コンストラクタがある（`LessonState.cs` の 2 つ目）。`Zones(drawPile, hand, discard, exiled)`、`StatusSet(IReadOnlyList<int> values, IReadOnlyList<bool> skipNextDecrement)`（長さは `StatusSet.KindCount`）、`ParamBonusEntry(percent, remainingTurns, skipNextDecrement)`、`PersistentEffect(trigger, effects, remainingTurns, remainingCount, grantOrder, skipNextDecrement)` も public
   - `ScheduleEffect` は `EffectExecutor` が対応していない（`NotSupportedException`）ので、`LessonState.Scheduled` は常に空
   - `ProduceStateComparer.Diff(expected, actual)`（空なら一致）と `LessonStateComparer.Diff` がある。往復の比較に使う
+- 持続効果を「由来の参照一致」で見つける理由 [決定。2026-11-03]: 代案(効果の中身を平らに写す / `PersistentEffect` に由来を持たせて `Lesson` の型を変える)より、`Lesson` の型を変えず、スナップショットの量も増えない。契約: `From` に渡す `ICardCatalog` は、状態を動かしたエンジンの `ProduceCatalog.Cards` と**同じインスタンス**でなければならない(別のインスタンスだと `Children` の参照が一致せず `InvalidOperationException` になる)。サーバーは `ProduceCatalog` を Singleton で 1 つだけ持つ
 - この計画で**決めないこと**: サーバーの保存の形（MessagePack）、DB、RPC（次の計画）。`Lesson` の型の変更（しない）
 
 ## 2. 触るファイル
@@ -63,7 +64,7 @@ public LessonState ToState(ICardCatalog cards);
 
 `ToState(ICardCatalog cards)`:
 
-1. 検査（`ArgumentException`。メッセージは `"<項目名>: <理由>"`）: 配列プロパティが `null`、`StatusValues` / `StatusSkipNextDecrement` の長さが `StatusSet.KindCount` でない、`ExamTurnParams` と `ExamTurnScoreBonusPercents` の長さが違う
+1. 検査（`ArgumentException`。`null` も `ArgumentNullException` にせず `ArgumentException`。メッセージは `"<項目名>: <理由>"`）: 配列プロパティが `null`、配列の要素（`CardInstanceSnapshot` など）が `null`、`StatusValues` / `StatusSkipNextDecrement` の長さが `StatusSet.KindCount` でない、`ExamTurnParams` と `ExamTurnScoreBonusPercents` の長さが違う
 2. `exam`: `Kind` が `LessonKind.MidExam` / `LessonKind.FinalExam` なら `new ExamSetup(turns, ExamEarlyEndScore)`（`turns` は `ExamTurn(param, bonus)` の配列）、そうでなければ `null`。`setup = new LessonSetup(Kind, TargetParam, MaxTurns, ClearTarget, PerfectTarget, exam)`
 3. `Persistents` を 1 件ずつ `PersistentEffect` にする: `def = cards.Get(CardId)`、`face = Enhanced ? def.Enhanced : def.Base`（`Enhanced` なのに `def.Enhanced == null` なら `ArgumentException`）、`EffectIndex` が `0` 未満または `face.Effects.Count` 以上、または `face.Effects[EffectIndex].Op != EffectOp.AddPersistent` なら `ArgumentException`。`effect = face.Effects[EffectIndex]` として `new PersistentEffect(effect.Trigger, effect.Children, RemainingTurns, RemainingCount, GrantOrder, SkipNextDecrement)`
 4. `new LessonState(setup, deckInstances, new Zones(DrawPile, Hand, Discard, Exiled), new StatusSet(StatusValues, StatusSkipNextDecrement), paramBonusEntries, new ScheduledEffect[0], persistentEffects, LessonEnhanced, Turn, Phase, Hp, MaxHp, Shield, UsesLeft, ParamGained, NextGrantOrder)`。`deckInstances` は `Deck` から `new CardInstance(InstanceId, CardId, Enhanced)` を並びのまま
@@ -79,7 +80,7 @@ public ProduceState ToState(ProduceCatalog catalog);
 
 `ToState`:
 
-1. 検査（`ArgumentException`、メッセージは `"<項目名>: <理由>"`）: 配列プロパティが `null`、`Parameters` / `BonusPerThousand` の長さが `ProduceRules.ParamCount` でない
+1. 検査（`ArgumentException`。`null` も `ArgumentNullException` にせず `ArgumentException`。メッセージは `"<項目名>: <理由>"`）: 配列プロパティが `null`、配列の要素が `null`、`Lesson` の中の配列も同じ、`Parameters` / `BonusPerThousand` の長さが `ProduceRules.ParamCount` でない
 2. `input = new ProduceStartInput(ScenarioId, IdolId, PlayerLevel, supportInputs)`（`supportInputs` は `new SupportCardInput(CardId, Level, LimitBreak)`）
 3. `state = new ProduceState(input, MaxHp, Parameters, BonusPerThousand, deckInstances, ExamRetryLeft)`
 4. `state.Phase = Phase; Week; Attempt; NextOperationNumber; NextInstanceId; Hp` を代入。`state.SetClassOptionParams(ClassOptionParams); state.SetOfferCards(OfferCards);`
@@ -98,7 +99,7 @@ public ProduceState ToState(ProduceCatalog catalog);
 
 ### タスク 2: 持続効果・不正な値のテスト
 
-- 手順: 6章の 7〜10 を足す。実装（4.2）の誤りが見つかったときは、実装を直す（設計の判断が要るときは止まって報告する）
+- 手順: 6章の 7〜11 を足す。実装（4.2）の誤りが見つかったときは、実装を直す（設計の判断が要るときは止まって報告する）
 - 確かめ方: タスク 1 と同じ
 
 ## 6. テスト（`shared/Uta.Shared.Domain.Tests/Produce/ProduceSnapshotTests.cs`）
@@ -107,14 +108,15 @@ public ProduceState ToState(ProduceCatalog catalog);
 
 1. `From_ToState_AfterStart_SameState`: シナリオ 1・アイドル 1・シード 1（`new TestRandomStreamSource(1)`）で `Start` した状態を `ProduceSnapshot.From(state, Catalog.Cards).ToState(Catalog)` で往復し、元と一致する
 2. `RoundTrip_EveryOperation_SameState`（`[Theory]`）: シナリオ 1（アイドル 1・2）とシナリオ 2（アイドル 1〜4）、シード 1・2・3 のそれぞれで、`ProduceBot.Next` → `Apply` を `Phase == Finished` まで繰り返し、**`Apply` のたびに**往復して元の状態と一致する（`retryExam` は false と true の両方。サポートカードは、シナリオ 2・アイドル 1 のときだけ `new SupportCardInput(1, 5, 0)` を 1 枚つける）
-3. `Resume_EveryOperation_SameFinalState`（`[Theory]`、2 と同じ組み合わせ）: 同じシードで 2 回走らせる。A は途中を保存せずに最後まで。B は `Apply` のたびに `state = ProduceSnapshot.From(state, Catalog.Cards).ToState(Catalog)` で作り直して続ける（乱数のストリームは同じ `TestRandomStreamSource` を使い続ける）。最後の状態が一致し、`Operations` の件数も同じ
+3. `Resume_EveryOperation_SameFinalState`（`[Theory]`、2 と同じ組み合わせ。`retryExam` は false のみ）: 同じシードで 2 回走らせる。A は途中を保存せずに最後まで。B は `Apply` のたびに `state = ProduceSnapshot.From(state, Catalog.Cards).ToState(Catalog)` で作り直して続ける（乱数のストリームは同じ `TestRandomStreamSource` を使い続ける）。最後の状態が一致し、`Operations` の件数も同じ
 4. `RoundTrip_FinishedState_KeepsResult`: 3 の A の最後の状態で、`Result` が `null` でなく、往復して一致する
-5. `RoundTrip_ExamResultPhase_KeepsBackupAndReports`: シナリオ 2 を `retryExam: true` で、`Phase == ExamResult` になるまで進め（`ProduceBot.RunUntil`）、往復して一致する。`ExamBackup` が `null` でなく、`LastExam` が `null` でないことも確かめる
-6. `RoundTrip_LessonInProgress_KeepsZonesAndOrder`: シナリオ 1 で `Phase == Lesson` になり、手札が空でない状態（`ProduceBot.RunUntil(..., stop: s => s.Phase == ProducePhase.Lesson && s.Lesson.Turn >= 2)`）で往復して一致する。山札の並びが `Zones.DrawPile` と同じ順であることも `Assert.Equal` で確かめる
+5. `RoundTrip_ExamResultPhase_KeepsBackupAndReports`: シナリオ 2・アイドル 1・シード 1 を `retryExam: true` で、`Phase == ExamResult` になるまで進め（`ProduceBot.RunUntil(..., stop: s => s.Phase == ProducePhase.ExamResult, retryExam: true)`。中間試験の後は再挑戦が残るので必ずこの局面になる）、`state.Phase == ExamResult` を確かめてから往復して一致する。`ExamBackup` が `null` でなく、`LastExam` が `null` でないことも確かめる
+6. `RoundTrip_LessonInProgress_KeepsZonesAndOrder`: シナリオ 1・アイドル 1・シード 1 で `Phase == Lesson` になり、手札が空でない状態（`ProduceBot.RunUntil(..., stop: s => s.Phase == ProducePhase.Lesson && s.Lesson.Turn >= 2)`）で往復して一致する(進めた後に `state.Phase == Lesson` を確かめる)。山札の並びが `Zones.DrawPile` と同じ順であることも `Assert.Equal` で確かめる
 7. `LessonSnapshot_Persistent_RoundTripsOrigin`: `catalog = new TestCardCatalog()` の `CardIds` を昇順に走査し、`Base.Effects` に `Op == EffectOp.AddPersistent` を含む最初のカードを選ぶ。`TestStates.PlayerState(new[] { cardId }, new[] { 1 }, new int[0], 30, usesLeft: 1)` を `new LessonEngine(catalog).Apply(state, LessonCommand.UseCard(1), TestStates.NewRandom())` で進め、`state.Persistents.Count == 1` を確かめる。`LessonSnapshot.From` → `ToState` で往復して `LessonStateComparer.Diff` が空。`Persistents[0].CardId == cardId`、`Enhanced == false`
 8. `LessonSnapshot_PersistentOfEnhancedFace_RoundTripsOrigin`: 7 と同じカードを強化済みで（`TestStates.PlayerState(..., enhanced: new[] { 1 })`）使い、`Enhanced == true`、往復して一致する。使うカードの `Enhanced` 面に `AddPersistent` が無いときは、`Enhanced` 面に `AddPersistent` を含む最初のカードを別に探す（`def.Enhanced != null`）
-9. `LessonSnapshot_Scheduled_Throws`: `LessonState` の復元用コンストラクタで `ScheduledEffect` を 1 つ持つ状態を作り、`From` が `NotSupportedException`
-10. `ToState_InvalidValues_ThrowsArgumentException`（`[Theory]` か複数の `[Fact]`）: `Parameters` の長さが 2、`LessonSnapshot.StatusValues` の長さが違う、`PersistentSnapshot.EffectIndex` が範囲外、`EffectIndex` の効果が `AddPersistent` でない、`Enhanced = true` で強化面のないカード、配列プロパティが `null`。いずれも `ArgumentException`
+9. `LessonSnapshot_Scheduled_Throws`: `s = TestStates.PlayerState(new[] { 1 }, new[] { 1 }, new int[0], 30)`（カード ID はテストカタログに存在するものなら何でもよい。`CardIds[0]` を使う）の値を `new LessonState(s.Setup, s.Deck, s.Zones, s.Statuses, s.ParamBonuses, new[] { new ScheduledEffect(1, new[] { new EffectDef(EffectOp.GainParam, value: 1) }, 0) }, s.Persistents, s.LessonEnhanced, s.Turn, s.Phase, s.Hp, s.MaxHp, s.Shield, s.UsesLeft, s.ParamGained, s.NextGrantOrder)` に移した状態で、`From` が `NotSupportedException`
+10. `ToState_InvalidValues_ThrowsArgumentException`（複数の `[Fact]`。`Assert.ThrowsAny<ArgumentException>`）: 壊す元のスナップショットは、`ProduceSnapshot` は 1 の開始直後の状態から、`LessonSnapshot` / `PersistentSnapshot` は 7 の状態（持続効果が 1 つあるレッスン）から `From` で作り、プロパティを書き換えて壊す。壊し方: `Parameters` の長さが 2、`LessonSnapshot.StatusValues` の長さが違う、`PersistentSnapshot.EffectIndex` が範囲外、`EffectIndex` の効果が `AddPersistent` でない、`Enhanced = true` で強化面のないカード、配列プロパティが `null`。いずれも `ArgumentException`（またはその派生）
+11. `LessonSnapshot_From_WithOtherCatalogInstance_Throws`: 7 の状態を、`new TestCardCatalog()` の**別のインスタンス**を渡して `From` すると `InvalidOperationException`（参照一致の契約）
 
 実行するコマンド: `dotnet build Uta.slnx`、`dotnet test --project shared/Uta.Shared.Domain.Tests`。
 
