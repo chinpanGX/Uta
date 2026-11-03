@@ -20,16 +20,18 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
         return await transactions.RunAsync(Context, async tx => new SignUpResponse(await signUp.ExecuteAsync(tx, playerId)));
     }
 
+    [UtaService]
     public async UnaryResult<SignInResponse> SignInAsync()
     {
         var playerId = Context.GetAuthContext().PlayerId;
+        var appVersion = AppVersionHeader.Read(Context);
         return await transactions.RunAsync(Context, async tx =>
         {
-            var result = await signIn.ExecuteAsync(tx, playerId)
+            var result = await signIn.ExecuteAsync(tx, playerId, appVersion)
                 ?? throw new BusinessException(PlayerErrors.NotCreated, "player not created");
             var player = result.Player;
             return new SignInResponse(
-                player.Level, player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, false, false,
+                player.Level, player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, result.HasActiveProduce, result.DiscardedProduce,
                 result.Idols.Select(x => new OwnedIdolDto(x.IdolId, x.Training, x.Awakening, x.Shards)).ToArray(),
                 result.SupportCards.Select(x => new OwnedSupportCardDto(x.Uid.ToString(), x.CardId, x.Level, x.LimitBreak)).ToArray());
         });

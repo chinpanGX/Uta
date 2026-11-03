@@ -13,23 +13,28 @@ public sealed class PlayerClient
 {
     private readonly GrpcChannel channel;
     private readonly string token;
+    private readonly string? appVersion;
 
-    private PlayerClient(GrpcChannel channel, string playerId, string token)
+    private PlayerClient(GrpcChannel channel, string playerId, string token, string? appVersion)
     {
         this.channel = channel;
         PlayerId = playerId;
         this.token = token;
+        this.appVersion = appVersion;
     }
 
     public string PlayerId { get; }
 
-    public static async Task<PlayerClient> CreateAsync(GrpcChannel channel, string secret = "0123456789abcdef-secret")
+    public static async Task<PlayerClient> CreateAsync(GrpcChannel channel, string secret = "0123456789abcdef-secret", string? appVersion = "1")
     {
         var device = MagicOnionClient.Create<IDeviceService>(channel);
         var registered = await device.RegisterAsync(secret);
         var issued = await device.IssueTokenAsync(registered.DeviceId, secret);
-        return new PlayerClient(channel, registered.PlayerId, issued.AccessToken);
+        return new PlayerClient(channel, registered.PlayerId, issued.AccessToken, appVersion);
     }
+
+    /// <summary>x-app-version を差し替えた同じプレイヤーのクライアント。null なら付けない。</summary>
+    public PlayerClient WithAppVersion(string? version) => new PlayerClient(channel, PlayerId, token, version);
 
     /// <summary>同じチャンネルで IPlayerService を呼ぶ。requestId が null なら x-request-id を付けない。</summary>
     public Task<T> CallAsync<T>(Func<IPlayerService, UnaryResult<T>> call, string? requestId)
@@ -38,6 +43,11 @@ public sealed class PlayerClient
         if (requestId is not null)
         {
             headers.Add(ApiHeaders.RequestId, requestId);
+        }
+
+        if (appVersion is not null)
+        {
+            headers.Add(ApiHeaders.AppVersion, appVersion);
         }
 
         var client = MagicOnionClient.Create<IPlayerService>(channel).WithHeaders(headers);
@@ -57,6 +67,11 @@ public sealed class PlayerClient
         if (requestId is not null)
         {
             headers.Add(ApiHeaders.RequestId, requestId);
+        }
+
+        if (appVersion is not null)
+        {
+            headers.Add(ApiHeaders.AppVersion, appVersion);
         }
 
         var client = MagicOnionClient.Create<TService>(channel).WithHeaders(headers);
