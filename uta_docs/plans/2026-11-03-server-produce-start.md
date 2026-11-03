@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーのプロデュース 開始・状態・放棄・保存
-status: draft
+status: ready
 updated: 2026-11-03
 spec: ../wiki/architecture/server/produce-server.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/api-design.md, ../wiki/systems/produce.md
 ---
@@ -92,8 +92,9 @@ public static class ProduceVersions
 {
     public const int StateVersion = 1;
     public const int RuleVersion = 1;
+    /// <summary>Data == null（state_version が違う・state が読めない）も古いセッション扱い。</summary>
     public static bool IsCurrent(ProduceSessionRecord session, int appVersion) =>
-        session.AppVersion == appVersion && session.StateVersion == StateVersion && session.RuleVersion == RuleVersion;
+        session.Data != null && session.AppVersion == appVersion && session.StateVersion == StateVersion && session.RuleVersion == RuleVersion;
 }
 
 public enum ProduceSessionStatus { InProgress = 0, Completed = 1, Abandoned = 2, Discarded = 3 }
@@ -233,11 +234,11 @@ public sealed class StartProduceUseCase(
   - それ以外: `OperationNumber = state.NextOperationNumber`、`Phase`、`ScenarioId`・`IdolId` は `state.Input`、`Week`、`Singing` / `Rhythm` / `Expression` は `state.GetParam(...)`、`Hp` は `state.Lesson?.Hp ?? state.Hp`、`MaxHp = state.MaxHp`、`ExamRetryLeft`、`Deck` は `state.Deck` を `InstanceId` の昇順に `DeckCardDto`、`WeekActions` は `view.WeekChoices` を `WeekActionDto(SlotIndex, Kind, Selectable)`、`ClassOptions` は `view.ClassOptions` を `ClassOptionDto(Index, HpCost, Param, ParamGain, GivesCard, Selectable)`、`CardOffers = state.OfferCards.ToArray()`、`Lesson = state.Lesson == null ? null : ToLessonDto(state.Lesson, view.NpcScores)`、`ExamResult` は `view.ExamResult` を `ExamResultDto(Kind, Attempt, Score, Rank, NpcScores.ToArray(), Passed)`（`null` なら `null`）、`Result = view.End == null ? null : ToResultResponse(view.End)`
   - `ToLessonDto`: `Kind`・`TargetParam`・`MaxTurns`・`ClearTarget`・`PerfectTarget` は `lesson.Setup`、`ExamTurns` は `lesson.Setup.Exam` が `null` なら空、あれば `ExamTurnDto(Param, ScoreBonusPercent)`、`Turn`・`Shield`・`UsesLeft`・`ParamGained`、`Hand = lesson.Zones.Hand.ToArray()`（並びのまま）、`DrawPile` / `Discard` / `Exiled` は昇順に並べた配列、`StatusValues` は `i = 0..StatusSet.KindCount - 1` の `lesson.Statuses.Get((StatusKind)i)`、`ParamBonuses` は `ParamBonusDto(Percent, RemainingTurns)`、`Persistents` は `PersistentDto(Trigger, RemainingTurns, RemainingCount)`、`LessonEnhanced = lesson.LessonEnhanced.ToArray()`、`NpcScores = npcScores.ToArray()`
   - `ToResultResponse`: `ProduceEnding` は `(ProduceEnding)(int)end.Ending`。ほかは同名のフィールド（`PlayerLevel` / `PlayerExp`）
-- `ProduceService.cs`: `[UtaService] public sealed class ProduceService(ITransactions transactions, StartProduceUseCase start, GetProduceStateUseCase getState, AbandonProduceUseCase abandon) : ServiceBase<IProduceService>, IProduceService`。`GachaService` と同じ形（`#pragma warning disable CS8644`、`Context.GetAuthContext().PlayerId`、`transactions.RunAsync(Context, async tx => ...)`）。`StartAsync` はタスク 4a、`GetStateAsync`・`AbandonAsync` はタスク 4b で書く。3 つの RPC とも先頭で `var appVersion = AppVersionHeader.Require(Context);`。`StartAsync` は `start.ExecuteAsync(tx, playerId, appVersion, request.IdolId, request.SupportCardUids ?? [], request.RentalCandidateId, request.ScenarioId)` → `ProduceResponseMapper.ToStateResponse`、`GetStateAsync` は `getState.ExecuteAsync` → `ToStateResponse`、`AbandonAsync` は `abandon.ExecuteAsync` → `ToResultResponse`
+- `ProduceService.cs`: `[UtaService] public sealed class ProduceService(ITransactions transactions, StartProduceUseCase start, GetProduceStateUseCase getState, AbandonProduceUseCase abandon)`（タスク 4a ではコンストラクタは `(ITransactions transactions, StartProduceUseCase start)` だけ。4b で `getState`・`abandon` を足す）` : ServiceBase<IProduceService>, IProduceService`。`GachaService` と同じ形（`#pragma warning disable CS8644`、`Context.GetAuthContext().PlayerId`、`transactions.RunAsync(Context, async tx => ...)`）。`StartAsync` はタスク 4a、`GetStateAsync`・`AbandonAsync` はタスク 4b で書く。3 つの RPC とも先頭で `var appVersion = AppVersionHeader.Require(Context);`。`StartAsync` は `start.ExecuteAsync(tx, playerId, appVersion, request.IdolId, request.SupportCardUids ?? [], request.RentalCandidateId, request.ScenarioId)` → `ProduceResponseMapper.ToStateResponse`、`GetStateAsync` は `getState.ExecuteAsync` → `ToStateResponse`、`AbandonAsync` は `abandon.ExecuteAsync` → `ToResultResponse`
 
-### 4.9 DI の登録（タスク 4）
+### 4.9 DI の登録（タスク 4a・4b）
 
-`Program.cs`: `IProduceSessionRepository` → `ProduceSessionRepository`（Scoped）、`ProduceViewBuilder`（Singleton）、`ProduceSessionDiscarder`・`StartProduceUseCase`・`GetProduceStateUseCase`・`AbandonProduceUseCase`（Scoped）。
+`Program.cs`: タスク 4a で `IProduceSessionRepository` → `ProduceSessionRepository`（Scoped）、`ProduceViewBuilder`（Singleton）、`ProduceSessionDiscarder`・`StartProduceUseCase`（Scoped）。タスク 4b で `GetProduceStateUseCase`・`AbandonProduceUseCase`（Scoped）。
 
 ### 4.10 SignIn（タスク 5）
 
@@ -270,6 +271,8 @@ public sealed class StartProduceUseCase(
 
 4.3、4.4。テスト（`T/Infrastructure/ProduceStateSerializerTests.cs`）:
 
+共通（3・4）: `input = new ProduceStartInput(2, idol, 1, new SupportCardInput[0])`、`engine = new ProduceEngine(catalog)`、`streams = new SessionRandomStreams(seed, [])`（seed は 3 つの値 1・2・3 の `ulong`）、`state = engine.Start(input, streams)`、ループは `while (state.Phase != ProducePhase.Finished) { var command = ProduceBot.Next(engine, catalog, state); Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams)); count++; if (count % 10 == 0) { ...保存と復元... } }`。
+
 3. `Serializer_RoundTrip_SameState`（`[Theory]`: シナリオ 2 のアイドル 1〜4、シード 1・2・3）: `catalog = TestProduceMaster.Create()`（`Uta.Shared.Domain.Tests.Produce`。テストプロジェクトは `Uta.Shared.Domain.Tests` を参照している）、`SessionRandomStreams` を乱数源にして `ProduceBot.Next` → `Apply` で最後まで進め、**10 回の操作ごとと最後に**、`ProduceSnapshot.From` → `ProduceStateSerializer.Serialize` → `Deserialize` → `ToState(catalog)` が元の状態と `ProduceStateComparer.Diff` が空
 4. `Serializer_ResumeWithStreams_SameFinalState`（同じ組み合わせ）: 同じシードで A（途中を保存せず最後まで）と B（**10 回の操作ごとに** `Serialize(new ProduceSessionData(seed, streams.Export(), snapshot))` → `Deserialize` → `new SessionRandomStreams(data.MasterSeed, data.Streams)` と `ToState` で作り直して続ける）を走らせ、最後の状態が一致し `Operations` の件数も同じ
 5. `Serializer_NullableParts_RoundTrip`: 開始直後（`Lesson` などが `null`）の往復で、`null` が `null` のまま
@@ -294,7 +297,7 @@ public sealed class StartProduceUseCase(
 2. `Start_SameRequestId_ReturnsSavedResponse`: 同じ `x-request-id` で 2 回呼ぶと同じレスポンスで、`produce_sessions` は 1 行のまま
 3. `Start_WhileInProgress_AlreadyInProgress`: 別の `x-request-id` で 2 回目は `PRODUCE_ALREADY_IN_PROGRESS`
 4. `Start_InvalidFormation_Rejected`（`[Theory]` か複数の `[Fact]`。いずれも `FAILED_PRECONDITION` + `PRODUCE_INVALID_FORMATION`）: 未所持のアイドル（3）、所持IDが 6 個（`SignInAsync` の `SupportCards` の 5 枚 + `Ulid.NewUlid().ToString()`）、形が違う文字列（`"x"`）、他人の所持ID（別の `PlayerClient`（別の `secret`）のカードの所持ID）、同じ所持ID が 2 回、同じカード ID の別の所持ID（`player_support_cards` に `card_id` 1 の行を `SupportTests.AddMaterialAsync` と同じ SQL で足し、元の所持IDと並べる）、プランの不一致（アイドル 1 は感性。`card_id` 7（理論）の行を足して並べる）
-5. `Start_ReflectsSupportCardLevel`: アイドル 1 で `card_id` 1 の所持ID を 1 枚つけて開始 → `Singing == 30 + ProduceFormulas.AbilityValue(3, 20, 1, 40)`。`AbandonAsync` → `ISupportService.LevelUpAsync` で目標 20 → 再び開始 → `Singing == 30 + ProduceFormulas.AbilityValue(3, 20, 20, 40)` で、前より大きい（`ScriptedRandomSource` の値は 2 個目を使う）
+5. （タスク 4b の終わりに書く。`AbandonAsync` を使うため）`Start_ReflectsSupportCardLevel`: アイドル 1 で `card_id` 1 の所持ID を 1 枚つけて開始 → `Singing == 30 + ProduceFormulas.AbilityValue(3, 20, 1, 40)`。`AbandonAsync` → `ISupportService.LevelUpAsync` で目標 20（先に `postgres.ExecuteAsync("UPDATE players SET support_points = 100000, gold = 100000 WHERE player_id = $1", player.PlayerId)` で残高を足す。`SupportTests.LevelUp_ToCap_Succeeds` と同じ）→ 再び開始 → `Singing == 30 + ProduceFormulas.AbilityValue(3, 20, 20, 40)` で、前より大きい（`ScriptedRandomSource` の値は 2 個目を使う）
 6. `Start_RentalNotZero_InvalidArgument`（編成は正しく `rentalCandidateId` だけ 1）、`Start_RentalNotZeroAndInvalidFormation_InvalidFormation`（編成が不正で `rentalCandidateId` も 1 なら `PRODUCE_INVALID_FORMATION`）、`Start_UnknownScenario_InvalidArgument`（99）
 ### タスク 4b: 状態・放棄
 

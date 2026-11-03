@@ -1,6 +1,6 @@
 ---
 title: 実装計画: ProduceSnapshot（プロデュースの状態の保存・復元の形）
-status: draft
+status: ready
 updated: 2026-11-03
 spec: ../wiki/architecture/produce-domain.md, ../wiki/architecture/lesson-domain-types.md
 ---
@@ -80,7 +80,7 @@ public ProduceState ToState(ProduceCatalog catalog);
 
 `ToState`:
 
-1. 検査（`ArgumentException`。`null` も `ArgumentNullException` にせず `ArgumentException`。メッセージは `"<項目名>: <理由>"`）: 配列プロパティが `null`、配列の要素が `null`、`Lesson` の中の配列も同じ、`Parameters` / `BonusPerThousand` の長さが `ProduceRules.ParamCount` でない
+1. 検査（`ArgumentException`。`null` も `ArgumentNullException` にせず `ArgumentException`。メッセージは `"<項目名>: <理由>"`）: 配列プロパティが `null`、配列の要素が `null`（`SupportCards`・`Deck`・`Operations`・`ExamBackup.Deck`・`Lesson` の中の配列も同じ。変換の前に自前で検査する。`ExamBackup.Parameters`・`NpcScores` の `null` はコンストラクタ任せ）、`Parameters` / `BonusPerThousand` の長さが `ProduceRules.ParamCount` でない
 2. `input = new ProduceStartInput(ScenarioId, IdolId, PlayerLevel, supportInputs)`（`supportInputs` は `new SupportCardInput(CardId, Level, LimitBreak)`）
 3. `state = new ProduceState(input, MaxHp, Parameters, BonusPerThousand, deckInstances, ExamRetryLeft)`
 4. `state.Phase = Phase; Week; Attempt; NextOperationNumber; NextInstanceId; Hp` を代入。`state.SetClassOptionParams(ClassOptionParams); state.SetOfferCards(OfferCards);`
@@ -114,8 +114,8 @@ public ProduceState ToState(ProduceCatalog catalog);
 6. `RoundTrip_LessonInProgress_KeepsZonesAndOrder`: シナリオ 1・アイドル 1・シード 1 で `Phase == Lesson` になり、手札が空でない状態（`ProduceBot.RunUntil(..., stop: s => s.Phase == ProducePhase.Lesson && s.Lesson.Turn >= 2)`）で往復して一致する(進めた後に `state.Phase == Lesson` を確かめる)。山札の並びが `Zones.DrawPile` と同じ順であることも `Assert.Equal` で確かめる
 7. `LessonSnapshot_Persistent_RoundTripsOrigin`: `catalog = new TestCardCatalog()` の `CardIds` を昇順に走査し、`Base.Effects` に `Op == EffectOp.AddPersistent` を含む最初のカードを選ぶ。`TestStates.PlayerState(new[] { cardId }, new[] { 1 }, new int[0], 30, usesLeft: 1)` を `new LessonEngine(catalog).Apply(state, LessonCommand.UseCard(1), TestStates.NewRandom())` で進め、`state.Persistents.Count == 1` を確かめる。`LessonSnapshot.From` → `ToState` で往復して `LessonStateComparer.Diff` が空。`Persistents[0].CardId == cardId`、`Enhanced == false`
 8. `LessonSnapshot_PersistentOfEnhancedFace_RoundTripsOrigin`: 7 と同じカードを強化済みで（`TestStates.PlayerState(..., enhanced: new[] { 1 })`）使い、`Enhanced == true`、往復して一致する。使うカードの `Enhanced` 面に `AddPersistent` が無いときは、`Enhanced` 面に `AddPersistent` を含む最初のカードを別に探す（`def.Enhanced != null`）
-9. `LessonSnapshot_Scheduled_Throws`: `s = TestStates.PlayerState(new[] { 1 }, new[] { 1 }, new int[0], 30)`（カード ID はテストカタログに存在するものなら何でもよい。`CardIds[0]` を使う）の値を `new LessonState(s.Setup, s.Deck, s.Zones, s.Statuses, s.ParamBonuses, new[] { new ScheduledEffect(1, new[] { new EffectDef(EffectOp.GainParam, value: 1) }, 0) }, s.Persistents, s.LessonEnhanced, s.Turn, s.Phase, s.Hp, s.MaxHp, s.Shield, s.UsesLeft, s.ParamGained, s.NextGrantOrder)` に移した状態で、`From` が `NotSupportedException`
-10. `ToState_InvalidValues_ThrowsArgumentException`（複数の `[Fact]`。`Assert.ThrowsAny<ArgumentException>`）: 壊す元のスナップショットは、`ProduceSnapshot` は 1 の開始直後の状態から、`LessonSnapshot` / `PersistentSnapshot` は 7 の状態（持続効果が 1 つあるレッスン）から `From` で作り、プロパティを書き換えて壊す。壊し方: `Parameters` の長さが 2、`LessonSnapshot.StatusValues` の長さが違う、`PersistentSnapshot.EffectIndex` が範囲外、`EffectIndex` の効果が `AddPersistent` でない、`Enhanced = true` で強化面のないカード、配列プロパティが `null`。いずれも `ArgumentException`（またはその派生）
+9. `LessonSnapshot_Scheduled_Throws`: `s = TestStates.PlayerState(new[] { catalog.CardIds[0] }, new[] { 1 }, new int[0], 30)`（`catalog = new TestCardCatalog()`）の値を `new LessonState(s.Setup, s.Deck, s.Zones, s.Statuses, s.ParamBonuses, new[] { new ScheduledEffect(1, new[] { new EffectDef(EffectOp.GainParam, value: 1) }, 0) }, s.Persistents, s.LessonEnhanced, s.Turn, s.Phase, s.Hp, s.MaxHp, s.Shield, s.UsesLeft, s.ParamGained, s.NextGrantOrder)` に移した状態で、`From` が `NotSupportedException`
+10. `ToState_InvalidValues_ThrowsArgumentException`（複数の `[Fact]`。`Assert.ThrowsAny<ArgumentException>`）: 壊す元のスナップショットは、`ProduceSnapshot` は 1 の開始直後の状態から、`LessonSnapshot` / `PersistentSnapshot` は 7 の状態（持続効果が 1 つあるレッスン）から `From` で作り、プロパティを書き換えて壊す。壊し方: `Parameters` の長さが 2、`LessonSnapshot.StatusValues` の長さが違う、`PersistentSnapshot.EffectIndex` が範囲外、`EffectIndex` の効果が `AddPersistent` でない、`Enhanced = true` で強化面のないカード、配列プロパティが `null`。いずれも `ArgumentException`（またはその派生）。`ExamBackup.Deck` を `null` にする壊し方も足す。`ExamBackup.Parameters` などコンストラクタ側が検査する `null` は、そのコンストラクタの `ArgumentNullException` のままでよい（自前で検査しない。`ThrowsAny<ArgumentException>` で受ける）。「強化面のないカード」は `catalog.CardIds` を昇順に走査して `catalog.Get(id).Enhanced == null` の最初のカード、「`AddPersistent` でない効果の位置」は 7 のカードの `Base.Effects` で `Op != EffectOp.AddPersistent` の最初の添字（無ければ、`Effects.Count` 以上の添字だけを確かめる）を使う
 11. `LessonSnapshot_From_WithOtherCatalogInstance_Throws`: 7 の状態を、`new TestCardCatalog()` の**別のインスタンス**を渡して `From` すると `InvalidOperationException`（参照一致の契約）
 
 実行するコマンド: `dotnet build Uta.slnx`、`dotnet test --project shared/Uta.Shared.Domain.Tests`。

@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーのプロデュース 操作・終了・報酬
-status: draft
+status: ready
 updated: 2026-11-03
 spec: ../wiki/architecture/server/produce-server.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/api-design.md, ../wiki/systems/produce.md
 ---
@@ -218,7 +218,7 @@ public sealed class ProduceDriver(PlayerClient player, bool skipOnly = false, bo
 
 - `WeekSelect`: 次の順で最初に当たるものを選ぶ。(0) `preferSupply` なら `Selectable` で `Kind == Supply` の最初の枠 → `(op, slot, -1, ParamKind.Nothing)`。(1) `Selectable` で `Kind == Lesson` の枠 → `ChooseWeekActionRequest(op, slot, -1, ParamKind.Singing)`。(2) `Kind == Class` の枠で、`ClassOptions` に `Selectable` な選択肢があるもの → その最初の `Index` を `OptionIndex` にして `(op, slot, index, ParamKind.Nothing)`。(3) `Selectable` な最初の枠（支給・休む）→ `(op, slot, -1, ParamKind.Nothing)`
 - `CardOffer`: `ResolveCardOfferRequest(current.OperationNumber, CardOfferActionKind.Pick, 0)`
-- `Lesson` / `Exam`: `skipOnly` でなければ、`current.Lesson.Hand` を先頭から、`ExecuteLessonActionRequest(op, LessonActionKind.UseCard, instanceId, 0)` を呼ぶ。`RpcException`（`StatusCode.FailedPrecondition` で、`grpc-status-details-bin` のトレーラーに `PRODUCE_INVALID_ARGUMENT` を含む。`RpcAssert` と同じ読み方）なら次の手札へ（`Calls` は数える）。全部だめなら、または `skipOnly` なら `(op, LessonActionKind.Skip, 0, 0)`
+- `Lesson` / `Exam`: `skipOnly` でなければ、`current.Lesson.Hand` を先頭から、`ExecuteLessonActionRequest(op, LessonActionKind.UseCard, instanceId, 0)` を呼ぶ。`RpcException`（判定はドライバーの `private static bool HasReason(RpcException e, string reason)`: `e.StatusCode == StatusCode.FailedPrecondition` で、`e.Trailers` の `Key == ApiHeaders.ErrorDetailsTrailer && IsBinary` の項目の `Encoding.UTF8.GetString(ValueBytes)` が `reason` を含むとき true。`RpcAssert.Reason` と同じ読み方で、Assert せず真偽を返す。`reason` は `"PRODUCE_INVALID_ARGUMENT"`）なら次の手札へ（失敗は `Operations` に数えない）。全部だめなら、または `skipOnly` なら `(op, LessonActionKind.Skip, 0, 0)`
 - `ExamResult`: `DecideExamRetryRequest(op, false)`
 - それ以外（`Finished`・`Nothing`）: `InvalidOperationException`
 
@@ -235,9 +235,9 @@ public sealed class ProduceDriver(PlayerClient player, bool skipOnly = false, bo
 - `PlayerLevelRulesTests`: 経験値が足りない（`AddExp(1, 0, 10, [40, 80])` → `(1, 10)`）、ちょうど届く（`AddExp(1, 30, 10, [40, 80])` → `(2, 0)`）、あふれる（`AddExp(1, 30, 60, [40, 80])` → `(2, 50)`）、複数レベル（`AddExp(1, 0, 130, [40, 80, 120])` → `(3, 10)`）、最大 Lv に届いたらあふれを捨てる（`AddExp(2, 70, 1000, [40, 80])` → `(3, 0)`）、最大 Lv では増えない（`AddExp(3, 0, 50, [40, 80])` → `(3, 0)`）、`gain` が 0（`AddExp(1, 5, 0, [40])` → `(1, 5)`）
 - `MasterProduceRewardCatalogTests`（`MasterDataLoader.Load()` を使う）: `ProduceRank.F` → `(50, 1000, 500, 10)`、`SSPlus` → `(800, 20000, 10000, 60)`、`F` から `SSPlus` の 13 ランクがすべて取れる、`Nothing` は `InvalidOperationException`。`MasterPlayerLevelCatalog`: `RequiredExps.Count == 99`、先頭 40、末尾 3960
 
-### タスク 2: 操作の RPC と終了
+### タスク 2a: 操作の RPC と終了
 
-4.2〜4.4。テスト（`T/Integration/ProduceOperationTests.cs`。`[Collection(PostgresCollection.Name)]`。開始は [開始の計画](2026-11-03-server-produce-start.md) のテストと同じ形で、`UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL))`、アイドル 1・シナリオ 1・所持IDなし。呼び出しは `player.CallAsync<IProduceService, ProduceStateResponse>(x => x.ChooseWeekActionAsync(...), "req-n")`）:
+4.2〜4.4。ドライバーは使わない。テスト 1〜7・9・10（8 は 2b）。テスト（`T/Integration/ProduceOperationTests.cs`。`[Collection(PostgresCollection.Name)]`。開始は [開始の計画](2026-11-03-server-produce-start.md) のテストと同じ形で、`UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL))`、アイドル 1・シナリオ 1・所持IDなし。呼び出しは `player.CallAsync<IProduceService, ProduceStateResponse>(x => x.ChooseWeekActionAsync(...), "req-n")`）:
 
 1. `ChooseWeekAction_Lesson_StartsLesson`: 開始直後に `ChooseWeekActionAsync(0, slot 0, -1, Singing)` → `Phase == Lesson`、`OperationNumber == 1`、`Lesson` が `null` でなく `Hand` が空でない、`Lesson.Kind == Normal`、`Lesson.TargetParam == Singing`、`Lesson.ClearTarget == 25`、`DrawPile` が昇順。DB の `produce_sessions.version` が 1、`week` 1、`turn` が 1 以上
 2. `ChooseWeekAction_Lesson_ParamNothing_InvalidArgument`: `Param` が `Nothing` → `PRODUCE_INVALID_ARGUMENT`。そのあと `GetStateAsync` が `Phase == WeekSelect`、`OperationNumber == 0`（拒否は何も保存しない）
@@ -246,7 +246,11 @@ public sealed class ProduceDriver(PlayerClient player, bool skipOnly = false, bo
 5. `Operation_WrongPhase_UnexpectedPhase`: 週の選択のときに `ResolveCardOfferAsync(0, Pick, 0)`、`DecideExamRetryAsync(0, false)`、`ExecuteLessonActionAsync(0, Skip, 0, 0)` → いずれも `PRODUCE_UNEXPECTED_PHASE`。レッスン中に `ChooseWeekActionAsync` → 同じ
 6. `Operation_NoSession_NotInProgress`: 開始前の `ChooseWeekActionAsync` → `PRODUCE_NOT_IN_PROGRESS`
 7. `Operation_DifferentAppVersion_SessionDiscarded`: 開始（バージョン 1）→ `WithAppVersion("2")` の操作 → `PRODUCE_SESSION_DISCARDED`、DB の `status` は 0 のまま
-8. `ExecuteLessonAction_UnknownKind_InvalidArgument`（`Kind` が `Nothing`）、`ResolveCardOfferAsync` の `Kind` が `Nothing` と `Reroll`（再抽選は残り回数 0 なので `PRODUCE_INVALID_ARGUMENT`。カードの選択肢の局面で。局面はドライバーで作る）、`ExecuteLessonAction_UseDrink_InvalidArgument`、`ExecuteLessonAction_UseCardNotInHand_InvalidArgument`（インスタンス ID 9999）。カードの選択肢の局面は、シナリオ 2 を `ProduceDriver(player, preferSupply: true).StepAsync` で `Phase == CardOffer` になるまで進めて作る（週 2 の支給は選べて、常にカードの選択肢を出すので、必ず現れる）
+### タスク 2b: テスト支援とテスト 8
+
+4.5（`PlayerClient.OnChannel`・`ProduceDriver`）を作り、テスト 8 を `ProduceOperationTests.cs` に足す。
+
+8. `ExecuteLessonAction_UnknownKind_InvalidArgument`（`Kind` が `Nothing`）、`ExecuteLessonAction_UseDrink_InvalidArgument` と `UseCardNotInHand` は、開始 → `ChooseWeekActionRequest(op, 0, -1, Singing)` で `Phase == Lesson` にしてから呼ぶ。`ResolveCardOfferAsync` の `Kind` が `Nothing` と `Reroll`（再抽選は残り回数 0 なので `PRODUCE_INVALID_ARGUMENT`。カードの選択肢の局面で。局面はドライバーで作る）、`ExecuteLessonAction_UseDrink_InvalidArgument`、`ExecuteLessonAction_UseCardNotInHand_InvalidArgument`（インスタンス ID 9999）。カードの選択肢の局面は、シナリオ 2 を `ProduceDriver(player, preferSupply: true).StepAsync` で `Phase == CardOffer` になるまで進めて作る（週 2 の支給は選べて、常にカードの選択肢を出すので、必ず現れる）
 9. `Operation_SameRequestId_ReturnsSavedResponse`: 同じ `x-request-id` で同じ操作を 2 回 → 同じレスポンスで、`produce_sessions.version` は 1 回分だけ増える
 10. `Operation_RejectedKeepsStateAndStreams`: 拒否（`Param` が `Nothing` の `ChooseWeekAction`）の前後で、`produce_sessions.state`（`QueryScalarAsync<byte[]>`）と `version` が同じ。拒否のあとに有効な操作を送ると成功する
 
@@ -261,8 +265,8 @@ public sealed class ProduceDriver(PlayerClient player, bool skipOnly = false, bo
    - `produce_sessions.status` が 1。`produce_results` に 1 行（`ending` 1、`evaluation_value` と `produce_rank` が応答と同じ、`gacha_currency` などが報酬）
    - `game_logs` に kind `produce`、reason `produce_reward` が 1 件
    - 終了後の `GetStateAsync` は `Phase == Nothing`。操作の RPC は `PRODUCE_NOT_IN_PROGRESS`。もう一度 `StartAsync` が通る
-2. `Resume_MidLesson_GetStateMatches_ThenContinuesOnNewServer`（完了条件 5）: 開始 → レッスンを選ぶ → カード（または `Skip`）を 2 回 → `GetStateAsync` が直前の応答と、`Phase`・`Week`・`OperationNumber`・`Hp`・`Singing`・`Deck.Length`・`Lesson.Turn`・`Lesson.Hand`（並びも）・`Lesson.DrawPile`・`Lesson.StatusValues`・`Lesson.ParamGained` で一致する。そのあと `new UtaServerFactory(postgres)`（乱数源は既定）で新しいサーバーを作り（`factory.Dispose` はしない）、`player.OnChannel(factory2.CreateGrpcChannel())` で同じプレイヤーのまま `ProduceDriver.PlayToEndAsync` で最後まで進められ、`Result.Ending == Completed`
-3. `Resume_AtEveryPhase_GetStateMatches`: ドライバーで進めながら、**局面が変わるたび**（`WeekSelect`・`Lesson`・`CardOffer`・`Exam`・`ExamResult` が最初に現れたとき）に `GetStateAsync` が直前の応答と同じ（2 と同じ項目に加えて `WeekActions.Length`・`CardOffers`・`ExamResult`・`Lesson.ExamTurns.Length`）。シナリオ 2（初級・13 週）を使い、アイドル 1。`WeekSelect`・`Lesson`・`Exam`・`ExamResult` が現れること（中間試験の後は必ず `ExamResult` になる）も確かめる。`CardOffer` は現れたときだけ比べ、現れなくてもよい（乱数に頼るため）
+2. `Resume_MidLesson_GetStateMatches_ThenContinuesOnNewServer`（完了条件 5）: 開始 → `ChooseWeekActionRequest(op, 0, -1, Singing)` でレッスンを選ぶ → `ProduceDriver.StepAsync` を、`Phase == Lesson && Lesson.Turn >= 2` になるまで繰り返す（`Phase` が `Lesson` でなくなったら失敗。1 ターン目の `Skip` で 2 ターン目に進む）→ `GetStateAsync` が直前の応答と、`Phase`・`Week`・`OperationNumber`・`Hp`・`Singing`・`Deck.Length`・`Lesson.Turn`・`Lesson.Hand`（並びも）・`Lesson.DrawPile`・`Lesson.StatusValues`・`Lesson.ParamGained` で一致する。そのあと `new UtaServerFactory(postgres)`（乱数源は既定）で新しいサーバーを作り（`factory.Dispose` はしない）、`player.OnChannel(factory2.CreateGrpcChannel())` で同じプレイヤーのまま `ProduceDriver.PlayToEndAsync` で最後まで進められ、`Result.Ending == Completed`
+3. `Resume_AtEveryPhase_GetStateMatches`: ドライバーで進めながら、**応答の `Phase` が直前の応答の `Phase` と違うたび**（初回を含む。`Phase == Finished` の応答は除く。終了後の `GetState` は `Nothing` を返すため）に `GetStateAsync` を呼び、直前の応答と同じ。比べる項目: 常に `Phase`・`Week`・`OperationNumber`・`Hp`・`Singing`・`Deck.Length`・`WeekActions.Length`・`CardOffers`（並びも）・`ExamResult` は `Phase == ExamResult` の応答だけ、`null` でないことと `Kind`・`Attempt`・`Score`・`Rank`・`Passed` が一致すること（それ以外の応答の `ExamResult` は比べない）。`Lesson` は、直前の応答の `Lesson` が `null` なら GetState の `Lesson` も `null`、`null` でなければ 2 と同じ項目に加えて `Lesson.ExamTurns.Length`。シナリオ 2（初級・13 週）を使い、アイドル 1。`WeekSelect`・`Lesson`・`Exam`・`ExamResult` が現れること（中間試験の後は必ず `ExamResult` になる）も確かめる。`CardOffer` は現れたときだけ比べ、現れなくてもよい（乱数に頼るため）
 4. `Complete_MidExamFailed_StillGrantsRewardByRank`: シナリオ 2・アイドル 1 を `ProduceDriver(player, skipOnly: true)` で最後まで進める。（スコア 0 は NPC の最低 180 に届かず必ず不合格）`Result.ExamOutcome == MidFailed`、`FinalScore == 0`、`FinalRank == 0`、`Result.GachaCurrency` などが `Result.Rank` のマスタの行と一致する（ランクの値は決め打ちしない）。`produce_results.exam_outcome` が 1
 5. `Complete_LevelUp_AndMaxLevel`: ア）`UPDATE players SET exp = 39` してから最短シナリオを最後まで → `PlayerLevel == 2`、`PlayerExp == 39 + 報酬の Exp − 40`。イ）別のプレイヤーで `UPDATE players SET level = 100, exp = 0` → 最後まで進めて `PlayerLevel == 100`、`PlayerExp == 0`
 6. `Operation_RetryExam_ReturnsToExam`: シナリオ 1 を `ProduceDriver.StepAsync` で `Phase == ExamResult` になるまで進める（最終試験は再挑戦が残っているので、1 回目の試験の後に必ずこの局面になる）。`DecideExamRetryAsync(op, true)` → `Phase == Exam`、`ExamRetryLeft` が 1 減る（初期は 3）、`ExamResult` は `null`。そのあと `ProduceDriver.PlayToEndAsync`（ドライバーは再挑戦しない）で最後まで進み、`Result.Ending == Completed`
