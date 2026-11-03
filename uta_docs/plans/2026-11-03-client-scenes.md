@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントのシーン構成（Bootstrap / Title / Home / Produce）
-status: ready
+status: done
 updated: 2026-11-03
 spec: ../wiki/architecture/screen-design.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/api-design.md
 ---
