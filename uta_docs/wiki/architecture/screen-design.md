@@ -118,7 +118,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 ### 7.1 UI はコードで組む [決定。ユーザーの判断]
 
 - 画面・部品は C# で `GameObject` と uGUI（`UnityEngine.UI`）から組み立てる。`.prefab`・`.unity` は作らない（Sonnet が YAML で手書きするのは現実的でないため。見た目は仮でよい）
-- `UnityScreenNavigator`（USN）には、`PreloadedAssetLoader` に「コンポーネントだけを付けた空の `GameObject`」を雛形として登録して渡す。雛形が `Instantiate` されたあと、`Page.Initialize()`（モーダルは `Modal.Initialize()`）の中で子の UI を組む（雛形には子を作らない。`Instantiate` は非シリアライズのフィールドを複製しないため）
+- `UnityScreenNavigator`（USN。自作のフォーク）の **Presenter 駆動のナビゲーション**（`Runtime/ChinpanGX`: `IScreenNavigator`・`IPresenter`・`[AssetAddress]`・`IScreenWithArgs<TArgs>`・`OverlayContainer`。遷移は待ち行列で直列になる）をそのまま使い、自前のナビゲーターは作らない [決定。2026-11-03。レビューの指摘: 同じ役割の実装が基盤にある]。ページ・モーダルの雛形は、`PreloadedAssetLoader` に「コンポーネントだけを付けた空の `GameObject`」として登録して渡す。雛形が `Instantiate` されたあと、`Page.Initialize()`（モーダルは `Modal.Initialize()`）の中で子の UI を組む（雛形には子を作らない。`Instantiate` は非シリアライズのフィールドを複製しないため）
 - 文字は `UnityEngine.UI.Text`（legacy）と OS のフォント（`Font.CreateDynamicFontFromOSFont`）。TextMeshPro とフォントのアセットは使わない（日本語のフォントのアセットを置かないため。仮の見た目）
 - 入力は Input System だけが有効（`ProjectSettings` の `activeInputHandler: 1`）なので、`EventSystem` には `InputSystemUIInputModule` を付ける
 
@@ -132,14 +132,15 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 | 組み立て | `Bootstrap/` | VContainer のスコープ。Presenter は `Transient`、ユースケース・ゲートウェイ・`PlayerCache` は `Singleton` |
 
 - **Presenter の作り方**: `ScreenNavigator` が USN で画面を出し、VContainer から `TPresenter` を解決して `Bind(view)` を呼ぶ。画面が閉じられたら `Dispose()`。Presenter の入力（遷移先に渡す値）は、`ScreenNavigator` の `configure` コールバックで `Bind` の前に設定する
-- **画面の ID**: 雛形のキーは `typeof(TPage).Name`。USN の `pageId` は指定せず自動
-- **遷移**: ホームをスタックの底にする。ホームへ戻るときは、ホーム以外のページをすべて `Pop` する。ガチャ・所持一覧などはホームの上に `Push`、プロデュースの局面ごとの画面は `Push` せず、現在のプロデュースの画面を `Pop` して次の画面を `Push` する（戻るボタンで前の局面に戻れてしまうのを避けるため。実装は `ProduceFlow`）
+- **画面の ID**: 雛形のキーは Presenter の `[AssetAddress("<ページの型名>")]`。USN の `pageId` は指定せず自動
+- **Presenter の形**: `IPresenter` を実装する普通のクラス。コンストラクターで、読み込まれた `Page`/`Modal` の具象型・`IScreenWithArgs<TArgs>` の引数・ユースケースを受ける（VContainer が子スコープで解決する）。EditMode のテストのため、`IXxxView`（インターフェース）を受ける 2 つ目のコンストラクターも持ち、画面の具象型を受けるほうに `[Inject]` を付ける
+- **遷移**: ホームをスタックの底にする。ホームへ戻るときは、ホーム以外のページをすべて `Pop` する。ガチャ・所持一覧などはホームの上に `Push`。プロデュースの局面ごとの画面は、現在のプロデュースの画面を `Pop` して次の画面を `Push` する（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではないため。戻るボタンで前の局面に戻れてしまうのを避ける。実装は `ProduceFlow`）
 
 ### 7.3 通信・状態・マスタの扱い [Uta案]
 
 - **所持データのキャッシュ**: `PlayerCache.Current`（サインインで取った `PlayerSnapshot`）。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、**`RefreshPlayerUseCase`（`IPlayerPort.SignInAsync` を呼んで `PlayerCache` を差し替える）で取り直す**。サーバーの確定値と食い違わせないため。サインインはプロデュースの破棄（古いセッション）も行うが、実行中のクライアントのバージョンは変わらないので起きない
 - **マスタ**: 画面が使うマスタの値（名前・レア度・プラン・ガチャの価格と重み・シナリオ・サポートカードのレベル表）は、`Application` の読み取り専用の IF `IGameMaster` と読み取り用の型（`IdolInfo` など）で受ける。実装は `Infrastructure` の `MasterGameData`（`MemoryDatabase` から詰め替える）。`Uta.MasterData` の型を `Application`・`Presentation` に出さない。スキルカードは `Uta.Shared.Domain` の `CardCatalog`（`ICardCatalog`）をそのまま使う
-- **スキルカードの表示**（MVP）: 名前の列がマスタに無いので「カード <ID>」。レア度・種類（`CardType`）・消費（`CostKind` と値）・強化済みの印（`+`）だけを出し、効果の説明文は出さない（文を作る仕組みを作らないため。[screen-wireframes.md](../overview/screen-wireframes.md) 3 のカード詳細の「効果」の欄は MVP では出さない）
+- **スキルカードの表示**（MVP）: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。`Card.Name`・`CardFace.Description`。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類（`CardType`）・消費（`CostKind` と値）・強化済みの印（`+`）・説明文を出す。効果の予測値は出さない
 - **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler`（進行中の呼び出しが 0→1 で開始、1→0 で終了。冪等性の順番待ち・再認証の再送を含む）を `ApiActivityBridge` で `BusyIndicator` につなぐ。進行中は全面の透明な `Image`（`raycastTarget`）で入力を止める。画面は個別に包まない
 - **エラーの遷移先**: `IErrorNavigator` を `UtaErrorNavigator` で実装する。「タイトルへ」は起動の流れ（`StartupFlow`）のやり直し、「ホームへ」はサインインで取り直してホームに戻る、「ストアへ」は何もしない
 - **エラー**: `ApiCore` の共通ハンドラーが出すダイアログ（ネットワークの失敗・`DATE_CHANGED` など。[5章](#5-通信とエラーの画面側の扱い-uta案)）に任せる。業務エラー（ガチャの通貨不足・`PRODUCE_STALE_OPERATION` など）は、ゲートウェイが `ApiResult` の失敗をユースケースの結果の型（成功／業務エラー／その他）に直し、Presenter が文言を選んで `DialogService` で出す。診断用だった IMGUI の `ErrorDialogView`・`StartupView` は uGUI に置き換える
@@ -147,7 +148,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 
 ### 7.4 プロデュースの画面の流れ [Uta案]
 
-- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（`Application`。最新の `ProduceStateView` と次の操作番号を持つ）が操作のたびに更新され、`ProduceFlow`（`Presentation`）が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業の週は授業の選択肢を同じページに出す）、`CardOffer` → スキルカード獲得、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
+- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（`Application`。最新の `ProduceStateView` と次の操作番号を持つ）が操作のたびに更新され、`ProduceFlow`（`Presentation`）が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業は選択肢を別のページ（授業のページ）に出す。screen-wireframes の共通の方針のとおり授業・支給はページ）、`CardOffer` → スキルカード獲得、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
 - 操作のレスポンスの `ExamResult` が入っている（再挑戦が残らず `ExamResult` の局面を飛ばした場合を含む）ときは、次の局面の前に試験結果の画面を出す（[produce-domain.md](produce-domain.md) 8章）
 - `PRODUCE_STALE_OPERATION` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたらホームに戻る（サインインで取り直す）
 - 授業・支給・休むの結果（上がった値）は、操作の前後の `ProduceStateView` の差でクライアントが出す（サーバーは差を返さない）
