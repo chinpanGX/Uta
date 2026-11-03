@@ -99,7 +99,7 @@ updated: 2026-11-03
 
 | 接頭辞 | 機能 | 例 |
 |---|---|---|
-| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [決定。2026-11-01。ユーザーの判断]。[server-foundation.md](server/server-foundation.md)。2026-11-01）。クライアントの `ErrorDefinition` の既定の action は `Title`（`SignInAsync` は `handledCodes` で受けるので画面には出ない。ほかの RPC が受けたらタイトルへ戻り、起動の流れがサインアップから入り直す）[Uta案・推測。2026-11-03。ユーザーの確認待ち] |
+| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [決定。2026-11-01。ユーザーの判断]。[server-foundation.md](server/server-foundation.md)。2026-11-01）。クライアントの `ErrorDefinition` の既定の action は `Title`（`SignInAsync` は `handledCodes` で受けるので画面には出ない。ほかの RPC が受けたらタイトルへ戻り、起動の流れがサインアップから入り直す）[決定。2026-11-03。ユーザーの判断] |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
 | `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |
