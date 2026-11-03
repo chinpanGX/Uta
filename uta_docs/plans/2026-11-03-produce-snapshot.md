@@ -1,6 +1,6 @@
 ---
 title: 実装計画: ProduceSnapshot（プロデュースの状態の保存・復元の形）
-status: ready
+status: done
 updated: 2026-11-03
 spec: ../wiki/architecture/produce-domain.md, ../wiki/architecture/lesson-domain-types.md
 ---

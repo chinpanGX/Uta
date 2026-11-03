@@ -227,4 +227,4 @@ Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Resp
 
 ## 実装メモ
 
-（実装後に仕様とのズレをここに記録する）
+2026-11-03 に順 6 でプロデュースの RPC を実装した(`StartAsync`・`GetStateAsync`・`AbandonAsync`・操作の 4 つ)。ズレと決めたことは [server/produce-server.md](server/produce-server.md) の実装メモ。`SignInAsync` は `HasActiveProduce` / `DiscardedProduce` を返す。

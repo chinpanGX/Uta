@@ -175,4 +175,12 @@ Response:
 
 ## 実装メモ
 
-(実装後に仕様とのズレをここに記録する)
+実装 [2026-11-03。計画 `plans/2026-11-03-produce-snapshot.md`・`server-produce-start.md`・`server-produce-play.md`]。設計とのズレと、設計に足したこと:
+
+- **スナップショットの置き場**: `LessonSnapshot` も `shared/Uta.Shared.Domain/Produce/LessonSnapshot.cs`(produce-domain.md 6.1)。`From` に渡すカードのカタログは、エンジンの `ProduceCatalog.Cards` と同じインスタンスでなければならない(持続効果の由来を参照一致で見つけるため。サーバーは `ProduceCatalog` を Singleton で 1 つ持つ)
+- **古いセッション**: `ProduceVersions.IsCurrent` は `Data != null` も条件に含む。`state_version` が違う・`state` が読めないときは `Data = null` で、`GetState` は `Nothing`、`SignInAsync`・`StartAsync` が破棄する。`ToState` が例外を投げる状態(マスタからカードが消えたなど)は、`rule_version` を上げる運用で防ぐ前提で、内部エラーのまま
+- **`[UtaService]`**: `AttributeUsage` を Class | Method に広げ、`PlayerService.SignInAsync` のメソッドにだけ付けた(`SignUpAsync` を弾かないため)。`ToErrorCode` は `internal static`
+- **操作の流れ**: `ProduceOperationUseCase`(古いセッション → 操作番号 → 復元 → 正規化 → `Apply` → 終了なら `ProduceCompletion` → 楽観ロックつき保存 → 応答)。`ExamResult` は `LastExam` の参照が変わったときと局面が `ExamResult` のときだけ。最後の応答(`DecideExamRetry` の応答)の `ExamResult` は `null`
+- **楽観ロックの競合**: `FindActiveAsync` は行ロックを取らないので、事前に `version` を進めても競合にならない(読んだ値で更新に成功する)。競合になるのは読んだあとの割り込みだけで、テストは `IProduceSessionRepository` を包んで読んだ直後に別接続で `version` を進める(`ConflictingSessionRepository`)
+- **テストの支え**: `ProduceDriver`(局面を見て次の RPC を呼ぶ自動プレイ)、`PlayerClient.WithAppVersion` / `OnChannel`、`RpcAssert`。保存した操作列を再生して保存した最終状態と一致することを `ProducePlayTests.Replay_FromSavedOperations_MatchesSavedState` で確かめる
+- 未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作。同じプレイヤーの同時要求の実測(基盤の直列化と楽観ロックの設計は読んだ)。`state` の大きさ(数十ストリーム)の実測

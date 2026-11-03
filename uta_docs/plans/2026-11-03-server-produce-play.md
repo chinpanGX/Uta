@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーのプロデュース 操作・終了・報酬
-status: ready
+status: done
 updated: 2026-11-03
 spec: ../wiki/architecture/server/produce-server.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/api-design.md, ../wiki/systems/produce.md
 ---
