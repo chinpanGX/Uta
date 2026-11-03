@@ -14,5 +14,13 @@ namespace Uta.Shared.Contracts.Produce
         UnaryResult<ProduceStateResponse> GetStateAsync();
 
         UnaryResult<ProduceResultResponse> AbandonAsync();
+
+        UnaryResult<ProduceStateResponse> ChooseWeekActionAsync(ChooseWeekActionRequest request);
+
+        UnaryResult<ProduceStateResponse> ResolveCardOfferAsync(ResolveCardOfferRequest request);
+
+        UnaryResult<ProduceStateResponse> DecideExamRetryAsync(DecideExamRetryRequest request);
+
+        UnaryResult<ProduceStateResponse> ExecuteLessonActionAsync(ExecuteLessonActionRequest request);
     }
 }

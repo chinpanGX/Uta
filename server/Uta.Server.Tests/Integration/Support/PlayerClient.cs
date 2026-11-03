@@ -36,6 +36,9 @@ public sealed class PlayerClient
     /// <summary>x-app-version を差し替えた同じプレイヤーのクライアント。null なら付けない。</summary>
     public PlayerClient WithAppVersion(string? version) => new PlayerClient(channel, PlayerId, token, version);
 
+    /// <summary>別のチャンネル（再起動したサーバーなど）に同じプレイヤーのままつなぐ。</summary>
+    public PlayerClient OnChannel(GrpcChannel other) => new PlayerClient(other, PlayerId, token, appVersion);
+
     /// <summary>同じチャンネルで IPlayerService を呼ぶ。requestId が null なら x-request-id を付けない。</summary>
     public Task<T> CallAsync<T>(Func<IPlayerService, UnaryResult<T>> call, string? requestId)
     {
