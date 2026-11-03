@@ -1,7 +1,13 @@
 {
     "name": "Uta.Client.Editor",
     "rootNamespace": "Uta.Client.Editor",
-    "references": [],
+    "references": [
+        "Uta.Client.Bootstrap",
+        "Uta.Client.Presentation",
+        "UnityEngine.UI",
+        "Unity.InputSystem",
+        "VContainer"
+    ],
     "includePlatforms": [
         "Editor"
     ],
