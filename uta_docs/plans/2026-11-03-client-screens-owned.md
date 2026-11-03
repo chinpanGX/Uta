@@ -554,7 +554,7 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 1. [screen-design.md](../wiki/architecture/screen-design.md): 2章の表の「所持一覧・詳細」と「サポートカードの強化」を、「詳細と強化（レベル上げ・上限解放）は 1 ページ（`SupportDetailPage`）」に直す。3章の図の「所持一覧 ─▶ 詳細 ─▶ 強化」を「所持一覧 ─▶ サポートカードの詳細（強化を含む）」に直し、「上限解放の素材は所持一覧の選択モードで選ぶ」を足す。7.2 の部品の表に、所持一覧の選択モード（`OwnedArgs`・`OwnedSelectionRequest`・`WaitForPopAsync<OwnedSelection>`）を 1 行足す。実装メモに、計画とのズレ（なければ「なし」）を書く
 2. [produce-domain.md](../wiki/architecture/produce-domain.md) の Shared.Domain の型の一覧（`FormationValidator(編成の検証 5・6)` の行）に `IsPlanCompatible`（プランの適合。クライアントの表示も使う）を足す
 3. [idol-support.md](../wiki/systems/idol-support.md): 2.1 の「検証の置き場」の「同じ関数」に `FormationValidator.IsPlanCompatible`（6）と書き添える。「実装メモ」に「上限解放の確認ダイアログは、素材の Lv にかかわらず常に『強化に使った強化pt・ゴールドは戻らない』を出す（2.2.1 の『素材のレベルが 1 より大きいとき』より広い）」と書く
-4. [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び」の行の後ろに「[Uta案] MVP では育成アイドルは 4 人なので、`IdolId` の昇順に固定し、並び・絞り込みはサポートカードだけに出す（[計画](../../plans/2026-11-03-client-screens-owned.md)）」を足す
+4. screen-wireframes.md 10 の「一覧の並び」の行の後ろに「[Uta案] MVP では育成アイドルは 4 人なので、`IdolId` の昇順に固定し、並び・絞り込みはサポートカードだけに出す（計画）」を足す
 5. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md): 2章の表・3.3 に、所持一覧（スクロール・動的に作る行のボタン）と詳細の画面で確かめたこと・確かめていないことを足す
 6. この計画の frontmatter を `status: done`、`updated` をその日にする
 

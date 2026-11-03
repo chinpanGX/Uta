@@ -283,12 +283,12 @@ ID の対応は 14章の ID → `CardId`（F01〜F07 = 1〜7、S01〜S14 = 101�
   1. `lesson-tables.md` 1章の表:
      - `Card` の行の「主な列」を「`Name`（`string`。表示名。空でなく、表の中で重ならない）、プラン、種別、レアリティ、`UnlockLv`、`OnceInLesson`、`Unique`、`StartInHand`」にする
      - `CardFace` の行の「主な列」を「`EffectGroupId`、`UseConditionGroupId`（空欄＝条件なし）、`Description`（`string`。その面の効果の説明文。空でない。消費は書かない）」にする
-     - 表の下の箇条に「- `Card.Name`・`CardFace.Description` は人が書いた文。値は `card.csv`・`cardFace.csv` が正。説明文が `Effect`・`CardCost`・`Condition` の数値と食い違わないことは自動では検証しない（CSV を変えたらレビューで突き合わせる）[決定。2026-11-03。[計画](../../../plans/2026-11-03-masterdata-card-text.md)]」を足す
+     - 表の下の箇条に「- `Card.Name`・`CardFace.Description` は人が書いた文。値は `card.csv`・`cardFace.csv` が正。説明文が `Effect`・`CardCost`・`Condition` の数値と食い違わないことは自動では検証しない（CSV を変えたらレビューで突き合わせる）決定。2026-11-03。[計画]」を足す
   2. `lesson-tables.md` 2章の 1 つ目の箇条の後に「- `Card` の `IValidatable` は `Name` が空・空白だけでないこと、`CardFace` の `IValidatable` は `Description` が空・空白だけでないことを見る。`Card.Name` の重複は `[Unique]`」を足す
-  3. `lesson-tables.md` 実装メモの最後に「2026-11-03（[計画](../../../plans/2026-11-03-masterdata-card-text.md)）: `Card.Name`（`card.csv` の 2 列目）・`CardFace.Description`（`cardFace.csv` の 5 列目）を足した。36 枚の名前と 72 面の説明文は計画の 3.4。列を足したので `MasterDataSchema.Hash` が変わり、サーバー・クライアントのバイナリを作り直した」を足す
+  3. `lesson-tables.md` 実装メモの最後に「2026-11-03（計画）: `Card.Name`（`card.csv` の 2 列目）・`CardFace.Description`（`cardFace.csv` の 5 列目）を足した。36 枚の名前と 72 面の説明文は計画の 3.4。列を足したので `MasterDataSchema.Hash` が変わり、サーバー・クライアントのバイナリを作り直した」を足す
   4. `master/README.md` 1章の表: `Card` の行の「中身」を「スキルカードの見出し（名前、プラン、種別、レアリティ、解放 Lv など）」、`CardFace` の行の「中身」を「通常 / 強化の面。効果・使用条件のグループを指す。説明文」にする。5章の「`[ClientOnly]` のテーブル・列はまだ無い（表示名・アイコンは未定義）」を「`[ClientOnly]` のテーブル・列はまだ無い（表示名・説明文は Common の列: `Idol.Name`・`SupportCard.Name`・`Card.Name`・`CardFace.Description`。アイコンは未定義）」にする
   5. `masterdata-pipeline.md` 未決事項の「表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある」を「表示名・説明文を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` と `CardFace.Description` が Common にある」にする
-  6. `lesson-card.md` 14章の見出しの直後（「効果の数値は参考作品の値を…」の段落の前）に「カードの名前と説明文はマスタ（`masterdata/csv/card.csv` の `Name`・`cardFace.csv` の `Description`）が正。このページの ID と効果の記載は名前の代わりではなく、効果の値の出典（[lesson-tables.md](../architecture/master/lesson-tables.md)）。」の 1 行を足す。未決事項の「カード・ステータスの表示名(仮称を Uta 独自の名称に置き換える)」を「ステータスの表示名(仮称を Uta 独自の名称に置き換える。置き換えたらカードの説明文も書き直す)。カードの名前は 2026-11-03 にマスタへ入れた（Uta 独自の名前）」にする
+  6. `lesson-card.md` 14章の見出しの直後（「効果の数値は参考作品の値を…」の段落の前）に「カードの名前と説明文はマスタ（`masterdata/csv/card.csv` の `Name`・`cardFace.csv` の `Description`）が正。このページの ID と効果の記載は名前の代わりではなく、効果の値の出典（lesson-tables.md）。」の 1 行を足す。未決事項の「カード・ステータスの表示名(仮称を Uta 独自の名称に置き換える)」を「ステータスの表示名(仮称を Uta 独自の名称に置き換える。置き換えたらカードの説明文も書き直す)。カードの名前は 2026-11-03 にマスタへ入れた（Uta 独自の名前）」にする
   7. `python -I .claude/skills/linting-wiki/lint_wiki.py` が終了コード 0
 - 確かめ方: lint が通る。リンク（`../../../plans/…`・`../architecture/master/…`）が切れていない
 

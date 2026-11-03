@@ -503,8 +503,8 @@ public static class TestProduce
    - 6章の `LessonDto` の行の `UsableHand` の括弧の最後（「2026-11-03 追加」）を「2026-11-03 追加。**Key は末尾の 19**（既存のキーを動かさないため。表は意味の近さで `Hand` の次に置く）」に直す。行を足さない（すでにある）
    - 5章の「破棄(`SignInAsync`・`StartAsync` の中)」の「楽観ロックつき」の後ろに「。0 行なら `PRODUCE_STALE_OPERATION`」を、「`AbandonAsync`」の「(楽観ロックつき)」を「(楽観ロックつき。0 行なら `PRODUCE_STALE_OPERATION`)」に直す
    - 実装メモの最後に「- **`UsableHand`** [2026-11-03。計画 `plans/2026-11-03-client-screens-formation.md`]: `ProduceViewBuilder` が `ProduceEngine.CanUse(state, id)` で作る（`Lesson` が無ければ空）。`Uta.Shared.Domain` に公開メソッドは足していない」を足す
-4. [lesson-domain-types.md](../wiki/architecture/lesson-domain-types.md) 5章の `LessonEngine` の行の「`CanUse`（乱数なし。クライアントの予測にも使う。**MVP のクライアントの予測は使用可否だけ**で、効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）」を「`CanUse`（乱数なし。サーバーが `LessonDto.UsableHand` を作るのに使う。**MVP のクライアントは使用可否もサーバーの `UsableHand` を使い、`CanUse` を呼ばない** [決定。2026-11-03。[screen-design.md](screen-design.md) 6章]。効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）」に直す
-5. [produce-domain.md](../wiki/architecture/produce-domain.md) 1章の最初の箇条書き「…Shared.Domain で使用可否の判定と予測の表示までを行う。…」の文の後ろに「（MVP の使用可否はサーバーの `LessonDto.UsableHand` を使う: [screen-design.md](screen-design.md) 6章）」を足す
+4. lesson-domain-types.md 5章の `LessonEngine` の行の「`CanUse`（乱数なし。クライアントの予測にも使う。**MVP のクライアントの予測は使用可否だけ**で、効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）」を「`CanUse`（乱数なし。サーバーが `LessonDto.UsableHand` を作るのに使う。**MVP のクライアントは使用可否もサーバーの `UsableHand` を使い、`CanUse` を呼ばない** 決定。2026-11-03。[screen-design.md 6章]。効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）」に直す
+5. produce-domain.md 1章の最初の箇条書き「…Shared.Domain で使用可否の判定と予測の表示までを行う。…」の文の後ろに「（MVP の使用可否はサーバーの `LessonDto.UsableHand` を使う: screen-design.md 6章）」を足す
 
 確かめ方: `dotnet build Uta.slnx`、`dotnet test --project shared/Uta.Shared.Domain.Tests`（既存が壊れていない）、`dotnet test --project server/Uta.Server.Tests`（結合テストは Docker が要る）。`python -I .claude/skills/linting-wiki/lint_wiki.py` のエラーが 0。
 
@@ -548,7 +548,7 @@ public static class TestProduce
    - 7.4 の 3 つ目の箇条書きを「`PRODUCE_STALE_OPERATION`・`PRODUCE_UNEXPECTED_PHASE` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたらホームに戻る（サインインで取り直す）」に直す
    - 7.4 の最後に「- 局面の切り替えは、ホームの上のページ・モーダルを全部 `Pop` してから次の局面の画面を `Push` する（`ProduceFlow.ShowCurrentAsync`）。カードの選択肢は、背景のページ（`ProduceBackdropPage`。週・パラメータ・体力）の上にモーダルで出す。取り直しは状態を変えたユースケースが行い、`ProduceFlow` は行わない [Uta案。2026-11-03]」を足す
    - 「実装メモ」に、設計とのズレを書く（なければ「順 7 の 4 本目: なし」）
-4. [produce-server.md](../wiki/architecture/server/produce-server.md) の実装メモの「未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作」を、2 の結果に合わせて「…`WeekSelect` の応答までは確かめた（[unity7-evaluation.md](../unity7-evaluation.md) 2章）。`LessonDto`・`ExamResultDto` は未確認」に直す（確かめられなかったら直さない）
+4. produce-server.md の実装メモの「未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作」を、2 の結果に合わせて「…`WeekSelect` の応答までは確かめた（unity7-evaluation.md 2章）。`LessonDto`・`ExamResultDto` は未確認」に直す（確かめられなかったら直さない）
 5. `python -I .claude/skills/linting-wiki/lint_wiki.py` のエラーが 0。この計画を `done` にする
 
 ## 5. テスト
