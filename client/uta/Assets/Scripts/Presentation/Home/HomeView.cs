@@ -21,6 +21,11 @@ namespace Uta.Client.Presentation.Home
             summaryText.text = text;
         }
 
+        public void SetInteractable(bool value)
+        {
+            produceButton.interactable = value;
+        }
+
         private void OnProduce()
         {
             ProduceClicked?.Invoke();

@@ -52,6 +52,7 @@ namespace Uta.Client.Presentation.Home
 
         private void OnProduce()
         {
+            view.SetInteractable(false);
             navigator.GoToProduceAsync().Forget();
         }
     }

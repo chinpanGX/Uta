@@ -15,6 +15,11 @@ namespace Uta.Client.Presentation.Produce
             homeButton.onClick.AddListener(OnHome);
         }
 
+        public void SetInteractable(bool value)
+        {
+            homeButton.interactable = value;
+        }
+
         private void OnHome()
         {
             HomeClicked?.Invoke();

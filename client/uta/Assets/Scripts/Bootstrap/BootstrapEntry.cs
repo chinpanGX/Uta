@@ -58,31 +58,44 @@ namespace Uta.Client.Bootstrap
             Debug.Log("[Uta] master: ok cards=" + cardCatalog.CardIds.Count);
             view.SetText(string.Empty);
 
-            var accountPath = Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl));
-            var scope = LifetimeScope.Create(builder =>
+            try
             {
-                builder.RegisterInstance<ICardCatalog>(cardCatalog);
-                builder.RegisterInstance(new StartupOptions(quitAfterCheck));
-                builder.Register<SceneNavigator>(Lifetime.Singleton).As<ISceneNavigator>();
-                builder.Register<ErrorNavigator>(Lifetime.Singleton).As<IErrorNavigator>();
-                builder.Register<UtaApiClient>(
-                    resolver => UtaApiClient.Create(
-                        serverUrl,
-                        AppInfo.Platform,
-                        AppInfo.Version,
-                        accountPath,
-                        AppInfo.AccountKeySource,
-                        new DefaultCommonErrorHandler(errorDialog),
-                        quitAfterCheck ? null : resolver.Resolve<IErrorNavigator>()),
-                    Lifetime.Singleton);
-                builder.Register<DeviceAuthGateway>(Lifetime.Singleton).As<IDeviceAuthPort>();
-                builder.Register<PlayerGateway>(Lifetime.Singleton).As<IPlayerPort>();
-                builder.Register<PlayerCache>(Lifetime.Singleton);
-                builder.Register<SignInUseCase>(Lifetime.Singleton);
-                builder.Register<EnterPlayerUseCase>(Lifetime.Singleton);
-            });
-            DontDestroyOnLoad(scope.gameObject);
-            await scope.Container.Resolve<ISceneNavigator>().GoToTitleAsync();
+                var accountPath = Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl));
+                var scope = LifetimeScope.Create(builder =>
+                {
+                    builder.RegisterInstance<ICardCatalog>(cardCatalog);
+                    builder.RegisterInstance(new StartupOptions(quitAfterCheck));
+                    builder.Register<SceneNavigator>(Lifetime.Singleton).As<ISceneNavigator>();
+                    builder.Register<ErrorNavigator>(Lifetime.Singleton).As<IErrorNavigator>();
+                    builder.Register<UtaApiClient>(
+                        resolver => UtaApiClient.Create(
+                            serverUrl,
+                            AppInfo.Platform,
+                            AppInfo.Version,
+                            accountPath,
+                            AppInfo.AccountKeySource,
+                            new DefaultCommonErrorHandler(errorDialog),
+                            quitAfterCheck ? null : resolver.Resolve<IErrorNavigator>()),
+                        Lifetime.Singleton);
+                    builder.Register<DeviceAuthGateway>(Lifetime.Singleton).As<IDeviceAuthPort>();
+                    builder.Register<PlayerGateway>(Lifetime.Singleton).As<IPlayerPort>();
+                    builder.Register<PlayerCache>(Lifetime.Singleton);
+                    builder.Register<SignInUseCase>(Lifetime.Singleton);
+                    builder.Register<EnterPlayerUseCase>(Lifetime.Singleton);
+                });
+                DontDestroyOnLoad(scope.gameObject);
+                await scope.Container.Resolve<ISceneNavigator>().GoToTitleAsync();
+            }
+            catch (Exception e)
+            {
+                var message = "bootstrap: FAILED " + e.GetType().FullName + ": " + e.Message;
+                Debug.LogError("[Uta] " + message);
+                view.SetText(message);
+                if (quitAfterCheck)
+                {
+                    UnityEngine.Application.Quit(1);
+                }
+            }
         }
     }
 }

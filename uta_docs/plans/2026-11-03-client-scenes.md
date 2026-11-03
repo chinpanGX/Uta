@@ -288,6 +288,14 @@ RunAsync の手順:
 
 `E/Uta.Client.Editor.asmdef` の `references` を、`Uta.Client.Bootstrap`・`Uta.Client.Presentation`・`UnityEngine.UI`・`Unity.InputSystem`・`VContainer` にする（これで足りない参照が出たら、止まって報告する）。`BuildCommands.BuildWindowsIl2Cpp` の `scenes` は、`EditorBuildSettings.scenes` の有効なものの `path`（`System.Linq`）にする。
 
+### 4.5 コードレビューの指摘の反映（タスク 1 の追加）
+
+- **`TitlePresenter` の寿命**: `private bool disposed;` を持ち、`Dispose` で `true` にする。`RunAsync`（診断でないとき）は、`deviceSignIn.ExecuteAsync()` の後、`enterPlayer.ExecuteAsync(...)` の後、`navigator.GoToHomeAsync()` の前で、`if (disposed || view == null) { return; }` を見る（`ReturnToTitle` で `Title` が読み込み直されたあと、古い続きが新しい `Title` を押しのけて `Home` へ進まないため）。`catch` の中の `view != null` の確認はそのまま
+- **`SceneNavigator` の再入ガード**: `private bool loading;`。`LoadAsync` の先頭で `if (loading) { return; }`（読み込み中の遷移の要求は無視する）、`loading = true` にして `try { … } finally { loading = false; }`
+- **`SceneNavigator` の null 検査**: `var operation = SceneManager.LoadSceneAsync(sceneName); if (operation == null) { throw new InvalidOperationException("scene is not in build settings: " + sceneName); }` のあと `await operation.ToUniTask();`（`EnqueueParent` の `using` の中）
+- **`HomeView`・`ProduceView`**: `public void SetInteractable(bool value)`（ボタンの `interactable`）を足し、`HomePresenter.OnProduce`・`ProducePresenter.OnHome` は、遷移を呼ぶ前に `view.SetInteractable(false)` する（二重タップ）
+- **`BootstrapEntry.RunAsync`**: マスタの読み込みの `try/catch` の後ろ（`LifetimeScope.Create` から `GoToTitleAsync` まで）を `try/catch (Exception e)` で囲み、`catch` は `Debug.LogError("[Uta] bootstrap: FAILED " + e.GetType().FullName + ": " + e.Message)`、`view.SetText(…同じ文字列)`、`quitAfterCheck` なら `UnityEngine.Application.Quit(1)`
+
 ## 5. タスク
 
 前提: 作業の場所は `C:\Work\Uta-wt\3`。**Unity の Editor は閉じておく**（バッチモードで開く。同じプロジェクトを同時に開けない）。確認の手順は [2026-11-03-client-signup-signin.md](2026-11-03-client-signup-signin.md) 5章と同じ（コンパイルは `-batchmode -nographics -quit`、テストは `-runTests -testPlatform EditMode`、ログと XML はスクラッチパッド）。**各タスクが終わったとき、Unity のコンパイルが通り、EditMode のテストが通る状態にする。**

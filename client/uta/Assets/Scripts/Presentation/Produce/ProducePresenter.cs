@@ -31,6 +31,7 @@ namespace Uta.Client.Presentation.Produce
 
         private void OnHome()
         {
+            view.SetInteractable(false);
             navigator.GoToHomeAsync().Forget();
         }
     }

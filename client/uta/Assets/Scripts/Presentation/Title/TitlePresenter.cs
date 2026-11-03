@@ -18,6 +18,7 @@ namespace Uta.Client.Presentation.Title
         private readonly ISceneNavigator navigator;
         private readonly StartupOptions options;
         private bool running;
+        private bool disposed;
 
         public TitlePresenter(TitleView view, SignInUseCase deviceSignIn, EnterPlayerUseCase enterPlayer, ConnectivityCheck connectivityCheck, ISceneNavigator navigator, StartupOptions options)
         {
@@ -41,6 +42,7 @@ namespace Uta.Client.Presentation.Title
 
         public void Dispose()
         {
+            disposed = true;
             if (view != null)
             {
                 view.Tapped -= OnTapped;
@@ -67,8 +69,16 @@ namespace Uta.Client.Presentation.Title
             {
                 Log("startup: start");
                 var registered = await deviceSignIn.ExecuteAsync();
+                if (disposed || view == null)
+                {
+                    return;
+                }
                 Log(registered ? "device: registered" : "device: token issued");
                 var entered = await enterPlayer.ExecuteAsync(registered);
+                if (disposed || view == null)
+                {
+                    return;
+                }
                 Log("sign-up: " + (!entered.SignedUp ? "skipped" : entered.Created ? "created" : "already exists"));
                 var s = entered.Snapshot;
                 Log("sign-in: ok level=" + s.Level + " exp=" + s.Exp + " gold=" + s.Gold + " supportPoints=" + s.SupportPoints + " gachaCurrency=" + s.GachaCurrency + " idols=" + s.Idols.Count + " supportCards=" + s.SupportCards.Count + " hasActiveProduce=" + s.HasActiveProduce + " discardedProduce=" + s.DiscardedProduce);

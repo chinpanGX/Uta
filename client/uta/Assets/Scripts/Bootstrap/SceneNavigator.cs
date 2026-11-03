@@ -1,4 +1,5 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System;
+using Cysharp.Threading.Tasks;
 using UnityEngine.SceneManagement;
 using Uta.Client.Application.Navigation;
 using VContainer.Unity;
@@ -8,6 +9,7 @@ namespace Uta.Client.Bootstrap
     public sealed class SceneNavigator : ISceneNavigator
     {
         private readonly LifetimeScope root;
+        private bool loading;
 
         public SceneNavigator(LifetimeScope root)
         {
@@ -31,9 +33,28 @@ namespace Uta.Client.Bootstrap
 
         private async UniTask LoadAsync(string sceneName)
         {
-            using (LifetimeScope.EnqueueParent(root))
+            if (loading)
             {
-                await SceneManager.LoadSceneAsync(sceneName).ToUniTask();
+                return;
+            }
+
+            loading = true;
+            try
+            {
+                using (LifetimeScope.EnqueueParent(root))
+                {
+                    var operation = SceneManager.LoadSceneAsync(sceneName);
+                    if (operation == null)
+                    {
+                        throw new InvalidOperationException("scene is not in build settings: " + sceneName);
+                    }
+
+                    await operation.ToUniTask();
+                }
+            }
+            finally
+            {
+                loading = false;
             }
         }
     }
