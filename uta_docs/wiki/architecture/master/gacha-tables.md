@@ -1,7 +1,7 @@
 ---
 title: ガチャのマスタ
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # ガチャのマスタ
@@ -32,7 +32,7 @@ updated: 2026-11-01
 
 ## 実装メモ
 
-- 実装 [2026-11-01。計画 `plans/2026-11-01-masterdata-rest.md`]: `masterdata/Definitions/Gacha.cs`。MVP の中身は `masterdata/csv/` の 5 ファイル（ガチャ 1 本。通常枠 14 行・確定枠 7 行、重みは 0.01% 単位で通常枠の合計 10000・確定枠 2200）
+- 実装 [2026-11-01。計画 `plans/2026-11-01-masterdata-rest.md`]: `masterdata/Definitions/Gacha/`（2026-11-03 に 1 型 1 ファイルに分けた）。MVP の中身は `masterdata/csv/` の 5 ファイル（ガチャ 1 本。通常枠 14 行・確定枠 7 行、重みは 0.01% 単位で通常枠の合計 10000・確定枠 2200）
 - 見出しの表は `GachaDetailTable`（`gachaDetailTable`）。列名（`GachaTableId`・`NormalTableId`・`GuaranteedTableId`）は変えていない
 - 天井の交換対象は育成アイドル SSR（`IdolId` 4）とサポートカード SSR（`SupportCardId` 9）の 1 つずつ。game-spec.md の「SSR の 2 種」をこう読んだ。2 種ともサポートカードなら `gachaCeilingItem.csv` を直す
 - `ItemKind` の元の enum は `Uta.Shared.Contracts.Gacha.ItemKind`（2026-11-01 に実装）。マスタの写し・サーバーの `GrantedItemKind` との名前と数値の一致は `server/Uta.Server.Tests/MasterData/ContractsEnumsMatchTests.cs` が確かめる

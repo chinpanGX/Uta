@@ -1,0 +1,22 @@
+﻿using MasterMemory;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("offerRarityWeight"), MessagePackObject(true)]
+    public class OfferRarityWeight : IValidatable<OfferRarityWeight>
+    {
+        [PrimaryKey]
+        public Rarity Rarity { get; init; }
+
+        public int Weight { get; init; }
+
+        void IValidatable<OfferRarityWeight>.Validate(IValidator<OfferRarityWeight> validator)
+        {
+            validator.Validate(
+                x => x.Rarity == Rarity.N || x.Rarity == Rarity.R || x.Rarity == Rarity.SR || x.Rarity == Rarity.SSR,
+                "offerRarityWeight: Rarity が N〜SSR でない");
+            validator.Validate(x => x.Weight >= 0, "offerRarityWeight: Weight が負");
+        }
+    }
+}

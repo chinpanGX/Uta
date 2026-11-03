@@ -1,0 +1,29 @@
+﻿using MasterMemory;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("condition"), MessagePackObject(true)]
+    public class Condition : IValidatable<Condition>
+    {
+        [PrimaryKey(keyOrder: 0)]
+        public int ConditionGroupId { get; init; }
+
+        [PrimaryKey(keyOrder: 1)]
+        public int Order { get; init; }
+
+        public ConditionSubject Subject { get; init; }
+
+        public Comparator Comparator { get; init; }
+
+        public int Value { get; init; }
+
+        void IValidatable<Condition>.Validate(IValidator<Condition> validator)
+        {
+            validator.Validate(x => x.Subject != ConditionSubject.Nothing, "condition: Subject が Nothing");
+            validator.Validate(x => x.Comparator != Comparator.Nothing, "condition: Comparator が Nothing");
+            validator.Validate(x => x.Order >= 1, "condition: Order が 1 未満");
+            validator.Validate(x => x.Value >= 0, "condition: Value が負");
+        }
+    }
+}

@@ -1,0 +1,33 @@
+﻿using MasterMemory;
+using MasterMemory.Addons;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("gacha"), MessagePackObject(true)]
+    public class Gacha : IValidatable<Gacha>
+    {
+        [PrimaryKey]
+        public int GachaId { get; init; }
+
+        public int SingleCost { get; init; }
+
+        public int TenCost { get; init; }
+
+        [Exists(typeof(GachaDetailTable), nameof(GachaDetailTable.GachaTableId))]
+        public int NormalTableId { get; init; }
+
+        [Exists(typeof(GachaDetailTable), nameof(GachaDetailTable.GachaTableId))]
+        public int GuaranteedTableId { get; init; }
+
+        public int CeilingPoints { get; init; }
+
+        void IValidatable<Gacha>.Validate(IValidator<Gacha> validator)
+        {
+            validator.Validate(
+                x => x.SingleCost >= 1 && x.TenCost >= 1 && x.CeilingPoints >= 1,
+                "gacha: SingleCost・TenCost・CeilingPoints が 1 未満");
+            validator.Validate(x => x.NormalTableId != x.GuaranteedTableId, "gacha: NormalTableId と GuaranteedTableId が同じ");
+        }
+    }
+}

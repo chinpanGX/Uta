@@ -1,0 +1,30 @@
+﻿using MasterMemory;
+using MasterMemory.Addons;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [ServerOnly]
+    [MemoryTable("evaluationRankReward"), MessagePackObject(true)]
+    public class EvaluationRankReward : IValidatable<EvaluationRankReward>
+    {
+        [PrimaryKey]
+        public ProduceRank Rank { get; init; }
+
+        public int GachaCurrency { get; init; }
+
+        public int Gold { get; init; }
+
+        public int SupportPoints { get; init; }
+
+        public int Exp { get; init; }
+
+        void IValidatable<EvaluationRankReward>.Validate(IValidator<EvaluationRankReward> validator)
+        {
+            validator.Validate(x => x.Rank != ProduceRank.Nothing, "evaluationRankReward: Rank が Nothing");
+            validator.Validate(
+                x => x.GachaCurrency >= 0 && x.Gold >= 0 && x.SupportPoints >= 0 && x.Exp >= 0,
+                "evaluationRankReward: 量が負");
+        }
+    }
+}

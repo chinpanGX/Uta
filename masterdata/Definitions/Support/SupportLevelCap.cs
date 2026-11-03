@@ -1,0 +1,26 @@
+﻿using MasterMemory;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("supportLevelCap"), MessagePackObject(true)]
+    public class SupportLevelCap : IValidatable<SupportLevelCap>
+    {
+        [PrimaryKey(keyOrder: 0)]
+        public Rarity Rarity { get; init; }
+
+        [PrimaryKey(keyOrder: 1)]
+        public int LimitBreak { get; init; }
+
+        public int MaxLevel { get; init; }
+
+        void IValidatable<SupportLevelCap>.Validate(IValidator<SupportLevelCap> validator)
+        {
+            validator.Validate(
+                x => x.Rarity == Rarity.R || x.Rarity == Rarity.SR || x.Rarity == Rarity.SSR,
+                "supportLevelCap: Rarity が R・SR・SSR でない");
+            validator.Validate(x => x.LimitBreak >= 0 && x.LimitBreak <= 4, "supportLevelCap: LimitBreak が 0〜4 の外");
+            validator.Validate(x => x.MaxLevel >= 1, "supportLevelCap: MaxLevel が 1 未満");
+        }
+    }
+}

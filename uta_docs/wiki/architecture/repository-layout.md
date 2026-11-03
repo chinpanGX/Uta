@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
@@ -47,7 +47,7 @@ uta/
 │  └─ UnityScreenNavigator/  #   画面遷移
 ├─ uta_docs/
 ├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない（作成済み。2026-11-01）
-│  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）
+│  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）。システムごとのフォルダに 1 型 1 ファイル
 │  ├─ csv/                   #   スプレッドシートから書き出した CSV
 │  ├─ masterdata.yaml        #   出力先の設定
 │  └─ gen.ps1                #   生成のスクリプト（masterdata-pipeline.md 7章）

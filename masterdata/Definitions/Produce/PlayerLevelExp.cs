@@ -1,0 +1,20 @@
+﻿using MasterMemory;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("playerLevelExp"), MessagePackObject(true)]
+    public class PlayerLevelExp : IValidatable<PlayerLevelExp>
+    {
+        [PrimaryKey]
+        public int Level { get; init; }
+
+        public int RequiredExp { get; init; }
+
+        void IValidatable<PlayerLevelExp>.Validate(IValidator<PlayerLevelExp> validator)
+        {
+            validator.Validate(x => x.Level >= 1, "playerLevelExp: Level が 1 未満");
+            validator.Validate(x => x.RequiredExp >= 1, "playerLevelExp: RequiredExp が 1 未満");
+        }
+    }
+}
