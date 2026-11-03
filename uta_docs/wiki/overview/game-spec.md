@@ -102,21 +102,18 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 
 | 順 | 実装計画 | 受け持つ完了条件 | 待つもの |
 |---|---|---|---|
-| 1a | 通信の疎通（サーバー）（ソリューションと版の管理、`Uta.Shared.Contracts`・`Uta.Server` の骨組み。中身は [repository-layout.md](../architecture/repository-layout.md) 12章の手順 1・2・4） | — | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
-| 1b | 通信の疎通（クライアント）（Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。12章の手順 5・6） | 0 | 1a（手順 6 は 1a のマージ後） |
-| 2a | masterdata の最初の計画 1/2（[計画](../../plans/2026-11-01-masterdata-first.md)。骨組み・レッスンの 5 テーブル・サーバーでの読み込み） | — | なし |
+| 1a | **done**（2026-11-01）通信の疎通（サーバー）（[計画](../../plans/2026-11-01-connectivity-check-server.md)。ソリューションと版の管理、`Uta.Shared.Contracts`・`Uta.Server` の骨組み。中身は [repository-layout.md](../architecture/repository-layout.md) 12章の手順 1・2・4） | — | なし（VolTech-MagicOnion はコミットで固定する。repository-layout.md 3.1） |
+| 1b | **done**（2026-11-01）通信の疎通（クライアント）（[計画](../../plans/2026-11-01-connectivity-check-client.md)。Unity 7 に MagicOnion・MessagePack を入れ、VolTech-MagicOnion の RPC を呼ぶ。12章の手順 5・6） | 0 | 1a（手順 6 は 1a のマージ後） |
+| 2a | **done**（2026-11-01）masterdata の最初の計画 1/2（[計画](../../plans/2026-11-01-masterdata-first.md)。骨組み・レッスンの 5 テーブル・サーバーでの読み込み） | — | なし |
 | 2b | **done**（2026-11-01）masterdata の最初の計画 2/2（[計画](../../plans/2026-11-01-masterdata-rest.md)。プロデュース・育成アイドル・サポートカード・ガチャの 26 テーブル） | — | 2a |
-| 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6。2026-11-01 に実装済み: [計画](../../plans/2026-11-01-shared-lesson-phases.md)） | — | なし（1・2 と並行できる） |
-| 2c | マスタを Unity に取り込む（[計画](../../plans/2026-11-01-masterdata-unity.md)。クライアント用の出力・MasterMemory の導入・StreamingAssets からの読み込み） | — | 2b |
-| 4 | **done**（2026-11-01）`Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章。[計画](../../plans/2026-11-01-produce-week-progress.md)） | 5 の再生の部分 | 2・3 |
 | 2c | **done**（2026-11-01）マスタを Unity に取り込む（[計画](../../plans/2026-11-01-masterdata-unity.md)。クライアント用の出力・MasterMemory の導入・StreamingAssets からの読み込み） | — | 2b |
-| 2d | クライアントでマスタを使う（[計画](../../plans/2026-11-01-masterdata-client-use.md)。マスタ → `CardCatalog` の詰め替えと、起動時の読み込み・DI 登録。**done**） | — | 2c |
-| 3 | `Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6） | — | なし（1・2 と並行できる） |
-| 4 | `Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章） | 5 の再生の部分 | 2・3 |
-| 5a | server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足す。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
+| 2d | **done**（2026-11-01）クライアントでマスタを使う（[計画](../../plans/2026-11-01-masterdata-client-use.md)。マスタ → `CardCatalog` の詰め替えと、起動時の読み込み・DI 登録） | — | 2c |
+| 3 | **done**（2026-11-01）`Uta.Shared.Domain` のレッスン（[lesson-phases.md](../architecture/lesson-phases.md)のフェーズ 2〜4・6。[計画](../../plans/2026-11-01-shared-lesson-phases.md)） | — | なし（1・2 と並行できる） |
+| 4 | **done**（2026-11-01）`Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章。[計画](../../plans/2026-11-01-produce-week-progress.md)） | 5 の再生の部分 | 2・3 |
+| 5a | **done**（2026-11-01）server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足した。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
 | 5 | **done**（2026-11-01）server/ のプレイヤー（初期付与）・ガチャ・強化（[初期付与](../../plans/2026-11-01-server-initial-grant.md)・[ガチャ](../../plans/2026-11-01-server-gacha.md)・[強化](../../plans/2026-11-01-server-support-upgrade.md)） | 1・2・3（レベル上げ・上限解放まで。性能への反映は 6） | 1、2、5a |
 | 6 | server/ のプロデュース | 3 の「開始時の性能への反映」・4・5 | 4・5 |
-| 7 | client/ の画面 | 6・7 | 1・6 |
+| 7 | client/ の画面（クライアントのサインアップ・サインイン呼び出しを含めるかは、7 の計画で決める） | 6・7 | 1・6 |
 
 ### MVP の最小のコンテンツ
 
