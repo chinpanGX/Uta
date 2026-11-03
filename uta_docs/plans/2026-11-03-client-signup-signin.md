@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントのサインアップ・サインイン（Uta の RPC の呼び出し）
-status: ready
+status: done
 updated: 2026-11-03
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/screen-design.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/server-foundation.md
 ---
