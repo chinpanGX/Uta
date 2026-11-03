@@ -109,6 +109,53 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - レッスン・試験の画面は、`Uta.Shared.Domain` の効果エンジンで**使用可否の判定と予測値の表示**をする（PRD-04、PRD-08）。確定はサーバーの結果（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - クライアントはシードを持たないので、ドローなど乱数が絡む結果は予測しない。操作後は、サーバーのレスポンスで画面を確定させる
 - 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
+- **MVP のカードの使用可否はサーバーが判定して返す** [決定。2026-11-03。ユーザーの判断]: `LessonDto` に `UsableHand`（`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true）を足す（[server/produce-server.md](server/produce-server.md) 6章）。`LessonDto` から `LessonState` を復元するには持続効果の定義（`EffectDef`）などが足りず、クライアントだけでは判定できないため。ADR 0008 の「クライアントが判定」からは外れるが、確定はサーバー、表示のための判定もサーバーの値を使う、という向きは同じ。クライアントの予測（効果の見込み）は MVP では出さない（[lesson-domain-types.md](lesson-domain-types.md)）
+
+## 7. MVP の画面の実装方針 [決定。2026-11-03]
+
+MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を作る実装計画（6 本。[game-spec.md](../overview/game-spec.md) の順 7）が共通して従う方針。型のシグネチャは各計画が持ち、このページは「なぜそうするか」と置き場を持つ。
+
+### 7.1 UI はコードで組む [決定。ユーザーの判断]
+
+- 画面・部品は C# で `GameObject` と uGUI（`UnityEngine.UI`）から組み立てる。`.prefab`・`.unity` は作らない（Sonnet が YAML で手書きするのは現実的でないため。見た目は仮でよい）
+- `UnityScreenNavigator`（USN）には、`PreloadedAssetLoader` に「コンポーネントだけを付けた空の `GameObject`」を雛形として登録して渡す。雛形が `Instantiate` されたあと、`Page.Initialize()`（モーダルは `Modal.Initialize()`）の中で子の UI を組む（雛形には子を作らない。`Instantiate` は非シリアライズのフィールドを複製しないため）
+- 文字は `UnityEngine.UI.Text`（legacy）と OS のフォント（`Font.CreateDynamicFontFromOSFont`）。TextMeshPro とフォントのアセットは使わない（日本語のフォントのアセットを置かないため。仮の見た目）
+- 入力は Input System だけが有効（`ProjectSettings` の `activeInputHandler: 1`）なので、`EventSystem` には `InputSystemUIInputModule` を付ける
+
+### 7.2 Presentation の部品と置き場 [Uta案]
+
+| 要素 | 置き場 | 役割 |
+|---|---|---|
+| 共通部品 | `Presentation/Common/` | `UiTheme`・`UiFactory`（uGUI の部品を作る）・`SafeAreaFitter`・`UiRoot`（`Canvas`・`PageContainer`・`ModalContainer`・ブロッカー）・`PageBase`・`ModalBase`・`Presenter<TView>`・`ScreenNavigator`・`BusyIndicator` |
+| 画面 | `Presentation/<機能>/` | `<名前>Page`（`PageBase`。View。ロジックを持たない）、`I<名前>View`（Presenter が見る View の IF）、`<名前>Presenter`（`Presenter<I<名前>View>`。EditMode のテストで偽の View を渡して確かめる） |
+| ユースケース | `Application/<機能>/` | `<名前>UseCase`。通信は `I<機能>Port`（Application が持つ IF）越し。`Presentation` は `Infrastructure` に触れない |
+| 組み立て | `Bootstrap/` | VContainer のスコープ。Presenter は `Transient`、ユースケース・ゲートウェイ・`PlayerCache` は `Singleton` |
+
+- **Presenter の作り方**: `ScreenNavigator` が USN で画面を出し、VContainer から `TPresenter` を解決して `Bind(view)` を呼ぶ。画面が閉じられたら `Dispose()`。Presenter の入力（遷移先に渡す値）は、`ScreenNavigator` の `configure` コールバックで `Bind` の前に設定する
+- **画面の ID**: 雛形のキーは `typeof(TPage).Name`。USN の `pageId` は指定せず自動
+- **遷移**: ホームをスタックの底にする。ホームへ戻るときは、ホーム以外のページをすべて `Pop` する。ガチャ・所持一覧などはホームの上に `Push`、プロデュースの局面ごとの画面は `Push` せず、現在のプロデュースの画面を `Pop` して次の画面を `Push` する（戻るボタンで前の局面に戻れてしまうのを避けるため。実装は `ProduceFlow`）
+
+### 7.3 通信・状態・マスタの扱い [Uta案]
+
+- **所持データのキャッシュ**: `PlayerCache.Current`（サインインで取った `PlayerSnapshot`）。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、**`RefreshPlayerUseCase`（`IPlayerPort.SignInAsync` を呼んで `PlayerCache` を差し替える）で取り直す**。サーバーの確定値と食い違わせないため。サインインはプロデュースの破棄（古いセッション）も行うが、実行中のクライアントのバージョンは変わらないので起きない
+- **マスタ**: 画面が使うマスタの値（名前・レア度・プラン・ガチャの価格と重み・シナリオ・サポートカードのレベル表）は、`Application` の読み取り専用の IF `IGameMaster` と読み取り用の型（`IdolInfo` など）で受ける。実装は `Infrastructure` の `MasterGameData`（`MemoryDatabase` から詰め替える）。`Uta.MasterData` の型を `Application`・`Presentation` に出さない。スキルカードは `Uta.Shared.Domain` の `CardCatalog`（`ICardCatalog`）をそのまま使う
+- **スキルカードの表示**（MVP）: 名前の列がマスタに無いので「カード <ID>」。レア度・種類（`CardType`）・消費（`CostKind` と値）・強化済みの印（`+`）だけを出し、効果の説明文は出さない（文を作る仕組みを作らないため。[screen-wireframes.md](../overview/screen-wireframes.md) 3 のカード詳細の「効果」の欄は MVP では出さない）
+- **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler`（進行中の呼び出しが 0→1 で開始、1→0 で終了。冪等性の順番待ち・再認証の再送を含む）を `ApiActivityBridge` で `BusyIndicator` につなぐ。進行中は全面の透明な `Image`（`raycastTarget`）で入力を止める。画面は個別に包まない
+- **エラーの遷移先**: `IErrorNavigator` を `UtaErrorNavigator` で実装する。「タイトルへ」は起動の流れ（`StartupFlow`）のやり直し、「ホームへ」はサインインで取り直してホームに戻る、「ストアへ」は何もしない
+- **エラー**: `ApiCore` の共通ハンドラーが出すダイアログ（ネットワークの失敗・`DATE_CHANGED` など。[5章](#5-通信とエラーの画面側の扱い-uta案)）に任せる。業務エラー（ガチャの通貨不足・`PRODUCE_STALE_OPERATION` など）は、ゲートウェイが `ApiResult` の失敗をユースケースの結果の型（成功／業務エラー／その他）に直し、Presenter が文言を選んで `DialogService` で出す。診断用だった IMGUI の `ErrorDialogView`・`StartupView` は uGUI に置き換える
+- **起動の診断モード**: `-uta-quit-after-check` を付けたときだけ、いまの診断（`unity7-evaluation.md` 3.1。通信の疎通・再認証の再送・サーバーのエラーの受け取り）を画面なしで実行して終了コードを返す（`StartupDiagnostics`）。付けないときは通常の起動（画面）
+
+### 7.4 プロデュースの画面の流れ [Uta案]
+
+- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（`Application`。最新の `ProduceStateView` と次の操作番号を持つ）が操作のたびに更新され、`ProduceFlow`（`Presentation`）が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業の週は授業の選択肢を同じページに出す）、`CardOffer` → スキルカード獲得、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
+- 操作のレスポンスの `ExamResult` が入っている（再挑戦が残らず `ExamResult` の局面を飛ばした場合を含む）ときは、次の局面の前に試験結果の画面を出す（[produce-domain.md](produce-domain.md) 8章）
+- `PRODUCE_STALE_OPERATION` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたらホームに戻る（サインインで取り直す）
+- 授業・支給・休むの結果（上がった値）は、操作の前後の `ProduceStateView` の差でクライアントが出す（サーバーは差を返さない）
+
+### 7.5 ウィンドウ・確かめ方 [Uta案]
+
+- Windows: 初期 540×960、ウィンドウモード、縦向きのみ。比率を 9:16 に保つ補正を `WindowAspectKeeper`（Windows のスタンドアロンだけ）が行う
+- 確かめ方は計画ごとに「EditMode のテスト（`unity` CLI または Test Runner）／ Play モード／ Windows の IL2CPP のビルド／手動」のどれで確かめるかを書く。Unity の Editor を開けない環境では、確かめられていないと計画・報告に書く（推測で「通った」と書かない）
 
 ## 未決事項
 
