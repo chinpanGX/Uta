@@ -1,7 +1,7 @@
 ---
 title: architecture/server（サーバーの実装設計）の目次
 status: draft
-updated: 2026-10-31
+updated: 2026-11-03
 ---
 
 # architecture/server（サーバーの実装設計）の目次
@@ -10,3 +10,4 @@ updated: 2026-10-31
 
 - [server-foundation.md](server-foundation.md) — サーバー基盤（VolTech-MagicOnion。.NET 10、MagicOnion + PostgreSQL）：構成、フィルター順序、エラー、ヘッダー、認証・冪等性、トランザクション
 - [gacha-support-server.md](gacha-support-server.md) — ガチャ・サポートカードのサーバー処理：抽選の実装、ガチャ・強化の処理の手順（SQL・トランザクション）
+- [produce-server.md](produce-server.md) — プロデュースのサーバー処理：保存の形（テーブル・MessagePack）、乱数ストリーム、開始・操作・放棄・破棄の手順、報酬とプレイヤーLv、DTO の形

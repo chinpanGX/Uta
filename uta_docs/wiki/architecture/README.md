@@ -30,13 +30,14 @@ updated: 2026-11-01
 | レッスンの実装の順番、フェーズごとに変えるコード、テストの置き場、完了条件 | [lesson-phases.md](lesson-phases.md) |
 | プロデュースの乱数ストリームと引く順、操作の記録、保存する状態、再現の確かめ方、プロデュースの RPC と DTO | [produce-domain.md](produce-domain.md) |
 | ガチャの抽選の実装、ガチャとサポートカードの強化の処理の手順（SQL・トランザクション） | [gacha-support-server.md](server/gacha-support-server.md) |
+| プロデュースのサーバーの保存の形（テーブル・MessagePack）、サーバーの乱数ストリーム、開始・操作・放棄・破棄の手順、報酬とプレイヤーLv、プロデュースの DTO の形 | [produce-server.md](server/produce-server.md) |
 
 ## 一覧
 
 フォルダ:
 
 - [master/README.md](master/README.md) — マスタ設計：定義・生成・配信と列の規約（masterdata-pipeline.md）、システムごとのテーブルと列、全テーブルの索引
-- [server/README.md](server/README.md) — サーバーの実装設計：サーバー基盤（VolTech-MagicOnion）の使い方、ガチャ・サポートカードのサーバー処理
+- [server/README.md](server/README.md) — サーバーの実装設計：サーバー基盤（VolTech-MagicOnion）の使い方、ガチャ・サポートカード・プロデュースのサーバー処理
 
 共通の 4 編（[repository-layout.md](repository-layout.md) 1章）。マスター設計編は master/ にある:
 

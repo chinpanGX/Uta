@@ -2,12 +2,16 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
+using Uta.MasterData;
 using Uta.Server.Application.Common;
 using Uta.Server.Application.Gacha;
 using Uta.Server.Application.Idol;
 using Uta.Server.Application.Player;
+using Uta.Server.Application.Produce;
 using Uta.Server.Application.Support;
 using Uta.Server.Infrastructure;
+using Uta.Shared.Domain.Lesson;
+using Uta.Shared.Domain.Produce;
 using VolTech.Server.Auth;
 using VolTech.Server.Hosting;
 using ZLogger;
@@ -37,6 +41,9 @@ if (args.Length > 0 && args[0] == "migrate")
 }
 
 builder.Services.AddSingleton(MasterDataLoader.Load());
+builder.Services.AddSingleton<ICardCatalog>(sp => MasterCardCatalog.Create(sp.GetRequiredService<MemoryDatabase>()));
+builder.Services.AddSingleton(sp => MasterProduceCatalog.Create(sp.GetRequiredService<MemoryDatabase>(), sp.GetRequiredService<ICardCatalog>()));
+builder.Services.AddSingleton<ProduceEngine>();
 builder.Logging.ClearProviders();
 builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());
 builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(listen => listen.Protocols = HttpProtocols.Http2));
@@ -50,6 +57,16 @@ builder.Services.AddSingleton<IGachaCatalog, MasterGachaCatalog>();
 builder.Services.AddSingleton<IDuplicateConversionCatalog, MasterDuplicateConversionCatalog>();
 builder.Services.AddSingleton<IRandomSource, SecureRandomSource>();
 builder.Services.AddScoped<IGachaRepository, GachaRepository>();
+builder.Services.AddScoped<IProduceSessionRepository, ProduceSessionRepository>();
+builder.Services.AddSingleton<ProduceViewBuilder>();
+builder.Services.AddSingleton<IProduceRewardCatalog, MasterProduceRewardCatalog>();
+builder.Services.AddSingleton<IPlayerLevelCatalog, MasterPlayerLevelCatalog>();
+builder.Services.AddScoped<ProduceSessionDiscarder>();
+builder.Services.AddScoped<StartProduceUseCase>();
+builder.Services.AddScoped<GetProduceStateUseCase>();
+builder.Services.AddScoped<AbandonProduceUseCase>();
+builder.Services.AddScoped<ProduceCompletion>();
+builder.Services.AddScoped<ProduceOperationUseCase>();
 builder.Services.AddScoped<ItemGranter>();
 builder.Services.AddScoped<GetGachasUseCase>();
 builder.Services.AddScoped<DrawUseCase>();
