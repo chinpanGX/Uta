@@ -1,0 +1,29 @@
+﻿using MasterMemory;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("supportCard"), MessagePackObject(true)]
+    public class SupportCard : IValidatable<SupportCard>
+    {
+        [PrimaryKey]
+        public int SupportCardId { get; init; }
+
+        public string Name { get; init; } = "";
+
+        public Rarity Rarity { get; init; }
+
+        public SupportType Type { get; init; }
+
+        public Plan Plan { get; init; }
+
+        void IValidatable<SupportCard>.Validate(IValidator<SupportCard> validator)
+        {
+            validator.Validate(
+                x => x.Rarity == Rarity.R || x.Rarity == Rarity.SR || x.Rarity == Rarity.SSR,
+                "supportCard: Rarity が R・SR・SSR でない");
+            validator.Validate(x => x.Type != SupportType.Nothing, "supportCard: Type が Nothing");
+            validator.Validate(x => x.Plan != Plan.Nothing, "supportCard: Plan が Nothing");
+        }
+    }
+}

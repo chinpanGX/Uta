@@ -1,0 +1,24 @@
+﻿using MasterMemory;
+using MessagePack;
+
+namespace Uta.MasterData
+{
+    [MemoryTable("duplicateConversion"), MessagePackObject(true)]
+    public class DuplicateConversion : IValidatable<DuplicateConversion>
+    {
+        [PrimaryKey(keyOrder: 0)]
+        public ItemKind ItemKind { get; init; }
+
+        [PrimaryKey(keyOrder: 1)]
+        public Rarity Rarity { get; init; }
+
+        public int Amount { get; init; }
+
+        void IValidatable<DuplicateConversion>.Validate(IValidator<DuplicateConversion> validator)
+        {
+            validator.Validate(x => x.ItemKind != ItemKind.Nothing, "duplicateConversion: ItemKind が Nothing");
+            validator.Validate(x => x.Rarity != Rarity.Nothing, "duplicateConversion: Rarity が Nothing");
+            validator.Validate(x => x.Amount >= 0, "duplicateConversion: Amount が負");
+        }
+    }
+}

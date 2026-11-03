@@ -1,7 +1,7 @@
 ---
 title: レッスン・カードのマスタ
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # レッスン・カードのマスタ
@@ -37,7 +37,7 @@ updated: 2026-11-01
 
 2026-11-01（[計画](../../../plans/2026-11-01-masterdata-first.md)）:
 
-- 5 テーブルの定義は `masterdata/Definitions/Lesson.cs`、CSV は `masterdata/csv/`（`card` 36 行、`cardFace` 72、`cardCost` 72、`effect` 129、`condition` 14）。`CardFace.Face` の enum は `CardFaceKind`（`Nothing`・`Normal`・`Enhanced`）。元の enum が `Uta.Shared.Domain` にまだないので、写しとの比較テストはない
+- 5 テーブルの定義は `masterdata/Definitions/Lesson/`（1 型 1 ファイル）、CSV は `masterdata/csv/`（`card` 36 行、`cardFace` 72、`cardCost` 72、`effect` 129、`condition` 14）。`CardFace.Face` の enum は `CardFaceKind`（`Nothing`・`Normal`・`Enhanced`）。元の enum が `Uta.Shared.Domain` にまだないので、写しとの比較テストはない
 - `unlockLv` は**仮の値**（N・R = 1、SR = 5、SSR = 10）
 - 参照の列（`UseConditionGroupId`・`RefConditionGroupId`・`RefEffectGroupId`・`RefCardId`）は、使わないとき CSV のセルを空にする（`0` は「ID 0 を探す」ことになって失敗する）
 - 効果内条件は、直前の 1 効果の行にだけ付ける。持続効果の子のグループは `EffectGroupId = 親グループ + 1`（面ごとの `… × 100 + 面 × 10 + 2`）

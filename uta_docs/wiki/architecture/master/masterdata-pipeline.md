@@ -1,7 +1,7 @@
 ---
 title: マスタデータの定義・生成・配信（実装設計書 マスター設計編）
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # マスタデータの定義・生成・配信（実装設計書 マスター設計編）
@@ -31,7 +31,7 @@ updated: 2026-11-01
 ## 1. 全体フロー
 
 ```
-masterdata/Definitions/*.cs        … 全列入りの定義（正本）
+masterdata/Definitions/<系>/<型名>.cs … 全列入りの定義（正本）
         │  code-gen
         ├──▶ client/uta/Assets/Scripts/Infrastructure/MasterData/Generated/ クライアント用ソース（ServerOnly を除く）
         └──▶ server/Uta.Server/Infrastructure/MasterData/Generated/ サーバー用ソース（ClientOnly を除く）
@@ -64,6 +64,8 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - **検証の置き場** [決定。2026-11-01]: 自分の行の列だけで決まる検査は、行のクラスの `IValidatable<T>`（明示的実装）。表をまたぐ検査（ほかの表を読む、`[Exists]` で書けない）はサーバーのテスト（`MasterDataInvariantTests`）。例外として、`Effect` の入れ子の深さは `IValidatable` の `CallOnce()` で `Effect` の全行を読んで検査する。`IValidatable` の違反は `master-gen` が主キー付きで報告し、バイナリを書かない [確認]
 - 空欄は型の既定値（`0` / `false` / `""` / enum の 0）。主キーの空欄はエラー
 - `IValidatable<T>` は使えるが、検証のコードがクライアント用の出力にも入る。**`[ServerOnly]` の列・テーブルを参照する検証は書けない**。できるだけ属性で書く
+
+**定義は 1 型 1 ファイル** [決定。2026-11-03。ユーザーの判断]: テーブルの `class` も enum も、型名と同じ名前のファイルに 1 つずつ置く。フォルダはシステムごとに分ける（`Common/`・`Gacha/`・`Idol/`・`Support/`・`Lesson/`・`Produce/`）。複数のシステムで使う enum（`Plan`・`Rarity` など）と、システムに属さない `InitialSetting` は `Common/`。名前空間はフォルダによらず `Uta.MasterData` のまま。`using` はそのファイルで使うものだけを書く。アドオンは `Definitions/` の下をサブフォルダまで読み、生成ソースも同じフォルダ構成で出す [確認]（クライアントの生成先に、フォルダとファイルの `.meta` が要る。Unity で開いて作り、コミットする）。生成ソースから計算する `MasterDataSchema.Hash`・スキーマの ID は、ファイルの分け方を変えると変わる（データの `dataHash` は変わらない）
 
 定義の置き場 `masterdata/Definitions/` は、C# 9 の範囲で書く（クライアント用の生成ソースを Unity と同じ制約でコンパイルして検証されるため。[確認]）。`masterdata/.editorconfig` に `shared/` と同じ設定を置いた [決定]。**C# 9 に収めることを強制する仕組みはない**（クライアント用の出力を作らず、`masterdata/` に csproj もないため）。レビューで見る。クライアント用の出力を足すとき、アドオンが netstandard2.1・C# 9 でコンパイルして検証する。
 

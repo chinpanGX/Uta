@@ -10,6 +10,6 @@ namespace Uta.MasterData
     /// </summary>
     public static class MasterDataSchema
     {
-        public const string Hash = "75eb296d44b284d1fe3f751708e7ced054049d128e2087445f78efe8a9da2f0f";
+        public const string Hash = "dc8ea7ef14faeb219d405b8f3875ecce416819f3885559fb4b0bfcab241996eb";
     }
 }
