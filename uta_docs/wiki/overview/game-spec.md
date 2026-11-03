@@ -112,8 +112,8 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 4 | **done**（2026-11-01）`Uta.Shared.Domain` の週の進行（[produce.md](../systems/produce.md) 10章。[計画](../../plans/2026-11-01-produce-week-progress.md)） | 5 の再生の部分 | 2・3 |
 | 5a | **done**（2026-11-01）server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足した。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
 | 5 | **done**（2026-11-01）server/ のプレイヤー（初期付与）・ガチャ・強化（[初期付与](../../plans/2026-11-01-server-initial-grant.md)・[ガチャ](../../plans/2026-11-01-server-gacha.md)・[強化](../../plans/2026-11-01-server-support-upgrade.md)） | 1・2・3（レベル上げ・上限解放まで。性能への反映は 6） | 1、2、5a |
-| 6 | server/ のプロデュース | 3 の「開始時の性能への反映」・4・5 | 4・5 |
 | 7 | client/ の画面（クライアントのサインアップ・サインイン呼び出しは、7 の前に別の計画で **done**（2026-11-03）。[計画](../../plans/2026-11-03-client-signup-signin.md)。画面は診断用の IMGUI のまま） | 6・7 | 1・6 |
+| 6 | **done**（2026-11-03）server/ のプロデュース（[ProduceSnapshot](../../plans/2026-11-03-produce-snapshot.md)・[開始・保存](../../plans/2026-11-03-server-produce-start.md)・[操作・報酬](../../plans/2026-11-03-server-produce-play.md)） | 3 の「開始時の性能への反映」・4・5 | 4・5 |
 
 ### MVP の最小のコンテンツ
 
