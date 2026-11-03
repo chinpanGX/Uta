@@ -6,6 +6,7 @@ namespace Uta.Client.Bootstrap
 {
     /// <summary>
     /// 共通エラーハンドラー用の診断用ダイアログ（IMGUI）。画面の計画で作り直す。
+    /// 診断用。同時に表示できるのは 1 つ（ApiCore がエラーハンドラーを順番待ちにしている前提）。
     /// Presentation の参照先に VolTech.MagicOnion.Client が無く、IErrorDialogView を実装できないため Bootstrap に置く。
     /// </summary>
     public sealed class ErrorDialogView : MonoBehaviour, IErrorDialogView
@@ -44,6 +45,16 @@ namespace Uta.Client.Bootstrap
             message = error.ToString();
             this.buttons = buttons;
             return source.Task;
+        }
+
+        private void OnDestroy()
+        {
+            if (source != null)
+            {
+                var pending = source;
+                source = null;
+                pending.TrySetCanceled();
+            }
         }
 
         private void OnGUI()

@@ -14,6 +14,7 @@ namespace Uta.Client.Infrastructure.Api
         private readonly ApiCoreOptions options;
         private readonly string accountFilePath;
         private readonly string keySource;
+        private readonly CountingTokenProvider counting;
 
         public IDeviceService DeviceClient { get; }
 
@@ -22,8 +23,12 @@ namespace Uta.Client.Infrastructure.Api
 
         public PlayerApi Player { get; }
 
-        private UtaApiClient(GrpcChannel channel, IDeviceService deviceClient, ApiCoreOptions options, string accountFilePath, string keySource, DeviceTokenProvider tokenProvider, PlayerApi player)
+        /// <summary>ApiCore がトークンを捨てた（Invalidate を呼んだ）回数。再認証の再送の診断用。</summary>
+        public int TokenInvalidationCount => counting.InvalidationCount;
+
+        private UtaApiClient(GrpcChannel channel, IDeviceService deviceClient, ApiCoreOptions options, string accountFilePath, string keySource, DeviceTokenProvider tokenProvider, CountingTokenProvider counting, PlayerApi player)
         {
+            this.counting = counting;
             this.channel = channel;
             this.options = options;
             this.accountFilePath = accountFilePath;
@@ -42,8 +47,9 @@ namespace Uta.Client.Infrastructure.Api
             var deviceClient = ServiceClientFactory.Create<IDeviceService>(callInvoker);
             var playerClient = ServiceClientFactory.Create<IPlayerService>(callInvoker);
             var tokenProvider = new DeviceTokenProvider(deviceClient, new EncryptedFileAccountStore(accountFilePath, keySource), options);
-            var core = ApiCore.CreateBuilder(options, tokenProvider, new ErrorPolicyProvider(UtaErrors.Create()), errorHandler).Build();
-            return new UtaApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, new PlayerApi(core, playerClient));
+            var counting = new CountingTokenProvider(tokenProvider);
+            var core = ApiCore.CreateBuilder(options, counting, new ErrorPolicyProvider(UtaErrors.Create()), errorHandler).Build();
+            return new UtaApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, new PlayerApi(core, playerClient));
         }
 
         /// <summary>同じ端末のアカウントのファイルを読む、もう 1 つの DeviceTokenProvider（診断で、メインの持つトークンをサーバーで無効にするために使う）。</summary>

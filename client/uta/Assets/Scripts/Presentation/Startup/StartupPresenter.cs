@@ -47,9 +47,15 @@ namespace Uta.Client.Presentation.Startup
                 await signIn.ReissueAsync();
                 AddLine("reissue: ok");
 
+                var before = signIn.TokenInvalidationCount;
                 await signIn.InvalidateServerSideTokenAsync();
                 await enterPlayer.ExecuteAsync(false);
-                AddLine("reauth retry: ok");
+                if (signIn.TokenInvalidationCount <= before)
+                {
+                    throw new InvalidOperationException("reauth retry: not observed");
+                }
+
+                AddLine("reauth retry: ok (invalidations=" + (signIn.TokenInvalidationCount - before) + ")");
 
                 if (await signIn.CanReceiveServerErrorAsync())
                 {

@@ -65,6 +65,8 @@ namespace Uta.Client.Infrastructure.Auth
             }
         }
 
+        public int TokenInvalidationCount => api.TokenInvalidationCount;
+
         public async UniTask InvalidateServerSideTokenAsync()
         {
             var other = api.CreateTokenProvider();

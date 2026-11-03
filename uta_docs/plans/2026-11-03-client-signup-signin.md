@@ -231,6 +231,8 @@ public sealed class UtaApiClient : IDisposable
 }
 ```
 
+再認証の再送を観測するため、`ApiCore` には `DeviceTokenProvider` をそのまま渡さず、包み `CountingTokenProvider`（`Infrastructure/Api/CountingTokenProvider.cs`、`internal sealed class : ITokenProvider`）を渡す。`ITokenProvider` の 3 メソッド（`GetTokenAsync`・`Invalidate(string rejectedToken)`・`Reset()`）は中の `DeviceTokenProvider` に委譲し、`Invalidate` を呼ぶたびに `InvalidationCount`（`int`、`Interlocked` は不要）を 1 増やす。`UtaApiClient` は `public int TokenInvalidationCount => counting.InvalidationCount;` を持つ（`Create` の手順 5 で `new CountingTokenProvider(tokenProvider)` を作って `ApiCore.CreateBuilder` に渡し、コンストラクターにも渡す）。`UtaApiClient.TokenProvider`（`DeviceAuthGateway` が使う）は包まない `DeviceTokenProvider` のまま。`ApiCore` は `UNAUTHENTICATED` を受けるとトークンを捨てるために `Invalidate` を呼ぶ（auth.md）ので、再送が起きた印になる。
+
 `UtaApiClient` に `options`・`accountFilePath`・`keySource` を持たせる理由は `CreateTokenProvider`（診断）と `Dispose`（チャンネルの破棄の置き場）。
 
 `using`（ファイルごと）: `UtaApiClient` は `System`・`Grpc.Net.Client`・`VolTech.Client`・`VolTech.Client.Auth`・`VolTech.Client.Unity`・`VolTech.Server.Abstractions`・`Uta.Shared.Contracts.Player`。`PlayerApi` は `System.Collections.Generic`・`Cysharp.Threading.Tasks`・`VolTech.Client`・`VolTech.Server.Abstractions`・`Uta.Shared.Contracts.Player`。足りない `using` はコンパイルエラーに従って足してよい（設計判断ではない）。
@@ -272,15 +274,19 @@ public static PlayerSnapshot ToSnapshot(SignInResponse response)
 /// <summary>別のトークンの提供者で発行し直し、いまこの端末が持つトークンをサーバー側で無効にする（再認証の再送の診断用）。</summary>
 UniTask InvalidateServerSideTokenAsync();
 
-// SignInUseCase に足す
+/// <summary>ApiCore がトークンを捨てた回数（再認証の再送の診断用）。</summary>
+int TokenInvalidationCount { get; }
+
+// SignInUseCase に足す（診断用。画面の計画で消す、とコメントに書く）
 public UniTask InvalidateServerSideTokenAsync() => port.InvalidateServerSideTokenAsync();
+public int TokenInvalidationCount => port.TokenInvalidationCount;
 ```
 
 `DeviceAuthGateway` の変更:
 
 - `IDisposable` をやめる（`Dispose` を消す）。`Create` を消し、コンストラクターを `public DeviceAuthGateway(UtaApiClient api)` にする（`api.DeviceClient`・`api.TokenProvider` を持つ。`api` も持つ）。`using` の不要になったものを消す
 - 既存のメソッド（`GetAccountStateAsync`・`EnsureSignedInAsync`・`ReissueTokenAsync`・`CanReceiveServerErrorAsync`）は、`provider` を `api.TokenProvider`、`client` を `api.DeviceClient` に読み替えて本体を変えない
-- 足す:
+- 足す: `public int TokenInvalidationCount => api.TokenInvalidationCount;` と
 
 ```csharp
 public async UniTask InvalidateServerSideTokenAsync()
@@ -296,6 +302,7 @@ public async UniTask InvalidateServerSideTokenAsync()
 
 `B/ErrorDialogView.cs`（名前空間 `Uta.Client.Bootstrap`。`public sealed class ErrorDialogView : MonoBehaviour, IErrorDialogView`。診断用の IMGUI。画面の計画で作り直す、と XML コメントに書く）:
 
+- XML コメントに「診断用。同時に表示できるのは 1 つ（ApiCore がエラーハンドラーを順番待ちにしている前提）」と書く。`OnDestroy` で表示中の `source` があれば `TrySetCanceled()` する
 - `public void Initialize(bool autoDismiss)`
 - `public UniTask<ErrorDialogButton> ShowAsync(ApiError error, ErrorDialogButtons buttons)`:
   1. `Debug.LogWarning("[Uta] error dialog: " + error + " buttons=" + buttons)`
@@ -368,7 +375,7 @@ private static async UniTaskVoid RunAsync()
 | 3 | `var entered = await enterPlayer.ExecuteAsync(registered);` | `"sign-up: " + (!entered.SignedUp ? "skipped" : entered.Created ? "created" : "already exists")` |
 | 4 | — | `"sign-in: ok level=" + s.Level + " exp=" + s.Exp + " gold=" + s.Gold + " supportPoints=" + s.SupportPoints + " gachaCurrency=" + s.GachaCurrency + " idols=" + s.Idols.Count + " supportCards=" + s.SupportCards.Count + " hasActiveProduce=" + s.HasActiveProduce + " discardedProduce=" + s.DiscardedProduce`（`s = entered.Snapshot`） |
 | 5 | `await signIn.ReissueAsync();` | `reissue: ok` |
-| 6 | `await signIn.InvalidateServerSideTokenAsync(); await enterPlayer.ExecuteAsync(false);` | `reauth retry: ok` |
+| 6 | `var before = signIn.TokenInvalidationCount; await signIn.InvalidateServerSideTokenAsync(); await enterPlayer.ExecuteAsync(false);` のあと、`signIn.TokenInvalidationCount > before` でなければ `InvalidOperationException("reauth retry: not observed")` を投げる | `"reauth retry: ok (invalidations=" + (signIn.TokenInvalidationCount - before) + ")"` |
 | 7 | `CanReceiveServerErrorAsync`（今のまま） | 今のまま（`server error delivery: ok` / `FAILED`、`connectivity check: OK` / `FAILED ...`） |
 
 `StartupView` は XML コメントを「疎通とサインアップ・サインインの結果を IMGUI で出す診断用の表示」に直すだけ（挙動は変えない）。
@@ -440,6 +447,10 @@ private static async UniTaskVoid RunAsync()
    - プレイヤーの行だけを消して（`docker compose ... exec` で `psql` の `TRUNCATE players CASCADE`）3 回目: `sign-up: created`（`PLAYER_NOT_CREATED` を `handledCodes` で受けて `SignUpAsync` → `SignInAsync`）。これで `ErrorInfo` のトレーラーが `ApiCore` 経由で届くことも確かめられる
    - サーバーを止めて実行: `connectivity check: FAILED ...`、終了コード 1。**この経路は端末の認証（`ApiCore` を通らない）で失敗するので、`ErrorDialogView` の自動で閉じる経路・`PlayerGateway` の `Failure` への変換は通らない**。この 2 つは実行でも EditMode でも確かめない（未確認と書く）。`DefaultCommonErrorHandler` 自体は基盤のテストが確かめている
 4. 確かめられなかったもの（Docker・Unity のビルドが使えないなど）は、推測で「通った」と書かず、報告とドキュメントに「未確認」と書く
+
+### 6.3 コードレビューの指摘のうち退けたもの
+
+`PlayerGateway` の `ApiResult` → 結果型の振り分けの単体テストは作らない。`ApiResult.Success`・`Failure` と `ApiError` のコンストラクターが `internal` で、`VolTech.MagicOnion.Client.Tests.EditMode` にしか見えないため。`PLAYER_NOT_CREATED` の振り分けは 6.2 の実サーバーでの 3 回目の実行で確かめる。
 
 ## 7. 未決事項
 
