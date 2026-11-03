@@ -30,7 +30,7 @@ namespace Uta.Client.Infrastructure.Auth
         {
             var channel = ApiChannel.Create(serverUrl);
             var callInvoker = ApiChannel.CreateCallInvoker(channel);
-            var client = DeviceServiceClientFactory.Create(callInvoker);
+            var client = ServiceClientFactory.Create<IDeviceService>(callInvoker);
             var provider = new DeviceTokenProvider(
                 client,
                 new EncryptedFileAccountStore(accountFilePath, keySource),
