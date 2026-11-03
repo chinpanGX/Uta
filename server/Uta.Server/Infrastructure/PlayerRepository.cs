@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Uta.Server.Application.Player;
+using Uta.Server.Application.Produce;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Infrastructure;
@@ -67,6 +68,16 @@ public sealed class PlayerRepository : IPlayerRepository
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
         return row is null ? null : new PlayerBalance(row.SupportPoints, row.Gold);
+    }
+
+    public async Task GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int level, int exp)
+    {
+        await tx.Connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE players SET gacha_currency = gacha_currency + @gachaCurrency, gold = gold + @gold, " +
+            "support_points = support_points + @supportPoints, level = @level, exp = @exp WHERE player_id = @playerId",
+            new { playerId = playerId.ToString(), gachaCurrency = reward.GachaCurrency, gold = reward.Gold, supportPoints = reward.SupportPoints, level, exp },
+            tx.Transaction,
+            cancellationToken: tx.CancellationToken));
     }
 
     private sealed class BalanceRow

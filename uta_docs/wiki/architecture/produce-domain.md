@@ -1,7 +1,7 @@
 ---
 title: プロデュースの実装設計（週の進行・乱数・状態・API）
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # プロデュースの実装設計（週の進行・乱数・状態・API）
@@ -119,7 +119,7 @@ updated: 2026-11-01
 | レッスン・試験 | スキップ | — | `ExecuteLessonActionAsync` |
 | 終了以外 | 放棄する | — | `AbandonAsync`(操作の記録には残さない。セッションが終わるため) |
 
-- **操作の表し方は 1 つにする** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` の操作のコマンドの型(レッスンの `LessonCommand` と同じ形で、プロデュースの局面ごとの操作を表す型)を、そのまま記録の 1 件にする。記録だけの種類の enum は作らない(コマンドの種類が下の enum `OperationKind`)。型は `ProduceCommand`(種類と引数 3 つ)で、記録 `OperationRecord` はコマンドに操作番号・週・挑戦回数・ターンを付けたもの [決定。2026-11-01。実装済み。実装計画 [2026-11-01-produce-week-progress.md](../../plans/2026-11-01-produce-week-progress.md)]。DTO(`Uta.Shared.Contracts`)からコマンドへの変換はサーバーの `Api` だけで行い、記録の保存の形(MessagePack)はサーバーの `Infrastructure` で作る
+- **操作の表し方は 1 つにする** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` の操作のコマンドの型(レッスンの `LessonCommand` と同じ形で、プロデュースの局面ごとの操作を表す型)を、そのまま記録の 1 件にする。記録だけの種類の enum は作らない(コマンドの種類が下の enum `OperationKind`)。型は `ProduceCommand`(種類と引数 3 つ)で、記録 `OperationRecord` はコマンドに操作番号・週・挑戦回数・ターンを付けたもの [決定。2026-11-01。実装済み。実装計画 [2026-11-01-produce-week-progress.md](../../plans/2026-11-01-produce-week-progress.md)]。DTO(`Uta.Shared.Contracts`)からコマンドへの変換はサーバーの `Api` と `Application` だけで行い(`Api` が DTO の種類からコマンドを作り、週の行動の使わない引数の正規化は局面の情報が要るので `Application` の `ProduceCommandNormalizer` が行う。[server/produce-server.md](server/produce-server.md) 5章)、記録の保存の形(MessagePack)はサーバーの `Infrastructure` で作る
 - 局面は 6章の「進行」の局面。**試験の結果**は、再挑戦が残るときの入力待ち(合否にかかわらず。[produce.md](../systems/produce.md) 5.1.1)。**ドリンクの整理**は、ドリンクを3つ持っているときに4つ目を受け取ったときの入力待ちで、4つから1つ捨てるまで先へ進まない [決定。2026-10-31]
 - **MVP で受ける操作**は、週の選択・カードの選択肢(選ぶ・受け取らないだけ。再抽選・除去は残り回数 0 なので常に拒否)・試験の結果・レッスン・試験(カードを使う・スキップだけ)・放棄。相談中・ドリンクの整理・ドリンクを使う / 捨てるは MVP の後(`OperationKind` の値は予約して残す)
 - 要求の局面が今の局面と違えば拒否する(`PRODUCE_UNEXPECTED_PHASE`)。例外は「ドリンクを捨てる」で、終了以外のどの入力待ちでも受ける(MVP の後)
@@ -161,7 +161,7 @@ updated: 2026-11-01
 | 形式 | 状態の形式のバージョン |
 | 開始時の入力 | セッション ID、ユーザー ID、シナリオ、**育成アイドルとサポートカード(0〜5枚)の開始時点の性能**(育成アイドル: ID・トレーニング・覚醒。MVP は ID だけ持ち、トレーニング・覚醒は作るときに足す [決定。2026-11-01。実装済み]。サポートカード: カード ID・レベル・上限解放回数。所持IDは持たない)、開始時のプレイヤーLv(カードの `unlockLv` の絞り込みに使う。[produce.md](../systems/produce.md) 3.5)、マスターシード。開始時の体力は最大体力と同じ |
 | 乱数 | 使用中のストリームごとに、種類・キーと `xoshiro256**` の状態(64 ビット × 4)、引いた回数(調査用) |
-| 進行 | 局面(週の選択 / カードの選択肢 / レッスン / 試験 / 試験の結果 / 終了。入力待ちの種類のこと)、試験の開始直前の状態(再挑戦の戻り先。[produce.md](../systems/produce.md) 5.1.1)、週番号、**挑戦回数**(今の試験の中で 0 始まり。[produce.md](../systems/produce.md) 5.1.1)、次の操作番号、確定した週構成、その週に提示した内容(4章 で引いたもの) |
+| 進行 | 局面(週の選択 / カードの選択肢 / レッスン / 試験 / 試験の結果 / 終了。入力待ちの種類のこと)、試験の開始直前の状態(再挑戦の戻り先。[produce.md](../systems/produce.md) 5.1.1)、週番号、**挑戦回数**(今の試験の中で 0 始まり。[produce.md](../systems/produce.md) 5.1.1)、次の操作番号、その週に提示した内容(4章 で引いたもの) |
 | 育成 | パラメータ3種、体力・最大体力、デッキ(インスタンス ID・カード ID・強化済みか)、次のインスタンス ID、試験の再挑戦の残り回数、中間試験の結果 |
 | レッスン中だけ | `LessonState` の全部の値([lesson-domain-types.md](lesson-domain-types.md) 3章。山札の**並び順**、得たパラメータ(試験ならスコア)、ステータスと印、上昇量増加、発動予約、持続効果と残り回数、付与の順番を含む)と、試験なら審査ターンの列 |
 | 記録 | 操作の記録(5章) |
@@ -174,8 +174,31 @@ updated: 2026-11-01
 - `GetState` で返さないもの: マスターシード、ストリームの状態、**山札の並び順**(枚数と、インスタンス ID の昇順に並べ替えた中身だけを返す。PRD-08)、まだ提示していない乱数の結果。
 - `Uta.Shared.Domain` は MessagePack に依存しない。保存の形はサーバーの `Infrastructure` で、共通の状態の型を包んで作る(ADR 0010 の「影響・リスク」、[repository-layout.md](repository-layout.md) 6.1)。
 - **区分の持ち主** [決定。2026-11-01。ユーザーの判断]: 「記録」(操作の記録)と「開始時の入力」のシナリオ ID も `Uta.Shared.Domain` の状態に入れる(再生の入力になるため)。サーバーだけが持つのは「形式」(状態の形式のバージョン)、セッション ID・ユーザー ID・マスターシード、「乱数」の区分
-- **`ProduceSnapshot` は順 6(サーバーのプロデュース)の計画で作る** [決定。2026-11-01。ユーザーの判断]。`LessonState` の持続効果は `EffectDef`(参照)を持つため、平らにするには「由来のカード ID・面・効果の位置」で持つ設計が要る。順 4(週の進行)の `ProduceState` は、保存の形を持たず、メモリの上の状態と再生(7章)だけを受け持つ
-- **状態の写しは平らなスナップショット 1 つ** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` に、状態を保存・復元するための平らな型(`ProduceSnapshot`。値と配列だけを持ち、参照を持たない)を 1 つ置き、状態からの作成と状態への復元をドメインに書く。サーバーの保存の形(MessagePack)と DTO は、このスナップショットから作る。手書きの変換の漏れは、サーバーの結合テストで「状態 → 保存 → 復元 → 状態」の往復が同じになることで見つける(比べ方は 7章)
+- **`ProduceSnapshot` は順 6(サーバーのプロデュース)の計画で作る** [決定。2026-11-01。ユーザーの判断]。`LessonState` の持続効果は `EffectDef`(参照)を持つため、平らにするには「由来のカード ID・面・効果の位置」で持つ設計が要る(6.1)。順 4(週の進行)の `ProduceState` は、保存の形を持たず、メモリの上の状態と再生(7章)だけを受け持つ
+- **状態の写しは平らなスナップショット 1 つ** [決定。2026-11-01。ユーザーの判断]: `Uta.Shared.Domain` に、状態を保存・復元するための平らな型(`ProduceSnapshot`。値と配列だけを持ち、参照を持たない)を 1 つ置き、状態からの作成と状態への復元をドメインに書く。**サーバーの保存の形(MessagePack)はこのスナップショットから作る**。DTO は、復元した `ProduceState` とエンジンの表示用の関数(`GetWeekChoices`・`GetClassOptions`)から作る [決定。2026-11-03。ユーザーの判断。「DTO もスナップショットから」としていたのを直した。選べる印と NPC のスコアは `ProduceState` から計算する値で、スナップショットに入れると表示用の値で膨らむため]。手書きの変換の漏れは、「状態 → スナップショット → 状態」の往復が同じになることを `Uta.Shared.Domain` の単体テストで、「スナップショット → 保存 → 復元」の往復をサーバーのテストで見つける(比べ方は 7章)
+
+### 6.1 `ProduceSnapshot` の形 [決定。2026-11-03]
+
+置き場は `shared/Uta.Shared.Domain/Produce/ProduceSnapshot.cs`(C# 9)。型は次の 10 個。どれも `public sealed class` で、`{ get; set; }` のプロパティだけを持ち(配列は空の配列で初期化)、ロジックは持たない(`From` / `ToState` を除く)。enum は Domain の enum のまま持つ(保存のときに `int` にする)。
+
+| 型 | 中身(プロパティの宣言順) |
+|---|---|
+| `SupportCardSnapshot` | `CardId`、`Level`、`LimitBreak`(`SupportCardInput` と同じ) |
+| `CardInstanceSnapshot` | `InstanceId`、`CardId`、`Enhanced` |
+| `ExamReportSnapshot` | `Kind`(`ExamKind`)、`Attempt`、`Score`、`Rank`、`NpcScores`(`int[]`)、`Passed` |
+| `ExamBackupSnapshot` | `Parameters`(`int[3]`)、`Hp`、`Deck`(`CardInstanceSnapshot[]`)、`NextInstanceId` |
+| `ProduceResultSnapshot` | `Outcome`(`ExamOutcome`)、`EvaluationValue`、`Rank`(`ProduceRank`)、`FinalScore`、`FinalRank` |
+| `OperationSnapshot` | `Number`、`Kind`(`OperationKind`)、`Arg1`、`Arg2`、`Arg3`、`Week`、`Attempt`、`Turn` |
+| `ParamBonusSnapshot` | `Percent`、`RemainingTurns`、`SkipNextDecrement` |
+| `PersistentSnapshot` | `CardId`、`Enhanced`(強化版の面か)、`EffectIndex`(その面の `Effects` の中の位置)、`RemainingTurns`、`RemainingCount`、`GrantOrder`(`long`)、`SkipNextDecrement`。持続効果の中身(`Trigger`・`Effects`)は、カード定義の `Effects[EffectIndex]`(`Op` が `AddPersistent`)の `Trigger` と `Children` から復元する |
+| `LessonSnapshot` | `Kind`(`LessonKind`)、`TargetParam`(`ParamKind`)、`MaxTurns`、`ClearTarget`、`PerfectTarget`、`ExamTurnParams`(`ParamKind[]`。試験のときだけ。レッスンは空)、`ExamTurnScoreBonusPercents`(`int[]`。同じ長さ)、`ExamEarlyEndScore`、`Deck`(`CardInstanceSnapshot[]`。`LessonState.Deck` の並びのまま)、`DrawPile` / `Hand` / `Discard` / `Exiled`(`int[]`。インスタンス ID。並びのまま)、`StatusValues`(`int[]`、長さ `StatusSet.KindCount`)、`StatusSkipNextDecrement`(`bool[]`、同じ長さ)、`ParamBonuses`(`ParamBonusSnapshot[]`)、`Persistents`(`PersistentSnapshot[]`)、`LessonEnhanced`(`int[]`、昇順)、`Turn`、`Phase`(`LessonPhase`)、`Hp`、`MaxHp`、`Shield`、`UsesLeft`、`ParamGained`、`NextGrantOrder`(`long`) |
+| `ProduceSnapshot` | `ScenarioId`、`IdolId`、`PlayerLevel`、`SupportCards`(`SupportCardSnapshot[]`)、`Phase`(`ProducePhase`)、`Week`、`Attempt`、`NextOperationNumber`、`NextInstanceId`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Parameters`(`int[3]`)、`BonusPerThousand`(`int[3]`)、`Deck`(`CardInstanceSnapshot[]`)、`ClassOptionParams`(`int[]`)、`OfferCards`(`int[]`)、`Lesson`(`LessonSnapshot`。無ければ `null`)、`ExamBackup`(無ければ `null`)、`LastExam`(`ExamReportSnapshot`。無ければ `null`)、`MidExam`(同)、`Result`(`ProduceResultSnapshot`。無ければ `null`)、`Operations`(`OperationSnapshot[]`) |
+
+- 作成と復元: `ProduceSnapshot.From(ProduceState state, ICardCatalog cards)` と `ProduceSnapshot.ToState(ProduceCatalog catalog)`。`LessonSnapshot` にも同じ形の `From(LessonState, ICardCatalog)` と `ToState(ICardCatalog)` を置く(持続効果の往復を、`ProduceState` を作らずにテストするため)。`ProduceState` のコンストラクタと `internal` のセッターを使うので、同じアセンブリに置く
+- **持続効果の由来の見つけ方**: `LessonState` の `PersistentEffect` は由来を持たないが、`Effects` は、カード定義の `AddPersistent` 効果の `Children` と**同じ参照**である。`From` はカード ID の昇順に、通常版 → 強化版の順で面を見て、`Op` が `AddPersistent` で `ReferenceEquals(効果.Children, persistent.Effects)` になる最初の効果を選び、`(CardId, Enhanced, EffectIndex)` にする。どれにも当たらなければ `InvalidOperationException`。`Lesson` の型は変えない。同じ `Children` を通常版と強化版が共有していても、どちらを選んでも復元後の動きは同じ
+- **発動予約(`ScheduledEffect`)は持たない**: `ScheduleEffect` はまだ処理されない(`EffectExecutor` が対応していない)ので、常に空。`From` は 1 件でもあれば `NotSupportedException`。処理を足すときに、スナップショットの形(由来の持ち方)を決める
+- 復元の検査: 配列の長さ・`null`・カード定義に無い位置など、復元できない値は `ArgumentException`(メッセージに項目名)。値の妥当性(体力が範囲内など)は、`ProduceState`・`LessonState` のコンストラクタの検査に任せる
+- 乱数(マスターシード・ストリームの状態)、状態の形式のバージョン、セッション ID、ユーザー ID はスナップショットに入れない(サーバーの保存の形が持つ。[server/produce-server.md](server/produce-server.md))
 
 ## 7. 再現の確かめ方
 
@@ -254,9 +277,9 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 - 5章の操作の表し方(`ProduceCommand` ＋ `OperationRecord`)、操作番号の判定は `Api`、`ProduceStartInput` は育成アイドルの ID だけ、は実装したとおりで確定とする
 - `IRandomStreamSource` の契約: 同じ `ProduceState` に対して、要求をまたいでも同じキーには前の続きから引けるストリームを返す。`Apply` は拒否する要求でも `Get` を呼ぶことがある(レッスン・試験中の操作。引かずに拒否する)。サーバーは、受け付けた要求のあとだけストリームの状態を保存する
 - `Attempt` は Exam / ExamResult の間だけ意味を持ち、試験を出ると 0 に戻る。直近の試験の挑戦回数は `LastExam.Attempt`
-- `Apply` は、レッスン・試験の `LessonApplyResult` の拒否(手札にない・使用数なし・条件を満たさない・ドリンク)をすべて `InvalidArgument` にまとめる。引数は正規形(使わない引数は 0 / -1)かを検査せず、受け付けた値をそのまま記録に残す。正規化は `Api` の責務
+- `Apply` は、レッスン・試験の `LessonApplyResult` の拒否(手札にない・使用数なし・条件を満たさない・ドリンク)をすべて `InvalidArgument` にまとめる。引数は正規形(使わない引数は 0 / -1)かを検査せず、受け付けた値をそのまま記録に残す。正規化はサーバー(`Application` の `ProduceCommandNormalizer`)の責務
 - 処理の途中で例外が出たときの `ProduceState` は不定。サーバーは保存せず、保存済みの状態から取り直す
 - テストのマスタは `masterdata/csv/` を直接読む(`TestProduceMaster`)。バランス調整で値を変えたら、期待値のテストも直す
 - マスタ・乱数の参照で、タプルをキーにした辞書を使わない(IL2CPP の AOT でリフレクション依存の比較子を避けるため。`long` のキーにした)
 - 未確認: Unity(IL2CPP)でのコンパイルと再生。`ProduceCatalog.Create` を `SharedDomainReplay` の確認に含めるかは順 7 の前に決める
-- `ProduceSnapshot`(保存の形)は順 6
+- 2026-11-03 に順 6 で `ProduceSnapshot`(6.1)を実装した([計画](../../plans/2026-11-03-produce-snapshot.md))。サーバーでの使い方は [server/produce-server.md](server/produce-server.md)

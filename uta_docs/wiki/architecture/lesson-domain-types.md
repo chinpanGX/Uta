@@ -118,7 +118,7 @@ updated: 2026-11-01
 
 ## 未決事項
 
-- `LessonState` を保存の形へ変換する型（サーバーの `Infrastructure`。サーバーの実装時）
+- （2026-11-03 に解決）`LessonState` を保存の形へ写す型は `Uta.Shared.Domain` の `LessonSnapshot`（[produce-domain.md](produce-domain.md) 6.1）。MessagePack の形への変換はサーバーの `Infrastructure`
 
 - 表示用のイベント列
 - ~~マスタの行を受け取る型と、グループ ID を解決して `CardDefinition` を組み立てる関数~~: 2026-11-01 に実装した。行の型は `CardRow`・`CardFaceRow`・`CardCostRow`・`EffectRow`・`ConditionRow`（`CardRows.cs`）、組み立ては `CardCatalog.Create`（`CardCatalog.cs`。`ICardCatalog` の実装。問題があれば `InvalidOperationException`、`CardDefinitionValidator` も通す）。サーバーの詰め替えは `server/Uta.Server/Infrastructure/MasterData/MasterCardCatalog.cs`。クライアント側の詰め替えは `client/uta/Assets/Scripts/Infrastructure/MasterData/MasterCardCatalog.cs`（2026-11-01 に実装。起動時に `UtaBootstrap` が読み、`ICardCatalog` として登録する: [計画](../../plans/2026-11-01-masterdata-client-use.md)）

@@ -13,4 +13,11 @@ public enum UseCaseError
     SupportNotOwned,
     SupportInvalidMaterial,
     PlayerNotEnoughGold,
+    ProduceStaleOperation,
+    ProduceUnexpectedPhase,
+    ProduceInvalidArgument,
+    ProduceInvalidFormation,
+    ProduceNotInProgress,
+    ProduceSessionDiscarded,
+    ProduceAlreadyInProgress,
 }

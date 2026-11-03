@@ -1,7 +1,7 @@
 ---
 title: サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
@@ -89,6 +89,10 @@ updated: 2026-11-01
 | `LevelUpAsync` | `SupportCardUid`（`string`）、`TargetLevel`（`int`） | `Level`、`SupportPoints`（残り）、`Gold`（残り） |
 | `LimitBreakAsync` | `SupportCardUid`（解放する）、`MaterialUid`（素材） | `LimitBreak`（回数）、`MaxLevel` |
 
+### 1.3 プロデュースの DTO [決定。2026-11-03]
+
+Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Response の全フィールドと、サーバーでの処理の手順は [produce-server.md](server/produce-server.md) 5・6章が正。
+
 ## 2. エラー [決定。2026-10-28]
 
 - 業務エラーは `BusinessException(ErrorCode, ...)` を投げる（VolTech-MagicOnion の仕様）。クライアントは VolTech-MagicOnion の `ErrorPolicy` に従う
@@ -119,7 +123,7 @@ updated: 2026-11-01
 | `gacha_exchange_points` | `player_id` + `gacha_id` | 交換pt | [gacha.md](../systems/gacha.md) 4 |
 | `gacha_histories` | `history_id`（ULID） | カード 1 枚 = 1 行。`request_id`（`DrawAsync` 1 回の束）、`player_id`、`gacha_id`、`slot`（1〜10。交換は 0）、`gacha_table_id`、`item_kind`、`item_id`、`outcome`（新規 / 重複）、`shards`、`support_points`、日時 | [gacha.md](../systems/gacha.md) 6 |
 | `produce_sessions` | `session_id` | 検索用の列と状態の1列（下記） | [produce.md](../systems/produce.md) 10 |
-| `produce_results` | `session_id` | `player_id`、終わり方（完了 / 放棄 / 破棄）、試験の結果（中間不合格 / 最終不合格 / 最終合格。完了のときだけ）、評価値、ランク、付与した報酬 | [produce.md](../systems/produce.md) 6 |
+| `produce_results` | `session_id` | `player_id`、終わり方（完了 / 放棄 / 破棄）、試験の結果（中間不合格 / 最終不合格 / 最終合格。完了のときだけ）、評価値、ランク、最終試験のスコア・順位、付与した報酬（ガチャ通貨・ゴールド・サポート強化pt・経験値）。DDL は [produce-server.md](server/produce-server.md) 3章 | [produce.md](../systems/produce.md) 6 |
 | VolTech-MagicOnion のテーブル | — | `last_responses`、`game_logs`、端末・トークン | [server-foundation.md](server/server-foundation.md) |
 
 - **通貨は `players` の列で持つ**。汎用の所持テーブル（`種別・ID・数`）にはしない。SQL と Dapper が素直に書ける。通貨の種類を増やすときはマイグレーションが要るが、MVP では種類が少ないので受け入れる
@@ -156,7 +160,7 @@ updated: 2026-11-01
 - レッスン・試験の中なら:
   - カードの個体の一覧（`instanceId`、`cardId`、強化、レッスン中強化）と、それぞれのゾーン（山札の順番を含む）
   - ステータス（[lesson-card.md](../systems/lesson-card.md) 8章）と、ターン制ステータスの「プレイヤー操作中に初めて付与したか」の印（11章）
-  - 持続効果・発動予約の一覧（発動する効果の中身を丸ごと、残りターン・回数、付与の順番）。効果グループ ID では持たない。マスタの版はアプリのバージョンと同じで、版が違うセッションは破棄される（5章）ので、中身を持っても食い違わない [決定。2026-10-31]
+  - 持続効果の一覧（由来のカード ID・面・効果の位置、残りターン・回数、付与の順番。効果の中身は持たず、カード定義から復元する。[produce-domain.md](produce-domain.md) 6.1。発動予約は MVP では処理がないので持たない）。効果グループ ID では持たない。マスタの版はアプリのバージョンと同じで、版が違うセッションは破棄される（5章）ので、中身を持っても食い違わない [決定。2026-10-31]
   - 残りの使用数、ターン番号、スコア・パラメータの途中経過
 - 乱数: **マスターシードと、使用中のストリームごとの `xoshiro256**` の現在の状態の両方を持つ**（[produce-domain.md](produce-domain.md) 3章）。現在の状態があれば再開がすぐにでき、マスターシードと操作の記録があれば最初から再現できる
 - 操作の記録（[produce-domain.md](produce-domain.md) 5章）
@@ -211,7 +215,7 @@ updated: 2026-11-01
 1. `SignInAsync`（起動時）で、進行中のセッションの `app_version`・`state_version`・`rule_version`（サーバーの `RuleVersion`。[repository-layout.md](repository-layout.md) 10.5。2026-11-01 に追加）を確かめ、どれかが違えば破棄して、レスポンスで「破棄した」ことを返す。クライアントはダイアログで知らせる
 2. `GetStateAsync` は `[NoSideEffects]` なので破棄しない。違うセッションは「進行中のセッション無し」(`Phase` が `Nothing`。エラーにしない。[produce-domain.md](produce-domain.md) 8章)として返す
 4. `StartAsync` のとき、バージョンが違うセッションが残っていれば、それを破棄してから始める(`PRODUCE_ALREADY_IN_PROGRESS` にしない) [決定。2026-10-31]
-3. 起動後にアプリのバージョンが変わることはないが、`SignInAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）でも確かめる。違えば破棄して `PRODUCE_SESSION_DISCARDED` を返す
+3. 起動後にアプリのバージョンが変わることはないが、`SignInAsync` を経ずに操作の RPC が来た場合に備え、操作の RPC（`ChooseWeekActionAsync` など）と `AbandonAsync` でも確かめる。違えば `PRODUCE_SESSION_DISCARDED` を返す。**破棄の書き込みは行わない**（業務エラーはトランザクションを巻き戻すため。次の `SignInAsync` / `StartAsync` が破棄する）[決定。2026-11-03。ユーザーの判断。それまでは「破棄して返す」としていた。手順は [produce-server.md](server/produce-server.md) 5章]
 
 - 比べるのは「違うかどうか」（新しいか古いかは見ない）。強制アップデートは実装しないので、古いアプリで接続し直すと、新しいアプリで始めたセッションも破棄される（受け入れる。[repository-layout.md](repository-layout.md) 10.5）
 - 開発中、Unity エディターから同じ `x-app-version` で接続し続ける間は破棄されない。ルールを変えた確認のときは、バージョンを上げるか、放棄してやり直す
@@ -223,4 +227,4 @@ updated: 2026-11-01
 
 ## 実装メモ
 
-（実装後に仕様とのズレをここに記録する）
+2026-11-03 に順 6 でプロデュースの RPC を実装した(`StartAsync`・`GetStateAsync`・`AbandonAsync`・操作の 4 つ)。ズレと決めたことは [server/produce-server.md](server/produce-server.md) の実装メモ。`SignInAsync` は `HasActiveProduce` / `DiscardedProduce` を返す。
