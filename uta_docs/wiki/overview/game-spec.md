@@ -79,8 +79,8 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件）。最短シナリオで通らない局面（授業・支給・休む・スキルカードの選択肢・中間試験・再挑戦・不合格での終了）は、`Uta.Shared.Domain` の単体テストで、初級のシナリオを操作列から回して確かめる（[produce-domain.md](../architecture/produce-domain.md) 7章） |
 | 5 | 途中で中断しても再開できる | 結合テストで途中に `GetStateAsync` を呼んで続ける。状態の再生は `Uta.Shared.Domain` の単体テスト（[produce-domain.md](../architecture/produce-domain.md) 7章） |
 | 6 | Windows のクライアントで、起動（`SignUpAsync` → `SignInAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
-| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Shared.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 
+| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Shared.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 - iOS の実機ビルドは、Unity 7 の対応状況（[ADR 0006](../decisions/0006-adopt-unity-7-early.md)）次第の別の項目（`architecture/unity7-evaluation.md` に書く）
 - dev 環境（Cloud Run + Cloud SQL）へのデプロイは MVP の条件に含めない別の項目（[repository-layout.md](../architecture/repository-layout.md) 11章）。ローカルの `server/compose.yaml` の PostgreSQL は、条件 6・7 で手で動かすときに使う
 - **最短シナリオ**: 確認用に、3 週（週 1 レッスン → 週 2 仕上げレッスン → 週 3 最終試験）だけの週構成をマスタに置く。週構成はマスタで定義する（[produce.md](../systems/produce.md) 3.1）ので、コードは変わらない。編成の画面でシナリオを選べる（下の「画面」）ので、クライアントからも選べる
