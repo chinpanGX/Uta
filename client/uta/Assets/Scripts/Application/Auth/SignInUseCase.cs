@@ -38,5 +38,10 @@ namespace Uta.Client.Application.Auth
         {
             return port.CanReceiveServerErrorAsync();
         }
+
+        // 以下の 2 つは診断用。画面の計画で消す。
+        public UniTask InvalidateServerSideTokenAsync() => port.InvalidateServerSideTokenAsync();
+
+        public int TokenInvalidationCount => port.TokenInvalidationCount;
     }
 }

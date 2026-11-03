@@ -2,7 +2,7 @@
 
 namespace Uta.Client.Presentation.Startup
 {
-    /// <summary>疎通の確認の結果を IMGUI で出す診断用の表示。画面の計画で作り直す。</summary>
+    /// <summary>疎通とサインアップ・サインインの結果を IMGUI で出す診断用の表示。画面の計画で作り直す。</summary>
     public sealed class StartupView : MonoBehaviour
     {
         private string text = string.Empty;

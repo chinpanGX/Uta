@@ -120,9 +120,10 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 | `Uta.Server` | `server/Uta.Server` | net10.0 | `Uta.Shared.Domain`、`Uta.Shared.Contracts`、`VolTech.Server`（下の表）、生成したマスタ |
 | `Uta.Client.Application` | `Assets/Scripts/Application` | asmdef | `Uta.Shared.Domain`、`UniTask` |
 | `Uta.Client.Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Uta.Client.Application`、`Uta.Shared.Domain`、`Uta.Shared.Contracts`、VolTech-MagicOnion のクライアント、MasterMemory と生成物、`Supplement` |
-| `Uta.Client.Presentation` | `Assets/Scripts/Presentation` | asmdef | `Uta.Client.Application`、`Uta.Shared.Domain`、`UnityScreenNavigator`、`UniTask`、`VContainer`（`[Inject]` を使うため） |
+| `Uta.Client.Presentation` | `Assets/Scripts/Presentation` | asmdef | `Uta.Client.Application`、`Uta.Shared.Domain`、`UnityScreenNavigator`、`UniTask`、`VContainer`（`[Inject]` と各シーンの `LifetimeScope`）、`UnityEngine.UI`（uGUI。[screen-design.md](screen-design.md) 7章） |
 | `Uta.Client.Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて（DI のスコープを組む。`VContainer`） |
 
+- 診断用の `ErrorDialogView`（`IErrorDialogView` の IMGUI 実装）は `Bootstrap` に置く [2026-11-03]: `Presentation` の参照先に VolTech-MagicOnion のクライアントが無く、`IErrorDialogView` の実装に要るため。画面の計画で作り直すとき、`Presentation` に移すなら上の表に参照を足す
 - `VContainer` を参照してよいのは `Bootstrap` と `Presentation` だけ [決定。2026-11-01。ユーザーの判断]。`Application`・`Infrastructure` はコンストラクタで受け取るだけにし、`VContainer` を知らない
 
 - サーバーを1プロジェクトにするのは VolTech-MagicOnion と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは VolTech-MagicOnion の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）

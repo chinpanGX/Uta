@@ -55,6 +55,7 @@ updated: 2026-11-03
     - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
     - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
     - Response（`SignInResponse`）[決定。2026-11-01。`SyncResponse` の項目を引き継ぐ]: 所持データのほか、進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、このサインインでプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
+  - **クライアントの実装** [2026-11-03]: `PlayerApi`（`ApiServiceBase<IPlayerService>`）が `ApiCore` 経由で呼び、`PlayerGateway` が DTO を Application の型（`PlayerSnapshot`）に詰め替え、`EnterPlayerUseCase` が呼び順（初回は `SignUpAsync` → `SignInAsync`、保存ありは `SignInAsync` から。`PLAYER_NOT_CREATED` なら `SignUpAsync` → `SignInAsync`。2 回続けて未作成なら失敗）を持ち、結果を `PlayerCache` に入れる。計画: [2026-11-03-client-signup-signin.md](../../plans/2026-11-03-client-signup-signin.md)
   - **プレイヤー未作成のとき**: `SignInAsync` は `PLAYER_NOT_CREATED` を返す（`SignUpAsync` 以外の Uta の RPC の共通の扱い。[server-foundation.md](server/server-foundation.md)）[決定。2026-11-01。ユーザーの判断]。クライアントはそれを受けたら `SignUpAsync` を呼び、あらためて `SignInAsync` を呼ぶ。サインアップの途中で通信が切れた後の再起動（端末には保存あり）も、この経路で直る
   - `GetPlayerAsync` は作らない（サインインが全件を返し、クライアントがキャッシュするため。必要になったら足す）[決定。2026-11-01。ユーザーの判断]
   - ガチャの交換pt の変換は持たない（MVP のガチャは期間を持たない。[gacha.md](../systems/gacha.md) 4章）
@@ -102,7 +103,7 @@ Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Resp
 
 | 接頭辞 | 機能 | 例 |
 |---|---|---|
-| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [決定。2026-11-01。ユーザーの判断]。[server-foundation.md](server/server-foundation.md)。2026-11-01） |
+| `PLAYER_` | プレイヤー・共通 | `PLAYER_NOT_ENOUGH_GOLD`、`PLAYER_NOT_CREATED`（プレイヤー未作成で、`SignUpAsync` 以外の Uta の RPC が来た。`SignInAsync` もこれで未作成を知らせる [決定。2026-11-01。ユーザーの判断]。[server-foundation.md](server/server-foundation.md)。2026-11-01）。クライアントの `ErrorDefinition` の既定の action は `Title`（`SignInAsync` は `handledCodes` で受けるので画面には出ない。ほかの RPC が受けたらタイトルへ戻り、起動の流れがサインアップから入り直す）[決定。2026-11-03。ユーザーの判断] |
 | `GACHA_` | ガチャ（GAC） | `GACHA_NOT_ENOUGH_CURRENCY`、`GACHA_NOT_ENOUGH_POINTS`（交換pt 不足）、`GACHA_NOT_FOUND`（無いガチャ ID・交換対象）、`GACHA_INVALID_COUNT`（1・10 以外）、`GACHA_COST_MISMATCH`（`ExpectedCost` が違う） |
 | `IDOL_` | 育成アイドル（IDL） | MVP では使わない（トレーニング・覚醒を作るときに足す） |
 | `SUPPORT_` | サポートカード（SUP） | `SUPPORT_INVALID_TARGET_LEVEL`（目標が今のレベル以下・上限を超える）、`SUPPORT_NOT_ENOUGH_POINTS`、`SUPPORT_MAX_LIMIT_BREAK`、`SUPPORT_NOT_OWNED`（自分の所持IDでない）、`SUPPORT_INVALID_MATERIAL`（素材が同じ所持ID・別のカード・無い） |

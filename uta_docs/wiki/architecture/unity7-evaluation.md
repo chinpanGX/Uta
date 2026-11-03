@@ -1,7 +1,7 @@
 ---
 title: Unity 7 の検証結果
 status: draft
-updated: 2026-11-01
+updated: 2026-11-03
 ---
 
 # Unity 7 の検証結果
@@ -24,10 +24,12 @@ updated: 2026-11-01
 | Addressables（Supplement の依存） | Supplement は 2.7.6 を求めるが、Unity 7 の a12 は 4.1.1 に解決し、4.1.1 は `ScriptCompilationOptions.DevelopmentBuild` が obsolete で CS0619 のコンパイルエラーになる。**4.1.2 を `manifest.json` で直接指定すると通った**（ユーザーの判断） | Editor（`unity command package resolve`） | 2026-11-01 |
 | クライアントの 4 層の asmdef と参照 | 通った。`UniTask`・`VContainer`・`VolTech.Server.Abstractions`・`VolTech.MagicOnion.Client` の参照名は実在の名前と一致。VContainer の asmdef は、UniTask があると `VCONTAINER_UNITASK_INTEGRATION` を自動で定義する（`versionDefines`） | Library/PackageCache の asmdef を確認 | 2026-11-01 |
 | `[MagicOnionClientGeneration]` が asmdef の中で効くか | 効いた。`Uta.Client.Infrastructure` に `Resolver`・`ClientFactoryProvider` などが生成される | Editor（`unity command eval` で型のメンバーを列挙） | 2026-11-01 |
-| Editor（Play モード）で、ローカルのサーバーに対するサインアップ・サインイン | 通った。アカウントのファイルが無い 1 回目は `SignedUp`、2 回目は `SignedIn`。トークンの取り直し（`reissue`）と、存在しない端末での `IssueTokenAsync` が `Unauthenticated` で返ること（`server error delivery`）も通った | Editor の Play、コンソールの `[Uta]` の行 | 2026-11-01 |
+| Editor（Play モード）で、ローカルのサーバーに対する端末の登録・トークンの発行（1b） | 通った。アカウントのファイルが無い 1 回目は `SignedUp`、2 回目は `SignedIn`。トークンの取り直し（`reissue`）と、存在しない端末での `IssueTokenAsync` が `Unauthenticated` で返ること（`server error delivery`）も通った | Editor の Play、コンソールの `[Uta]` の行 | 2026-11-01 |
 | 保存したアカウントのファイルが壊れたとき | `connectivity check: FAILED System.InvalidOperationException: account corrupted`。ファイルは書き換わらない | 末尾 5 バイトを削って Play | 2026-11-01 |
 | Windows の IL2CPP のプレイヤーのビルド | 通った（3.1 の `.meta` の直しが要る）。基盤の Sandbox と Uta の `Uta.exe` | バッチモード（`BuildPipeline.BuildPlayer`） | 2026-11-01 |
-| Windows の IL2CPP のプレイヤーから、ローカルのサーバーに対するサインアップ・サインイン | 通った。アカウントのファイルが無い 1 回目は `SignedUp`、2 回目は `SignedIn`、`reissue`・`server error delivery` も `ok`。サーバーに繋がらないとき（存在しないポート）は `connectivity check: FAILED`（`Unavailable`）で終了コード 1 | `Uta.exe -batchmode -nographics -uta-quit-after-check`（`-uta-server-url` でサーバーを変えた） | 2026-11-01 |
+| Windows の IL2CPP のプレイヤーから、ローカルのサーバーに対する端末の登録・トークンの発行（1b） | 通った。アカウントのファイルが無い 1 回目は `SignedUp`（端末の登録）、2 回目は `SignedIn`（トークンの発行）、`reissue`・`server error delivery` も `ok`。サーバーに繋がらないとき（存在しないポート）は `connectivity check: FAILED`（`Unavailable`）で終了コード 1 | `Uta.exe -batchmode -nographics -uta-quit-after-check`（`-uta-server-url` でサーバーを変えた） | 2026-11-01 |
+| Windows の IL2CPP のプレイヤーから、Uta の RPC（`IPlayerService` の `SignUpAsync`・`SignInAsync`）を `ApiCore`（`PlayerApi : ApiServiceBase<IPlayerService>`）経由で呼ぶ | 通った。1 回目（アカウント無し）は `device: registered` → `sign-up: created` → `sign-in: ok`（所持データが入った `SignInResponse`。配列の入れ子の DTO を含む）。2 回目は `sign-up: skipped` → `sign-in: ok`。`players` の行だけを消した 3 回目は、`SignInAsync` が `PLAYER_NOT_CREATED` を返し（`ErrorInfo` のトレーラーが IL2CPP でも届き、`handledCodes` で受けた）、`SignUpAsync` → `SignInAsync` で復帰。別の `DeviceTokenProvider` でトークンを無効にしてから `SignInAsync` を呼ぶと、`ApiCore` が `Invalidate` を呼んで取り直し、再送が通った（`invalidations=1`）。`ApiServiceBase` の属性のリフレクション（`RpcSettings`）も動いた | `Uta.exe -batchmode -nographics -uta-quit-after-check`、ローカルのサーバー（Docker の PostgreSQL） | 2026-11-03 |
+| シーン構成（Bootstrap / Title / Home / Produce）の Play モードと Windows の IL2CPP | Editor の Play は `Bootstrap` から始まり（`playModeStartScene`）、`Title` のスタートで `device:` → `sign-up:` → `sign-in: ok` → `Home`（所持データの表示）、`PRODUCE` → `Produce` → `BACK TO HOME` → `Home` まで遷移した（ボタンは `unity command eval` で `onClick.Invoke()`）。`LifetimeScope.EnqueueParent` の中で `SceneManager.LoadSceneAsync(...).ToUniTask()` を待つ形で、子のスコープが親を見つけた。`LegacyRuntime.ttf` は取れた。Windows の IL2CPP のプレイヤー（4 シーン）でも `-uta-quit-after-check` で `Title` が自動で開始し、`connectivity check: OK`（終了コード 0）。繋がらないときは `start: FAILED` で終了コード 1 | Editor を開いたまま `unity command`（`editor.playmode`・`eval`）、`BuildPipeline.BuildPlayer`（`eval`）、`Uta.exe -batchmode -nographics -uta-quit-after-check` | 2026-11-03 |
 
 ## 3. 確かめられなかったもの・失敗したもの
 
@@ -52,11 +54,13 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 
 `Uta.Client.Infrastructure` に生成された `Resolver` で、`GetFormatter<RegisterResult>()`・`GetFormatter<IssueTokenResult>()` が `null` を返した（この 2 つの DTO は `VolTech.Server.Abstractions` にある）。基盤の `docs/index.md` の「`Abstractions` の MessagePack の型のフォーマッターが生成されるか」の項目への答えにあたる（生成されなかった）。
 
-**Windows の IL2CPP のプレイヤーでは、失敗しなかった**（2026-11-01）。`Uta.exe` で、サインアップ（`SignedUp`）・サインイン（`SignedIn`）・トークンの取り直し・`Unauthenticated` のエラーの受け取りが通った。つまり `RegisterResult`・`IssueTokenResult` の送受信は動いた。生成された `Resolver` が `null` を返しても、組み合わせた別の解決先（`StandardResolver` の側）から取れたとみられるが、どのフォーマッタが使われたかは調べていない（推測）。iOS（AOT）は確かめていない。
+**Windows の IL2CPP のプレイヤーでは、失敗しなかった**（2026-11-01。2026-11-03 に `Uta.Shared.Contracts` の `SignUpResponse`・`SignInResponse`・`OwnedIdolDto[]`・`OwnedSupportCardDto[]` でも通った。これらも別アセンブリの DTO で、同じ理由で動いたとみられる）。`Uta.exe` で、サインアップ（`SignedUp`）・サインイン（`SignedIn`）・トークンの取り直し・`Unauthenticated` のエラーの受け取りが通った。つまり `RegisterResult`・`IssueTokenResult` の送受信は動いた。生成された `Resolver` が `null` を返しても、組み合わせた別の解決先（`StandardResolver` の側）から取れたとみられるが、どのフォーマッタが使われたかは調べていない（推測）。iOS（AOT）は確かめていない。
 
 ### 3.3 そのほか未確認
 
-- **`ApiCore` 経由の再送**（無効・期限切れのトークンを 1 回だけ取り直して再送する）と、`ApiServiceBase` が属性をリフレクションで読む部分の IL2CPP。範囲外
+- ~~`ApiCore` 経由の再送と、`ApiServiceBase` の属性のリフレクションの IL2CPP~~ → Windows の IL2CPP で通った（上の表。2026-11-03）。iOS（AOT）は未確認
+- **`ReturnToTitle` で `Title` が読み込み直される経路（`ErrorNavigator`）**: 通信エラーを起こして `ApiCore` に遷移させる場面を作れず、Play でも通っていない。コードレビューで見つけた競合（古い `TitlePresenter` の続きが新しい `Title` を押しのける）は、破棄後に打ち切る処理で防いだが、実行では確かめていない
+- **`ErrorDialogView`（診断用の IMGUI）が `-uta-quit-after-check` で自動で閉じる経路と、`PlayerGateway` が `ApiResult` の失敗を `Failure` に直す経路**: `ApiCore` を通る呼び出しが失敗する場面を作れず（サーバーを止めると端末の認証が先に失敗する）、通っていない。`ApiResult.Success`・`Failure` が `internal` で、Uta の EditMode のテストからも作れない
 - **エラー詳細のトレーラー**（`ErrorInfo`・`grpc-status-details-bin`）が YetAnotherHttpHandler・IL2CPP で届くか。この計画の RPC は `ErrorInfo` を付けない
 - **Android / iOS** の実機ビルド
 - **Managed Stripping を上げたとき・iOS / Android での VContainer のコンストラクター注入**（リフレクション。既定の Stripping の Windows IL2CPP では通った）。`[Preserve]`・`link.xml`・VContainer の Source Generator のどれかが要りうる

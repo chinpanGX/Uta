@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.Linq;
+using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 
@@ -12,7 +13,7 @@ namespace Uta.Client.Editor
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.IL2CPP);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new[] { "Assets/Scenes/SampleScene.unity" },
+                scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray(),
                 locationPathName = "Build/Windows/Uta.exe",
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None,

@@ -5,6 +5,10 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Uta.Client.Infrastructure",
+        "Uta.Client.Application",
+        "Uta.Shared.Contracts",
+        "VolTech.Server.Abstractions",
+        "VolTech.MagicOnion.Client",
         "Uta.Shared.Domain",
         "UniTask"
     ],
