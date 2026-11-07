@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.chinpangx.voltech.magiconion": "https://github.com/chinpanGX/VolTech-MagicOnion.git?path=Unity/com.chinpangx.voltech.magiconion#fafc9e7f6ba85218567020e28f84fabd77060510",
+    "com.chinpangx.voltech.magiconion": "https://github.com/chinpanGX/VolTech-MagicOnion.git?path=Unity/com.chinpangx.voltech.magiconion#11d9b06513ab8bf58eb3c32cac9c3353a9c93b7a",
     "com.chinpangx.mastermemory.addons": "https://github.com/chinpanGX/MasterMemoryAddons.git?path=src/MasterMemory.Addons.Core#80c7d82acb7c9176492da168c49d1956d626a482",
     "com.chinpangx.supplement": "https://github.com/chinpanGX/Supplement.git?path=Assets/Supplement#e69448be2bbc4f936127c0abb1273c0e9e02cf31",
     "com.chinpangx.supplement.messagepack": "https://github.com/chinpanGX/Supplement.git?path=Assets/Supplement.MessagePack#e69448be2bbc4f936127c0abb1273c0e9e02cf31",
