@@ -29,24 +29,18 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   } >> "$CLAUDE_ENV_FILE"
 fi
 
-# 2. サブモジュール。計画とレビューは サーバーとマスタの生成が使う 2 つを取り込む。Supplement・UnityScreenNavigator は Unity の git URL だけで参照する（ADR 0019）。
-#    .gitmodules の SSH URL はクラウドで使えないので、この環境の git だけ HTTPS に読み替える（リポジトリはすべて公開）。
+# 2. 共通基盤を別の clone で読むときのため、SSH の URL をこの環境の git だけ HTTPS に読み替える（リポジトリはすべて公開）。
 git config --global url."https://github.com/".insteadOf "git@github.com:"
-missing=""
-for name in VolTech-MagicOnion MasterMemoryAddons; do
-  git submodule update --init "external/$name" >/dev/null 2>&1 || missing="$missing $name"
-done
 
 # 3. 復元と、masterdata/gen.ps1 用の PowerShell
 restore="未実行"
 if has_sdk; then
-  if dotnet restore Uta.slnx >/dev/null 2>&1; then restore="OK"; else restore="失敗"; fi
+  if dotnet restore Uta.slnx >/dev/null 2>&1 && dotnet tool restore >/dev/null 2>&1; then restore="OK"; else restore="失敗"; fi
   command -v pwsh >/dev/null 2>&1 || dotnet tool install --global PowerShell >/dev/null 2>&1
 fi
 
 # 4. 状態の報告
 echo "[cloud-setup] .NET 10 SDK: $(has_sdk && echo OK || echo なし)、dotnet restore: $restore"
-echo "[cloud-setup] 取り込めなかったサブモジュール:${missing:- なし}"
 echo "[cloud-setup] pwsh: $(command -v pwsh >/dev/null 2>&1 && echo OK || echo なし)、docker: $(docker info >/dev/null 2>&1 && echo OK || echo 動いていない)"
 echo "[cloud-setup] ここで確かめられなかったビルド・テストは、確認できていないと明記する（CLAUDE.md「クラウドでの作業」）"
 exit 0

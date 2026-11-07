@@ -19,7 +19,7 @@ updated: 2026-11-03
 | `Condition` | `ConditionGroupId` + `Order` | `Subject`（enum）、`Comparator`（enum）、`Value`。グループ内はすべて満たすと真（AND） |
 
 - 区分はすべて Common（スキルカードは表示と判定に使う。[masterdata-pipeline.md](masterdata-pipeline.md) 4章）
-- グループの参照は、`Effect`・`Condition` の列を `[Exists]` で指す（`CardFace.EffectGroupId` と `Effect.RefEffectGroupId` は `[Exists(typeof(Effect), nameof(Effect.EffectGroupId))]`、`UseConditionGroupId`・`RefConditionGroupId` は `Condition` の `ConditionGroupId` を同じ形で。空欄を許す列は `AllowEmpty = true`）。グループの見出しテーブル（`EffectGroup`・`ConditionGroup`）は置かない [決定。2026-11-01。ユーザーの判断]。アドオンの `[Exists]` は主キー以外の列も参照できる（[defining-master-data.md](../../../../external/MasterMemoryAddons/docs/guide/defining-master-data.md)）ので、見出しが無くても属性で検証でき、テーブルが 2 つ減る
+- グループの参照は、`Effect`・`Condition` の列を `[Exists]` で指す（`CardFace.EffectGroupId` と `Effect.RefEffectGroupId` は `[Exists(typeof(Effect), nameof(Effect.EffectGroupId))]`、`UseConditionGroupId`・`RefConditionGroupId` は `Condition` の `ConditionGroupId` を同じ形で。空欄を許す列は `AllowEmpty = true`）。グループの見出しテーブル（`EffectGroup`・`ConditionGroup`）は置かない [決定。2026-11-01。ユーザーの判断]。アドオンの `[Exists]` は主キー以外の列も参照できる（[defining-master-data.md](https://github.com/chinpanGX/MasterMemoryAddons/blob/main/docs/guide/defining-master-data.md)）ので、見出しが無くても属性で検証でき、テーブルが 2 つ減る
 - グループで持つ形（効果・条件を 1 つの ID でまとめる）はそのまま。MVP の 36 枚でグループ ID を手で振る手間（約 90）は受け入れる [決定。2026-11-01]
 
 ## 2. 検証 [決定。2026-11-01]

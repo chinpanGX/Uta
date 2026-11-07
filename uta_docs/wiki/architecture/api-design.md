@@ -97,7 +97,7 @@ Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Resp
 ## 2. エラー [決定。2026-10-28]
 
 - 業務エラーは `BusinessException(ErrorCode, ...)` を投げる（VolTech-MagicOnion の仕様）。クライアントは VolTech-MagicOnion の `ErrorPolicy` に従う
-- VolTech-MagicOnion の `ErrorCode` は数値ではなく、`domain` と `reason` の2つの文字列で表す（`external/VolTech-MagicOnion` の `ErrorCode`）。そのため、以前の案の「機能ごとの番号帯」はやめた
+- VolTech-MagicOnion の `ErrorCode` は数値ではなく、`domain` と `reason` の2つの文字列で表す（`VolTech-MagicOnion` の `ErrorCode`）。そのため、以前の案の「機能ごとの番号帯」はやめた
 - **domain は `uta` の1つ**。VolTech-MagicOnion の予約エラーは domain `voltech` なので、domain は「アプリか VolTech-MagicOnion か」の区別に使い、機能では分けない
 - **reason は、機能の接頭辞を付けた大文字スネークケース**:
 

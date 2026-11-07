@@ -50,8 +50,8 @@ Subagent (general-purpose):
     git diff [BASE_SHA]..[HEAD_SHA] -- [FILES]
     ```
 
-    foundation（`external/` のサブモジュール）の場合は、範囲はサブモジュールの中のコミット
-    です。`git -C external/<名前> diff [BASE_SHA]..[HEAD_SHA]` で見てください。
+    foundation（共通基盤）の場合は、範囲は共通基盤のリポジトリのコミットです。
+    別の clone で `git diff [BASE_SHA]..[HEAD_SHA]` を見てください。
 
     ## 仕様は「目指す姿」の文書
 
@@ -183,7 +183,7 @@ Subagent (general-purpose):
 - `[CHECKLIST]`: `layers/<レイヤー>.md` のパス
 - `[DESCRIPTION]`: 何を作ったかの短い要約
 - `[PLAN_OR_REQUIREMENTS]`: wiki の仕様ページ・ADR のパス、タスクの文
-- `[BASE_SHA]` / `[HEAD_SHA]`: 範囲（foundation はサブモジュールの中の範囲）
+- `[BASE_SHA]` / `[HEAD_SHA]`: 範囲（foundation は共通基盤のリポジトリの範囲）
 - `[FILES]`: このレイヤーのファイル
 - `[OTHER_LAYERS]`: ほかのレイヤーのファイル（なければ「なし」）
 

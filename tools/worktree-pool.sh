@@ -18,7 +18,6 @@ case "${1:-}" in
       dir="$pool/$n"
       if [ -d "$dir" ]; then echo "skip $dir（作成済み）"; continue; fi
       git -C "$root" worktree add --detach "$dir" origin/main
-      git -C "$dir" submodule update --init
       echo "作成: $dir（Unity Hub に登録して、1 回だけ開いて Library を作る）"
     done
     ;;
@@ -29,7 +28,6 @@ case "${1:-}" in
     git -C "$dir" fetch -q origin
     git -C "$dir" switch --detach "$base"
     git -C "$dir" switch -c "$branch"
-    git -C "$dir" submodule update --init
     echo "開始: $dir ($branch ← $base)"
     ;;
   release)

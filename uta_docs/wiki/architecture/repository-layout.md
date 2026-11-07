@@ -40,11 +40,9 @@ uta/
 ├─ Uta.slnx                 # [決定] shared/・server/ のソリューション（2.1）
 ├─ Directory.Build.props    # [決定] .NET のプロジェクト共通の設定（2.1）
 ├─ Directory.Packages.props # [決定] NuGet の版を一か所で固定する（2.1）
-├─ external/                 # [決定] サブモジュール（ADR 0005）
-│  ├─ VolTech-MagicOnion/    #   サーバー基盤、Unity 側 Abstractions
-│  ├─ MasterMemoryAddons/    #   マスタのコード生成・検証・バイナリ生成
-│  ├─ Supplement/            #   Unity 補助パッケージ
-│  └─ UnityScreenNavigator/  #   画面遷移
+├─ nuget.config             # [決定] packages/ を NuGet のソースに足す（ADR 0019）
+├─ packages/                 # [決定] 共通基盤の .nupkg（ADR 0019。tools/pack-foundation.sh が作る）
+├─ .config/dotnet-tools.json # [決定] マスタの生成ツールの版
 ├─ uta_docs/
 ├─ masterdata/               # [決定] マスタの正本。Unity にも shared/ にも入れない（作成済み。2026-11-01）
 │  ├─ Definitions/           #   全列入りの C# 定義（[ClientOnly]/[ServerOnly] 付き）。システムごとのフォルダに 1 型 1 ファイル
@@ -86,11 +84,11 @@ uta/
 
 ### 2.1 ソリューションと NuGet の版 [決定。2026-10-31]
 
-VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。VolTech-MagicOnion の設計書 `external/VolTech-MagicOnion/docs/design/project-structure.md` の方式をそのまま使い、別の方式を考えない。
+VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [project-structure.md](https://github.com/chinpanGX/VolTech-MagicOnion/blob/main/docs/design/project-structure.md) の方式をそのまま使い、別の方式を考えない。
 
 | ファイル | 中身 |
 |---|---|
-| `Uta.slnx` | `shared/` と `server/` の全プロジェクト。VolTech-MagicOnion の `VolTech.Server`・`VolTech.Server.Abstractions` も `external` のソリューションフォルダに入れる（デバッグで VolTech-MagicOnion のコードに入るため）。Unity の csproj は入れない |
+| `Uta.slnx` | `shared/` と `server/` の全プロジェクト。Unity の csproj は入れない |
 | `Directory.Build.props` | 全プロジェクト共通の設定: `Deterministic`、`EnforceCodeStyleInBuild`（`.editorconfig` の規約をビルドの警告にする）。`Nullable`・`LangVersion` などは各 `.csproj` に書く（`shared/` は C# 9・`Nullable` 無効、`server/` は既定の C# 14・`Nullable` 有効）。`Uta.Shared.Domain` は `TreatWarningsAsErrors` なので、`EnforceCodeStyleInBuild` で既存のコードがビルドエラーになることがある。そのときは**コードを `.editorconfig` に合わせて直す**（規約を緩めない）。直すのは 12章の手順 1 の中で行う |
 | `Directory.Packages.props` | NuGet の版の中央管理（`ManagePackageVersionsCentrally`。推移的な依存も固定する）。各 `.csproj` の `PackageReference` には版を書かない |
 | `client/Directory.Build.props` | 中身が空の `<Project />`。Unity が `client/uta/` に作る csproj に、上の 2 つが効かないようにする（VolTech-MagicOnion の `Unity/Directory.Build.props` と同じ） |
@@ -101,7 +99,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 
 ## 3. アセンブリと依存 [決定]
 
-**どこで動くか・Unity と共有するかで分け、機能ごとには分けない**（MasterMemoryAddons の [構成ルール](../../../external/MasterMemoryAddons/docs/dev/structure.md)、VolTech-MagicOnion の設計書 `external/VolTech-MagicOnion/docs/design/project-structure.md` と同じ考え方）。
+**どこで動くか・Unity と共有するかで分け、機能ごとには分けない**（MasterMemoryAddons の [構成ルール](https://github.com/chinpanGX/MasterMemoryAddons/blob/main/docs/dev/structure.md)、VolTech-MagicOnion の設計書 `VolTech-MagicOnion/docs/design/project-structure.md` と同じ考え方）。
 
 - **名前** [決定。2026-10-31]: アセンブリ名とルート名前空間を同じにする。`shared/` は `Uta.Shared.Domain` / `Uta.Shared.Contracts`、サーバーは `Uta.Server`（層はその下の名前空間 `Uta.Server.Api` など）、クライアントは `Uta.Client.<層>`（`UnityEngine.Application` と衝突しないよう `Uta.Client.` を付ける）
 - **層の呼び名と改名** [決定。2026-10-31]: Domain は Shared とサーバー・クライアントで混ざりやすいので、設計書では次の呼び名で書く（[glossary.md](../glossary.md)）。コードもこの名前にそろえた（**2026-11-01 に改名した**）
@@ -128,20 +126,20 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 
 - サーバーを1プロジェクトにするのは VolTech-MagicOnion と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは VolTech-MagicOnion の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
-- **Unity に入れる外部パッケージ** [決定。2026-10-31]: VolTech-MagicOnion の利用ガイド（[getting-started.md](../../../external/VolTech-MagicOnion/docs/guide/getting-started.md)「使う版」）に合わせる。何をどう入れるかの正はこのガイドで、Uta はそれに足すものだけを書く
+- **Unity に入れる外部パッケージ** [決定。2026-10-31]: VolTech-MagicOnion の利用ガイド（[getting-started.md](https://github.com/chinpanGX/VolTech-MagicOnion/blob/main/docs/guide/getting-started.md)「使う版」）に合わせる。何をどう入れるかの正はこのガイドで、Uta はそれに足すものだけを書く
   - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`）は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
   - UPM にあるもの（NuGetForUnity・UniTask・VContainer・`MagicOnion.Client.Unity`・`MessagePack.Unity`・YetAnotherHttpHandler）は UPM の git URL で入れ、版はタグで固定する（`manifest.json`）
   - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く（`.meta` の形に注意。unity7-evaluation.md 3.1）
   - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` はアドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて git URL で参照する（2026-11-01 に決定。[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md)）
-  - 共通基盤（`external/` と同じリポジトリ）のパッケージは git URL をコミットで固定して参照する（[ADR 0019](../decisions/0019-foundation-unity-git-url.md)）。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
+  - 共通基盤のパッケージは git URL をコミットで固定して参照する（[ADR 0019](../decisions/0019-foundation-packages.md)）。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
 
 参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server/server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
 
 | VolTech-MagicOnion のプロジェクト・パッケージ | 参照する側 |
 |---|---|
-| `VolTech.Server.Abstractions`（`external/VolTech-MagicOnion/src/VolTech.Server.Abstractions/`） | `Uta.Shared.Contracts` と `Uta.Server` が `ProjectReference` で参照する |
-| `VolTech.Server`（`external/VolTech-MagicOnion/src/VolTech.Server/`） | `Uta.Server` が `ProjectReference` で参照する |
-| Unity パッケージ `com.chinpangx.voltech.magiconion`（`external/VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion/`） | クライアントが `manifest.json` から git URL で参照する。`Abstractions` のソースの実体と、クライアント（`ApiCore` など）が入っている |
+| `VolTech.Server.Abstractions` | `Uta.Shared.Contracts` と `Uta.Server` が `packages/` の NuGet パッケージを参照する |
+| `VolTech.Server` | `Uta.Server` が `packages/` の NuGet パッケージを参照する |
+| Unity パッケージ `com.chinpangx.voltech.magiconion`（`VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion/`） | クライアントが `manifest.json` から git URL で参照する。`Abstractions` のソースの実体と、クライアント（`ApiCore` など）が入っている |
 
 - VolTech-MagicOnion は「Unity と共有するか」だけで 2 つのプロジェクトに分け、サーバー側の関心ごと（`Auth/`・`Status/`・`Transaction/`・`Logging/`・`Hosting/`）はフォルダで分けている。Uta が参照するのは公開 API だけ（3.1）
 
@@ -149,9 +147,9 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 
 **目指す形**: Uta の開発を通して共通基盤を整え、リリースして、別のアプリでもそのまま使える構造にする。Uta は共通基盤の最初の利用者で、Uta で要るものを共通基盤に足していく。
 
-- **固定はサブモジュールのポインタ（コミット）で行い、タグを待たない**。開発を速くするため。共通基盤を更新したら、Uta でポインタを上げる（[ADR 0005](../decisions/0005-foundation-submodule.md) の手順）
-- **Unity の `manifest.json` のコミットも一緒に上げる**。サブモジュールがあるもの（`VolTech-MagicOnion`・`MasterMemoryAddons`）はポインタと揃える。`Supplement`・`UnityScreenNavigator` の固定は `manifest.json` だけ（[ADR 0019](../decisions/0019-foundation-unity-git-url.md)）。`VolTech-MagicOnion` がずれると、サーバーと Unity の `Abstractions` が食い違う
-- **区切りでリリースする**: 完了条件 0（[game-spec.md](../overview/game-spec.md)。Unity から VolTech-MagicOnion の RPC が通る）が通ったときなど、共通基盤の機能が一区切りしたら、共通基盤側で版を出し（`release` スキル）、ポインタをそのタグのコミットに合わせる。その後もタグは必須にしない
+- **固定はコミットで行い、タグを待たない**。開発を速くするため。共通基盤を更新したら、`tools/pack-foundation.sh <リポジトリ> <コミット>` で Uta の固定を上げる（[ADR 0019](../decisions/0019-foundation-packages.md)）
+- **Unity の `manifest.json` も同じコミットに揃える**。`tools/pack-foundation.sh` が一緒に書き換える。`Supplement`・`UnityScreenNavigator` の固定は `manifest.json` だけ（[ADR 0019](../decisions/0019-foundation-packages.md)）。`VolTech-MagicOnion` がずれると、サーバーと Unity の `Abstractions` が食い違う
+- **区切りでリリースする**: 完了条件 0（[game-spec.md](../overview/game-spec.md)。Unity から VolTech-MagicOnion の RPC が通る）が通ったときなど、共通基盤の機能が一区切りしたら、共通基盤側で版を出し（`release` スキル）、固定をそのタグのコミットに合わせる。その後もタグは必須にしない
 
 開発のルール（共通基盤の 4 つすべてに当てはめる。主な対象は `VolTech-MagicOnion`）:
 
@@ -261,7 +259,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 - マスタのバイナリを `MemoryDatabase` で読めること（クライアント用・サーバー用の両方）
 - `Uta.Shared.Domain` の単体テスト（同じシードと操作列で同じ結果になること）と、サーバーの結合テスト（10.4）
 - サーバーの依存方向のアーキテクチャテスト
-- `git clone --recurse-submodules` での初期化（CI も同様）
+- `git clone` だけで揃う。共通基盤は `packages/` と UPM の git URL から取る
 - クライアントの asmdef の参照が、4章の依存ルールに沿っているか（`Application` が UnityEngine を使わないことは asmdef では強制しない。3章）
 - （手で回す）Windows / Android / iOS の実機ビルド（早期・継続的に）。ほかの項目は CI で回す
 
@@ -290,7 +288,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 |---|---|
 | エラー、ヘッダー、認証、冪等性、トランザクション、フィルター順 | [server-foundation.md](server/server-foundation.md) |
 | コード規約、言語バージョン、Git 運用 | [CLAUDE.md](../../../CLAUDE.md)、`.editorconfig` |
-| サブモジュールの扱い | [ADR 0005](../decisions/0005-foundation-submodule.md) |
+| 共通基盤の取り込み方 | [ADR 0019](../decisions/0019-foundation-packages.md) |
 | マスタの定義・生成・配信 | [masterdata-pipeline.md](master/masterdata-pipeline.md) |
 | 用語 | [glossary.md](../glossary.md) |
 
@@ -345,7 +343,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 ### 10.5 アプリのバージョン
 
-- **強制アップデートは実装しない** [決定。2026-10-31]。VolTech-MagicOnion もサーバー側の判定を持たない（予約エラー `UPDATE_REQUIRED` は定義だけで返さない。`external/VolTech-MagicOnion/docs/spec/index.md`）。サーバーは古いアプリを弾かない。個人開発の確認用で、配布したアプリが手元にしかないため。要るようになったら、3.1 のルールで VolTech-MagicOnion に判定を足す
+- **強制アップデートは実装しない** [決定。2026-10-31]。VolTech-MagicOnion もサーバー側の判定を持たない（予約エラー `UPDATE_REQUIRED` は定義だけで返さない。`VolTech-MagicOnion/docs/spec/index.md`）。サーバーは古いアプリを弾かない。個人開発の確認用で、配布したアプリが手元にしかないため。要るようになったら、3.1 のルールで VolTech-MagicOnion に判定を足す
 - マスタのスキーマ（定義）や `Uta.Shared.Domain` のルールを変えたら、新しいアプリのバージョンを出し、手元のアプリを入れ直してそろえる。マスタはいまアプリに同梱するので、スキーマの変更はアプリの更新と一緒になる（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。古いアプリのまま接続すると、予測の表示がずれたり、DTO が読めずに失敗したりする（確定はサーバーなので、所持品が壊れることはない）
 - `x-app-version` は、クライアントがすべての要求に付ける（VolTech-MagicOnion のクライアントが付ける）。サーバーはプロデュースの破棄の判定（下）にだけ使う。VolTech-MagicOnion に読み出す関数は無いので、Uta の `Api` で MagicOnion の `Context.CallContext.RequestHeaders` から読む（2026-10-31 に VolTech-MagicOnion のコードで確認）
 - 進行中のプロデュースは、開始したときとアプリのバージョンが違えば破棄する（2026-10-28 決定。[api-design.md](api-design.md) 5章）。1つのセッションを、常に1つのルールで最後まで進めるため

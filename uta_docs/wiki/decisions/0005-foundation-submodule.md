@@ -1,10 +1,12 @@
 ---
 title: ADR 0005 基盤とパッケージを Git サブモジュールで取り込む
-status: proposed
-updated: 2026-10-26
+status: superseded
+updated: 2026-11-07
 ---
 
 # ADR 0005: 基盤とパッケージを Git サブモジュールで取り込む
+
+[ADR 0019](0019-foundation-packages.md) で置き換えた。
 
 ## 状況
 

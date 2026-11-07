@@ -6,7 +6,7 @@ updated: 2026-11-01
 
 # サーバー基盤（MagicOnion + PostgreSQL）
 
-Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使うか**の正 [決定。2026-11-01。ユーザーの判断]。基盤そのものの仕様・構成・使い方の正は VolTech-MagicOnion のリポジトリの docs（仕様は `external/VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）で、このページは要点だけを書いてリンクする。基盤の docs と食い違ったら基盤を正とし、このページを直す。Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）はこのページが正。`Program.cs`・マイグレーション・設定の骨組みは [repository-layout.md](../repository-layout.md) 12章。
+Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使うか**の正 [決定。2026-11-01。ユーザーの判断]。基盤そのものの仕様・構成・使い方の正は VolTech-MagicOnion のリポジトリの docs（仕様は `VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）で、このページは要点だけを書いてリンクする。基盤の docs と食い違ったら基盤を正とし、このページを直す。Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）はこのページが正。`Program.cs`・マイグレーション・設定の骨組みは [repository-layout.md](../repository-layout.md) 12章。
 最初の原典は設計書「C#サーバー基盤 設計書(MagicOnion + PostgreSQL)」（[Claude Docs](https://claude.ai/artifact/STu2PxLjvuAajZwaMNqURq)、2026-10-23 版）。採用の判断は [ADR 0004](../../decisions/0004-server-foundation.md)。
 
 ## 決まっていること
@@ -27,7 +27,7 @@ Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使�
 
 ## プロジェクト構成
 
-2026-10-31 時点の VolTech-MagicOnion の実装（`external/VolTech-MagicOnion/docs/design/project-structure.md` が正）。原典の設計書は関心ごとごとの 6 プロジェクトだったが、VolTech-MagicOnion は「Unity と共有するか」で 2 つに分け、関心ごとはフォルダで分ける形に変えた。
+2026-10-31 時点の VolTech-MagicOnion の実装（`VolTech-MagicOnion/docs/design/project-structure.md` が正）。原典の設計書は関心ごとごとの 6 プロジェクトだったが、VolTech-MagicOnion は「Unity と共有するか」で 2 つに分け、関心ごとはフォルダで分ける形に変えた。
 
 | プロジェクト | 中身 | Unity と共有 |
 |---|---|---|
@@ -96,9 +96,9 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 
 ## 未確定事項
 
-- （2026-10-31 に解決）VolTech-MagicOnion の取り込み方 → Git サブモジュール（[ADR 0005](../../decisions/0005-foundation-submodule.md)、proposed）で `external/VolTech-MagicOnion` に置く。サーバーは `ProjectReference`、Unity は `file:` で参照し、`Uta.Shared.Contracts` は `VolTech.Server.Abstractions` を参照する（[repository-layout.md](../repository-layout.md) 3章）
+- （2026-10-31 に解決）VolTech-MagicOnion の取り込み方 → サーバーは `packages/` の NuGet パッケージ、Unity は git URL で参照し（[ADR 0019](../../decisions/0019-foundation-packages.md)）、`Uta.Shared.Contracts` は `VolTech.Server.Abstractions` を参照する（[repository-layout.md](../repository-layout.md) 3章）
 - （2026-10-31 に解決）MagicOnion の API が揃うか → VolTech-MagicOnion が MagicOnion 7.11.0 で実装・テスト済み
 - （2026-10-31 に解決）DB の最終決定 → [ADR 0010](../../decisions/0010-database.md)
 - （2026-10-31 に解決）`server_status.toml` と同じ設定形式にするか → 強制アップデート・メンテナンスを実装しないので不要。ゲーム日付は `Voltech` セクション
-- （2026-10-31 に解決）分岐元にする VolTech-MagicOnion のタグ → タグを待たず、サブモジュールのポインタ（コミット）で固定する。区切りで VolTech-MagicOnion の版を出す（[repository-layout.md](../repository-layout.md) 3.1）
+- （2026-10-31 に解決）分岐元にする VolTech-MagicOnion のタグ → タグを待たず、コミットで固定する。区切りで VolTech-MagicOnion の版を出す（[repository-layout.md](../repository-layout.md) 3.1）
 - 基盤の機能のうち Uta で使うか未定のもの（MVP には要らない）: Tracing（gRPC の呼び出しの記録）。端末の資格情報の保存（`StoredAccount`）は、基盤の `EncryptedFileAccountStore` をそのまま使う（2026-11-01 ユーザーの判断。[repository-layout.md](../repository-layout.md) 10.6）

@@ -5,6 +5,13 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
+  <!-- 共通基盤。版は tools/pack-foundation.sh が書き換える（ADR 0019） -->
+  <ItemGroup>
+    <PackageVersion Include="VolTech.Server" Version="0.1.0-gfafc9e7" />
+    <PackageVersion Include="VolTech.Server.Abstractions" Version="0.1.0-gfafc9e7" />
+    <PackageVersion Include="MasterMemory.Addons.Core" Version="0.1.0-g80c7d82" />
+  </ItemGroup>
+
   <!-- VolTech-MagicOnion の Directory.Packages.props と同じ版は同じに保つ。上げるときは基盤が先 -->
   <ItemGroup>
     <PackageVersion Include="MagicOnion.Abstractions" Version="7.11.0" />

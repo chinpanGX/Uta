@@ -21,7 +21,7 @@ updated: 2026-11-01
 - [0002-magiconion.md](0002-magiconion.md) — 通信方式：MagicOnion（gRPC）を採用
 - [0003-defer-3d-live.md](0003-defer-3d-live.md) — 3DライブをMVPから外す（accepted）
 - [0004-server-foundation.md](0004-server-foundation.md) — サーバーは .NET 10 と C# サーバー基盤を採用（accepted）
-- [0005-foundation-submodule.md](0005-foundation-submodule.md) — 基盤と自作パッケージを `external/` に Git サブモジュールで取り込む（proposed。4 件登録済み）
+- [0005-foundation-submodule.md](0005-foundation-submodule.md) — 基盤と自作パッケージを `external/` に Git サブモジュールで取り込む（superseded。ADR 0019 で置き換え）
 - [0006-adopt-unity-7-early.md](0006-adopt-unity-7-early.md) — Unity 7 を早期に触ることを目的に加える。Unity のバージョンは Unity 7 で確定（accepted）
 - [0007-masterdata-with-addons.md](0007-masterdata-with-addons.md) — マスタを MasterMemoryAddons でクライアント用・サーバー用に出し分ける。列の型は int/long/string/bool/enum のみ、masterdata/ は最上位、CSV が正本（accepted）
 - [0008-shared-domain-and-onion.md](0008-shared-domain-and-onion.md) — ドメイン層を共有し、クライアントはオニオンアーキテクチャにする。クライアントは判定・予測表示まで、シードは持たない（accepted）
@@ -35,4 +35,4 @@ updated: 2026-11-01
 - [0016-reference-game-values.md](0016-reference-game-values.md) — ゲームシステムの数値（カード・週構成・排出率・強化量など）は参考作品の値を使う。ADR 0015 を置き換え（accepted）
 - [0017-spec-design-plan-stages.md](0017-spec-design-plan-stages.md) — ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え（accepted）
 - [0018-change-log-from-git.md](0018-change-log-from-git.md) — 変更の記録は log.md をやめ、git log から取る。ADR 0017 の「log.md に追記する」を置き換え（accepted）
-- [0019-foundation-unity-git-url.md](0019-foundation-unity-git-url.md) — Unity から共通基盤を git URL（コミット固定）で参照する。`Supplement`・`UnityScreenNavigator` はサブモジュールから外す（accepted）
+- [0019-foundation-packages.md](0019-foundation-packages.md) — 共通基盤はサブモジュールをやめ、サーバーは `packages/` の NuGet パッケージ、Unity は git URL で参照する。ADR 0005 を置き換え（accepted）

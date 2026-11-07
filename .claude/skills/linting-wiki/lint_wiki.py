@@ -17,7 +17,7 @@ ADR_STATUS = {"proposed", "accepted", "superseded"}
 PLAN_STATUS = {"draft", "ready", "in-progress", "done"}
 
 LINK_RE = re.compile(r"(?<!!)\[([^\]]*)\]\(([^)\s]+)\)")
-CODE_PATH_RE = re.compile(r"`((?:uta_docs|\.claude|shared|server|client|masterdata|external)/[^`\s]*)`")
+CODE_PATH_RE = re.compile(r"`((?:uta_docs|\.claude|shared|server|client|masterdata)/[^`\s]*)`")
 ADR_FILE_RE = re.compile(r"^(\d{4})-.+\.md$")
 ADR_TEXT_RE = re.compile(r"ADR\s*(\d{4})")
 PLACEHOLDER_RE = re.compile(r"[<>*{}]|NNNN|YYYY|\.\.\.|…")
@@ -32,19 +32,6 @@ class Report:
 
     def count(self, level):
         return sum(1 for rows in self.items.values() for row in rows if row[0] == level)
-
-
-def submodule_missing(root, dest):
-    """行き先が external/<名前>/ の中で、そのサブモジュールが空（未初期化）なら名前を返す。"""
-    try:
-        parts = dest.relative_to(root).parts
-    except ValueError:
-        return None
-    if len(parts) >= 2 and parts[0] == "external":
-        module = root / "external" / parts[1]
-        if module.is_dir() and not any(module.iterdir()):
-            return parts[1]
-    return None
 
 
 def git_ignored(root, value):
@@ -120,12 +107,6 @@ def check_links(root, files, report):
                 dest = (path.parent / target_path).resolve()
                 where = f"{rel(root, path)}:{lineno}"
                 if not dest.exists():
-                    module = submodule_missing(root, dest)
-                    if module:
-                        report.add("警告", "確かめられなかったリンク", where,
-                                   f"{target}（サブモジュール external/{module} が未初期化。"
-                                   "git submodule update --init してから点検し直す）")
-                        continue
                     level = "警告" if is_raw else "エラー"
                     report.add(level, "リンク切れ", where, f"{target} が見つからない")
                     continue
@@ -155,10 +136,6 @@ def check_code_paths(root, report):
                     continue
                 dest = root / value.rstrip("/")
                 if dest.exists() or git_ignored(root, value):
-                    continue
-                if submodule_missing(root, dest):
-                    report.add("警告", "確かめられなかったリンク", f"{rel(root, path)}:{lineno}",
-                               f"{value}（サブモジュールが未初期化）")
                     continue
                 missing.setdefault(value, []).append(f"{rel(root, path)}:{lineno}")
     for value, places in sorted(missing.items()):

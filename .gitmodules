@@ -1,6 +1,0 @@
-[submodule "external/VolTech-MagicOnion"]
-	path = external/VolTech-MagicOnion
-	url = https://github.com/chinpanGX/VolTech-MagicOnion
-[submodule "external/MasterMemoryAddons"]
-	path = external/MasterMemoryAddons
-	url = https://github.com/chinpanGX/MasterMemoryAddons.git

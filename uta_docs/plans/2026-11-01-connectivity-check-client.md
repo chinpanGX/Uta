@@ -16,7 +16,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/overview/game-spec.md, 
 - 1a（サーバー・shared の側。別のセッション・PR）との関係: 手順 6 の接続確認は、1a が main に入り、`server/compose.yaml` と `Uta.Server` が動いてから行う。`com.uta.shared.contracts` は 1a が作る `shared/Uta.Shared.Contracts` を使うので、タスク 2 は 1a のマージ後
 - **この計画が触るのは `client/uta/` の下、`shared/Uta.Shared.Domain/`・`shared/Uta.Shared.Contracts/` の直下の新規ファイル（`package.json`・asmdef・`.meta`・タスク 2 の印のクラス）、計画・wiki だけ**。ルートの props・`shared/` の既存ファイル・`server/` は 1a が触るので変えない
 - 範囲外:
-  - `ApiCore`（順番待ち・再認証・エラーハンドラー）の組み立て。認証が要る RPC が出る計画で入れる。「無効・期限切れなら 1 回だけ取り直して再送する」は `ApiCore` の振る舞い（[auth.md](../../external/VolTech-MagicOnion/docs/spec/auth.md)）なので、ここでは `DeviceTokenProvider` の「トークンを捨てて取り直す」までを確かめる。**`ApiCore` 経由の再送と、`ApiServiceBase` が属性をリフレクションで読む部分の IL2CPP（基盤の [client.md](../../external/VolTech-MagicOnion/docs/design/client.md) が未確認と書いている）は未確認のまま残る**
+  - `ApiCore`（順番待ち・再認証・エラーハンドラー）の組み立て。認証が要る RPC が出る計画で入れる。「無効・期限切れなら 1 回だけ取り直して再送する」は `ApiCore` の振る舞い（[auth.md](https://github.com/chinpanGX/VolTech-MagicOnion/blob/main/docs/spec/auth.md)）なので、ここでは `DeviceTokenProvider` の「トークンを捨てて取り直す」までを確かめる。**`ApiCore` 経由の再送と、`ApiServiceBase` が属性をリフレクションで読む部分の IL2CPP（基盤の [client.md](https://github.com/chinpanGX/VolTech-MagicOnion/blob/main/docs/design/client.md) が未確認と書いている）は未確認のまま残る**
   - UnityScreenNavigator・Supplement を**使うこと**（パッケージの取り込みだけを行い、asmdef の参照とコードは、使う計画で足す）、MasterMemory・MasterMemoryAddons（Unity のパッケージ（`package.json`・asmdef）が無く、入れ方は masterdata-pipeline.md の未決。マスタの計画で決める。2026-11-01 にユーザーが「今回は入れない」と判断）、Android / iOS の実機ビルド、Uta の RPC・DTO、画面
   - 共通基盤（`external/`）の変更。必要とわかったら、実装担当は止まって報告する（3.1 のルール）
 
