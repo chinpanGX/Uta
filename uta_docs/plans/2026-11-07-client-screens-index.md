@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の画面 索引
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/overview/game-spec.md
 ---
 
@@ -45,7 +45,8 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - フォントは PR #29 のアセットを使い、作り直さない。太字は Bold の SDF アセット。フォントは Addressables に入れない
 - 共通部品の Prefab は 10 個。Addressables のグループ `Screens` に入れるのは画面の Prefab だけ（アドレス = ファイル名）。`UiRoot` が `AddressableAssetLoader` を USN のコンテナーに入れる
 - View は「フィールドだけ」の骨格。生成クラスは `TypeCache` で集めるので、P2・P3 は生成クラスを足すだけ。`UiRoot` は各シーンに 1 つ（`Bootstrap`・`Title`・`Home` は foundation、`Produce` は formation が置く）
-- `unity test --mode EditMode` が動くことを確かめ、unity7-evaluation 4章に足す。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）
+- EditMode のテストは、Editor を開いたまま `unity command --timeout 300 eval` で `TestRunnerApi` を呼んで回す（P1 の決めたこと 12。コマンドは unity7-evaluation 4章と CLAUDE.md。全計画共通。ユーザーの判断。2026-11-08）。eval で回せなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない
+- Prefab を足すだけの作業（P1〜P3）では、プレイヤーのビルドを確かめない（P1 の決めたこと 19。ユーザーの判断。2026-11-08）
 
 ### P2 Title・Home・ガチャ・所持一覧の Prefab
 
@@ -164,8 +165,8 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 ## 6. Unity Editor が要るタスクの扱い
 
-- 計画 0 のサーバー側（`dotnet test`）、owned のタスク 1 の shared/、formation のタスク 1 の server・shared は .NET SDK（と Docker）で確かめられる。**それ以外のタスク（P1〜P3 の全部と、C# の計画の client/ の全部、計画 0 のクライアントのテスト）は、Unity 7（`7000.0.0a12`）の Editor がその worktree の `client/uta` を開いている環境が前提**（`unity status --until-ready` が ready）。Prefab の生成（`unity command eval`）・コンパイル（`unity recompile --format json`）・EditMode のテスト（`unity test --mode EditMode`。P1 のタスク 5 で使えると確かめてから。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**）・Play の確認は Editor が要る
+- 計画 0 のサーバー側（`dotnet test`）、owned のタスク 1 の shared/、formation のタスク 1 の server・shared は .NET SDK（と Docker）で確かめられる。**それ以外のタスク（P1〜P3 の全部と、C# の計画の client/ の全部、計画 0 のクライアントのテスト）は、Unity 7（`7000.0.0a12`）の Editor がその worktree の `client/uta` を開いている環境が前提**（`unity status --until-ready` が ready）。Prefab の生成（`unity command eval`）・コンパイル（`unity recompile --format json`）・EditMode のテスト（Editor を開いたまま `TestRunnerApi` を eval で回す。P1 の決めたこと 12。**eval で回せなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない**）・Play の確認は Editor が要る
 - **Editor が無い・開けない環境では、そのタスクを実行しない**。「確認できていない」と明記し、ユーザーに実行を頼む。推測で「通った」と書かない（CLAUDE.md「常に守ること」）。Prefab・`.unity`・Addressables の設定は Editor のスクリプトの生成物なので、手で書かない
-- Windows の IL2CPP のビルドはバッチモードで行い、同じプロジェクトを開いている Editor を先に閉じる（CLAUDE.md「ビルド・テスト・実行」）
+- Editor は閉じない（テストは開いたまま回す）。Windows の IL2CPP のビルドはバッチモードで行うので、ビルドが要る計画（C# の計画の IL2CPP の確認）は、Editor を開いている worktree とは別のワークスペースで行う（unity7-evaluation 4章。C# の計画の手順に「Editor を閉じてから」とある箇所は、別のワークスペースで行うなら閉じなくてよい）。P1〜P3 ではビルドしない
 - Play の目視（文字の豆腐・レイアウト）はユーザーに見てもらう。テスト・Play のあとコミットする前に、フォントの動的データを空に戻す（`unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`。foundation 3.3.7。P1 の決めたこと 4）
 - worktree は固定のもの（`../Uta-wt/<番号>`）を使い、Unity の Library を作り直さない。PR #28 のあとは共通基盤のソースが checkout に無いので、ソースを読むタスクは Unity でパッケージを解決済みの worktree の `Library/PackageCache` か GitHub で読む

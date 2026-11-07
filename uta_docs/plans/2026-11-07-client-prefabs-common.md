@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の Prefab 1/3 共通部品・Addressables・TextMeshPro
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
 
@@ -22,13 +22,14 @@ spec: ../wiki/architecture/screen-design.md
 9. **Prefab の生成**: `Scripts/Editor/Prefabs/` の Editor スクリプト。共通の補助 `PrefabBuildUtil`、部品ごとの生成クラス（`IPrefabBuilder` を実装）、入口 `PrefabBuildCommands`（メニュー `Uta/Prefabs/Build All`、`unity command eval` から呼ぶ `BuildAll()`、バッチモード用の `BuildAllBatch()`）。生成クラスは `TypeCache` で集めて `Order` の順に作るので、**P2・P3 は生成クラスを 1 つ足すだけで Build All に入る**（登録の表は持たない）。作業は一時的なプレビュー用のシーンで行い、開いているシーンを汚さない
 10. **UiRoot は各シーン（Bootstrap・Title・Home・Produce）に 1 つ置く**（screen-design 7.4「シーンの `UiRoot`」。`DontDestroyOnLoad` にしない）。シーンへの配置と DI への登録は C# の計画: `Bootstrap`・`Title`・`Home` は foundation（決めたこと 3）、`Produce` は formation（決めたこと 14）
 11. **PrefabContractTests**（EditMode）は Prefab の一覧を持たず、`Assets/Prefabs/` の下を全部読む。P2・P3 は Prefab を足すだけで自動で確かめの対象になる（3.6）
-12. EditMode のテストのコマンド `unity test --mode EditMode` は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章に無いので、タスク 5 で動くことを確かめて 4章と CLAUDE.md に足す（foundation のタスク 6 にあった CLAUDE.md の追記はこの計画に移る）。`unity test` は同じプロジェクトを開いた Editor があると使えないので、**`unity close .` → `unity test` → `unity open .` → `unity status --until-ready`** の順で回す（`unity close`・`unity open` も 4章に無いので、タスク 5 で一緒に確かめて足す）。P2・P3 はこの手順を使う。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）
+12. **EditMode のテストは、Editor を開いたまま `unity command --timeout 300 eval` で `TestRunnerApi` を呼んで回す**（**テストの回し方**。ユーザーの判断。2026-11-08）。コマンドの正は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章（結果は `Temp/uta-test-results.xml`、絞り込みは `Filter.groupNames`）で、CLAUDE.md「ビルド・テスト・実行」から引く。Editor は閉じない（`unity test` は同じプロジェクトを開いた Editor があると終了コード 6 で使えない。閉じて開き直す手間は無駄なため）。P2・P3 と C# の計画もこの回し方を使う。eval で回せないときは、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する（止まらない）。当初の案（`unity close .` → `unity test` → `unity open .`）はやめた
 13. **テストのアセンブリは `Uta.Client.Editor` を参照する**（`TmpSettings_DefaultFont_IsNotoSansJpDynamic` が `FontAssets.RegularPath` を使うため。3.1）。テストの asmdef は Editor 専用なので、Editor のアセンブリを参照してよい
 14. **foundation（C#）との境界は foundation の計画で決まった**（2026-11-07）: 旧版の `UiFactory`・`UiFonts`・`EnsureBuilt`・`UiFactoryTests` などを消し、`UiTheme`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`・`ModalBase`・`UiRoot` は P1 が作る（foundation の決めたこと 2）。`DialogService` の公開 API（`DialogView` を使う形）は foundation 3.2 が正。各シーンの `UiRoot` の `BusyIndicator`・`DialogService` は、ルートの `ActiveSceneUi` に各シーンのスコープが入れて、`ApiActivityBridge`・`ErrorDialogView` がそこから取る（foundation の決めたこと 4）。この計画はそれに合わせてある（1.1 の表）
 15. **Noto Sans JP（SIL Open Font License 1.1）のライセンス表示**。ライセンス文 `Assets/Fonts/NotoSansJP/OFL.txt` はフォントと一緒にリポジトリに入っている。アプリ内のライセンス表示の画面は MVP では作らず、ストアに出すときに作る。この案でよいか（ユーザーが推奨どおり了承した。2026-11-07）
 16. **screen-design 7.3 の「TMP の Essential Resources を取り込む」を「プロジェクトの TMP Settings を作り、既定のフォントを設定する」に直したこと**（このページの 7.3 は [Uta案] として直してある。印は実装時に外す）。Unity 7 の uGUI 7.0.0 で取り込み自体が無くなったため。ユーザーの判断（2026-11-07）の中身を変えるものなので確認する（ユーザーが推奨どおり了承した。2026-11-07）
 17. 見た目の値（色・寸法）は仮。旧 foundation の値に、ヘッダーの色 `(0.14, 0.15, 0.20)` と二次ボタンの色 `(0.30, 0.33, 0.42)` を足した。角丸・アイコンの画像は使わない（単色の四角）。この案で進めてよいか（ユーザーが推奨どおり了承した。2026-11-07）
 18. **PR #28（`external/` のサブモジュールを消す）と PR #29（Noto Sans JP のフォント）を、この計画の実装の前に両方 main へマージしてよいか**（[索引](2026-11-07-client-screens-index.md)の確認 1）。この計画の実装ブランチは main から切る前提で書いた（前提 2）。片方だけでは前提がそろわない（1 つの PR の base は 1 つしか選べない）（ユーザーが推奨どおり了承した。2026-11-07）
+19. **Prefab を足すだけの作業では、プレイヤーのビルドを確かめない**（ユーザーの判断。2026-11-08）。Windows の IL2CPP のビルド、`Uta.exe -uta-quit-after-check`、`BuildAllBatch` のバッチ起動の確認、`Build/` の大きさの測定は、この計画（タスク 4・6）から外した。ビルドが要るときは、Editor を開いている worktree とは別のワークスペースで行う（unity7-evaluation 4章）
 
 ## ユーザーの確認が要ること
 
@@ -43,7 +44,7 @@ spec: ../wiki/architecture/screen-design.md
 - **前提 1**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
 - **前提 2**: PR #28・PR #29 が main に入っていること（決めたこと 18。[索引](2026-11-07-client-screens-index.md)の「前提となる未マージの PR」。2026-11-07 時点でどちらも未マージ）。この計画の実装のブランチは `main` から切る（`tools/worktree-pool.sh start <番号> <新ブランチ>`。base は既定の `origin/main`）。PR #29 のフォント（`client/uta/Assets/Fonts/NotoSansJP/` に `NotoSansJP-Regular.ttf`・`NotoSansJP-Bold.ttf`・`NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`・`OFL.txt`）が main にある。タスク 1 の前に 5 つのファイルがあることを確かめ、無ければ止まって報告する（フォントのブランチから切って進めない）
   - 補足（使わない予定の代わりの手順）: ユーザーが #29 だけを先にしない・遅らせると決めたときだけ、ブランチを `claude/noto-sans-jp-font` から切り、PR の base もそのブランチにする積み PR にできる。この場合 PR #28 の変更（`manifest.json`・`external/` の削除）は入らないので、下の「PR #28 の読み替え」は使わず `external/` のソースを読む
-- **前提 3**: Windows の IL2CPP のビルドはバッチモードで行い、同じプロジェクトを開いている Editor を先に閉じる（CLAUDE.md「ビルド・テスト・実行」、unity7-evaluation 4章）
+- **前提 3**: Editor は閉じない（決めたこと 12・19）。テストは Editor を開いたまま回し、Windows の IL2CPP のビルドはこの計画では行わない（タスク 1 のスパイクのビルドだけは行った）。ビルドが要るときは別のワークスペースで行う（unity7-evaluation 4章）
 - **PR #28 の読み替え**: PR #28（前提 2 で main に入っている。PR #28 が足す ADR）は `external/` のサブモジュールを全部消す（UnityScreenNavigator・Supplement・VolTech-MagicOnion・MasterMemoryAddons）。サーバー・shared は `packages/` の `.nupkg`、Unity は `manifest.json` の git URL で参照し、`Uta.slnx` から共通基盤が外れる。**PR #28 のあとは、共通基盤のソース（USN の `Runtime/ChinpanGX`・README・`AddressableAssetLoader`、VolTech-MagicOnion のコードなど）は `client/uta/Library/PackageCache/<パッケージ名>@<ハッシュ>/`（USN は `com.harumak.unityscreennavigator`。Unity でパッケージを解決した環境にだけある）か GitHub のリポジトリを読む。マージ前は `external/<名前>`**。この計画に書いた `external/` のパスは、そう読み替える（`external/` は直さない、の決まりは変わらない）
 - **この計画で決めないこと**: 画面ごとの Prefab と View（P2・P3）。`BusyIndicator` の `Begin`／`End`、`DialogService`、`PageStack`、Presenter、シーンへの `UiRoot` の配置と DI の登録、`ProjectSettings` の Windows のウィンドウ設定（foundation）。アプリ内のライセンス表示の画面（MVP 外。確認 1）。フォントのアセットの作成と設定（作成済み。前提 2）
 
@@ -59,7 +60,7 @@ spec: ../wiki/architecture/screen-design.md
 | `UiRoot` | Prefab と MonoBehaviour（AssetLoader の設定とプロパティ）を全部作る | 各シーンに置き、`LifetimeScope` に登録する |
 | `SafeAreaFitter`・`WindowAspectKeeper` | 中身まで作る | 作らない（foundation の 2 章の表から消す） |
 | asmdef の参照（Presentation・Editor・テスト） | 足す（3.1） | 足りないものだけ足す |
-| `unity test` のコマンドの記録 | 4章と CLAUDE.md に足す（タスク 5） | 足さない |
+| EditMode のテストの回し方の記録 | 4章と CLAUDE.md に足す（タスク 5・7） | 足さない |
 
 ## 2. 触るファイル
 
@@ -89,8 +90,8 @@ spec: ../wiki/architecture/screen-design.md
 | 変更 | `Tests/EditMode/Uta.Client.Infrastructure.Tests.EditMode.asmdef` | 参照を足す（3.1） |
 | 作成 | `Tests/EditMode/PrefabContract.cs`・`PrefabContractTests.cs` | Prefab の契約のテスト（3.6） |
 | 作成→削除 | `Spike/`（`Uta.Spike.asmdef`・`AddressablesSpikeProbe.cs`・`SpikePage.prefab`・`Spike.unity`・`Editor/Uta.Spike.Editor.asmdef`・`Editor/SpikeCommands.cs`） | タスク 1 のスパイク。タスク 1 の終わりに消す |
-| 変更 | `.gitignore` | `client/*/test-results.xml` を足す（タスク 5） |
-| 変更 | `CLAUDE.md` | 「ビルド・テスト・実行」に EditMode のテストと Prefab の生成のコマンドを足す（タスク 5・7） |
+| 変えない | `.gitignore` | テストの結果は `Temp/uta-test-results.xml`（`Temp/` は除外済み）に出すので、足さない（当初は `client/*/test-results.xml` を足す案。タスク 5） |
+| 変更 | `CLAUDE.md` | 「ビルド・テスト・実行」に EditMode のテストと Prefab の生成のコマンドを足す（タスク 7） |
 | 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md` | 2章の表・3.3・4章（タスク 1・5・6・7） |
 | 変更 | `uta_docs/wiki/architecture/screen-design.md` | 7.2・7.3・7.4・実装メモ（タスク 7） |
 | 変更 | `uta_docs/wiki/architecture/repository-layout.md` | 3章の `Uta.Client.Presentation` の参照（タスク 7） |
@@ -703,6 +704,8 @@ public static class PrefabContract
 
 触る: `Scripts/Editor/Uta.Client.Editor.asmdef`（3.1）、`Scripts/Editor/Prefabs/FontAssets.cs`・`TmpSettingsBuilder.cs`・`AddressablesSetup.cs`（3.5。本番のもの）、`Spike/` 一式（使い捨て）、`uta_docs/wiki/architecture/unity7-evaluation.md`。
 
+実施済み（2026-11-08、コミット `b998380`）。手順 6・8 の Editor を閉じる・開く（`unity close .`・`unity open .`）とプレイヤーのビルドは、このスパイクでだけ行った。以後の Prefab の作業では Editor を閉じず、ビルドもしない（決めたこと 12・19）。
+
 フォントのアセット（前提 2）で確かめてあるのは、`com.unity.ugui` 7.0.0 に TMPro の型があること、`Assets/` に `TextMesh Pro` フォルダが無くても `Shader.Find("TextMeshPro/Distance Field")` が見つかること、アセットのシェーダーが `TextMeshPro/Mobile/Distance Field` であること、Editor で日本語 15 文字がアトラスに載ること。**このタスクで確かめるのは、実際の `TMP_Text` の表示（Editor の Play・プレイヤー）、TMP Settings の既定フォントの設定状況、プレイヤービルド**。
 
 手順:
@@ -735,7 +738,7 @@ public static class PrefabContract
 - S5: `FontAssets.LoadRegular()`／`LoadBold()` が例外（アセットが無い・Dynamic でない）、`TMP_Settings.defaultFontAsset` が設定できない（`EnsureProjectSettings` の例外）、Editor の Play かプレイヤーで `spike tmp: FAILED` か `spike tmp-settings: FAILED`、目で見て日本語が豆腐になる
 - S6: 手順 5 の 2 で、`EnterPlaymode()` の直前に差し替えても Play が `Assets/Spike/Spike.unity` から始まらない（`Bootstrap`・`Title` を通す手順に変えない）
 
-終わったことの確かめ方: 手順 4〜6 がすべて通った。止まる条件に当たらない。unity7-evaluation.md に結果がある。`Spike/` が無い。既存の EditMode のテストが通る（`unity test` はタスク 5 で確かめるので、ここでは Editor の Test Runner の EditMode を全部実行してもらう。手動）。
+終わったことの確かめ方: 手順 4〜6 がすべて通った。止まる条件に当たらない。unity7-evaluation.md に結果がある。`Spike/` が無い。既存の EditMode のテストが通る（テストの回し方はタスク 5 で決めるので、ここでは Editor の Test Runner の EditMode を全部実行してもらう。手動）。
 
 ### タスク 2: 実行時の型（UiTheme・基底・部品の View・UiRoot）
 
@@ -748,7 +751,7 @@ public static class PrefabContract
 
 境界: `UiRoot.EnsureConfigured` は 2 回目以降何もしない。`SafeAreaFitter` は画面の大きさが 0 のとき何もしない。
 
-終わったことの確かめ方: コンパイルエラー 0。既存のテストが通る（手動の Test Runner。タスク 5 からは `unity test`）。
+終わったことの確かめ方: コンパイルエラー 0。既存のテストが通る（手動の Test Runner。タスク 5 からは決めたこと 12 の回し方）。
 
 ### タスク 3: 生成の補助と入口
 
@@ -771,46 +774,43 @@ public static class PrefabContract
 2. `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'` が `built 10`。`unity command console get --tail 50 --level error --format json` にエラーが無い
 3. もう一度 `BuildAll()` を実行し、`git status`・`git diff --stat` で `Prefabs/Parts/` に差分が出るかを見る。**出ても止まらない**（fileID が作り直されている可能性。推測）。差分の有無と、出たならどの行か（`m_` のどの値か・fileID か）を報告に書く。`Fonts/NotoSansJP/` の 2 つの `.asset` に差分が出ていないこと（出たら `FontAssets.ClearDynamicData()` で戻りきっていない。差分の中身を報告に書き、`git restore` で戻す。止まらない）
 4. ユーザーに、Editor で `UiRoot.prefab`・`Dialog.prefab`・`Header.prefab`・`ListRow.prefab` を Prefab モードで開いて、日本語の仮の文字が出ていること、3.4 の表の配置になっていることを見てもらう（手動）
-5. Editor を閉じたときのバッチの入口を確かめる: Editor を閉じ、`Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` が終了コード 0、ログに `[Uta] prefabs: built 10`
+
+バッチの入口（`BuildAllBatch`。Editor が閉じているとき用）は、実施時（2026-11-08）に 1 回だけ終了コード 0 を確かめた。決めたこと 19 により、以後の Prefab の作業では確かめない。
 
 境界: 部品の Prefab が無い状態から（`Prefabs/Parts/` を消してから）でも、Order の順で全部できる。
 
-終わったことの確かめ方: `built 10`、エラー無し、手動の見た目の確認が済んだ、バッチの入口が終了コード 0。
+終わったことの確かめ方: `built 10`、エラー無し、手動の見た目の確認が済んだ。
 
 ### タスク 5: PrefabContractTests とテストのコマンド
 
 触る: `Tests/EditMode/Uta.Client.Infrastructure.Tests.EditMode.asmdef`（3.1）、`Tests/EditMode/PrefabContract.cs`・`PrefabContractTests.cs`、`CLAUDE.md`、`uta_docs/wiki/architecture/unity7-evaluation.md`。
 
+実施済み（2026-11-08、コミット `4ca8753`）。手順 2〜4 は、実際に行った形（決めたこと 12。Editor を閉じない）で書いてある。
+
 手順:
 1. テストの asmdef の参照を足し、3.6 のとおりに作る
-2. テストを回す（**テストの回し方**。P2・P3 もこの手順を使う。`unity test` は同じプロジェクトを開いた Editor があると使えない）:
-   1. Editor で `unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'`（`unity close` は保存せずに閉じるため）
-   2. `client/uta` で `unity close .`（終了コード 0。閉じられなければユーザーに Editor を閉じてもらう）
-   3. `client/uta` で `unity test --mode EditMode`。終了コード 0 で、結果のファイル（既定 `test-results.xml`）で全部通ること（失敗があると終了コード 8、テストが走らなかったときは 6）
-   4. `client/uta` で `unity open .` → `unity status --until-ready` が ready（開けなければユーザーに開いてもらう）
-   - 念のため、手順 1 の前に Editor を開いたまま `unity test --mode EditMode` を 1 回だけ実行し、どうなったか（動いた・エラーの文）を記録する（動いても、以後は上の閉じる手順を使う）
-   - **`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）。`unity test` が使えないことは unity7-evaluation 4章に書く
-3. わざと壊して効くことを確かめる:
-   1. Editor で次を実行し `broken` が返る（`SetRef` は Editor のアセンブリの `PrefabBuildUtil`。`unity command eval` は `return` が要る）:
-      `unity command eval 'var path = "Assets/Prefabs/Parts/Header.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { Uta.Client.Editor.Prefabs.PrefabBuildUtil.SetRef(root.GetComponent<Uta.Client.Presentation.Common.Parts.HeaderView>(), "titleText", null); UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); } return "broken";'`
-   2. 手順 2 の 1〜2（保存して閉じる）→ `unity test --mode EditMode --filter PrefabContractTests` が終了コード 8 で、`test-results.xml` で `AllPrefabs_SerializedReferences_AreAssigned` が失敗し、文に `Header` と `titleText` が入る。**`--filter` が効かない**（オプションのエラー、または全件が走る・0 件しか走らない）ときは、`--filter` を外して全件を実行し、`test-results.xml` の失敗したテストの名前が `AllPrefabs_SerializedReferences_AreAssigned` だけであることを見る。どちらで確かめたかを記録する
-   3. Editor を閉じたまま、バッチの入口で元に戻す: `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` が終了コード 0 → `unity test --mode EditMode` が全部通る → 手順 2 の 4（開く）
-4. 動いたコマンドを unity7-evaluation.md 4章の「`unity` CLI の使い方（動いたもの）」に足す（`unity test --mode EditMode`、`--filter` が効いたか、`unity close .`、`unity open .`、開いた Editor があるときの `unity test` の振る舞い）。CLAUDE.md「ビルド・テスト・実行」の Unity 7 の行の後に「Unity の EditMode のテスト: `client/uta` で `unity close .` → `unity test --mode EditMode` → `unity open .`（`unity close` は保存せずに閉じるので、先に `AssetDatabase.SaveAssets`。同じプロジェクトを開いた Editor があると `unity test` は使えない）」を 1 行足す（動いた形に合わせて書く）
-5. `test-results.xml` はコミットしない（`client/uta/` 直下に出るので、`.gitignore` の Unity の節に `client/*/test-results.xml` を 1 行足す）
+2. テストを回す（**テストの回し方**。P2・P3 と C# の計画もこれを使う）: Editor を開いたまま、[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章のコマンド（`unity command --timeout 300 eval` で `TestRunnerApi` を `runSynchronously = true` で実行し、`Temp/uta-test-results.xml` に書く）を実行し、XML の `<test-run>` の `failed` が 0 であることを見る。絞り込むときは同じコマンドの `Filter` に `groupNames = new[] { "<テストのクラス名>" }` を足す。結果: 全件 43/43 が通った
+   - `unity test --mode EditMode` は 1 回だけ試した（開いた Editor があると終了コード 6。閉じれば動く）。以後は使わない（4章に記録）
+3. わざと壊して効くことを確かめる: `unity command eval` で `Header.prefab` の `HeaderView.titleText` を `PrefabBuildUtil.SetRef(…, "titleText", null)` で外して保存 → 手順 2 で回すと、失敗したのは `AllPrefabs_SerializedReferences_AreAssigned` だけ → `BuildAll()`（eval）で戻し、手順 2 で全部通った
+4. 回し方を unity7-evaluation.md 4章に書いた。CLAUDE.md「ビルド・テスト・実行」の行はタスク 7 で足す
+5. `.gitignore` は変えない（結果は `Temp/` の下に出るため）
 
-終わったことの確かめ方: `unity test --mode EditMode` で既存のテストと `PrefabContractTests` が全部通る。手順 3 で壊すと失敗する。
+境界: `PrefabContract.FindPrefabPaths` は、フォルダ（`Assets/Prefabs/Screens` など）が無いと空を返す（画面の Prefab が 0 個で通るため）。
+
+終わったことの確かめ方: 手順 2 で既存のテストと `PrefabContractTests` が全部通る。手順 3 で壊すと失敗する。
 
 ### タスク 6: プレイヤーのビルドに BuildPlayerContent を足す
 
 触る: `Scripts/Editor/BuildCommands.cs`（3.7）、`uta_docs/wiki/architecture/unity7-evaluation.md`。
 
-手順:
-1. 3.7 のとおりに変える
-2. Editor を閉じ、CLAUDE.md の Windows の IL2CPP のビルドのコマンドが終了コード 0。ログに Addressables のビルドの行があり、`[Uta] addressables:` のエラーが無い。`client/uta/Build/Windows/` の大きさ（合計と、`StreamingAssets/aa` の下のバンドルの大きさ）を報告に書く（6章のフォントの二重の取り込みを見るため。止まらない）
-3. ローカルのサーバーを起動した状態で `Uta.exe -batchmode -nographics -uta-quit-after-check` が終了コード 0（シーンは変えていないので、今までどおり通ること。画面の Prefab はまだ使っていない）
-4. unity7-evaluation.md 2章の「シーン構成 … Windows の IL2CPP」の行の方法に「`BuildPlayerContent` を先に実行」を足す
+実施済み（2026-11-08、コミット `fa27662`）。決めたこと 19 により、プレイヤーのビルド・大きさの測定・`-uta-quit-after-check` はこのタスクから外した。
 
-終わったことの確かめ方: ビルドが通り、`-uta-quit-after-check` が終了コード 0。
+手順:
+1. 3.7 のとおりに変える（ビルドターゲットの確かめと `BuildPlayerContent`）
+2. `BuildPlayerContent` を Editor の `unity command eval` で単体で実行し、`result.Error` が空であること（`Screens` が空なので、できるのは `catalog.bin` などだけでバンドルは無い）
+3. unity7-evaluation.md 2章の「シーン構成 … Windows の IL2CPP」の行に、`BuildPlayerContent` を先に実行するようにしたことと、足したあとの IL2CPP のビルドは未確認であることを書く
+
+終わったことの確かめ方: コンパイルエラー 0。手順 2 で `result.Error` が空。
 
 ### タスク 7: 結果の記録（wiki・CLAUDE.md・計画）
 
@@ -823,7 +823,9 @@ public static class PrefabContract
    - 7.4 の表の「Prefab」の行に、部品の一覧（3.4 の 10 個）と「画面の Prefab だけを Addressables の `Screens` に登録する。部品はネスト、`UiRoot` はシーンに置く」を足し、「生成スクリプト」の行に「入口は `PrefabBuildCommands`（`Uta/Prefabs/Build All`）。生成クラスは `IPrefabBuilder` を実装すれば Build All に入る」を足す
    - 実装メモに、実装と計画のズレ（あれば）と、タスク 4 の再生成の差分の結果を書く
 2. repository-layout.md 3章の `Uta.Client.Presentation` の行の参照に `Unity.TextMeshPro`（TMP）を足す（`UnityScreenNavigator` は既に書いてある）。`Uta.Client.Editor` の行があれば、`Unity.Addressables.Editor`・`Unity.TextMeshPro`・`UnityScreenNavigator` を足す（無ければ足さない）
-3. CLAUDE.md「ビルド・テスト・実行」に 1 行足す: 「Prefab の生成（`client/uta`。生成物は手で直さない）: Editor が開いているとき `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'`、閉じているとき `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>`。`client/uta/Assets/Fonts/NotoSansJP/` の `.asset` に差分が出たらコミットせず `git restore` で戻す」
+3. CLAUDE.md「ビルド・テスト・実行」に 2 行足す（決めたこと 12・19）:
+   - 「Unity の EditMode のテスト: Editor を開いたまま `unity command --timeout 300 eval` で `TestRunnerApi` を呼ぶ（コマンドは unity7-evaluation 4章。`unity test` は Editor が開いていると使えない）」
+   - 「Prefab の生成（`client/uta`。生成物は手で直さない）: Editor が開いているとき `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'`。Editor が閉じているとき用に `-executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch` の入口もある。`BuildAll` のたびに `NotoSansJP-Regular SDF.asset` のマテリアルの値が変わるので、`client/uta/Assets/Fonts/NotoSansJP/` の差分はコミットせず `git restore` で戻す」
 4. unity7-evaluation.md 4章に、`unity command eval` で Editor のスクリプトの静的メソッドを呼んで Prefab を作れたこと、バッチの `-executeMethod … BuildAllBatch` を足す。3.3 の「UnityScreenNavigator・Supplement は取り込みだけで、使っていない」を「UnityScreenNavigator の `PageContainer` + `AddressableAssetLoader` はスパイクで Push まで確かめた（Presenter 駆動の `ScreenNavigator` は foundation で確かめる）」に直す
 5. `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
 6. この計画の frontmatter を `status: done`、`updated` を実施日にする
@@ -842,7 +844,7 @@ public static class PrefabContract
 | | `ScreensGroup_ContainsOnlyScreenPrefabs` | 3.6 |
 | | `TmpSettings_DefaultFont_IsNotoSansJpDynamic` | 3.6 |
 
-実行: `unity test --mode EditMode`（タスク 5 で動くことを確かめるまでは、Editor の Test Runner で手動）。`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ。
+実行: Editor を開いたまま `TestRunnerApi` を eval で回す（決めたこと 12。コマンドは unity7-evaluation 4章）。タスク 5 より前は Editor の Test Runner で手動。
 
 Editor・プレイヤーでしか確かめられないもの（自動のテストにしない）:
 - Addressables の読み込み（Editor の Play・Windows の IL2CPP）と、TMP の日本語の表示 → タスク 1 のスパイク（コンソールの `[Uta] spike` の行と、目で見る確認）
@@ -851,7 +853,7 @@ Editor・プレイヤーでしか確かめられないもの（自動のテス�
 
 ## 6. 未決事項
 
-いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
+done（2026-11-08）。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- フォントの二重の取り込み（推測）: フォントは Addressables に入れないので、画面の Prefab（`Screens` のバンドル）とシーンの `UiRoot`（プレイヤー）の両方から参照されると、フォントのアセット（動的なので元の ttf を含む。1 本約 5.7 MB）がバンドルとプレイヤーの両方に入る可能性がある。タスク 6 のビルドで大きさを記録し、二重なら報告する（この計画では直さない）
+- フォントの二重の取り込み（推測）: フォントは Addressables に入れないので、画面の Prefab（`Screens` のバンドル）とシーンの `UiRoot`（プレイヤー）の両方から参照されると、フォントのアセット（動的なので元の ttf を含む。1 本約 5.7 MB）がバンドルとプレイヤーの両方に入る可能性がある。当初はタスク 6 のビルドで大きさを見る予定だったが、ビルドを計画から外した（決めたこと 19）。**画面の Prefab が入ったあと、プレイヤーをビルドするときに `Build/` と `StreamingAssets/aa` の大きさを見る**（この計画では直さない。未確認）
 - （foundation との境界・`DialogService` の公開 API・シーンごとの `BusyIndicator` の見つけ方は foundation の計画で決まったので消した。決めたこと 14）

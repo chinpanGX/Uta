@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の画面 5/6 週の行動選択・授業・支給・スキルカードの選択肢
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/systems/produce.md
 ---
 
@@ -402,7 +402,7 @@ case ProducePhase.CardOffer:
 
 ## 4. タスク
 
-各タスクの終わりに `unity recompile --format json`（`client/uta` で実行）でコンパイルエラー 0、そのタスクまでの EditMode のテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。Play のあとでコミットする前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（foundation 3.3.7）。
+各タスクの終わりに `unity recompile --format json`（`client/uta` で実行）でコンパイルエラー 0、そのタスクまでの EditMode のテストが通る状態にする。EditMode のテストは Editor が要る（回し方は P1 の決めたこと 12: Editor を開いたまま `TestRunnerApi` を eval で回す。コマンドは CLAUDE.md「ビルド・テスト・実行」・unity7-evaluation 4章）。**eval で回せなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない**（P1 の決めたこと 12）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。Play のあとでコミットする前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（foundation 3.3.7）。
 
 ### タスク 1: Application の値と文字
 
@@ -440,7 +440,7 @@ case ProducePhase.CardOffer:
 
 ### タスク 4 の分け方（依存の向き）
 
-Presenter は型で次の Presenter を参照するので、**参照される側を先に作る**: `WeekPresenter` は `PushPageAsync<ClassPresenter, …>`・`PushPageAsync<SupplyPresenter, …>` を書き、`ProduceFlow` は `PushPageAsync<WeekPresenter>`・`PushModalAsync<CardOfferPresenter>` を書く。依存の向きは `ProduceFlow` → `WeekPresenter` → `ClassPresenter`・`SupplyPresenter`、`ProduceFlow` → `CardOfferPresenter`（`ClassPresenter`・`SupplyPresenter`・`CardOfferPresenter` は `ProduceFlow` を引数で受けるだけで、ほかの Presenter を参照しない）。なので 4a → 4b → 4c の順にし、**各タスクの終わりに `unity recompile --format json` のエラーが 0、`unity test --mode EditMode` で既存（formation まで）とそのタスクまでのテストが全部通る**状態にする。`ProduceFlow` の `case` は、Push する Presenter ができたタスクで足す（`WeekSelect` は 4b、`CardOffer` は 4c）。
+Presenter は型で次の Presenter を参照するので、**参照される側を先に作る**: `WeekPresenter` は `PushPageAsync<ClassPresenter, …>`・`PushPageAsync<SupplyPresenter, …>` を書き、`ProduceFlow` は `PushPageAsync<WeekPresenter>`・`PushModalAsync<CardOfferPresenter>` を書く。依存の向きは `ProduceFlow` → `WeekPresenter` → `ClassPresenter`・`SupplyPresenter`、`ProduceFlow` → `CardOfferPresenter`（`ClassPresenter`・`SupplyPresenter`・`CardOfferPresenter` は `ProduceFlow` を引数で受けるだけで、ほかの Presenter を参照しない）。なので 4a → 4b → 4c の順にし、**各タスクの終わりに `unity recompile --format json` のエラーが 0、EditMode のテスト で既存（formation まで）とそのタスクまでのテストが全部通る**状態にする。`ProduceFlow` の `case` は、Push する Presenter ができたタスクで足す（`WeekSelect` は 4b、`CardOffer` は 4c）。
 
 ### タスク 4a: `ClassPresenter`・`SupplyPresenter`
 

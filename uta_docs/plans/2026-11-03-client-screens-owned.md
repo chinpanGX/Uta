@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/systems/idol-support.md
 ---
 
@@ -649,7 +649,7 @@ public sealed class SupportDetailPage : PageBase, ISupportDetailView
 
 ## 4. タスク
 
-各タスクの終わりに、`client/uta` で `unity recompile --format json` がコンパイルエラー 0、`unity test --mode EditMode` で既存とそのタスクまでのテストが全部通る状態にする（foundation 4章の冒頭のとおり。回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告してユーザーに実行を頼む**。shared/ のテストは `dotnet test --project shared/Uta.Shared.Domain.Tests`。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（Play で日本語を出すとフォントのアセットに字が足されるため）。Prefab（`.prefab`）と `AddressableAssetsData/` に差分が出ていたら、この計画の変更ではないので戻し、報告に書く。
+各タスクの終わりに、`client/uta` で `unity recompile --format json` がコンパイルエラー 0、EditMode のテストで既存とそのタスクまでのテストが全部通る状態にする（foundation 4章の冒頭のとおり。回し方は P1 の決めたこと 12: Editor を開いたまま `TestRunnerApi` を eval で回す。コマンドは CLAUDE.md「ビルド・テスト・実行」・unity7-evaluation 4章）。**eval で回せなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない**（P1 の決めたこと 12）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告してユーザーに実行を頼む**。shared/ のテストは `dotnet test --project shared/Uta.Shared.Domain.Tests`。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（Play で日本語を出すとフォントのアセットに字が足されるため）。Prefab（`.prefab`）と `AddressableAssetsData/` に差分が出ていたら、この計画の変更ではないので戻し、報告に書く。
 
 ### タスク 1: Shared.Domain のプランの適合と、表示名・一覧の組み立て
 
