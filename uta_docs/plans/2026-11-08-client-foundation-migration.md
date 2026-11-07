@@ -9,7 +9,7 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 
 ## 0. ユーザーの確認が要ること
 
-1. **共通レスポンス項目（player_diff・バッジ・通知）を今は採り入れない**（推奨）。サーバーは `Common` を返さず、クライアントも `WithCommonResponseApplier` を付けない。画面の計画（順 7）はサインイン／各 RPC のレスポンスをそのまま読む形で組まれており、採り入れると DTO とサーバーの全 RPC に手が入る。採り入れるなら別の計画にする。
+1. **共通レスポンス項目（player_diff）は採る**（ユーザーの判断 2026-11-08）。ただし範囲が広い（shared の DTO・サーバーのコレクター・クライアントの反映）ので、この計画には入れず、後続の [2026-11-08-common-response-player-diff.md](2026-11-08-common-response-player-diff.md) で行う。この計画では `.WithCommonResponseApplier` を付けない。
 2. **画面の計画（順 7）7 本が書いている `XxxApi : ApiServiceBase<…>` と `result.IsSuccess` を、この計画のタスク 4 で新しい呼び方に書き直す**（推奨）。書き直さないと、実装担当が存在しない型を書くことになる。
 3. **この計画は Unity で確かめる**。この worktree（`Uta-wt/2`）では Unity を開いておらず、パッケージの解決（`packages-lock.json`）もコンパイルもできない。タスク 1〜3 は Unity を開く worktree で実装する。
 
@@ -21,7 +21,7 @@ PR #34 で共通基盤（VolTech-MagicOnion）の固定を `11d9b06` に上げ�
 
 - 基盤の使い方の正: VolTech-MagicOnion の `docs/guide/client.md`
 - 関係する ADR: [0002](../wiki/decisions/0002-magiconion.md)、[0009](../wiki/decisions/0009-client-stack.md)、[0019](../wiki/decisions/0019-foundation-packages.md)
-- **この計画で決めないこと**: 共通レスポンス項目の採用（0 章の 1）、`IApiActivityHandler`（通信中のブロッカー）、`IApiLogger`、Tracing、実機での Monitor の表示（基盤にまだ無い）、画面の実装そのもの（順 7 の各計画）
+- **この計画で決めないこと**: 共通レスポンス項目（後続の計画）、`IApiActivityHandler`（通信中のブロッカー）、`IApiLogger`、Tracing、実機での Monitor の表示（基盤にまだ無い）、画面の実装そのもの（順 7 の各計画）
 
 ## 2. 新旧の対応
 
