@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: Screens
   m_GUID: f34a6316fe9b11143a913f232f4e7aff
   m_SerializeEntries:
+  - m_GUID: 32f874e0601f5b64c84c00ecab12dbec
+    m_Address: GachaRatesModal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: aae437b14e1cee14aa5362c51a5a13e9
     m_Address: HomePage
     m_ReadOnly: 0
@@ -22,6 +27,16 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: adfab18dc2648d54db5010cd3ef4c9f0
     m_Address: TitlePage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5df4c62d6bc7354d851d3131ffd8add
+    m_Address: GachaPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cddba6ff92756034eb6d4c4e4b8ff9f8
+    m_Address: GachaResultModal
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

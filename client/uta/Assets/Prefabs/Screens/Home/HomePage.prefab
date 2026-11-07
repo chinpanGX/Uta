@@ -32,7 +32,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4607171219819001608}
-  - {fileID: 2310870768518893612}
+  - {fileID: 1889051919387675082}
   - {fileID: 7770115339134184549}
   m_Father: {fileID: 8488163210700505496}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -271,7 +271,7 @@ MonoBehaviour:
   resumePanel: {fileID: 5625933157321911892}
   primaryButton: {fileID: 1258950741178158807}
   navProduceButton: {fileID: 7086337128720125739}
-  navGachaButton: {fileID: 2310870768518893613}
+  navGachaButton: {fileID: 5156354890597921257}
   navOwnedButton: {fileID: 3921704512814355526}
 --- !u!1 &5843905198913165039
 GameObject:
@@ -855,12 +855,12 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4c9eea036b8e0bd4fbfec534bef06a1f, type: 3}
---- !u!224 &2310870768518893612 stripped
+--- !u!224 &1889051919387675082 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4190210286922783201, guid: 4c9eea036b8e0bd4fbfec534bef06a1f, type: 3}
   m_PrefabInstance: {fileID: 2310870768518893611}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2310870768518893613 stripped
+--- !u!114 &5156354890597921257 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7466635908386185666, guid: 4c9eea036b8e0bd4fbfec534bef06a1f, type: 3}
   m_PrefabInstance: {fileID: 2310870768518893611}
