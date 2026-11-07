@@ -10,7 +10,14 @@
         "VolTech.Server.Abstractions",
         "VolTech.MagicOnion.Client",
         "Uta.Shared.Domain",
-        "UniTask"
+        "UniTask",
+        "Uta.Client.Presentation",
+        "Uta.Client.Editor",
+        "UnityScreenNavigator",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.Addressables",
+        "Unity.Addressables.Editor"
     ],
     "includePlatforms": [
         "Editor"

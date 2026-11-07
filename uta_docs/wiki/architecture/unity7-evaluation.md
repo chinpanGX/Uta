@@ -1,7 +1,7 @@
 ---
 title: Unity 7 の検証結果
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # Unity 7 の検証結果
@@ -82,6 +82,12 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - `ProjectSettings.asset` の `applicationIdentifier` は、もう鍵に使わない（上）
 - **起動の流れ**: この計画で作ったのは、[screen-design.md](screen-design.md) 4章の「1. 認証（端末の登録・トークンの発行）」だけ。画面は IMGUI の診断用で、画面の計画（7 番目）で作り直す
 - **`unity` CLI（Editor を操作する）の使い方**（動いたもの）: `unity status`（`--until-ready`）、`unity recompile --format json`、`unity command package resolve`、`unity command console get --tail N --level error|warning --format json`、`unity command editor.playmode start|stop`、`unity command eval '<C#>'`（`return` が要る）。`unity command` の名前は、`group name` ではなく、`editor.playmode start` のように `.` でつなぐ形もある（`unity list` で確認する）
+- **EditMode のテストは、Editor を開いたまま `unity command --timeout 300 eval` で `TestRunnerApi` を呼んで回す**（2026-11-08。Editor を閉じない運用。ユーザーの判断）。`ExecutionSettings.runSynchronously = true` で `Execute` が終わるまで返らず、結果は Test Framework の内部の `UnityEditor.TestTools.TestRunner.CommandLineTest.ResultsSavingCallbacks`（`ScriptableObject`。public フィールド `m_ResultFilePath` に出力先を入れ、`RegisterCallbacks`・終わったら `UnregisterCallbacks`）で NUnit の XML に書く（`Temp/uta-test-results.xml`。`Temp/` は `.gitignore` 済み）。`eval` の中では型（class）を宣言できないので、`ICallbacks` を自前で書かずに内部の型をリフレクションで使った。絞り込みは `Filter.groupNames = new[] { "PrefabContractTests" }`（効いた: 7 件だけ走った）。EditMode の全件で約 2 秒。内部の型なので、Test Framework の版が上がると壊れうる
+  ```
+  unity command --timeout 300 eval 'var path = System.IO.Path.GetFullPath("Temp/uta-test-results.xml"); if (System.IO.File.Exists(path)) System.IO.File.Delete(path); var api = UnityEngine.ScriptableObject.CreateInstance<UnityEditor.TestTools.TestRunner.Api.TestRunnerApi>(); var t = typeof(UnityEditor.TestTools.TestRunner.Api.TestRunnerApi).Assembly.GetType("UnityEditor.TestTools.TestRunner.CommandLineTest.ResultsSavingCallbacks"); var cb = (UnityEditor.TestTools.TestRunner.Api.ICallbacks)UnityEngine.ScriptableObject.CreateInstance(t); t.GetField("m_ResultFilePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).SetValue(cb, path); api.RegisterCallbacks(cb); var filter = new UnityEditor.TestTools.TestRunner.Api.Filter { testMode = UnityEditor.TestTools.TestRunner.Api.TestMode.EditMode }; api.Execute(new UnityEditor.TestTools.TestRunner.Api.ExecutionSettings(filter) { runSynchronously = true }); api.UnregisterCallbacks(cb); return System.IO.File.Exists(path) ? "saved " + path : "not saved";'
+  ```
+  結果は `Temp/uta-test-results.xml` の `<test-run … total= passed= failed=>` と、`result="Failed"` の `<test-case>` の `<message>` で見る
+- `unity test --mode EditMode`（2026-11-08 に 1 回だけ試した。以後は使わない）: 同じプロジェクトを開いた Editor があると、`プロジェクトは実行中のエディター（PID …）で既に開かれています` で終了コード 6。`unity close .`（保存せずに閉じる。終了コード 0、`graceful`）のあとは終了コード 0 で、プロジェクトの直下に `test-results.xml` を書いた（約 2 分。Editor の起動を含む）。`unity close` の前の `eval` の `AssetDatabase.SaveAssets` は 30 秒でタイムアウトした（閉じるのは通った）。`unity open .` は終了コード 0 で、直後の `unity status --until-ready` には出ず、もう一度 `unity open .` を実行したあと ready になった（1 回目で起動が間に合わなかっただけかは未確認）。`--filter` は試していない
 - Unity のバッチモードでビルドするときは、Editor が同じプロジェクトを開いていると競合する。別のワークスペース（`../Uta-wt/<名前>`）に worktree を作り、`Assets/Packages/` のコピーをしてから回す
 
 ## 5. 次にやること
