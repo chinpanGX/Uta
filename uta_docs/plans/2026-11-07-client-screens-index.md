@@ -49,7 +49,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 ### P2 Title・Home・ガチャ・所持一覧の Prefab
 
-- 画面の Prefab 7 個（`TitlePage`・`HomePage`・`GachaPage`・`GachaRatesModal`・`GachaResultModal`・`OwnedPage`・`SupportDetailPage`）と行の Prefab 3 個。所持一覧の行は P1 の `UtaListRow`
+- 画面の Prefab 7 個（`TitlePage`・`HomePage`・`GachaPage`・`GachaRatesModal`・`GachaResultModal`・`OwnedPage`・`SupportDetailPage`）と行の Prefab 3 個。所持一覧の行は P1 の `ListRow`
 - ページの形は `Header` →（`TabBar`）→ `Main`。組み方の補助 `ScreenLayout` は P3 も使う
 - レベルのボタン 3 つは固定で置く。所持一覧の並び・絞り込みは 2 段。0 件の「ありません」は一覧の外
 - 画面ごとのテストで「View のフィールドが表の子を指す」ことを確かめる。P1 の型だけに依存する
@@ -81,7 +81,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 ### P3 編成・プロデュースの Prefab
 
 - 画面の Prefab 10 個（`SupplyPage` を含む）と行の Prefab 5 個。`SkillCardRow` は手札と獲得の選択肢で共有
-- メニュー（[≡]）の Prefab は作らない（`DialogService.ChooseAsync` で足りる）。ヘッダーは P1 の `UtaHeader`
+- メニュー（[≡]）の Prefab は作らない（`DialogService.ChooseAsync` で足りる）。ヘッダーは P1 の `Header`
 - 数が増減する要素は C# が Instantiate する。編成の 5 枠だけは Prefab に固定で置く
 - 色・寸法は P1 の `UiTheme` の値だけ。P1・P2 の型だけに依存する
 

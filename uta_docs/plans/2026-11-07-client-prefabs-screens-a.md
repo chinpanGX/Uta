@@ -11,10 +11,10 @@ spec: ../wiki/architecture/screen-design.md
 
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。
 
-1. **作る画面の Prefab は 7 個**（`Assets/Prefabs/Screens/<機能>/`。Addressables の `Screens` に登録）: `TitlePage`・`HomePage`・`GachaPage`・`GachaRatesModal`・`GachaResultModal`・`OwnedPage`・`SupportDetailPage`。**行の Prefab は 3 個**（`Assets/Prefabs/Parts/`。登録しない）: `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow`。所持一覧の行は P1 の `UtaListRow`（名前・補足の 2 段）をそのまま使う
+1. **作る画面の Prefab は 7 個**（`Assets/Prefabs/Screens/<機能>/`。Addressables の `Screens` に登録）: `TitlePage`・`HomePage`・`GachaPage`・`GachaRatesModal`・`GachaResultModal`・`OwnedPage`・`SupportDetailPage`。**行の Prefab は 3 個**（`Assets/Prefabs/Parts/`。登録しない）: `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow`。所持一覧の行は P1 の `ListRow`（名前・補足の 2 段）をそのまま使う
 2. **View の骨格は 8 型**（フィールドだけ。メソッド・`IXxxView` の実装は C# の計画が足す）: 上の 7 画面の `XxxPage : PageBase`／`XxxModal : ModalBase` と、行の View `GachaLineRow : MonoBehaviour`（3 つの行の Prefab で共用）。フィールド名と Prefab 内の子のパスの対応は 3.3 の表が正
-3. **ページの共通の形**: P1 の雛形（ルート + `Body`）の `Body` に縦のレイアウト（余白 0・間隔 0）を付け、上から `Header`（P1 の `UtaHeader`。Title・Home には無い）→（所持一覧だけ `TabBar`）→ `Main`（余白 32・間隔 24、残りの高さを全部使う）。中身は `Main` に置く（3.2）
-4. **レベルのボタン（+1／+5／最大）は行の Prefab にしない**。数が 3 つで固定なので、`SupportDetailPage` に `UtaButton` を 3 つ置き、ラベルを 32pt に下げる（「+1 → Lv 43（強化pt 5,140 / G 5,140）」が 1 行に入るように）
+3. **ページの共通の形**: P1 の雛形（ルート + `Body`）の `Body` に縦のレイアウト（余白 0・間隔 0）を付け、上から `Header`（P1 の `Header`。Title・Home には無い）→（所持一覧だけ `TabBar`）→ `Main`（余白 32・間隔 24、残りの高さを全部使う）。中身は `Main` に置く（3.2）
+4. **レベルのボタン（+1／+5／最大）は行の Prefab にしない**。数が 3 つで固定なので、`SupportDetailPage` に `Button` を 3 つ置き、ラベルを 32pt に下げる（「+1 → Lv 43（強化pt 5,140 / G 5,140）」が 1 行に入るように）
 5. **所持一覧の並び・絞り込みのボタンは 2 段**（上段「並び」「昇順/降順」、下段「プラン」「タイプ」）。4 つを 1 段にすると 1 つの幅が約 240px で「タイプ: アシスト」が入らないため。下段を `FilterRow` にまとめ、C# は「プラン・タイプのボタン」を出す・隠すときに `FilterRow` ごと切り替える
 6. **「ありません」（0 件）は一覧の外の文字 `EmptyText`**（Prefab では非表示）。C# は 0 件のとき表示する（旧 owned の「Content の中に置く」から変える。行の Instantiate と混ぜないため）
 7. **生成クラスは 10 個**（`Scripts/Editor/Prefabs/Screens/<機能>/`、名前空間はどのフォルダでも `Uta.Client.Editor.Prefabs.Screens`）と、画面の生成の共通の補助 `ScreenLayout`（同じ名前空間。文字の型と、`Body`・`Main`・横並び・固定高の文字を作る関数）。P1 の `PrefabBuildCommands.BuildAll()` が `TypeCache` で拾うので、登録は要らない。**`ScreenLayout` は P3 も使う**（画面の組み方の補助はこれが正。P3 は重ねて作らず、プロデュースの画面だけに要る関数を P3 の `ProduceLayout` に足す）
@@ -35,7 +35,7 @@ spec: ../wiki/architecture/screen-design.md
 [game-spec.md](../wiki/overview/game-spec.md) の順 7（client/ の画面）のうち、Prefab の 2 本目。Title・Home・ガチャ（ページ・排出率・結果）・所持一覧・サポートカードの詳細の **Prefab と View の骨格**を、P1 の生成の仕組みで作る。方針の正は [screen-design.md](../wiki/architecture/screen-design.md) 7章（7.1 Prefab は Editor のスクリプトで生成、7.2 Addressables、7.4 部品と置き場・命名）と 8章（シーン構成）。並べるものは [screen-wireframes.md](../wiki/overview/screen-wireframes.md) の「共通の方針」「ホーム」「9. ガチャ」「10. アイドル・サポートの一覧と強化」と、C# の計画の `IXxxView`（[foundation](2026-11-03-client-screens-foundation.md) 3.7 の `IHomeView`、[gacha](2026-11-03-client-screens-gacha.md) 3.4 の `IGachaView`・`IGachaRatesView`・`IGachaResultView`、[owned](2026-11-03-client-screens-owned.md) 3.6・3.7 の `IOwnedView`・`ISupportDetailView`）から導く。
 
 - 関係する ADR: [0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・縦画面）、[0006](../wiki/decisions/0006-adopt-unity-7-early.md)（Unity 7）、[0001](../wiki/decisions/0001-ip-policy.md)（文言・名前はオリジナル）
-- **使う P1（[2026-11-07-client-prefabs-common.md](2026-11-07-client-prefabs-common.md)）の型**: `PageBase`・`ModalBase`・`UiTheme`、部品の View（`UtaButtonView`・`UtaHeaderView`・`UtaTabBarView`・`UtaListRowView`）、部品の Prefab（`UtaLabel`・`UtaButton`・`UtaPanel`・`UtaHeader`・`UtaTab`・`UtaTabBar`・`UtaListRow`）、Editor の `PrefabBuildUtil`・`RectSpec`・`LayoutSpec`・`TextSpec`・`UtaButtonStyle`・`IPrefabBuilder`・`PrefabBuildCommands`、テストの `PrefabContract`。名前とシグネチャは P1 の 3.3・3.5・3.6 が正
+- **使う P1（[2026-11-07-client-prefabs-common.md](2026-11-07-client-prefabs-common.md)）の型**: `PageBase`・`ModalBase`・`UiTheme`、部品の View（`ButtonView`・`HeaderView`・`TabBarView`・`ListRowView`）、部品の Prefab（`Label`・`Button`・`Panel`・`Header`・`Tab`・`TabBar`・`ListRow`）、Editor の `PrefabBuildUtil`・`RectSpec`・`LayoutSpec`・`TextSpec`・`ButtonStyle`・`IPrefabBuilder`・`PrefabBuildCommands`、テストの `PrefabContract`。名前とシグネチャは P1 の 3.3・3.5・3.6 が正
 - **前提 1**: P1 が done（部品の Prefab 10 個があり、`BuildAll()` が `built 10` を返し、EditMode のテストが通る。テストの回し方は P1 のタスク 5 の手順 2）
 - **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
 - **この計画で決めないこと**: View のメソッド（`Set…`・イベント・`IXxxView` の実装）、Presenter、Args、ユースケース、シーンへの配置・DI（foundation・gacha・owned の C# の計画）。各シーンの `LifetimeScope` からのページの Push（foundation）。編成・プロデュースの画面（P3）。`SceneBuilder.cs` と既存の `TitleView`・`HomeView`（シーンの最小の uGUI。foundation が置き換える。この計画は触らない）
@@ -47,7 +47,7 @@ spec: ../wiki/architecture/screen-design.md
 | View の型（`HomePage` など 7 つと `GachaLineRow`） | 作る。`[SerializeField] private` のフィールドだけ | 同じファイルに `IXxxView` の実装（`Set…`・イベント・`onClick` の購読）を足す。フィールドは足さない・名前を変えない（足りなければこの計画を直す） |
 | Prefab の階層・値 | 全部（3.2） | 変えない |
 | 行の Instantiate・`text` への代入 | しない（`rowPrefab` などの参照を用意するだけ） | `Object.Instantiate(rowPrefab, listContent)` してテキストを入れる |
-| ボタンの `onClick` | Prefab に永続リスナーを張らない | `UtaButtonView` の button を購読する（P1 の方針） |
+| ボタンの `onClick` | Prefab に永続リスナーを張らない | `ButtonView` の button を購読する（P1 の方針） |
 | 文言（Prefab の仮の文字） | 仮の値を入れる（3.2 の表の text） | 実行時に `Set…` で上書きする。固定の文言（見出し・ボタンの名前）は Prefab の値をそのまま使う |
 
 ## 2. 触るファイル
@@ -97,35 +97,35 @@ namespace Uta.Client.Presentation.Home
     {
         [SerializeField] private TMP_Text profileText;
         [SerializeField] private GameObject resumePanel;
-        [SerializeField] private UtaButtonView resumeButton;
-        [SerializeField] private UtaButtonView produceButton;
-        [SerializeField] private UtaButtonView gachaButton;
-        [SerializeField] private UtaButtonView ownedButton;
+        [SerializeField] private ButtonView resumeButton;
+        [SerializeField] private ButtonView produceButton;
+        [SerializeField] private ButtonView gachaButton;
+        [SerializeField] private ButtonView ownedButton;
     }
 }
 ```
 
 | 型（ファイル） | 基底 | フィールド（宣言の順。`[SerializeField] private`） |
 |---|---|---|
-| `Uta.Client.Presentation.Title.TitlePage`（`Title/TitlePage.cs`） | `PageBase` | `TMP_Text statusText`、`UtaButtonView startButton` |
+| `Uta.Client.Presentation.Title.TitlePage`（`Title/TitlePage.cs`） | `PageBase` | `TMP_Text statusText`、`ButtonView startButton` |
 | `Uta.Client.Presentation.Home.HomePage`（`Home/HomePage.cs`） | `PageBase` | 上の例のとおり |
-| `Uta.Client.Presentation.Gacha.GachaPage`（`Gacha/GachaPage.cs`） | `PageBase` | `UtaHeaderView header`、`TMP_Text currencyText`、`TMP_Text lineupText`、`TMP_Text exchangeText`、`UtaButtonView ratesButton`、`UtaButtonView singleButton`、`UtaButtonView tenButton` |
-| `Uta.Client.Presentation.Gacha.GachaRatesModal`（`Gacha/GachaRatesModal.cs`） | `ModalBase` | `RectTransform listContent`、`GachaLineRow headingRowPrefab`、`GachaLineRow lineRowPrefab`、`UtaButtonView closeButton` |
-| `Uta.Client.Presentation.Gacha.GachaResultModal`（`Gacha/GachaResultModal.cs`） | `ModalBase` | `RectTransform listContent`、`GachaLineRow rowPrefab`、`UtaButtonView retryButton`、`UtaButtonView closeButton` |
+| `Uta.Client.Presentation.Gacha.GachaPage`（`Gacha/GachaPage.cs`） | `PageBase` | `HeaderView header`、`TMP_Text currencyText`、`TMP_Text lineupText`、`TMP_Text exchangeText`、`ButtonView ratesButton`、`ButtonView singleButton`、`ButtonView tenButton` |
+| `Uta.Client.Presentation.Gacha.GachaRatesModal`（`Gacha/GachaRatesModal.cs`） | `ModalBase` | `RectTransform listContent`、`GachaLineRow headingRowPrefab`、`GachaLineRow lineRowPrefab`、`ButtonView closeButton` |
+| `Uta.Client.Presentation.Gacha.GachaResultModal`（`Gacha/GachaResultModal.cs`） | `ModalBase` | `RectTransform listContent`、`GachaLineRow rowPrefab`、`ButtonView retryButton`、`ButtonView closeButton` |
 | `Uta.Client.Presentation.Gacha.GachaLineRow`（`Gacha/GachaLineRow.cs`） | `MonoBehaviour` | `TMP_Text text` |
-| `Uta.Client.Presentation.Owned.OwnedPage`（`Owned/OwnedPage.cs`） | `PageBase` | `UtaHeaderView header`、`UtaTabBarView tabBar`、`RectTransform controls`、`RectTransform filterRow`、`UtaButtonView sortButton`、`UtaButtonView orderButton`、`UtaButtonView planButton`、`UtaButtonView typeButton`、`TMP_Text emptyText`、`RectTransform listContent`、`UtaListRowView rowPrefab` |
-| `Uta.Client.Presentation.Owned.SupportDetailPage`（`Owned/SupportDetailPage.cs`） | `PageBase` | `UtaHeaderView header`、`TMP_Text infoText`、`TMP_Text resourcesText`、`UtaButtonView plus1Button`、`UtaButtonView plus5Button`、`UtaButtonView maxButton`、`UtaButtonView limitBreakButton`、`TMP_Text abilitiesText` |
+| `Uta.Client.Presentation.Owned.OwnedPage`（`Owned/OwnedPage.cs`） | `PageBase` | `HeaderView header`、`TabBarView tabBar`、`RectTransform controls`、`RectTransform filterRow`、`ButtonView sortButton`、`ButtonView orderButton`、`ButtonView planButton`、`ButtonView typeButton`、`TMP_Text emptyText`、`RectTransform listContent`、`ListRowView rowPrefab` |
+| `Uta.Client.Presentation.Owned.SupportDetailPage`（`Owned/SupportDetailPage.cs`） | `PageBase` | `HeaderView header`、`TMP_Text infoText`、`TMP_Text resourcesText`、`ButtonView plus1Button`、`ButtonView plus5Button`、`ButtonView maxButton`、`ButtonView limitBreakButton`、`TMP_Text abilitiesText` |
 
 - `GachaLineRow` は `public sealed class`。`[DisallowMultipleComponent]` を付ける
 - `headingRowPrefab`・`lineRowPrefab`・`rowPrefab` は**アセットの参照**（`Assets/Prefabs/Parts/` の行の Prefab のルートのコンポーネント）。ほかは Prefab の中の子の参照
-- `OwnedPage.rowPrefab` の型は P1 の `UtaListRowView`（行の Prefab は `Parts/UtaListRow.prefab`）
+- `OwnedPage.rowPrefab` の型は P1 の `ListRowView`（行の Prefab は `Parts/ListRow.prefab`）
 - `Uta.Client.Presentation.Title` には既存の `TitleView`・`TitlePresenter`・`TitleLifetimeScope`（シーンの最小の uGUI）がある。この計画では触らない（名前は衝突しない）。`Home` の `HomeView`・`HomePresenter` も同じ
 
 ### 3.2 Prefab の階層
 
 #### 共通の書き方
 
-- P1 の 3.4 の書き方（「全面」「上帯 h」「中央 w×h」「レイアウト任せ」、TMP の共通の値、Image・Button の共通の値、VLG／HLG の「制御 W/H」「伸ばす W/H」、LE、「→ 部品」のネスト）に従う。部品の値（`UtaButton` の高さ 130 など）は P1 の表のとおりで、ここでは変える値だけを書く
+- P1 の 3.4 の書き方（「全面」「上帯 h」「中央 w×h」「レイアウト任せ」、TMP の共通の値、Image・Button の共通の値、VLG／HLG の「制御 W/H」「伸ばす W/H」、LE、「→ 部品」のネスト）に従う。部品の値（`Button` の高さ 130 など）は P1 の表のとおりで、ここでは変える値だけを書く
 - 文字の型は 3.4 の `ScreenLayout` の名前（`Line`・`Block` など）で書く。高さを「LE 70」と書いたものは `minHeight = preferredHeight = 70`（作り方は 3.5 の冒頭の 3 行）
 - ページのルートと `Body` は P1 の `CreatePage`、モーダルのルートと `Panel` は `CreateModal` が作る（P1 の 3.4「ページ・モーダルの雛形」。ルート: 全面・Image `Background`・View、`Body`: 全面 + `SafeAreaFitter`。モーダル: ルート全面・Image なし、`Panel`: 中央 900×0・Image `Panel`・VLG 余白 40／間隔 24・`ContentSizeFitter`）
 - 以下の表で `Body` と `Panel` の行は、P1 が作ったものに**足す**値だけを書く
@@ -137,7 +137,7 @@ namespace Uta.Client.Presentation.Home
 | 階層 | コンポーネントと値 | 出どころ |
 |---|---|---|
 | `Body` | VLG（`ScreenLayout.BodyLayout`）: padding 0、spacing 0、childAlignment `UpperCenter`、制御 W/H true/true、伸ばす W/H true/false | [P2] |
-| ├ `Header` | → `UtaHeader`（P1。LE 150。`TitleText` の text を画面ごとに変える） | WF 9・10 の「＜ 見出し」 |
+| ├ `Header` | → `Header`（P1。LE 150。`TitleText` の text を画面ごとに変える） | WF 9・10 の「＜ 見出し」 |
 | └ `Main` | RectTransform（レイアウト任せ）。VLG（`LayoutSpec.Column`）: padding 32、spacing 24、`UpperCenter`、制御 W/H true/true、伸ばす W/H true/false。LE flexibleHeight 1 | P1 `LayoutSpec.Column` |
 
 `Main` の中の幅は、基準解像度で 1080 − 32 × 2 = 1016（Safe Area が狭い端末ではそれより狭い）。
@@ -150,10 +150,10 @@ namespace Uta.Client.Presentation.Home
 | └ `Body` | ページの共通の形（`Header` なし） | [P2] |
 | 　└ `Main` | ページの共通の形。ただし childAlignment は `MiddleCenter` | [P2] |
 | 　　├ `TopSpacer` | RectTransform（レイアウト任せ）。LE flexibleHeight 1（`ScreenLayout.AddFlexibleSpacer(main, "TopSpacer")`） | [P2] |
-| 　　├ `TitleText` | → `UtaLabel`。`Title`（56・`Text`・`Center`・折り返さない・省略）、text "Uta"。LE 120（`ScreenLayout.AddLabel(main, "TitleText", "Uta", ScreenLayout.Title, 120f)`） | 決めたこと 13 |
+| 　　├ `TitleText` | → `Label`。`Title`（56・`Text`・`Center`・折り返さない・省略）、text "Uta"。LE 120（`ScreenLayout.AddLabel(main, "TitleText", "Uta", ScreenLayout.Title, 120f)`） | 決めたこと 13 |
 | 　　├ `MiddleSpacer` | RectTransform（レイアウト任せ）。LE flexibleHeight 1（`AddFlexibleSpacer`） | [P2] |
-| 　　├ `StatusText` | → `UtaLabel`。`BlockCenter`（40・`Text`・`Center`・折り返す・省略）、text "タップしてスタート"。LE 160（3 行まで。`AddLabel(…, ScreenLayout.BlockCenter, 160f)`） | screen-design 8章（Title の状態の表示） |
-| 　　├ `StartButton` | → `UtaButton`（`Primary`）。Label "スタート" | screen-design 8章「スタートをタップ」 |
+| 　　├ `StatusText` | → `Label`。`BlockCenter`（40・`Text`・`Center`・折り返す・省略）、text "タップしてスタート"。LE 160（3 行まで。`AddLabel(…, ScreenLayout.BlockCenter, 160f)`） | screen-design 8章（Title の状態の表示） |
+| 　　├ `StartButton` | → `Button`（`Primary`）。Label "スタート" | screen-design 8章「スタートをタップ」 |
 | 　　└ `BottomSpacer` | RectTransform（レイアウト任せ）。LE 120（`ScreenLayout.AddFixedSpacer(main, "BottomSpacer", 120f)`） | [P2] |
 
 #### HomePage（`Prefabs/Screens/Home/HomePage.prefab`）
@@ -163,15 +163,15 @@ namespace Uta.Client.Presentation.Home
 | `HomePage` | 雛形のルート。View `HomePage` | P1 |
 | └ `Body` | ページの共通の形（`Header` なし） | [P2] |
 | 　└ `Main` | ページの共通の形 | [P2] |
-| 　　├ `ProfileText` | → `UtaLabel`。`Line`（40・`Text`・`MidlineLeft`・折り返さない・省略）、text "プレイヤーLv -　ガチャ通貨 -"。LE 80（`ScreenLayout.AddLabel(main, "ProfileText", "プレイヤーLv -　ガチャ通貨 -", ScreenLayout.Line, 80f)`） | WF ホーム上段、F 3.7 の 1 |
+| 　　├ `ProfileText` | → `Label`。`Line`（40・`Text`・`MidlineLeft`・折り返さない・省略）、text "プレイヤーLv -　ガチャ通貨 -"。LE 80（`ScreenLayout.AddLabel(main, "ProfileText", "プレイヤーLv -　ガチャ通貨 -", ScreenLayout.Line, 80f)`） | WF ホーム上段、F 3.7 の 1 |
 | 　　├ `Spacer` | RectTransform（レイアウト任せ）。LE flexibleHeight 1（`AddFlexibleSpacer(main, "Spacer")`。叩き台のキャラ表示の場所。MVP は空） | WF ホーム、F 3.7 の 2 |
-| 　　├ `ResumePanel` | → `UtaPanel`（P1。VLG 余白 32・間隔 24）。LE 288（32 + 70 + 24 + 130 + 32。`PrefabBuildUtil.SetLayout(resumePanel.gameObject, minHeight: 288f, preferredHeight: 288f)`）。**アクティブのまま**（C# が `SetResumeVisible` で切り替える） | WF ホーム「プロデュース中」、F 3.7 の 3 |
-| 　　│├ `ResumeText` | → `UtaLabel`。`LineCenter`（40・`Text`・`Center`・折り返さない・省略）、text "プロデュース中"。LE 70（`ScreenLayout.AddLabel(resumePanel, "ResumeText", "プロデュース中", ScreenLayout.LineCenter, 70f)`） | F 3.7 の 3 |
-| 　　│└ `ResumeButton` | → `UtaButton`（`Primary`）。Label "再開" | F 3.7 の 3 |
+| 　　├ `ResumePanel` | → `Panel`（P1。VLG 余白 32・間隔 24）。LE 288（32 + 70 + 24 + 130 + 32。`PrefabBuildUtil.SetLayout(resumePanel.gameObject, minHeight: 288f, preferredHeight: 288f)`）。**アクティブのまま**（C# が `SetResumeVisible` で切り替える） | WF ホーム「プロデュース中」、F 3.7 の 3 |
+| 　　│├ `ResumeText` | → `Label`。`LineCenter`（40・`Text`・`Center`・折り返さない・省略）、text "プロデュース中"。LE 70（`ScreenLayout.AddLabel(resumePanel, "ResumeText", "プロデュース中", ScreenLayout.LineCenter, 70f)`） | F 3.7 の 3 |
+| 　　│└ `ResumeButton` | → `Button`（`Primary`）。Label "再開" | F 3.7 の 3 |
 | 　　└ `Menu` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）: spacing 24、padding 0、`MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE 130（`ScreenLayout.AddRow(main, "Menu", 130f)`） | WF ホーム下段、F 3.7 の 4 |
-| 　　　├ `ProduceButton` | → `UtaButton`（`Primary`）。Label "プロデュース" | F 3.7 の 4 |
-| 　　　├ `GachaButton` | → `UtaButton`（`Primary`）。Label "ガチャ" | F 3.7 の 4 |
-| 　　　└ `OwnedButton` | → `UtaButton`（`Primary`）。Label "アイドル" | F 3.7 の 4 |
+| 　　　├ `ProduceButton` | → `Button`（`Primary`）。Label "プロデュース" | F 3.7 の 4 |
+| 　　　├ `GachaButton` | → `Button`（`Primary`）。Label "ガチャ" | F 3.7 の 4 |
+| 　　　└ `OwnedButton` | → `Button`（`Primary`）。Label "アイドル" | F 3.7 の 4 |
 
 #### GachaPage（`Prefabs/Screens/Gacha/GachaPage.prefab`）
 
@@ -179,15 +179,15 @@ namespace Uta.Client.Presentation.Home
 |---|---|---|
 | `GachaPage` | 雛形のルート。View `GachaPage` | P1 |
 | └ `Body` | ページの共通の形 | [P2] |
-| 　├ `Header` | → `UtaHeader`。`TitleText` の text "ガチャ" | WF 9「＜ ガチャ」、G 1章（ガチャ名は固定の「ガチャ」） |
+| 　├ `Header` | → `Header`。`TitleText` の text "ガチャ" | WF 9「＜ ガチャ」、G 1章（ガチャ名は固定の「ガチャ」） |
 | 　└ `Main` | ページの共通の形 | [P2] |
-| 　　├ `CurrencyText` | → `UtaLabel`。`LineRight`（40・`Text`・`MidlineRight`・折り返さない・省略）、text "ガチャ通貨 -"。LE 70（`ScreenLayout.AddLabel(main, "CurrencyText", "ガチャ通貨 -", ScreenLayout.LineRight, 70f)`） | WF 9 右上「ガチャ通貨 3,250」（ヘッダーの `RightSlot` は幅 200 で入らないので、ヘッダーの下の行にする [P2]） |
-| 　　├ `LineupText` | → `UtaLabel`。`BlockCenter`（40・`Text`・`Center`・折り返す・省略）、text "SSR 育成アイドル: -"。LE minHeight 70・flexibleHeight 1（高さが伸びる文字: `var lineup = ScreenLayout.AddLabel(main, "LineupText", "SSR 育成アイドル: -", ScreenLayout.BlockCenter, 0f);` → `PrefabBuildUtil.SetLayout(lineup.gameObject, minHeight: 70f, flexibleHeight: 1f)`） | WF 9「SSR 育成アイドル: ○○」、G 3.4 `SetLineup` |
-| 　　├ `ExchangeText` | → `UtaLabel`。`LineCenter`（40・`Text`・`Center`・折り返さない・省略）、text "交換pt - / -"。LE 70（`ScreenLayout.AddLabel(main, "ExchangeText", "交換pt - / -", ScreenLayout.LineCenter, 70f)`） | WF 9「交換pt 37 / 200」、G 3.4 `SetExchange` |
-| 　　├ `RatesButton` | → `UtaButton`（`Secondary`）。Label "排出率" | WF 9 [排出率] |
+| 　　├ `CurrencyText` | → `Label`。`LineRight`（40・`Text`・`MidlineRight`・折り返さない・省略）、text "ガチャ通貨 -"。LE 70（`ScreenLayout.AddLabel(main, "CurrencyText", "ガチャ通貨 -", ScreenLayout.LineRight, 70f)`） | WF 9 右上「ガチャ通貨 3,250」（ヘッダーの `RightSlot` は幅 200 で入らないので、ヘッダーの下の行にする [P2]） |
+| 　　├ `LineupText` | → `Label`。`BlockCenter`（40・`Text`・`Center`・折り返す・省略）、text "SSR 育成アイドル: -"。LE minHeight 70・flexibleHeight 1（高さが伸びる文字: `var lineup = ScreenLayout.AddLabel(main, "LineupText", "SSR 育成アイドル: -", ScreenLayout.BlockCenter, 0f);` → `PrefabBuildUtil.SetLayout(lineup.gameObject, minHeight: 70f, flexibleHeight: 1f)`） | WF 9「SSR 育成アイドル: ○○」、G 3.4 `SetLineup` |
+| 　　├ `ExchangeText` | → `Label`。`LineCenter`（40・`Text`・`Center`・折り返さない・省略）、text "交換pt - / -"。LE 70（`ScreenLayout.AddLabel(main, "ExchangeText", "交換pt - / -", ScreenLayout.LineCenter, 70f)`） | WF 9「交換pt 37 / 200」、G 3.4 `SetExchange` |
+| 　　├ `RatesButton` | → `Button`（`Secondary`）。Label "排出率" | WF 9 [排出率] |
 | 　　└ `DrawRow` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）。LE 130（`ScreenLayout.AddRow(main, "DrawRow", 130f)`） | WF 9 最下段 |
-| 　　　├ `SingleButton` | → `UtaButton`（`Primary`）。Label "単発" | WF 9 [単発 250] |
-| 　　　└ `TenButton` | → `UtaButton`（`Primary`）。Label "10連" | WF 9 [10連 2,500] |
+| 　　　├ `SingleButton` | → `Button`（`Primary`）。Label "単発" | WF 9 [単発 250] |
+| 　　　└ `TenButton` | → `Button`（`Primary`）。Label "10連" | WF 9 [10連 2,500] |
 
 #### GachaRatesModal（`Prefabs/Screens/Gacha/GachaRatesModal.prefab`）
 
@@ -195,10 +195,10 @@ namespace Uta.Client.Presentation.Home
 |---|---|---|
 | `GachaRatesModal` | 雛形のルート。View `GachaRatesModal` | P1 |
 | └ `Panel` | 雛形のまま（中央 900 幅・VLG 余白 40・間隔 24・高さは中身） | P1 |
-| 　├ `TitleText` | → `UtaLabel`。`Title`、text "排出率"。LE 90（`ScreenLayout.AddLabel(panel, "TitleText", "排出率", ScreenLayout.Title, 90f)`） | G 3.4 |
+| 　├ `TitleText` | → `Label`。`Title`、text "排出率"。LE 90（`ScreenLayout.AddLabel(panel, "TitleText", "排出率", ScreenLayout.Title, 90f)`） | G 3.4 |
 | 　├ `List` | `PrefabBuildUtil.AddScrollList(panel, "List", out var scroll)`（P1。ScrollRect・`Viewport`・`Content`）→ `PrefabBuildUtil.SetLayout(scroll.gameObject, minHeight: 1200f, preferredHeight: 1200f)`（パネルは `ContentSizeFitter` なので flexible では高さが決まらない） | G 3.4（高さ 1200） |
 | 　│└ `Viewport` / `Content` | P1 の `AddScrollList` のとおり。`Content` に子は置かない（C# が行を Instantiate する） | P1 |
-| 　└ `CloseButton` | → `UtaButton`（`Secondary`）。Label "閉じる" | G 3.4 |
+| 　└ `CloseButton` | → `Button`（`Secondary`）。Label "閉じる" | G 3.4 |
 
 パネルの高さ: 40 + 90 + 24 + 1200 + 24 + 130 + 40 = 1548（基準の高さ 1920 に入る）。
 
@@ -208,11 +208,11 @@ namespace Uta.Client.Presentation.Home
 |---|---|---|
 | `GachaResultModal` | 雛形のルート。View `GachaResultModal` | P1 |
 | └ `Panel` | 雛形のまま | P1 |
-| 　├ `TitleText` | → `UtaLabel`。`Title`、text "結果"。LE 90（`ScreenLayout.AddLabel(panel, "TitleText", "結果", ScreenLayout.Title, 90f)`） | G 3.4 |
+| 　├ `TitleText` | → `Label`。`Title`、text "結果"。LE 90（`ScreenLayout.AddLabel(panel, "TitleText", "結果", ScreenLayout.Title, 90f)`） | G 3.4 |
 | 　├ `List` | `AddScrollList(panel, "List", out var scroll)` → `SetLayout(scroll.gameObject, minHeight: 1100f, preferredHeight: 1100f)`（10 行 × 96 + 間隔 24 × 9 = 1176 に近い高さ。はみ出す分はスクロール） | G 3.4（旧 900 から [P2] で変更: 行を 2 段にしたため） |
 | 　└ `ButtonRow` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）。LE 130（`ScreenLayout.AddRow(panel, "ButtonRow", 130f)`） | WF 9 結果の最下段 |
-| 　　├ `RetryButton` | → `UtaButton`（`Primary`）。Label "もう一度" | WF 9 [もう一度] |
-| 　　└ `CloseButton` | → `UtaButton`（`Secondary`）。Label "閉じる" | WF 9 [閉じる] |
+| 　　├ `RetryButton` | → `Button`（`Primary`）。Label "もう一度" | WF 9 [もう一度] |
+| 　　└ `CloseButton` | → `Button`（`Secondary`）。Label "閉じる" | WF 9 [閉じる] |
 
 #### 行の Prefab（`Prefabs/Parts/`。ガチャ）
 
@@ -230,20 +230,20 @@ namespace Uta.Client.Presentation.Home
 |---|---|---|
 | `OwnedPage` | 雛形のルート。View `OwnedPage` | P1 |
 | └ `Body` | ページの共通の形（`Header` と `Main` の間に `TabBar`） | [P2] |
-| 　├ `Header` | → `UtaHeader`。`TitleText` の text "所持一覧" | O 3.6 見出し |
+| 　├ `Header` | → `Header`。`TitleText` の text "所持一覧" | O 3.6 見出し |
 | 　├ `TabBar` | `PrefabBuildUtil.AddTabBar(body, "TabBar", new[] { "TabIdols", "TabSupport" }, new[] { "育成アイドル", "サポート" })`（P1。LE 110。`tabs` = [`TabIdols`, `TabSupport`]） | WF 10「[育成アイドル] [サポート]」、O 3.6 |
 | 　└ `Main` | ページの共通の形 | [P2] |
 | 　　├ `Controls` | RectTransform（レイアウト任せ）。VLG: padding 0、spacing 16、`UpperCenter`、制御 W/H true/true、伸ばす W/H true/false | WF 10「並び: [レア▼] 絞り込み: [プラン▼]」、決めたこと 5 |
 | 　　│├ `SortRow` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）。LE 130（`ScreenLayout.AddRow(controls, "SortRow", 130f)`） | [P2] |
-| 　　││├ `SortButton` | → `UtaButton`（`Secondary`）。Label "並び: レア度" | O 3.6 `sortLabel` |
-| 　　││└ `OrderButton` | → `UtaButton`（`Secondary`）。Label "降順" | O 3.6 `orderLabel` |
+| 　　││├ `SortButton` | → `Button`（`Secondary`）。Label "並び: レア度" | O 3.6 `sortLabel` |
+| 　　││└ `OrderButton` | → `Button`（`Secondary`）。Label "降順" | O 3.6 `orderLabel` |
 | 　　│└ `FilterRow` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）。LE 130（`ScreenLayout.AddRow(controls, "FilterRow", 130f)`） | [P2] |
-| 　　│　├ `PlanButton` | → `UtaButton`（`Secondary`）。Label "プラン: 全て" | O 3.6 `planLabel` |
-| 　　│　└ `TypeButton` | → `UtaButton`（`Secondary`）。Label "タイプ: 全て" | O 3.6 `typeLabel` |
-| 　　├ `EmptyText` | → `UtaLabel`。`LineCenter`、text "ありません"。LE 80（`ScreenLayout.AddLabel(main, "EmptyText", "ありません", ScreenLayout.LineCenter, 80f)`）。**GameObject を非アクティブ**（`SetActive(false)`） | O 3.6（0 件）、決めたこと 6 |
+| 　　│　├ `PlanButton` | → `Button`（`Secondary`）。Label "プラン: 全て" | O 3.6 `planLabel` |
+| 　　│　└ `TypeButton` | → `Button`（`Secondary`）。Label "タイプ: 全て" | O 3.6 `typeLabel` |
+| 　　├ `EmptyText` | → `Label`。`LineCenter`、text "ありません"。LE 80（`ScreenLayout.AddLabel(main, "EmptyText", "ありません", ScreenLayout.LineCenter, 80f)`）。**GameObject を非アクティブ**（`SetActive(false)`） | O 3.6（0 件）、決めたこと 6 |
 | 　　└ `List` | `AddScrollList(main, "List", out _)`（P1。LE flexibleHeight 1 は `AddScrollList` が付ける）。`Content` に子は置かない（C# が `rowPrefab` を Instantiate する） | O 3.6 |
 
-行は P1 の `UtaListRow`（高さ 160。`TitleText` = 名前 + レア度、`SubText` = 補足、`RightText` = 使わない（C# が空にする））。選べない行は C# が `button.interactable = false` にする（P1 の Button の ColorTint の disabled で暗くなる）。
+行は P1 の `ListRow`（高さ 160。`TitleText` = 名前 + レア度、`SubText` = 補足、`RightText` = 使わない（C# が空にする））。選べない行は C# が `button.interactable = false` にする（P1 の Button の ColorTint の disabled で暗くなる）。
 
 `Controls` の高さ: 130 + 16 + 130 = 276。`EmptyText`（非表示）を除き、`List` は残り全部（基準で 1920 − 150 − 110 − 32 − 276 − 24 − 32 ≈ 1296）。
 
@@ -253,16 +253,16 @@ namespace Uta.Client.Presentation.Home
 |---|---|---|
 | `SupportDetailPage` | 雛形のルート。View `SupportDetailPage` | P1 |
 | └ `Body` | ページの共通の形 | [P2] |
-| 　├ `Header` | → `UtaHeader`。`TitleText` の text "サポートカード" | O 3.7 |
+| 　├ `Header` | → `Header`。`TitleText` の text "サポートカード" | O 3.7 |
 | 　└ `Main` | ページの共通の形 | [P2] |
-| 　　├ `InfoText` | → `UtaLabel`。`Block`（40・`Text`・`TopLeft`・折り返す・省略しない）、text "名前\nSSR　歌唱　共通\nLv 1 / 20\n上限解放 0 / 4"（`\n` は改行の文字）。LE 240（4 行。`ScreenLayout.AddLabel(main, "InfoText", …, ScreenLayout.Block, 240f)`） | WF 10 サポート詳細の上段、O 3.7 `SetInfo`（4 行） |
-| 　　├ `ResourcesText` | → `UtaLabel`。`Line`、text "強化pt -　ゴールド -"。LE 70（`AddLabel(…, ScreenLayout.Line, 70f)`） | WF 10「強化pt 5,140 / G 5,140」、O 3.7 `SetResources` |
-| 　　├ `Plus1Button` | → `UtaButton`（`Primary`）。Label の文字の型を `SmallButton`（32・`Text`・`Center`・折り返さない・省略）に、text "+1" | WF 10 [+1]、決めたこと 4 |
+| 　　├ `InfoText` | → `Label`。`Block`（40・`Text`・`TopLeft`・折り返す・省略しない）、text "名前\nSSR　歌唱　共通\nLv 1 / 20\n上限解放 0 / 4"（`\n` は改行の文字）。LE 240（4 行。`ScreenLayout.AddLabel(main, "InfoText", …, ScreenLayout.Block, 240f)`） | WF 10 サポート詳細の上段、O 3.7 `SetInfo`（4 行） |
+| 　　├ `ResourcesText` | → `Label`。`Line`、text "強化pt -　ゴールド -"。LE 70（`AddLabel(…, ScreenLayout.Line, 70f)`） | WF 10「強化pt 5,140 / G 5,140」、O 3.7 `SetResources` |
+| 　　├ `Plus1Button` | → `Button`（`Primary`）。Label の文字の型を `SmallButton`（32・`Text`・`Center`・折り返さない・省略）に、text "+1" | WF 10 [+1]、決めたこと 4 |
 | 　　├ `Plus5Button` | 同上。text "+5" | WF 10 [+5] |
 | 　　├ `MaxButton` | 同上。text "最大" | WF 10 [最大] |
-| 　　├ `LimitBreakButton` | → `UtaButton`（`Primary`）。Label "上限解放（素材を選ぶ）"（40 のまま） | WF 10「上限解放 [素材を選ぶ]」、O 3.7 `SetLimitBreak` |
-| 　　├ `AbilityHeaderText` | → `UtaLabel`。`Heading`、text "アビリティ"。LE 70（`AddLabel(…, ScreenLayout.Heading, 70f)`。フィールドなし。固定の見出し） | WF 10「アビリティ」、O 3.7 の 6 |
-| 　　└ `AbilitiesText` | → `UtaLabel`。`SmallBlock`、text "1 初期歌唱 +0"。LE minHeight 100・flexibleHeight 1（高さが伸びる文字: `var abilities = ScreenLayout.AddLabel(main, "AbilitiesText", "1 初期歌唱 +0", ScreenLayout.SmallBlock, 0f);` → `PrefabBuildUtil.SetLayout(abilities.gameObject, minHeight: 100f, flexibleHeight: 1f)`） | WF 10「1 初期歌唱 +49」、O 3.7 `SetAbilities` |
+| 　　├ `LimitBreakButton` | → `Button`（`Primary`）。Label "上限解放（素材を選ぶ）"（40 のまま） | WF 10「上限解放 [素材を選ぶ]」、O 3.7 `SetLimitBreak` |
+| 　　├ `AbilityHeaderText` | → `Label`。`Heading`、text "アビリティ"。LE 70（`AddLabel(…, ScreenLayout.Heading, 70f)`。フィールドなし。固定の見出し） | WF 10「アビリティ」、O 3.7 の 6 |
+| 　　└ `AbilitiesText` | → `Label`。`SmallBlock`、text "1 初期歌唱 +0"。LE minHeight 100・flexibleHeight 1（高さが伸びる文字: `var abilities = ScreenLayout.AddLabel(main, "AbilitiesText", "1 初期歌唱 +0", ScreenLayout.SmallBlock, 0f);` → `PrefabBuildUtil.SetLayout(abilities.gameObject, minHeight: 100f, flexibleHeight: 1f)`） | WF 10「1 初期歌唱 +49」、O 3.7 `SetAbilities` |
 
 高さ: 150 + 32 + 240 + 70 + 130 × 4 + 70 + 100 + 24 × 7 + 32 = 1382（残りは `AbilitiesText` が使う）。
 
@@ -273,38 +273,38 @@ namespace Uta.Client.Presentation.Home
 | 画面 | ワイヤー／仕様の値 | Prefab の部品（子のパス） | View のフィールド（型） | 使う `IXxxView` のメンバー（C# の計画） |
 |---|---|---|---|---|
 | Title | 状態の文（起動中・失敗・再試行） | `Body/Main/StatusText` | `statusText`（`TMP_Text`） | `SetStatus`（foundation 3.7） |
-| Title | スタート | `Body/Main/StartButton` | `startButton`（`UtaButtonView`） | `StartClicked`・`SetStartInteractable`（foundation 3.7） |
+| Title | スタート | `Body/Main/StartButton` | `startButton`（`ButtonView`） | `StartClicked`・`SetStartInteractable`（foundation 3.7） |
 | Home | プレイヤーLv・ガチャ通貨 | `Body/Main/ProfileText` | `profileText`（`TMP_Text`） | `SetProfile` |
 | Home | プロデュース中の枠 | `Body/Main/ResumePanel` | `resumePanel`（`GameObject`） | `SetResumeVisible` |
-| Home | 再開 | `Body/Main/ResumePanel/ResumeButton` | `resumeButton`（`UtaButtonView`） | `ResumeClicked` |
-| Home | プロデュース・ガチャ・アイドル | `Body/Main/Menu/ProduceButton`・`GachaButton`・`OwnedButton` | `produceButton`・`gachaButton`・`ownedButton`（`UtaButtonView`） | `ProduceClicked`・`GachaClicked`・`OwnedClicked` |
-| Gacha | ＜（戻る）・見出し | `Body/Header` | `header`（`UtaHeaderView`。戻るは `header` の `backButton`） | `BackClicked` |
+| Home | 再開 | `Body/Main/ResumePanel/ResumeButton` | `resumeButton`（`ButtonView`） | `ResumeClicked` |
+| Home | プロデュース・ガチャ・アイドル | `Body/Main/Menu/ProduceButton`・`GachaButton`・`OwnedButton` | `produceButton`・`gachaButton`・`ownedButton`（`ButtonView`） | `ProduceClicked`・`GachaClicked`・`OwnedClicked` |
+| Gacha | ＜（戻る）・見出し | `Body/Header` | `header`（`HeaderView`。戻るは `header` の `backButton`） | `BackClicked` |
 | Gacha | ガチャ通貨 | `Body/Main/CurrencyText` | `currencyText`（`TMP_Text`） | `SetCurrency` |
 | Gacha | SSR の顔ぶれ | `Body/Main/LineupText` | `lineupText`（`TMP_Text`） | `SetLineup` |
 | Gacha | 交換pt | `Body/Main/ExchangeText` | `exchangeText`（`TMP_Text`） | `SetExchange` |
-| Gacha | 排出率 | `Body/Main/RatesButton` | `ratesButton`（`UtaButtonView`） | `RatesClicked` |
-| Gacha | 単発・10連 | `Body/Main/DrawRow/SingleButton`・`TenButton` | `singleButton`・`tenButton`（`UtaButtonView`） | `SingleClicked`・`TenClicked`・`SetCosts` |
+| Gacha | 排出率 | `Body/Main/RatesButton` | `ratesButton`（`ButtonView`） | `RatesClicked` |
+| Gacha | 単発・10連 | `Body/Main/DrawRow/SingleButton`・`TenButton` | `singleButton`・`tenButton`（`ButtonView`） | `SingleClicked`・`TenClicked`・`SetCosts` |
 | GachaRates | 排出率の一覧 | `Panel/List/Viewport/Content` | `listContent`（`RectTransform`） | `SetLines` |
 | GachaRates | 見出しの行・行 | アセット `GachaRateHeadingRow`・`GachaRateRow` | `headingRowPrefab`・`lineRowPrefab`（`GachaLineRow`） | `SetLines`（`IsHeading` で選ぶ） |
-| GachaRates | 閉じる | `Panel/CloseButton` | `closeButton`（`UtaButtonView`） | `CloseClicked` |
+| GachaRates | 閉じる | `Panel/CloseButton` | `closeButton`（`ButtonView`） | `CloseClicked` |
 | GachaResult | 結果の一覧 | `Panel/List/Viewport/Content` | `listContent`（`RectTransform`） | `SetLines` |
 | GachaResult | 1 枠の行 | アセット `GachaResultRow` | `rowPrefab`（`GachaLineRow`） | `SetLines` |
-| GachaResult | もう一度・閉じる | `Panel/ButtonRow/RetryButton`・`CloseButton` | `retryButton`・`closeButton`（`UtaButtonView`） | `RetryClicked`・`CloseClicked` |
+| GachaResult | もう一度・閉じる | `Panel/ButtonRow/RetryButton`・`CloseButton` | `retryButton`・`closeButton`（`ButtonView`） | `RetryClicked`・`CloseClicked` |
 | 行（ガチャ） | 1 行の文字 | ルート自身 | `GachaLineRow.text`（`TMP_Text`） | — |
-| Owned | ＜・見出し（モードで変わる） | `Body/Header` | `header`（`UtaHeaderView`） | `BackClicked`・`SetTitle` |
-| Owned | タブ | `Body/TabBar`（`tabs[0]` = `TabIdols`、`tabs[1]` = `TabSupport`） | `tabBar`（`UtaTabBarView`） | `SetTabs`・`TabSelected` |
+| Owned | ＜・見出し（モードで変わる） | `Body/Header` | `header`（`HeaderView`） | `BackClicked`・`SetTitle` |
+| Owned | タブ | `Body/TabBar`（`tabs[0]` = `TabIdols`、`tabs[1]` = `TabSupport`） | `tabBar`（`TabBarView`） | `SetTabs`・`TabSelected` |
 | Owned | 並び・絞り込みの行 | `Body/Main/Controls` | `controls`（`RectTransform`） | `SetControls(visible, …)` |
 | Owned | プラン・タイプの段 | `Body/Main/Controls/FilterRow` | `filterRow`（`RectTransform`） | `SetControls(…, filtersVisible)` |
-| Owned | 並び・昇順/降順 | `Body/Main/Controls/SortRow/SortButton`・`OrderButton` | `sortButton`・`orderButton`（`UtaButtonView`） | `SortKeyClicked`・`SortOrderClicked`・`SetControls` のラベル |
-| Owned | プラン・タイプ | `Body/Main/Controls/FilterRow/PlanButton`・`TypeButton` | `planButton`・`typeButton`（`UtaButtonView`） | `PlanFilterClicked`・`TypeFilterClicked`・`SetControls` のラベル |
+| Owned | 並び・昇順/降順 | `Body/Main/Controls/SortRow/SortButton`・`OrderButton` | `sortButton`・`orderButton`（`ButtonView`） | `SortKeyClicked`・`SortOrderClicked`・`SetControls` のラベル |
+| Owned | プラン・タイプ | `Body/Main/Controls/FilterRow/PlanButton`・`TypeButton` | `planButton`・`typeButton`（`ButtonView`） | `PlanFilterClicked`・`TypeFilterClicked`・`SetControls` のラベル |
 | Owned | 0 件 | `Body/Main/EmptyText` | `emptyText`（`TMP_Text`） | `SetRows`（0 件で表示） |
 | Owned | 一覧 | `Body/Main/List/Viewport/Content` | `listContent`（`RectTransform`） | `SetRows`・`RowClicked` |
-| Owned | 行 | アセット `UtaListRow`（P1） | `rowPrefab`（`UtaListRowView`） | `SetRows` |
-| SupportDetail | ＜・見出し | `Body/Header` | `header`（`UtaHeaderView`） | `BackClicked` |
+| Owned | 行 | アセット `ListRow`（P1） | `rowPrefab`（`ListRowView`） | `SetRows` |
+| SupportDetail | ＜・見出し | `Body/Header` | `header`（`HeaderView`） | `BackClicked` |
 | SupportDetail | 名前・レア度・Lv・上限解放 | `Body/Main/InfoText` | `infoText`（`TMP_Text`） | `SetInfo`（行を `"\n"` でつなぐ） |
 | SupportDetail | 強化pt・ゴールド | `Body/Main/ResourcesText` | `resourcesText`（`TMP_Text`） | `SetResources` |
-| SupportDetail | +1・+5・最大 | `Body/Main/Plus1Button`・`Plus5Button`・`MaxButton` | `plus1Button`・`plus5Button`・`maxButton`（`UtaButtonView`） | `SetLevelButtons`・`Plus1Clicked`・`Plus5Clicked`・`MaxClicked` |
-| SupportDetail | 上限解放 | `Body/Main/LimitBreakButton` | `limitBreakButton`（`UtaButtonView`） | `SetLimitBreak`・`LimitBreakClicked` |
+| SupportDetail | +1・+5・最大 | `Body/Main/Plus1Button`・`Plus5Button`・`MaxButton` | `plus1Button`・`plus5Button`・`maxButton`（`ButtonView`） | `SetLevelButtons`・`Plus1Clicked`・`Plus5Clicked`・`MaxClicked` |
+| SupportDetail | 上限解放 | `Body/Main/LimitBreakButton` | `limitBreakButton`（`ButtonView`） | `SetLimitBreak`・`LimitBreakClicked` |
 | SupportDetail | アビリティ | `Body/Main/AbilitiesText` | `abilitiesText`（`TMP_Text`） | `SetAbilities`（行を `"\n"` でつなぐ） |
 
 フィールド名の例外（子の名前の先頭を小文字にした形でないもの）: `header`（子 `Header` はそのまま）、`tabBar`（`TabBar`）、`listContent`（子 `Content`。一覧の入れ物と分かる名前にする）、`resumePanel`・`controls`・`filterRow`（そのまま）。行の Prefab の参照は `rowPrefab`／`headingRowPrefab`／`lineRowPrefab`。
@@ -356,7 +356,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
         public static TextMeshProUGUI AddLabel(Transform parent, string name, string text, TextSpec spec, float height);
 
         /// <summary>button の子 "Label" の TMP（無ければ InvalidOperationException("Label not found: " + button.name)）に ApplyText(spec) し、text を入れる。MarkModified。</summary>
-        public static void SetButtonLabel(UtaButtonView button, string text, TextSpec spec);
+        public static void SetButtonLabel(ButtonView button, string text, TextSpec spec);
 
         /// <summary>AssetDatabase.LoadAssetAtPath&lt;GameObject&gt;(PrefabBuildUtil.PartPath(partName)) のルートの GetComponent&lt;T&gt;()。Prefab か T が無ければ InvalidOperationException("part not found: " + partName)。</summary>
         public static T LoadPart<T>(string partName) where T : Component;
@@ -474,7 +474,7 @@ public void Build()
     ScreenLayout.AddLabel(panel, "TitleText", "排出率", ScreenLayout.Title, 90f);
     var content = PrefabBuildUtil.AddScrollList(panel, "List", out var scroll);
     PrefabBuildUtil.SetLayout(scroll.gameObject, minHeight: 1200f, preferredHeight: 1200f);
-    var close = PrefabBuildUtil.AddButtonPart(panel, "CloseButton", "閉じる", UtaButtonStyle.Secondary);
+    var close = PrefabBuildUtil.AddButtonPart(panel, "CloseButton", "閉じる", ButtonStyle.Secondary);
 
     PrefabBuildUtil.SetRef(modal, "listContent", content);
     PrefabBuildUtil.SetRef(modal, "headingRowPrefab", ScreenLayout.LoadPart<GachaLineRow>("GachaRateHeadingRow"));
@@ -495,7 +495,7 @@ public void Build()
     PrefabBuildUtil.SetLayout(scroll.gameObject, minHeight: 1100f, preferredHeight: 1100f);
     var buttonRow = ScreenLayout.AddRow(panel, "ButtonRow", UiTheme.ButtonHeight);
     var retry = PrefabBuildUtil.AddButtonPart(buttonRow, "RetryButton", "もう一度");
-    var close = PrefabBuildUtil.AddButtonPart(buttonRow, "CloseButton", "閉じる", UtaButtonStyle.Secondary);
+    var close = PrefabBuildUtil.AddButtonPart(buttonRow, "CloseButton", "閉じる", ButtonStyle.Secondary);
 
     PrefabBuildUtil.SetRef(modal, "listContent", content);
     PrefabBuildUtil.SetRef(modal, "rowPrefab", ScreenLayout.LoadPart<GachaLineRow>("GachaResultRow"));
@@ -521,11 +521,11 @@ public void Build()
     var controls = PrefabBuildUtil.AddChild(main, "Controls");
     PrefabBuildUtil.AddVertical(controls.gameObject, new LayoutSpec(16f, 0, 0, 0, 0, TextAnchor.UpperCenter, true, true, true, false));
     var sortRow = ScreenLayout.AddRow(controls, "SortRow", 130f);
-    var sort = PrefabBuildUtil.AddButtonPart(sortRow, "SortButton", "並び: レア度", UtaButtonStyle.Secondary);
-    var order = PrefabBuildUtil.AddButtonPart(sortRow, "OrderButton", "降順", UtaButtonStyle.Secondary);
+    var sort = PrefabBuildUtil.AddButtonPart(sortRow, "SortButton", "並び: レア度", ButtonStyle.Secondary);
+    var order = PrefabBuildUtil.AddButtonPart(sortRow, "OrderButton", "降順", ButtonStyle.Secondary);
     var filterRow = ScreenLayout.AddRow(controls, "FilterRow", 130f);
-    var plan = PrefabBuildUtil.AddButtonPart(filterRow, "PlanButton", "プラン: 全て", UtaButtonStyle.Secondary);
-    var type = PrefabBuildUtil.AddButtonPart(filterRow, "TypeButton", "タイプ: 全て", UtaButtonStyle.Secondary);
+    var plan = PrefabBuildUtil.AddButtonPart(filterRow, "PlanButton", "プラン: 全て", ButtonStyle.Secondary);
+    var type = PrefabBuildUtil.AddButtonPart(filterRow, "TypeButton", "タイプ: 全て", ButtonStyle.Secondary);
 
     var empty = ScreenLayout.AddLabel(main, "EmptyText", "ありません", ScreenLayout.LineCenter, 80f);
     empty.gameObject.SetActive(false);
@@ -541,7 +541,7 @@ public void Build()
     PrefabBuildUtil.SetRef(page, "typeButton", type);
     PrefabBuildUtil.SetRef(page, "emptyText", empty);
     PrefabBuildUtil.SetRef(page, "listContent", content);
-    PrefabBuildUtil.SetRef(page, "rowPrefab", ScreenLayout.LoadPart<UtaListRowView>("UtaListRow"));
+    PrefabBuildUtil.SetRef(page, "rowPrefab", ScreenLayout.LoadPart<ListRowView>("ListRow"));
 
     PrefabBuildUtil.SavePrefab(page.gameObject, AssetPath);
     PrefabBuildUtil.RegisterScreen(AssetPath);
@@ -553,7 +553,7 @@ public void Build()
 - ヘッダーのある画面: `var header = PrefabBuildUtil.AddHeader(body, "<見出し>");`（P1。名前は "Header"）を `AddMain` の**前**に呼ぶ（子の順番 = 表の順番）。`OwnedPageBuilder` は `AddHeader` → `AddTabBar` → `AddMain` の順
 - `GachaRatesModalBuilder`・`GachaResultModalBuilder`・`OwnedPageBuilder`: 上の骨格のとおり（行の参照は Order 1000 で先に作られている）
 - `SupportDetailPageBuilder`: レベルの 3 つは `AddButtonPart(main, "Plus1Button", "+1")` のあと `ScreenLayout.SetButtonLabel(button, "+1", ScreenLayout.SmallButton)`（`+5`・`最大` も同じ）
-- `GachaPageBuilder`: `RatesButton` は `UtaButtonStyle.Secondary`
+- `GachaPageBuilder`: `RatesButton` は `ButtonStyle.Secondary`
 - 仮の text の中の「　」は全角の空白（U+3000）
 
 ### 3.6 画面ごとのテスト（EditMode。`Tests/EditMode/`。名前空間 `Uta.Client.Infrastructure.Tests`）
@@ -590,7 +590,7 @@ public static class ScreenPrefabAssert
 | | `GachaRatesModal_FieldsPointToChildrenAndRows` | `listContent` → `Panel/List/Viewport/Content`、`closeButton` → `Panel/CloseButton`、`headingRowPrefab` → `Assets/Prefabs/Parts/GachaRateHeadingRow.prefab`、`lineRowPrefab` → `…/GachaRateRow.prefab` |
 | | `GachaResultModal_FieldsPointToChildrenAndRow` | `listContent`・`retryButton`・`closeButton`、`rowPrefab` → `…/GachaResultRow.prefab` |
 | | `GachaRows_TextIsOwnTmp` | 3 つの行の Prefab のルートに `GachaLineRow` があり、`text` がルート自身の `TMP_Text`（`FieldIsChild(row, "text", "")` ではなく、`objectReferenceValue == row.GetComponent<TMP_Text>()` で見る） |
-| `OwnedPrefabTests.cs` | `OwnedPage_FieldsPointToChildren` | `OwnedPage` の 10 フィールド（`rowPrefab` 以外）と、`rowPrefab` → `Assets/Prefabs/Parts/UtaListRow.prefab` |
+| `OwnedPrefabTests.cs` | `OwnedPage_FieldsPointToChildren` | `OwnedPage` の 10 フィールド（`rowPrefab` 以外）と、`rowPrefab` → `Assets/Prefabs/Parts/ListRow.prefab` |
 | | `OwnedPage_TabsAreIdolsThenSupport` | `tabBar` の `tabs` の要素数が 2、`[0]` の GameObject 名 `TabIdols`、`[1]` が `TabSupport`（`SerializedObject` の `tabs.GetArrayElementAtIndex(i)`） |
 | | `OwnedPage_EmptyTextIsInactive` | `Body/Main/EmptyText` の `activeSelf` が false |
 | | `SupportDetailPage_FieldsPointToChildren` | `SupportDetailPage` の 8 フィールド |
@@ -668,7 +668,7 @@ public static class ScreenPrefabAssert
    ```
    unity command eval 'var path = "Assets/Prefabs/Screens/Home/HomePage.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { var child = root.transform.Find("Body/Main/Menu/GachaButton"); if (child == null) { return "not found"; } child.name = "GachaButton2"; UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); return "renamed"; } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); }'
    ```
-   - `GachaButton` は `UtaButton` の Prefab をネストしたインスタンスなので、名前の変更は `HomePage.prefab` の中のオーバーライド（`m_Name` の property modification）として保存される。`UtaButton.prefab` そのものは変わらない（`git status` で `Parts/UtaButton.prefab` に差分が無いことを見る）
+   - `GachaButton` は `Button` の Prefab をネストしたインスタンスなので、名前の変更は `HomePage.prefab` の中のオーバーライド（`m_Name` の property modification）として保存される。`Button.prefab` そのものは変わらない（`git status` で `Parts/Button.prefab` に差分が無いことを見る）
    - 続けて `unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'`
 3. `client/uta` で `unity close .`
 4. `unity test --mode EditMode --filter HomePrefabTests` が終了コード 8（テストの失敗）で、`test-results.xml` で `HomePage_FieldsPointToChildren` が失敗し、失敗の文に `gachaButton` と `Body/Main/Menu/GachaButton` が入る。**`--filter` はまだ実績が無い**（P1 のタスク 5 で確かめる）。`--filter` が効かない（オプションのエラー、0 件しか走らない、全件が走る）ときは、`--filter` を外して `unity test --mode EditMode` を全件実行し、`test-results.xml` で失敗したテストの名前が `HomePage_FieldsPointToChildren` だけであること（ほかに失敗が無いこと）を見る。どちらで確かめたかを報告に書く
@@ -713,4 +713,4 @@ Editor でしか確かめられないもの（自動のテストにしない）:
 
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- 他の計画への影響は反映済み（2026-11-07）: foundation（C#）は `TitlePage`・`HomePage` の骨格に `ITitleView`・`IHomeView` を実装し、部品の View の表示のメソッド（`UtaButtonView.SetLabel`・`SetInteractable`、`UtaHeaderView.SetTitle` など。foundation 3.2）を足す。gacha・owned（C#）は 3.3 の表のフィールドを使う。P3 は `ScreenLayout` を使う
+- 他の計画への影響は反映済み（2026-11-07）: foundation（C#）は `TitlePage`・`HomePage` の骨格に `ITitleView`・`IHomeView` を実装し、部品の View の表示のメソッド（`ButtonView.SetLabel`・`SetInteractable`、`HeaderView.SetTitle` など。foundation 3.2）を足す。gacha・owned（C#）は 3.3 の表のフィールドを使う。P3 は `ScreenLayout` を使う

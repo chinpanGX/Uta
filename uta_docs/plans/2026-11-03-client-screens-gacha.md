@@ -42,7 +42,7 @@ spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 - Prefab・階層・View のフィールドの正は [P2 の計画](2026-11-07-client-prefabs-screens-a.md) の 3.2（階層）と **3.3（子のパス → View のフィールド → `IXxxView` のメンバー）**
 - 関係する ADR: [0008](../wiki/decisions/0008-shared-domain-and-onion.md)（層。DTO の変換は Infrastructure に閉じる）、[0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・VContainer・UniTask）
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1 → P2 → foundation → **この計画** → owned → P3 → formation → week → lesson
-- **前提 1**: foundation が done。この計画が使うもの: `IScreenNavigator`（基盤。各シーンのスコープ）、`DialogService`・`DialogResult`、`UiObjects`、部品の View のメソッド（`UtaButtonView.Button`・`SetLabel`、`UtaHeaderView.BackButton`）、`IGameMaster`（`GachaInfo`・`GachaEntryInfo`・`IdolInfo`・`SupportCardInfo`・`MasterItemKind`）、`PlayerCache`・`RefreshPlayerUseCase`、`HomePresenter`（3.7）、`BootstrapEntry.RegisterUseCases`、`UtaApiClient.Create`（3.8 で引数が増えた版）、`UtaErrors` の業務エラーの登録（`GachaErrors` の 5 つが `ErrorAction.Stay`）、テスト用の `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`StubPlayerPort`。始める前に `Scripts/Presentation/Common/UiObjects.cs`・`DialogService.cs` と `Tests/EditMode/Fakes/StubPlayerPort.cs` があることを確かめ、無ければ止まって報告する
+- **前提 1**: foundation が done。この計画が使うもの: `IScreenNavigator`（基盤。各シーンのスコープ）、`DialogService`・`DialogResult`、`UiObjects`、部品の View のメソッド（`ButtonView.Button`・`SetLabel`、`HeaderView.BackButton`）、`IGameMaster`（`GachaInfo`・`GachaEntryInfo`・`IdolInfo`・`SupportCardInfo`・`MasterItemKind`）、`PlayerCache`・`RefreshPlayerUseCase`、`HomePresenter`（3.7）、`BootstrapEntry.RegisterUseCases`、`UtaApiClient.Create`（3.8 で引数が増えた版）、`UtaErrors` の業務エラーの登録（`GachaErrors` の 5 つが `ErrorAction.Stay`）、テスト用の `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`StubPlayerPort`。始める前に `Scripts/Presentation/Common/UiObjects.cs`・`DialogService.cs` と `Tests/EditMode/Fakes/StubPlayerPort.cs` があることを確かめ、無ければ止まって報告する
 - **前提 2**: P2 が done で、`Scripts/Presentation/Gacha/` に `GachaPage.cs`・`GachaRatesModal.cs`・`GachaResultModal.cs`・`GachaLineRow.cs`（P2 3.1 のフィールドだけの骨格）、`Assets/Prefabs/Screens/Gacha/` に `GachaPage.prefab`・`GachaRatesModal.prefab`・`GachaResultModal.prefab`（Addressables の `Screens` に、アドレス = ファイル名）、`Assets/Prefabs/Parts/` に `GachaRateHeadingRow.prefab`・`GachaRateRow.prefab`・`GachaResultRow.prefab` があること。始める前に確かめ、フィールドの名前・型が 3.4 の表と違えば止まって報告する（P2 が正。この計画を直してから続ける）
 - **前提 3**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、コンパイル・テスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
 - **後続が使うもの**（この計画で作る）: `PortResult<T>`・`ServerReasons`（Application の共通）と、テスト用の `FakeGameMaster`。3 本目（所持一覧・強化）以降はこれを使うので、**3 本目はこの計画の後に進める**（並行しない）。`ServerReasons` にはこの計画で使う reason だけを置き、ほかの reason はそれを使う計画が足す
@@ -267,18 +267,18 @@ View の形は foundation 3.3.3 のとおり: **`Awake` で各ボタンの `Butt
 
 | View | フィールド（型） | 使うメンバー |
 |---|---|---|
-| `GachaPage` | `header`（`UtaHeaderView`） | `BackClicked`（`header.BackButton.Button`） |
+| `GachaPage` | `header`（`HeaderView`） | `BackClicked`（`header.BackButton.Button`） |
 | | `currencyText`（`TMP_Text`） | `SetCurrency` |
 | | `lineupText`（`TMP_Text`） | `SetLineup` |
 | | `exchangeText`（`TMP_Text`） | `SetExchange` |
-| | `ratesButton`（`UtaButtonView`） | `RatesClicked` |
-| | `singleButton`・`tenButton`（`UtaButtonView`） | `SingleClicked`・`TenClicked`・`SetCosts` |
+| | `ratesButton`（`ButtonView`） | `RatesClicked` |
+| | `singleButton`・`tenButton`（`ButtonView`） | `SingleClicked`・`TenClicked`・`SetCosts` |
 | `GachaRatesModal` | `listContent`（`RectTransform`） | `SetLines` |
 | | `headingRowPrefab`・`lineRowPrefab`（`GachaLineRow`。アセット） | `SetLines` |
-| | `closeButton`（`UtaButtonView`） | `CloseClicked` |
+| | `closeButton`（`ButtonView`） | `CloseClicked` |
 | `GachaResultModal` | `listContent`（`RectTransform`） | `SetLines` |
 | | `rowPrefab`（`GachaLineRow`。アセット） | `SetLines` |
-| | `retryButton`・`closeButton`（`UtaButtonView`） | `RetryClicked`・`CloseClicked` |
+| | `retryButton`・`closeButton`（`ButtonView`） | `RetryClicked`・`CloseClicked` |
 | `GachaLineRow` | `text`（`TMP_Text`） | `SetText` |
 
 ```csharp
