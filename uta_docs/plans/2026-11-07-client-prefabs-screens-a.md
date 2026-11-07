@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 2/3 Title・Home・ガチャ・所持一覧
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
