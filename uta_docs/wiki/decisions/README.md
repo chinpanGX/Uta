@@ -35,3 +35,4 @@ updated: 2026-11-01
 - [0016-reference-game-values.md](0016-reference-game-values.md) — ゲームシステムの数値（カード・週構成・排出率・強化量など）は参考作品の値を使う。ADR 0015 を置き換え（accepted）
 - [0017-spec-design-plan-stages.md](0017-spec-design-plan-stages.md) — ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え（accepted）
 - [0018-change-log-from-git.md](0018-change-log-from-git.md) — 変更の記録は log.md をやめ、git log から取る。ADR 0017 の「log.md に追記する」を置き換え（accepted）
+- [0019-foundation-unity-git-url.md](0019-foundation-unity-git-url.md) — Unity から共通基盤を git URL（コミット固定）で参照する。ADR 0005 のサブモジュールは続ける（accepted）

@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-07
 ---
 
 # リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
@@ -132,8 +132,8 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
   - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`）は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
   - UPM にあるもの（NuGetForUnity・UniTask・VContainer・`MagicOnion.Client.Unity`・`MessagePack.Unity`・YetAnotherHttpHandler）は UPM の git URL で入れ、版はタグで固定する（`manifest.json`）
   - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く（`.meta` の形に注意。unity7-evaluation.md 3.1）
-  - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` はアドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（2026-11-01 に決定。[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md)）
-  - サブモジュール（`external/`）のものは `file:` で参照する。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
+  - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` はアドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて git URL で参照する（2026-11-01 に決定。[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md)）
+  - 共通基盤（`external/` と同じリポジトリ）のパッケージは git URL をコミットで固定して参照する（[ADR 0019](../decisions/0019-foundation-unity-git-url.md)）。具体の版は client/ の実装計画で決める（VolTech-MagicOnion と共通のものは同じ版。2.1）
 
 参照する VolTech-MagicOnion のプロジェクト（[server-foundation.md](server/server-foundation.md)）[決定。2026-10-31。VolTech-MagicOnion の構成に合わせて直した]:
 
@@ -141,7 +141,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 |---|---|
 | `VolTech.Server.Abstractions`（`external/VolTech-MagicOnion/src/VolTech.Server.Abstractions/`） | `Uta.Shared.Contracts` と `Uta.Server` が `ProjectReference` で参照する |
 | `VolTech.Server`（`external/VolTech-MagicOnion/src/VolTech.Server/`） | `Uta.Server` が `ProjectReference` で参照する |
-| Unity パッケージ `com.chinpangx.voltech.magiconion`（`external/VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion/`） | クライアントが `manifest.json` から `file:` で参照する。`Abstractions` のソースの実体と、クライアント（`ApiCore` など）が入っている |
+| Unity パッケージ `com.chinpangx.voltech.magiconion`（`external/VolTech-MagicOnion/Unity/com.chinpangx.voltech.magiconion/`） | クライアントが `manifest.json` から git URL で参照する。`Abstractions` のソースの実体と、クライアント（`ApiCore` など）が入っている |
 
 - VolTech-MagicOnion は「Unity と共有するか」だけで 2 つのプロジェクトに分け、サーバー側の関心ごと（`Auth/`・`Status/`・`Transaction/`・`Logging/`・`Hosting/`）はフォルダで分けている。Uta が参照するのは公開 API だけ（3.1）
 
@@ -150,6 +150,7 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 **目指す形**: Uta の開発を通して共通基盤を整え、リリースして、別のアプリでもそのまま使える構造にする。Uta は共通基盤の最初の利用者で、Uta で要るものを共通基盤に足していく。
 
 - **固定はサブモジュールのポインタ（コミット）で行い、タグを待たない**。開発を速くするため。共通基盤を更新したら、Uta でポインタを上げる（[ADR 0005](../decisions/0005-foundation-submodule.md) の手順）
+- **Unity の `manifest.json` のコミットも一緒に上げる**。サブモジュールのポインタと揃える（[ADR 0019](../decisions/0019-foundation-unity-git-url.md)）。`VolTech-MagicOnion` がずれると、サーバーと Unity の `Abstractions` が食い違う
 - **区切りでリリースする**: 完了条件 0（[game-spec.md](../overview/game-spec.md)。Unity から VolTech-MagicOnion の RPC が通る）が通ったときなど、共通基盤の機能が一区切りしたら、共通基盤側で版を出し（`release` スキル）、ポインタをそのタグのコミットに合わせる。その後もタグは必須にしない
 
 開発のルール（`external/` の 4 つすべてに当てはめる。主な対象は `VolTech-MagicOnion`）:
