@@ -7,8 +7,8 @@
 
   <!-- 共通基盤。版は tools/pack-foundation.sh が書き換える（ADR 0019） -->
   <ItemGroup>
-    <PackageVersion Include="VolTech.Server" Version="0.1.0-gfafc9e7" />
-    <PackageVersion Include="VolTech.Server.Abstractions" Version="0.1.0-gfafc9e7" />
+    <PackageVersion Include="VolTech.Server" Version="0.1.0-g11d9b06" />
+    <PackageVersion Include="VolTech.Server.Abstractions" Version="0.1.0-g11d9b06" />
     <PackageVersion Include="MasterMemory.Addons.Core" Version="0.1.0-g80c7d82" />
   </ItemGroup>
 
