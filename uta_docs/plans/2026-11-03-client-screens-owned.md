@@ -650,7 +650,7 @@ public sealed class SupportDetailPage : PageBase, ISupportDetailView
 
 ## 4. タスク
 
-各タスクの終わりに、`client/uta` で `unity recompile --format json` がコンパイルエラー 0、`unity test --mode EditMode` で既存とそのタスクまでのテストが全部通る状態にする（foundation 4章の冒頭のとおり）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告してユーザーに実行を頼む**。shared/ のテストは `dotnet test --project shared/Uta.Shared.Domain.Tests`。コミットの前に `Uta/Prefabs/Clear Dynamic Font Data`（P1。`unity command eval 'Uta.Client.Editor.Prefabs.FontAssetBuilder.ClearDynamicData(); return "ok";'`）を実行する（Play で日本語を出すとフォントのアセットに字が足されるため）。Prefab（`.prefab`）と `AddressableAssetsData/` に差分が出ていたら、この計画の変更ではないので戻し、報告に書く。
+各タスクの終わりに、`client/uta` で `unity recompile --format json` がコンパイルエラー 0、`unity test --mode EditMode` で既存とそのタスクまでのテストが全部通る状態にする（foundation 4章の冒頭のとおり。回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告してユーザーに実行を頼む**。shared/ のテストは `dotnet test --project shared/Uta.Shared.Domain.Tests`。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（Play で日本語を出すとフォントのアセットに字が足されるため）。Prefab（`.prefab`）と `AddressableAssetsData/` に差分が出ていたら、この計画の変更ではないので戻し、報告に書く。
 
 ### タスク 1: Shared.Domain のプランの適合と、表示名・一覧の組み立て
 

@@ -486,7 +486,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 
 ## 4. タスク
 
-各タスクの終わりに、`unity recompile --format json`（`client/uta` で実行。コンパイルエラー 0）と、`unity test --mode EditMode`（`client/uta` で実行）で既存とそのタスクまでのテストが全部通る状態にする。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssetBuilder.ClearDynamicData(); return "ok";'`（P1。Play で日本語を出すとフォントのアセットに字が足されるため）。
+各タスクの終わりに、`unity recompile --format json`（`client/uta` で実行。コンパイルエラー 0）と、`unity test --mode EditMode`（`client/uta` で実行）で既存とそのタスクまでのテストが全部通る状態にする（回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`。Play で日本語を出すとフォントのアセットに字が足されるため）。
 
 ### タスク 1: Application の共通の型・ガチャの型・排出率、テスト用の `FakeGameMaster`
 
@@ -528,7 +528,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 手順:
 1. 3.4 の `GachaTexts`・`IGachaView`・`GachaRatesArgs`・`GachaRateLine`・`IGachaRatesView`・`GachaResultArgs`・`IGachaResultView` を作る
 2. `GachaPage` に 3.4 の「View」の `GachaPage` の実装を足す（P2 のフィールドは変えない）
-3. `GachaPresenter` が積むモーダルの型を使うので、**3.4 のシグネチャだけを持つ仮の `GachaRatesPresenter`・`GachaResultPresenter`** を作る（`[AssetAddress(nameof(GachaRatesModal))]`／`[AssetAddress(nameof(GachaResultModal))]`、`IScreenWithArgs<GachaRatesArgs>`／`IScreenWithArgs<GachaResultArgs>`、コンストラクター 2 本は引数をフィールドに保存するだけ、`InitializeAsync`・`CloseAsync`・`RetryAsync` は `UniTask.CompletedTask`、`Dispose` は空）。中身はタスク 3b
+3. `GachaPresenter` が積むモーダルの型を使うので、**3.4 の属性・インターフェースだけを持つ仮の `GachaRatesPresenter`・`GachaResultPresenter`** を作る（`[AssetAddress(nameof(GachaRatesModal))]`／`[AssetAddress(nameof(GachaResultModal))]`、`IScreenWithArgs<GachaRatesArgs>`／`IScreenWithArgs<GachaResultArgs>`、`InitializeAsync`・`CloseAsync`・`RetryAsync` は `UniTask.CompletedTask`、`Dispose` は空）。**コンストラクターは `[Inject]` 側の 1 本（具象の View を受ける: `[Inject] public GachaRatesPresenter(GachaRatesModal view, GachaRatesArgs args, IGameMaster master, IScreenNavigator navigator) { }`／`[Inject] public GachaResultPresenter(GachaResultModal view, GachaResultArgs args, IGameMaster master, IScreenNavigator navigator) { }`）だけで、本体は空**にする。3a の時点では `GachaRatesModal`・`GachaResultModal` がまだ `IGachaRatesView`／`IGachaResultView` を実装していないので、`: this((IGachaRatesView)view, ...)` は CS0030 になるため。**インターフェースを受けるコンストラクターと、`[Inject]` 側からの `: this(...)` はタスク 3b で足す**。中身はタスク 3b
 4. 3.4 のとおり `GachaPresenter` を作る
 5. 3.5 のとおり `HomePresenter` を直す
 6. 5章の `GachaPresenterTests` を作り、`HomePresenterTests` を直す。`unity recompile` → `unity test --mode EditMode`（P2 の `GachaPrefabTests`・P1 の `PrefabContractTests` も通り続けること）
@@ -552,7 +552,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 
 手順:
 1. `GachaLineRow`・`GachaRatesModal`・`GachaResultModal` に 3.4 の「View」の実装を足す（P2 のフィールドは変えない）
-2. 3.4 のとおり `GachaRatesPresenter`・`GachaResultPresenter` を書く（タスク 3a の仮を置き換える。シグネチャは変えない）
+2. 3.4 のとおり `GachaRatesPresenter`・`GachaResultPresenter` を書く（タスク 3a の仮を置き換える。`[Inject]` 側のコンストラクターのシグネチャは変えず、`: this(...)` とインターフェースを受けるコンストラクターをここで足す。手順 1 で View がインターフェースを実装するので、この順で CS0030 にならない）
 3. 5章の `GachaRatesPresenterTests`・`GachaResultPresenterTests` を作る。`unity recompile` → `unity test --mode EditMode`（`GachaPresenterTests`・P2 の `GachaPrefabTests`・P1 の `PrefabContractTests` も通り続けること）
 4. Play で確かめる（式の略し方・待ち方はタスク 3a の手順 7 と同じ）
    1. タスク 3a の手順 7 の 1・2 でガチャのページまで進める

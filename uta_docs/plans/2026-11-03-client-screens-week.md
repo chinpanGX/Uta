@@ -401,7 +401,7 @@ case ProducePhase.CardOffer:
 
 ## 4. タスク
 
-各タスクの終わりに `unity recompile --format json`（`client/uta` で実行）でコンパイルエラー 0、そのタスクまでの EditMode のテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。CLAUDE.md に行が無ければ Editor の Test Runner の EditMode を全部実行してもらう。foundation・P1 の結果に従う）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。Play のあとでコミットする前に `Uta/Prefabs/Clear Dynamic Font Data`（P1）を実行する（foundation 3.3.7）。
+各タスクの終わりに `unity recompile --format json`（`client/uta` で実行）でコンパイルエラー 0、そのタスクまでの EditMode のテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。Play のあとでコミットする前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（foundation 3.3.7）。
 
 ### タスク 1: Application の値と文字
 
@@ -465,7 +465,7 @@ Presenter は型で次の Presenter を参照するので、**参照される側
 2. 3.6 の `case ProducePhase.WeekSelect:` だけを `ProduceFlow.PushForPhaseAsync` に足す（`CardOffer` の `case` は 4c）
 3. formation の既存のテストのうち、`WeekSelect` を「画面の無い局面」として使っているものを直す（`WeekSelect` に画面ができたため）:
    - `ProduceFlowTests.ShowCurrent_UnsupportedPhase_PopsToBackdropThenShowsInfoAndGoesHome`・`ShowCurrent_ModalOpen_PopsModalFirst`: `session` の局面を `ProducePhase.Nothing` にし、期待の文字を `"Info:この局面の画面は準備中です: Nothing"` にする（`Nothing` は 6 本目のあとも画面が無いので、期待が変わらない）
-   - `ProduceFlowTests.HandleStep_SucceededAndRecovered_ShowCurrent`: 期待を `"PopPage:1"`, `"PushPage:WeekPresenter"` にする（`"Info:"`・`"GoToHome"` の行が無い）
+   - `ProduceFlowTests.HandleStep_SucceededAndRecovered_ShowCurrent`: このテストの `session` の局面は `ProducePhase.WeekSelect` にする（formation の作りで別の局面なら `WeekSelect` に直す）。`Succeeded`・`Recovered` のどちらも期待を `"PopPage:1"`, `"PushPage:WeekPresenter"` にする（`"Info:"`・`"GoToHome"` の行が無い）
    - `ProduceEntryTests.Start_Active_PushesBackdropThenShowsCurrent`: 期待を `"PushPage:ProduceBackdropPresenter"`, `"PushPage:WeekPresenter"` にする（`PageStack(() => 1, () => 0)` なので Pop の行は無い）
    - ほかのテスト（`ProduceMenuTests`・`HomePresenterTests` など）は `PushForPhaseAsync` を通らないので変えない。直す前に `ProduceFlowTests.cs`・`ProduceEntryTests.cs` を読み、`"準備中です: WeekSelect"` を期待しているテストがほかにもあれば、同じ考え（局面を `Nothing` にする、または `WeekPresenter` の Push を期待する）で直し、報告に書く
 4. 5.2 の `WeekPresenterTests` と、`ProduceFlowTests` の追記のうち `WeekSelect` の 2 本（`ShowCurrent_WeekSelect_PopsAboveBackdropThenPushesWeekPage`・`ShowCurrent_WeekSelectAfterModal_PopsModalThenPushesWeekPage`）を作る
@@ -536,6 +536,8 @@ Presenter のテストの組み立て（各テストのファイルに `private 
 
 **例外のテストの書き方**（formation 5章の `FormationPresenterTests.Start_Exception_ShowsError` と同じ）: Presenter の `catch` は `Debug.LogException(e)` を呼ぶ。Unity の Test Runner は、予期しない `LogType.Exception` のログが出たテストを失敗にするので、**操作を `await` する前に `LogAssert.Expect(LogType.Exception, new Regex("FakeProducePort: no state result"));` を呼ぶ**（`using System.Text.RegularExpressions; using UnityEngine; using UnityEngine.TestTools;`。`Debug.LogException` のログの文は `"InvalidOperationException: FakeProducePort: no state result"` なので、部分一致の `Regex` で受ける）。`LogAssert.ignoreFailingMessages = true` は使わない（ほかの想定外のエラーまで隠すため）。例外は、`StateResults` を空にしておき、`ProduceActions` → `FakeProducePort` が投げる `InvalidOperationException("FakeProducePort: no state result")` で起こす（`ProduceActions` は例外を受けない: formation 決めたこと 12）。期待は「最後の記録が `"Info:エラーが発生しました: FakeProducePort: no state result"`」と「`"Flow.HandleStep:"` の行が無い」。
 
+**記録の並びの比べ方**: 表の「並びが …」は、`InitializeAsync` の後から（操作で足された記録だけを）比べる。`InitializeAsync` のあとの `log` の件数を覚えておき、それより後の行を期待の並びと比べる（記録の全体ではない）。「記録は `InitializeAsync` の分だけ」は、その件数から増えていないこと。
+
 `FakeProducePort` の記録は formation 3.7 の書式（`"ChooseWeekAction:" + op + "," + slot + "," + option + "," + param`、`"ResolveCardOffer:" + op + "," + kind + "," + offerIndex`、`"GetState"`）。「RPC の行が無い」は `"ChooseWeekAction:"`・`"ResolveCardOffer:"` で始まる行が無いこと。
 
 | ファイル | テスト | 内容 |
@@ -560,7 +562,7 @@ Presenter のテストの組み立て（各テストのファイルに `private 
 | | `ChooseAction_LessonCancel_DoesNothing` | `ChooseResults` に 3 → RPC の行が無い、`"Flow.HandleStep:"` の行が無い |
 | | `ChooseAction_Class_PushesClassWithSlot` | (2, Class, true) → `"PushPage:ClassPresenter"`、`navigator.Args[0]` が `WeekSlotArgs` で `SlotIndex == 2` |
 | | `ChooseAction_Supply_PushesSupplyWithSlot` | (3, Supply, true) → `"PushPage:SupplyPresenter"`、`SlotIndex == 3` |
-| | `ChooseAction_RestConfirmed_ShowsChangeThenHandlesStep` | 体力 10 → 応答の体力 31。並びが `"Confirm:休みます。よろしいですか？"`, `"ChooseWeekAction:1,1,-1,Nothing"`, `"Info:体力 +21"`, `"Flow.HandleStep:Succeeded"` |
+| | `ChooseAction_RestConfirmed_ShowsChangeThenHandlesStep` | 体力 10 → 応答の体力 25（最大体力 30 以下）。並びが `"Confirm:休みます。よろしいですか？"`, `"ChooseWeekAction:1,1,-1,Nothing"`, `"Info:体力 +15"`, `"Flow.HandleStep:Succeeded"` |
 | | `ChooseAction_RestDeclined_DoesNothing` | `ConfirmResults` に `Negative` → RPC の行が無い |
 | | `ChooseAction_NotSelectable_DoesNothing` | `Selectable == false` の枠 → 記録は `InitializeAsync` の分だけ |
 | | `ChooseAction_Exception_ShowsError` | (0, Lesson, true)、`ChooseResults` に 0、`StateResults` を空にする、`LogAssert.Expect`（上の書き方）→ 最後が `"Info:エラーが発生しました: FakeProducePort: no state result"`、`"Flow.HandleStep:"` の行が無い |

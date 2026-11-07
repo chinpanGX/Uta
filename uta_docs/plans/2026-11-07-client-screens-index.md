@@ -16,9 +16,9 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 | 順 | 計画 | 何を作るか | 前の計画 | 積み PR の base | 状態 |
 |---|---|---|---|---|---|
 | 1 | [計画 0 マスタ スキルカードの名前と説明文](2026-11-03-masterdata-card-text.md) | `Card.Name`・`CardFace.Description` の列と 36 枚の値（masterdata・サーバーのテスト） | なし | `main` | draft |
-| 2 | [P1 共通部品・Addressables・TextMeshPro](2026-11-07-client-prefabs-common.md) | スパイク、TMP Settings、共通部品の Prefab 10 個（`UiRoot` を含む）、生成の補助 `PrefabBuildUtil`、`PrefabContractTests`、`BuildCommands` の `BuildPlayerContent` | なし（計画 0 の型は使わない）。PR #28・#29 | `main`（PR #28・#29 がマージ済みのとき。3章） | draft |
+| 2 | [P1 共通部品・Addressables・TextMeshPro](2026-11-07-client-prefabs-common.md) | スパイク、TMP Settings、共通部品の Prefab 10 個（`UiRoot` を含む）、生成の補助 `PrefabBuildUtil`、`PrefabContractTests`、`BuildCommands` の `BuildPlayerContent` | なし（計画 0 の型は使わない）。PR #28・#29 と計画 0 の実装 PR が main にマージ済み | `main`（PR #28・#29 と計画 0 がマージ済みのとき。3章・確認 1） | draft |
 | 3 | [P2 Title・Home・ガチャ・所持一覧の Prefab](2026-11-07-client-prefabs-screens-a.md) | 画面の Prefab 7 個・行の Prefab 3 個・View の骨格 8 型、画面の補助 `ScreenLayout` | P1 | P1 の実装ブランチ | draft |
-| 4 | [foundation 土台・タイトル・ホーム](2026-11-03-client-screens-foundation.md) | ダイアログ・ブロッカー・`PageStack`・シーンのスコープへの登録、`IGameMaster`、業務エラー、タイトル・ホーム、`Bootstrap`・`Title`・`Home` シーンの `UiRoot` | 計画 0・P1・P2 | P2 の実装ブランチ | draft |
+| 4 | [foundation 土台・タイトル・ホーム](2026-11-03-client-screens-foundation.md) | ダイアログ・ブロッカー・`PageStack`・シーンのスコープへの登録、`IGameMaster`、業務エラー、タイトル・ホーム、`Bootstrap`・`Title`・`Home` シーンの `UiRoot` | 計画 0・P1・P2 | P2 の実装ブランチ（計画 0 は main にある前提） | draft |
 | 5 | [gacha ガチャ](2026-11-03-client-screens-gacha.md) | ガチャのページ・排出率・結果のモーダル、`IGachaPort`、`PortResult<T>`・`ServerReasons`・`FakeGameMaster` | foundation・P2 | foundation の実装ブランチ | draft |
 | 6 | [owned 所持一覧・サポートカードの強化](2026-11-03-client-screens-owned.md) | 所持一覧（選択モード付き）・サポートカードの詳細と強化、`DisplayText`、`FormationValidator.IsPlanCompatible`（shared/） | gacha | gacha の実装ブランチ | draft |
 | 7 | [P3 編成・プロデュースの Prefab](2026-11-07-client-prefabs-screens-b.md) | 画面の Prefab 10 個・行の Prefab 5 個・View の骨格 | P1・P2（C# の型には依存しない） | owned の実装ブランチ | draft |
@@ -27,6 +27,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 | 10 | [lesson レッスン・試験・試験結果・プロデュース結果](2026-11-03-client-screens-lesson.md) | レッスンのページ・山札などの一覧・試験結果・プロデュース結果、`ProduceFlow` の残りの局面。完了条件 6 の通し | week | week の実装ブランチ | draft |
 
 - 並行しない。後の計画は前の計画の型・偽・Prefab を使う（各計画の 1章の前提）
+- **計画 0 と P1 は `main` 向け。計画 0 を先に main へマージしてから P1 を始める**（確認 1）。積み PR の連鎖 main → P1 → P2 → foundation に計画 0 の変更は入らないので、計画 0 が main に無いと foundation の前提 2（`Card.Name`・`CardFace.Description`）で止まる
 - 「積み PR の base」は実装の PR（4章）の base。前の計画の実装 PR が main に入ったら、後の PR の base を `main` に付け替える（CLAUDE.md「Git」。付け替えとマージはユーザーが行う）
 - 状態は各計画の frontmatter の `status`。計画が `done` になったら、この表も `done` にする
 
@@ -44,7 +45,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - フォントは PR #29 のアセットを使い、作り直さない。太字は Bold の SDF アセット。フォントは Addressables に入れない
 - 共通部品の Prefab は 10 個。Addressables のグループ `Screens` に入れるのは画面の Prefab だけ（アドレス = ファイル名）。`UiRoot` が `AddressableAssetLoader` を USN のコンテナーに入れる
 - View は「フィールドだけ」の骨格。生成クラスは `TypeCache` で集めるので、P2・P3 は生成クラスを足すだけ。`UiRoot` は各シーンに 1 つ（`Bootstrap`・`Title`・`Home` は foundation、`Produce` は formation が置く）
-- `unity test --mode EditMode` が動くことを確かめ、unity7-evaluation 4章と CLAUDE.md に足す
+- `unity test --mode EditMode` が動くことを確かめ、unity7-evaluation 4章に足す。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）
 
 ### P2 Title・Home・ガチャ・所持一覧の Prefab
 
@@ -91,6 +92,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - `ProduceFlow`・`ProduceMenu` は `Produce` シーンのスコープ、`ProduceSession`・ユースケースはルート。取り直しは状態を変えたユースケースが行う
 - 局面の画面がまだ無い局面は「準備中です」を出してホームへ戻る（確認 14）
 - サーバーの `LessonDto` に `UsableHand`（`Key(19)`）を足す
+- screen-design 7.6 は `ProduceStateView` と `PRODUCE_STALE_OPERATION` の 2 つの箇条書きだけを直す。プロデュースの画面の流れ（スキルカード獲得のモーダルの出し方を含む）は 7.6 に書かない（確認 15 の了承のあとに week のタスク 5 が書く）
 - **`Produce` シーンを作り直す**: `UiRoot` を置き、`SceneBuilder.BuildProduce` を `Home` と同じ形にして legacy の補助と `using` を消し、`Produce.unity` を作り直し、#24 の `ProduceView`・`ProducePresenter` を消す
 
 ### week 週の行動選択・授業・支給・スキルカードの選択肢
@@ -107,11 +109,11 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - レッスン・試験の間は同じページをその場で描き直す。局面が変われば `HandleStepAsync` に任せる
 - 試験結果の「次へ」は `ShowCurrentAsync`、プロデュース結果の「ホームへ」は `session.Clear()` → `ExitToHomeAsync`
 - 順位表の自分の行だけ C# が文字の色を `Accent` に変える。`DisplayText` に `LessonKindName`・`ExamOutcomeText`・`ExamKindName`・`Status`・`Rank` などを足す
-- 起動 → ガチャ → 強化 → 編成 → プロデュースを最後まで → 結果 → ホーム、を Windows で通す（完了条件 6）
+- 起動 → ガチャ → 強化 → 編成 → プロデュースを最後まで → 結果 → ホーム、を Windows で通す（完了条件 6）。順 7 は条件 6 を受け持つ。7（Android）は別の項目。game-spec の順 7 の行は「6（7 は別の項目）」に直す（進行役が行った）
 
 ## 3. 前提となる未マージの PR
 
-どちらも 2026-11-07 時点で未マージ。**P1 の実装の前に main へ入っていること**を前提にする（確認 1）。
+どちらも 2026-11-07 時点で未マージ。**P1 の実装の前に main へ入っていること**を前提にする（確認 1）。計画 0 の実装 PR も、P1 の前に main へマージする（1章）。
 
 | PR | 中身 | 計画への影響 |
 |---|---|---|
@@ -125,7 +127,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 [README](README.md)「計画のブランチと PR（流れ）」のとおり。
 
-1. 10 本の計画（とこの索引）は計画用のブランチ（`claude/client-screens-plan`）に `draft` で書いた。設計書のレビュー（`requesting-design-review`）を回し、5章の確認の答えを反映して `ready` にする
+1. 10 本の計画（とこの索引）は計画用のブランチ（`claude/client-screens-plan`）に `draft` で書いた。CLAUDE.md の規則の名前は `claude/plan-<件名>` なので、**PR を出す前に `claude/plan-client-screens` に改名する**（進行役が行う）。設計書のレビュー（`requesting-design-review`）を回し、5章の確認の答えを反映して `ready` にする
 2. ユーザーが承認したら、`main` 向けに docs だけの PR を作る。マージはユーザー
 3. マージされたら、1章の順に、計画ごとに固定の worktree（`tools/worktree-pool.sh start <番号> <新ブランチ> <base>`）で実装する。base は 1章の「積み PR の base」。実装は計画のタスクごとに Sonnet のサブエージェントに任せ、計画に無い設計判断に出会ったら止まって計画を直す
 4. **実装の PR は計画ごとに分ける**。前の計画の PR が未マージなら積み PR にし（`gh pr create --base <前の計画のブランチ>`）、本文に前の PR を書く
@@ -137,7 +139,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 **進め方**
 
-1. **PR #28・#29 を、P1 の実装の前に main へマージしてよいか**（3章）。片方だけでは P1 の前提がそろわない
+1. **PR #28・#29 と計画 0 のマージを、P1 の実装の前に行ってよいか**（3章。P1 の 4）。片方だけでは P1 の前提がそろわない。計画 0 は main 向けの実装 PR で、先に main へマージしてから P1 を始める（積み PR の連鎖 main → P1 → P2 → foundation に計画 0 が入らず、foundation の前提 2 で止まるため。1章）
 
 **見た目・部品（P1・P2・P3）**
 
@@ -163,7 +165,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 13. **`Produce` シーンの底をいつも背景のページ（週・パラメータ・体力だけの画面）にしてよいか**（formation の 1）。局面が変わるたびに、一瞬この背景が見えてから次の画面が出る
 14. **week・lesson ができるまで、「プロデュース開始」「再開」は `Produce` シーンへ移ってすぐ「この局面の画面は準備中です: WeekSelect」を出してホームへ戻る動きになる**（formation の 2）。セッションはサーバーに残る
-15. **[保留。ユーザーの了承待ち] スキルカード獲得のモーダルを、授業・支給のページの上ではなく、背景のページの上に出してよいか**（week の 1）。[screen-wireframes.md](../wiki/overview/screen-wireframes.md)「共通の方針」の決定（2026-11-01。ユーザーの判断）は「レッスン・授業・支給の画面の上に重ねる」。13 の「局面が変わるたびに背景より上を全部閉じる」に合わせると、モーダルが出る前に授業・支給のページ（lesson ではレッスンのページ）は閉じる。授業の上がった値のダイアログは閉じる前に出すので、結果は見える。代わりの案（`CardOffer` のときだけ閉じない分岐を `ProduceFlow` に入れる）は採っていない。**了承が出るまで screen-wireframes.md と screen-design 7.6 は直さない**（了承されたら week のタスク 5 で screen-wireframes の決定の文を直す）
+15. **[保留。ユーザーの了承待ち] スキルカード獲得のモーダルを、授業・支給のページの上ではなく、背景のページの上に出してよいか**（week の 1）。[screen-wireframes.md](../wiki/overview/screen-wireframes.md)「共通の方針」の決定（2026-11-01。ユーザーの判断）は「レッスン・授業・支給の画面の上に重ねる」。13 の「局面が変わるたびに背景より上を全部閉じる」に合わせると、モーダルが出る前に授業・支給のページ（lesson ではレッスンのページ）は閉じる。授業の上がった値のダイアログは閉じる前に出すので、結果は見える。代わりの案（`CardOffer` のときだけ閉じない分岐を `ProduceFlow` に入れる）は採っていない。**了承が出るまで screen-wireframes.md と screen-design 7.6 にこの出し方を書かない**: formation は 7.6 の 2 つの箇条書き（`ProduceStateView`・`PRODUCE_STALE_OPERATION`）を直すだけで、プロデュースの画面の流れ・モーダルの出し方は書かない。了承されたら week のタスク 5 が 7.6 と screen-wireframes の決定の文を直す
 16. **試験の順位表のライバルの名前を、仮に「ライバル 1・2・3」にしてよいか**（lesson の 1）。`ExamResultDto` は NPC の名前を返さないため
 17. **レッスンが終わるたびに「レッスン終了」と上がった値のダイアログで 1 回止まる動きでよいか**（lesson の 2。ターン終了時の効果の表示を MVP から外した代わり）
 
@@ -171,7 +173,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 ## 6. Unity Editor が要るタスクの扱い
 
-- 計画 0 のサーバー側（`dotnet test`）、owned のタスク 1 の shared/、formation のタスク 1 の server・shared は .NET SDK（と Docker）で確かめられる。**それ以外のタスク（P1〜P3 の全部と、C# の計画の client/ の全部、計画 0 のクライアントのテスト）は、Unity 7（`7000.0.0a12`）の Editor がその worktree の `client/uta` を開いている環境が前提**（`unity status --until-ready` が ready）。Prefab の生成（`unity command eval`）・コンパイル（`unity recompile --format json`）・EditMode のテスト（`unity test --mode EditMode`。P1 のタスク 5 で使えると確かめてから）・Play の確認は Editor が要る
+- 計画 0 のサーバー側（`dotnet test`）、owned のタスク 1 の shared/、formation のタスク 1 の server・shared は .NET SDK（と Docker）で確かめられる。**それ以外のタスク（P1〜P3 の全部と、C# の計画の client/ の全部、計画 0 のクライアントのテスト）は、Unity 7（`7000.0.0a12`）の Editor がその worktree の `client/uta` を開いている環境が前提**（`unity status --until-ready` が ready）。Prefab の生成（`unity command eval`）・コンパイル（`unity recompile --format json`）・EditMode のテスト（`unity test --mode EditMode`。P1 のタスク 5 で使えると確かめてから。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**）・Play の確認は Editor が要る
 - **Editor が無い・開けない環境では、そのタスクを実行しない**。「確認できていない」と明記し、ユーザーに実行を頼む。推測で「通った」と書かない（CLAUDE.md「常に守ること」）。Prefab・`.unity`・Addressables の設定は Editor のスクリプトの生成物なので、手で書かない
 - Windows の IL2CPP のビルドはバッチモードで行い、同じプロジェクトを開いている Editor を先に閉じる（CLAUDE.md「ビルド・テスト・実行」）
 - Play の目視（文字の豆腐・レイアウト）はユーザーに見てもらう。テスト・Play のあとコミットする前に、フォントの動的データを空に戻す（`unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`。foundation 3.3.7。P1 の決めたこと 4）

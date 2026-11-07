@@ -1,6 +1,6 @@
 ---
 title: 実装計画: マスタ スキルカードの名前と説明文
-status: draft
+status: ready
 updated: 2026-11-03
 spec: ../wiki/architecture/master/lesson-tables.md
 ---

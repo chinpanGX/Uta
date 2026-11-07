@@ -361,9 +361,7 @@ public sealed class ProduceResultPresenter : IPresenter
 `LessonEndText(ProduceProgress before, ProduceProgress after, int? startHp)`（`private static string`。**レッスン全体の差**を出す）:
 - `before` は最後の 1 操作の前の状態なので、体力の差 `after.Hp - before.Hp` は最後の操作の分しか無い。そこで体力だけはレッスン開始時の値 `startHp` と比べる。パラメータはレッスンの終わりにまとめて足される（produce.md 4.3）ので、`before` のパラメータはレッスン開始時の値と同じで、`before` との差がレッスン全体の差になる
 - `var c = ProduceChange.Create(before, after);` → `var change = new ProduceChange(c.Singing, c.Rhythm, c.Expression, startHp.HasValue ? after.Hp - startHp.Value : 0);`（`startHp` が `null`（再開でレッスンの途中から入った）なら体力の行を出さない。最後の操作の分だけの差を全体の差に見せないため）
-- `lines = DisplayText.Change(change)`（week。0 でないものだけ）。`lines` が空なら `"レッスン終了"`、そうでなければ `"レッスン終了
-" + string.Join("
-", lines)`
+- `lines = DisplayText.Change(change)`（week。0 でないものだけ）。`lines` が空なら `"レッスン終了"`、そうでなければ `"レッスン終了\n" + string.Join("\n", lines)`
 
 `OpenMenuAsync()`（同じ決まりの中）: `await menu.ShowAsync();`（ホームへ戻る・放棄は `ProduceMenu` が `flow.ExitToHomeAsync` を呼ぶ。ここでは `leaving` を立てない。メニューが「閉じる」で終わったときに操作を続けられるようにするため。ホームへ戻ったときはシーンごと破棄され、`disposed` が立つ）
 
@@ -485,7 +483,7 @@ View の EditMode のテストは書かない（foundation 3.3.7。参照の欠�
 
 ## 4. タスク
 
-各タスクの終わりに、`unity recompile --format json`（`client/uta` で実行）でコンパイルエラー 0、そのタスクまでの EditMode のテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。CLAUDE.md の「ビルド・テスト・実行」に行が無ければ、Editor の Test Runner の EditMode を全部実行してもらう。foundation・P1 の結果に従う）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。Play のあとでコミットする前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（foundation 3.3.7）。
+各タスクの終わりに、`unity recompile --format json`（`client/uta` で実行）でコンパイルエラー 0、そのタスクまでの EditMode のテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。Play のあとでコミットする前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（foundation 3.3.7）。
 
 ### タスク 1: 順位表と文字
 
@@ -576,13 +574,10 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 | | `UseCard_Disabled_DoesNothing` | `Enabled == false` のカード → 確認も操作も無い |
 | | `UseCard_Declined_DoesNothing` | `ConfirmResults` に `Negative` → 操作が呼ばれない |
 | | `Skip_NoConfirm_CallsSkip` | `log` に `"Confirm:"` が無く、`"ExecuteLessonAction:1,Skip,0,0"` がある |
-| | `Step_Rejected_ShowsInfoAndRefreshes` | 業務エラー `PRODUCE_INVALID_ARGUMENT` → `"Info:そのカードは使えません。"` のあと `SetHand` がもう一度記録され、`Flow.` の記録が無い |
-| | `Step_Recovered_RefreshesWithoutDiff` | `PRODUCE_STALE_OPERATION` → `GetState` が局面 `Lesson` → `"SetLastResult:"`、`Flow.` の記録が無い |
-| | `Step_LessonEnded_ShowsChangeThenHandlesStep` | **体力はレッスン開始時との差**。最初の状態 `State(Lesson, Lesson(Normal, Rhythm, turn: 1, hand: {1}), hp: 18, rhythm: 200)` で `InitializeAsync`（開始時の体力 18 を保持）。応答 1: `State(Lesson, Lesson(Normal, Rhythm, turn: 2, hand: {1}), hp: 14, rhythm: 200, operationNumber: 2)` → `SkipAsync()`（その場で描き直す）。応答 2: `State(WeekSelect, lesson: null, hp: 20, rhythm: 262, operationNumber: 3)` → `SkipAsync()`。`log` の後ろの並び（2 回目の操作から）が `"ExecuteLessonAction:2,Skip,0,0"`, `"Info:レッスン終了
-律動 +62
-体力 +2"`（20 − 18。最後の操作の前の 14 との差 +6 ではない）, `"Flow.HandleStep:Succeeded"` |
-| | `Step_LessonEnded_ResumedMidLesson_OmitsHp` | 最初の状態が `turn: 3`（再開で途中から。開始時の体力を持たない）、`hp: 14`。応答 `State(WeekSelect, lesson: null, hp: 20, rhythm: 262, operationNumber: 2)` → `SkipAsync()` → `"Info:レッスン終了
-律動 +62"`（体力の行が無い）, `"Flow.HandleStep:Succeeded"` |
+| | `Step_Rejected_ShowsInfoAndRefreshes` | `StateResults` に `PortResult<ProduceProgress>.BusinessError(ServerReasons.ProduceInvalidArgument, "x")` を 1 つだけ入れる（操作の応答。取り直しは無い）→ `"Info:そのカードは使えません。"` のあと `SetHand` がもう一度記録され、`Flow.` の記録が無い |
+| | `Step_Recovered_RefreshesWithoutDiff` | `StateResults` に順に 2 つ入れる: 1 つ目 `PortResult<ProduceProgress>.BusinessError(ServerReasons.ProduceStaleOperation, "x")`（操作の応答）、2 つ目 `PortResult<ProduceProgress>.Success(State(Lesson, Lesson(Normal, Rhythm, turn: 2, hand: {1}), operationNumber: 2))`（`GetState` の応答。局面 `Lesson` のまま）→ `"GetState"` が記録され、 `"SetLastResult:"`、`Flow.` の記録が無い |
+| | `Step_LessonEnded_ShowsChangeThenHandlesStep` | **体力はレッスン開始時との差**。最初の状態 `State(Lesson, Lesson(Normal, Rhythm, turn: 1, hand: {1}), hp: 18, rhythm: 200)` で `InitializeAsync`（開始時の体力 18 を保持）。応答 1: `State(Lesson, Lesson(Normal, Rhythm, turn: 2, hand: {1}), hp: 14, rhythm: 200, operationNumber: 2)` → `SkipAsync()`（その場で描き直す）。応答 2: `State(WeekSelect, lesson: null, hp: 20, rhythm: 262, operationNumber: 3)` → `SkipAsync()`。`log` の後ろの並び（2 回目の操作から）が `"ExecuteLessonAction:2,Skip,0,0"`, `"Info:レッスン終了\n律動 +62\n体力 +2"`（20 − 18。最後の操作の前の 14 との差 +6 ではない）, `"Flow.HandleStep:Succeeded"` |
+| | `Step_LessonEnded_ResumedMidLesson_OmitsHp` | 最初の状態が `turn: 3`（再開で途中から。開始時の体力を持たない）、`hp: 14`。応答 `State(WeekSelect, lesson: null, hp: 20, rhythm: 262, operationNumber: 2)` → `SkipAsync()` → `"Info:レッスン終了\n律動 +62"`（体力の行が無い）, `"Flow.HandleStep:Succeeded"` |
 | | `Step_LessonToExam_ShowsChangeAndRefreshesInPlace` | 仕上げレッスン → 応答が局面 `Exam`（`Lesson.IsExam`、`ExamResult == null`）→ `"Info:レッスン終了…"` のあと `SetHeader` が `"最終試験"` で記録され、`Flow.` の記録が無い |
 | | `Step_ExamResultPresent_HandlesStepWithoutInfo` | 試験中、応答が局面 `Exam` でも `ExamResult != null` → `"Info:"` が無く `"Flow.HandleStep:Succeeded"` |
 | | `Step_AfterLeaving_IgnoresClicks` | `HandleStep` のあと `SkipAsync` をもう一度呼んでも `"ExecuteLessonAction:"` は 1 回だけ |

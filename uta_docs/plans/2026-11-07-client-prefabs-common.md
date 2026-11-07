@@ -22,7 +22,7 @@ spec: ../wiki/architecture/screen-design.md
 9. **Prefab の生成**: `Scripts/Editor/Prefabs/` の Editor スクリプト。共通の補助 `PrefabBuildUtil`、部品ごとの生成クラス（`IPrefabBuilder` を実装）、入口 `PrefabBuildCommands`（メニュー `Uta/Prefabs/Build All`、`unity command eval` から呼ぶ `BuildAll()`、バッチモード用の `BuildAllBatch()`）。生成クラスは `TypeCache` で集めて `Order` の順に作るので、**P2・P3 は生成クラスを 1 つ足すだけで Build All に入る**（登録の表は持たない）。作業は一時的なプレビュー用のシーンで行い、開いているシーンを汚さない
 10. **UiRoot は各シーン（Bootstrap・Title・Home・Produce）に 1 つ置く**（screen-design 7.4「シーンの `UiRoot`」。`DontDestroyOnLoad` にしない）。シーンへの配置と DI への登録は C# の計画: `Bootstrap`・`Title`・`Home` は foundation（決めたこと 3）、`Produce` は formation（決めたこと 14）
 11. **PrefabContractTests**（EditMode）は Prefab の一覧を持たず、`Assets/Prefabs/` の下を全部読む。P2・P3 は Prefab を足すだけで自動で確かめの対象になる（3.6）
-12. EditMode のテストのコマンド `unity test --mode EditMode` は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章に無いので、タスク 5 で動くことを確かめて 4章と CLAUDE.md に足す（foundation のタスク 6 にあった CLAUDE.md の追記はこの計画に移る）。`unity test` は同じプロジェクトを開いた Editor があると使えないので、**`unity close .` → `unity test` → `unity open .` → `unity status --until-ready`** の順で回す（`unity close`・`unity open` も 4章に無いので、タスク 5 で一緒に確かめて足す）。P2・P3 はこの手順を使う
+12. EditMode のテストのコマンド `unity test --mode EditMode` は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章に無いので、タスク 5 で動くことを確かめて 4章と CLAUDE.md に足す（foundation のタスク 6 にあった CLAUDE.md の追記はこの計画に移る）。`unity test` は同じプロジェクトを開いた Editor があると使えないので、**`unity close .` → `unity test` → `unity open .` → `unity status --until-ready`** の順で回す（`unity close`・`unity open` も 4章に無いので、タスク 5 で一緒に確かめて足す）。P2・P3 はこの手順を使う。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）
 13. **テストのアセンブリは `Uta.Client.Editor` を参照する**（`TmpSettings_DefaultFont_IsNotoSansJpDynamic` が `FontAssets.RegularPath` を使うため。3.1）。テストの asmdef は Editor 専用なので、Editor のアセンブリを参照してよい
 14. **foundation（C#）との境界は foundation の計画で決まった**（2026-11-07）: 旧版の `UiFactory`・`UiFonts`・`EnsureBuilt`・`UiFactoryTests` などを消し、`UiTheme`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`・`ModalBase`・`UiRoot` は P1 が作る（foundation の決めたこと 2）。`DialogService` の公開 API（`UtaDialogView` を使う形）は foundation 3.2 が正。各シーンの `UiRoot` の `BusyIndicator`・`DialogService` は、ルートの `ActiveSceneUi` に各シーンのスコープが入れて、`ApiActivityBridge`・`ErrorDialogView` がそこから取る（foundation の決めたこと 4）。この計画はそれに合わせてある（1.1 の表）
 
@@ -106,6 +106,7 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
   "UnityEngine.UI", "UnityScreenNavigator", "Unity.TextMeshPro"
   ```
   `unity recompile` が `AddressableAssetLoader` の利用について CS0012（参照していないアセンブリの型）を出したときだけ、`"Unity.Addressables"`, `"Unity.ResourceManager"` を足す
+- **一般則（どの asmdef でも）**: どの asmdef でも CS0012 が出たら、エラーが名指しする型を含むアセンブリのうち、`Unity.ResourceManager`・`Unity.Addressables`・`Unity.TextMeshPro`・`UnityEngine.UI`・`UnityScreenNavigator` に限って、その asmdef の references に足す。それ以外の名前が出たら止まって報告する
 - `Uta.Client.Editor.asmdef` の `references` の最後に `"UnityScreenNavigator"`, `"Unity.TextMeshPro"`, `"Unity.Addressables"`, `"Unity.Addressables.Editor"`, `"Unity.ResourceManager"` を足す（タスク 1）
 - `Uta.Client.Infrastructure.Tests.EditMode.asmdef` の `references` の最後に `"Uta.Client.Presentation"`, `"Uta.Client.Editor"`, `"UnityScreenNavigator"`, `"UnityEngine.UI"`, `"Unity.TextMeshPro"`, `"Unity.Addressables"`, `"Unity.Addressables.Editor"` を足す（タスク 5）。`Uta.Client.Editor` は `PrefabContractTests` の `TmpSettings_DefaultFont_IsNotoSansJpDynamic` が `FontAssets.RegularPath`・`BoldPath` を使うため（決めたこと 13。テストの asmdef も Editor 専用なので参照できる）。既に参照に入っていれば足さない
 - asmdef の名前は実在を確かめてある: `Unity.TextMeshPro`・`UnityEngine.UI`（`com.unity.ugui` 7.0.0）、`Unity.Addressables`・`Unity.Addressables.Editor`・`Unity.ResourceManager`（`com.unity.addressables` 4.1.2）。`UnityScreenNavigator` の asmdef は `com.unity.addressables` があると `USN_USE_ADDRESSABLES` を定義し、`AddressableAssetLoader` が使える
@@ -714,9 +715,9 @@ public static class PrefabContract
      - `public static string RestorePlay()`: `EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/Bootstrap.unity")`（`BootstrapPlayMode` と同じ値に戻す）→ `EditorPrefs` に残したパスが空でなければ `OpenScene(そのパス, OpenSceneMode.Single)`、空なら `Assets/Scenes/Bootstrap.unity` を開く → `EditorPrefs.DeleteKey("Uta.Spike.PreviousScene")` → `"ok"`
      - `public static void BuildWindowsIl2Cpp()`: `BuildCommands.BuildWindowsIl2Cpp` と同じ設定で、3.7 の 1・2 を行ってから、scenes = `{ "Assets/Spike/Spike.unity" }`、locationPathName = `"Build/Spike/UtaSpike.exe"` でビルドし、成否で `EditorApplication.Exit(0/1)`
 4. Editor で: `unity command eval 'return Uta.Spike.Editor.SpikeCommands.CreateSpikeAssets();'` が `ok`
-5. Editor の Play（Addressables の Play Mode Script は既定の「Use Asset Database」のまま。サーバーは要らない）:
-   1. `unity command eval 'return Uta.Spike.Editor.SpikeCommands.PreparePlay();'` が `ok`（`dirty: …` なら、ユーザーにそのシーンを保存するか変更を捨てるかを決めてもらってからやり直す。勝手に保存・破棄しない）
-   2. `unity command editor.playmode start` → 数秒待つ → `unity command eval 'return UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;'` が `Assets/Spike/Spike.unity` であること。**`Assets/Scenes/Bootstrap.unity` など別のシーンだったら**（Play に入るときのドメインの再読み込みで `BootstrapPlayMode` が開始シーンを戻した可能性。推測）、その結果を報告に書き、代わりの手順で確かめる（止まらない）: 起動の流れが `Title` で止まるまで待ち（アクティブなシーンのパスが `Assets/Scenes/Title.unity` になるまで、数秒おきに上の eval を見る）、`unity command eval 'new UnityEngine.GameObject("SpikeProbe").AddComponent<Uta.Spike.AddressablesSpikeProbe>(); return "ok";'` でプローブを足す（シーンが切り替わるとプローブが消えるので、`Title` に着いてから足し、3.・4. の間はスタートを押さない）
+5. Editor の Play（Addressables の Play Mode Script は既定の「Use Asset Database」のまま）。**Play は常に専用シーン `Assets/Spike/Spike.unity` から始める**。`Bootstrap`・`Title` のシーンもサーバーも使わない（`Bootstrap` はサーバーからマスタを読んでから `Title` へ進むので、そちらを通す手順は取らない）:
+   1. `unity command eval 'return Uta.Spike.Editor.SpikeCommands.PreparePlay();'` が `ok`（`EditorSceneManager.OpenScene` で Spike を開き、`BootstrapPlayMode` が差し替えた `playModeStartScene` をスパイクの間だけ Spike に固定する。`dirty: …` なら、ユーザーにそのシーンを保存するか変更を捨てるかを決めてもらってからやり直す。勝手に保存・破棄しない）
+   2. `unity command editor.playmode start` → 数秒待つ → `unity command eval 'return UnityEngine.SceneManagement.SceneManager.GetActiveScene().path;'` が `Assets/Spike/Spike.unity` であること。**別のシーン（`Assets/Scenes/Bootstrap.unity` など）だったら**（Play に入るときのドメインの再読み込みで `BootstrapPlayMode` が開始シーンを戻した可能性。推測）、その結果を報告に書き、差し替えを Play の開始の直前にもう一度行う（止まらない）: `unity command editor.playmode stop` → `unity command eval 'UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEditor.SceneAsset>("Assets/Spike/Spike.unity"); UnityEditor.EditorApplication.EnterPlaymode(); return "ok";'` → 数秒待つ → 上の eval でアクティブなシーンが `Assets/Spike/Spike.unity` であること。これでも別のシーンなら止まる（S6）
    3. `unity command console get --tail 50 --format json` で `[Uta] spike addressables: ok`・`[Uta] spike tmp: ok`（2 行。Regular と Bold）・`[Uta] spike tmp-settings: ok` があること
    4. ユーザーに Game ビューで日本語が出ていること（豆腐（□）でないこと）と、下の行が太字（Bold のアセット）で出ていることを見てもらう（手動）
    5. `unity command editor.playmode stop` → `unity command eval 'return Uta.Spike.Editor.SpikeCommands.RestorePlay();'` が `ok`
@@ -731,6 +732,7 @@ public static class PrefabContract
 - S3: `BuildPlayerContent` の `result.Error` が空でない
 - S4: 手順 6 で `UtaSpike.exe` が `-nographics` あり・なしの両方で終了コード 0 にならない、またはビルドが失敗する
 - S5: `FontAssets.LoadRegular()`／`LoadBold()` が例外（アセットが無い・Dynamic でない）、`TMP_Settings.defaultFontAsset` が設定できない（`EnsureProjectSettings` の例外）、Editor の Play かプレイヤーで `spike tmp: FAILED` か `spike tmp-settings: FAILED`、目で見て日本語が豆腐になる
+- S6: 手順 5 の 2 で、`EnterPlaymode()` の直前に差し替えても Play が `Assets/Spike/Spike.unity` から始まらない（`Bootstrap`・`Title` を通す手順に変えない）
 
 終わったことの確かめ方: 手順 4〜6 がすべて通った。止まる条件に当たらない。unity7-evaluation.md に結果がある。`Spike/` が無い。既存の EditMode のテストが通る（`unity test` はタスク 5 で確かめるので、ここでは Editor の Test Runner の EditMode を全部実行してもらう。手動）。
 
@@ -741,7 +743,7 @@ public static class PrefabContract
 手順:
 1. Presentation の asmdef の参照を 3.1 のとおりにする
 2. 3.2・3.3 のとおりに作る（View・部品の View はフィールドだけ。`UiRoot`・`SafeAreaFitter`・`WindowAspectKeeper` は中身まで）
-3. `unity recompile --format json` でエラー 0（CS0012 が出たら 3.1 の条件どおり Addressables の参照を足す）
+3. `unity recompile --format json` でエラー 0（CS0012 が出たら 3.1 の条件と一般則どおりに参照を足す）
 
 境界: `UiRoot.EnsureConfigured` は 2 回目以降何もしない。`SafeAreaFitter` は画面の大きさが 0 のとき何もしない。
 
@@ -786,7 +788,7 @@ public static class PrefabContract
    3. `client/uta` で `unity test --mode EditMode`。終了コード 0 で、結果のファイル（既定 `test-results.xml`）で全部通ること（失敗があると終了コード 8、テストが走らなかったときは 6）
    4. `client/uta` で `unity open .` → `unity status --until-ready` が ready（開けなければユーザーに開いてもらう）
    - 念のため、手順 1 の前に Editor を開いたまま `unity test --mode EditMode` を 1 回だけ実行し、どうなったか（動いた・エラーの文）を記録する（動いても、以後は上の閉じる手順を使う）
-   - `unity test` がどうしても動かなければ、Editor の Test Runner で EditMode を全部実行してもらい（手動）、`unity test` が使えないことを unity7-evaluation 4章に書いて、CLAUDE.md には足さない
+   - **`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）。`unity test` が使えないことは unity7-evaluation 4章に書く
 3. わざと壊して効くことを確かめる:
    1. Editor で次を実行し `broken` が返る（`SetRef` は Editor のアセンブリの `PrefabBuildUtil`。`unity command eval` は `return` が要る）:
       `unity command eval 'var path = "Assets/Prefabs/Parts/UtaHeader.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { Uta.Client.Editor.Prefabs.PrefabBuildUtil.SetRef(root.GetComponent<Uta.Client.Presentation.Common.Parts.UtaHeaderView>(), "titleText", null); UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); } return "broken";'`
@@ -839,7 +841,7 @@ public static class PrefabContract
 | | `ScreensGroup_ContainsOnlyScreenPrefabs` | 3.6 |
 | | `TmpSettings_DefaultFont_IsNotoSansJpDynamic` | 3.6 |
 
-実行: `unity test --mode EditMode`（タスク 5 で動くことを確かめるまでは、Editor の Test Runner で手動）。
+実行: `unity test --mode EditMode`（タスク 5 で動くことを確かめるまでは、Editor の Test Runner で手動）。`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ。
 
 Editor・プレイヤーでしか確かめられないもの（自動のテストにしない）:
 - Addressables の読み込み（Editor の Play・Windows の IL2CPP）と、TMP の日本語の表示 → タスク 1 のスパイク（コンソールの `[Uta] spike` の行と、目で見る確認）

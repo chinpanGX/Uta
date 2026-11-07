@@ -48,8 +48,8 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1 → P2 → foundation → gacha → owned → P3 → **この計画** → week → lesson
 - **前提**（実装に入る前に、次がブランチに入っていることを確かめる。無ければ止まって報告する）:
   - 1 本目（foundation）が done: `IScreenNavigator`（基盤）を各シーンのスコープに登録する `SceneUiInstaller`、`PageStack`、`PageBase`、`DialogService`、部品の View のメソッド（`UtaButtonView.Button`・`SetLabel`・`SetInteractable`、`UtaHeaderView.BackButton`）、`ISceneNavigator`（`GoToHomeAsync`・`GoToProduceAsync`）、`IGameMaster`・`ScenarioInfo`、`RefreshPlayerUseCase`、`HomePresenter`・`HomeEntry`、`SceneBuilder` の `InstantiateUiRoot`・`SetRef`（foundation 3.10。foundation は `Produce` シーンを一切変えていない: `BuildProduce`・`Produce.unity`・`ProduceLifetimeScope`・`ProduceView`・`ProducePresenter` は #24 のまま。この計画が作り直す: 3.4・タスク 5）、`BootstrapEntry.RegisterUseCases`、`UtaErrors`（`ProduceErrors` の 7 つを `ErrorAction.Stay` で登録済み）、`Tests/EditMode/Fakes/`（`CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`）
-  - 2 本目（gacha）が done: `PortResult<T>`・`ServerReasons`（`ProduceStaleOperation` ほか 7 つ。無ければこの計画のタスク 2 で足す: 下の 3.2）、`FakeGameMaster`、`HomePresenter` のコンストラクターへの `IScreenNavigator` の追加
-  - 3 本目（owned）が done: `OwnedSelectionRequest`（`ForIdol`・`ForSupportCard`）・`OwnedSelection`（`IsCancelled`・`IdolId`・`SupportCardUid`）、選択モードの `OwnedPresenter`（Args は `OwnedArgs`。結果は `WaitForPopAsync<OwnedSelection>`）、`DisplayText`（`RarityName`・`PlanName`・`ParamName`）、`FormationValidator.IsPlanCompatible(Plan idolPlan, Plan supportPlan)`（Shared.Domain）
+  - 2 本目（gacha）が done: `PortResult<T>`・`ServerReasons` と `ServerReasonsTests`（`ProduceStaleOperation` ほか 7 つ。無ければこの計画のタスク 2 で定数とテストの行を足す: 下の 3.2）、`FakeGameMaster`、`HomePresenter` のコンストラクターへの `IScreenNavigator` の追加
+  - 3 本目（owned）が done: `OwnedSelectionRequest`（`ForIdol`・`ForSupportCard`）・`OwnedSelection`（`IsCancelled`・`IdolId`・`SupportCardUid`）、選択モードの `OwnedPresenter`（Args は `OwnedArgs`。結果は `WaitForPopAsync<OwnedSelection>`）、`DisplayText`（`RarityName`・`PlanName`・`ParamName`）、`FormationValidator.IsPlanCompatible(Plan idolPlan, Plan supportPlan)`（Shared.Domain。**main には無く、owned のタスク 1 が `shared/` に足す**）
   - P3 が done: `Scripts/Presentation/Formation/FormationPage.cs`・`FormationSlotRowView.cs`、`Scripts/Presentation/Produce/ProduceBackdropPage.cs`（P3 3.1 のフィールドだけの骨格）と、`Assets/Prefabs/Screens/Formation/FormationPage.prefab`・`Assets/Prefabs/Screens/Produce/ProduceBackdropPage.prefab`（Addressables の `Screens` に、アドレス `FormationPage`・`ProduceBackdropPage`）。フィールドの名前・型が P3 3.1 と違えば止まって報告する
   - サーバーのプロデュース（順 6）は main にある
   - Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、client のコンパイル・テスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）。タスク 1（server・shared）は .NET SDK と Docker で確かめる
@@ -72,6 +72,7 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 | 作成 | `Scripts/Application/Produce/ProduceDeckCard.cs`・`ProduceWeekAction.cs`・`ProduceClassOption.cs`・`ProduceExamTurn.cs`・`ProduceParamBonus.cs`・`ProducePersistent.cs`・`ProduceLesson.cs`・`ProduceExamResult.cs`・`ProduceEndingKind.cs`・`ProduceOutcome.cs`・`ProduceProgress.cs`・`CardOfferAction.cs`・`LessonActionType.cs` | 応答の写し（3.2。1 ファイル 1 型） |
 | 作成 | `Scripts/Application/Produce/IProducePort.cs`・`ProduceSession.cs`・`ProduceRefresh.cs`・`ProduceStartStatus.cs`・`StartProduceUseCase.cs`・`ProduceResumeStatus.cs`・`ResumeProduceUseCase.cs`・`AbandonProduceUseCase.cs`・`ProduceStepStatus.cs`・`ProduceActions.cs` | ポート・状態・ユースケース（3.2） |
 | 変更 | `Scripts/Application/Common/ServerReasons.cs` | プロデュースの reason が無ければ足す（3.2） |
+| 変更 | `Tests/EditMode/ServerReasonsTests.cs` | 足した reason の行を足す（3.2・5章） |
 | 作成 | `Scripts/Infrastructure/Api/ProduceApi.cs` | `ApiServiceBase<IProduceService>`（3.3） |
 | 変更 | `Scripts/Infrastructure/Api/UtaApiClient.cs`・`UtaMagicOnionClientInitializer.cs` | `Produce` を足し、`typeof(IProduceService)` を足す（3.3） |
 | 作成 | `Scripts/Infrastructure/Produce/ProduceGateway.cs` | `IProducePort` の実装と、応答の写し（3.3） |
@@ -136,7 +137,7 @@ C# は C# 9 の範囲（`client/`・`shared/`。コレクション式 `[...]`・
 
 使う Domain の enum: `Uta.Shared.Domain.Produce` の `ProducePhase`・`WeekChoiceKind`・`ExamKind`・`ExamOutcome`・`ProduceRank`、`Uta.Shared.Domain.Lesson` の `LessonKind`・`ParamKind`・`PersistentTrigger`・`Plan`。
 
-`ServerReasons`（2 本目の `Scripts/Application/Common/ServerReasons.cs`）に、次の 7 つの定数が無ければ足す（値は `Uta.Shared.Contracts.Produce.ProduceErrors` の各 `ErrorCode` の `Reason` と同じ文字列。`Application` は Contracts を参照しないので文字列で持つ）: `ProduceStaleOperation`・`ProduceUnexpectedPhase`・`ProduceInvalidArgument`・`ProduceInvalidFormation`・`ProduceNotInProgress`・`ProduceSessionDiscarded`・`ProduceAlreadyInProgress`。
+`ServerReasons`（2 本目の `Scripts/Application/Common/ServerReasons.cs`）に、次の 7 つの定数が無ければ足す（値は `Uta.Shared.Contracts.Produce.ProduceErrors` の各 `ErrorCode` の `Reason` と同じ文字列。`Application` は Contracts を参照しないので文字列で持つ）: `ProduceStaleOperation`・`ProduceUnexpectedPhase`・`ProduceInvalidArgument`・`ProduceInvalidFormation`・`ProduceNotInProgress`・`ProduceSessionDiscarded`・`ProduceAlreadyInProgress`。**定数を足したら、同じタスクで `ServerReasonsTests` の `Reasons_MatchContractsErrorCodes` に、足した定数ごとに 1 行足す**（gacha 3.1 の規則「定数とテストの行を一緒に足す」。owned と同じ書き方。5章）。
 
 応答の写し（どれも `sealed class`、コンストラクターで全部受け、get だけのプロパティ。プロパティ名は引数名の先頭を大文字にしたもの。配列の引数が `null` なら `ArgumentNullException`）:
 
@@ -641,7 +642,7 @@ public static class TestProduce
 
 ## 4. タスク
 
-各タスクの終わりに、`dotnet build Uta.slnx`（server・shared を触ったタスク。警告 0・エラー 0）、`unity recompile --format json`（client を触ったタスク。`client/uta` で実行。コンパイルエラー 0）、そのタスクまでのテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。CLAUDE.md に行が無ければ Editor の Test Runner の EditMode を全部実行してもらう。foundation・P1 の結果に従う）。**.NET SDK・Docker・Unity の Editor が無い環境では、通ったと書かず、確かめていないと報告する**。TMP の文字を EditMode で入れるテストは無いが、Play のあとでコミットする前に `Uta/Prefabs/Clear Dynamic Font Data`（P1）を実行する（foundation 3.3.7）。
+各タスクの終わりに、`dotnet build Uta.slnx`（server・shared を触ったタスク。警告 0・エラー 0）、`unity recompile --format json`（client を触ったタスク。`client/uta` で実行。コンパイルエラー 0）、そのタスクまでのテストが通る状態にする。EditMode のテストは `unity test --mode EditMode`（Editor が要る。回し方は P1 タスク 5 の「テストの回し方」）。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**.NET SDK・Docker・Unity の Editor が無い環境では、通ったと書かず、確かめていないと報告する**。TMP の文字を EditMode で入れるテストは無いが、Play のあとでコミットする前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'`（P1 の `FontAssets`）を実行する（foundation 3.3.7）。
 
 ### タスク 1: サーバー・shared の `UsableHand` と wiki
 
@@ -661,7 +662,7 @@ public static class TestProduce
 
 ### タスク 2: Application の型・ポート・ユースケースと偽
 
-触る: `Application/Produce/*`（2 章の 2 行）、`Application/Common/ServerReasons.cs`（定数が無いときだけ）、`Tests/EditMode/Fakes/FakeProducePort.cs`・`FakePlayerPort.cs`・`TestProduce.cs`、`Tests/EditMode/ProduceSessionTests.cs`・`ProduceProgressTests.cs`・`StartProduceUseCaseTests.cs`・`ResumeProduceUseCaseTests.cs`・`AbandonProduceUseCaseTests.cs`・`ProduceActionsTests.cs`。
+触る: `Application/Produce/*`（2 章の 2 行）、`Application/Common/ServerReasons.cs`・`Tests/EditMode/ServerReasonsTests.cs`（定数が無いときだけ。足した定数の行をテストにも足す）、`Tests/EditMode/Fakes/FakeProducePort.cs`・`FakePlayerPort.cs`・`TestProduce.cs`、`Tests/EditMode/ProduceSessionTests.cs`・`ProduceProgressTests.cs`・`StartProduceUseCaseTests.cs`・`ResumeProduceUseCaseTests.cs`・`AbandonProduceUseCaseTests.cs`・`ProduceActionsTests.cs`。
 
 手順: 3.2・3.7 のとおり作る。
 境界: `ProduceSession.Set(null)` は `ArgumentNullException`。`ProduceProgress.GetParam` は `Singing`・`Rhythm`・`Expression` 以外で `ArgumentOutOfRangeException`。写しの型の配列の引数が `null` なら `ArgumentNullException`。`ProduceActions` は `session.Current == null` で `InvalidOperationException`。
@@ -712,7 +713,7 @@ public static class TestProduce
 3. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）を直す:
    - 7.6 の 1 つ目の箇条書きの「`ProduceSession`（最新の `ProduceStateView` と次の操作番号）」を「`ProduceSession`（最新の `ProduceProgress`（応答の写し）。次の操作番号は `Current.OperationNumber`。操作の前後の差は `Previous` と `Current`）」に直す
    - 7.6 の 3 つ目の箇条書きを「`PRODUCE_STALE_OPERATION`・`PRODUCE_UNEXPECTED_PHASE` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたら、セッションを消して所持データを取り直し、`Home` シーンへ戻る」に直す
-   - 7.6 の最後に「- プロデュースの画面は `Produce` シーンに積む。底は背景のページ（`ProduceBackdropPage`。週・パラメータ・体力）で、`ProduceEntry` が積む。局面の切り替えは、背景より上のページ・モーダルを全部 `Pop` してから次の局面の画面を `Push` する（`ProduceFlow.ShowCurrentAsync`）。カードの選択肢は背景の上にモーダルで出す。編成は `Home` シーンのページで、開始・再開は `ISceneNavigator.GoToProduceAsync`、ホームへ戻る・放棄・終了は `GoToHomeAsync`。`ProduceFlow`・`ProduceMenu` は `Produce` シーンのスコープ、`ProduceSession` とユースケースはルートのスコープ。取り直しは状態を変えたユースケースが行い、`ProduceFlow` は行わない [Uta案。2026-11-07]」を足す
+   - **7.6 で直すのは上の 2 つの箇条書きだけ**。プロデュースの画面の流れ（背景のページ・局面の切り替え・スキルカード獲得のモーダルの出し方）を 7.6 に足すこと、[screen-wireframes.md](../wiki/overview/screen-wireframes.md) の直しは、この計画ではしない。スキルカード獲得のモーダルを背景のページの上に出すこと（week の確認 1。[索引](2026-11-07-client-screens-index.md) 確認 15）がユーザーの了承待ちのため、了承のあとに week のタスク 5 が 7.6 と screen-wireframes を直す
    - 8章の表の `Home` の行の役割の「ここから `Produce` へ」を「編成（`FormationPage`）はこのシーンのページ。開始・再開で `Produce` へ」に、`Produce` の行の役割を「プロデュース。底に背景のページを置き、局面の画面を積む（7.6）。ホームへ戻る・放棄・終了で `Home` へ」に直す（foundation のタスク 6 がすでに書き換えていれば、その文に合わせて「空」などの古い記述だけを直す）
    - 「実装メモ」に、設計とのズレを書く（なければ「順 7 の 4 本目: なし」）
 4. produce-server.md の実装メモの「未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作」を、2 の結果に合わせて「…`WeekSelect` の応答までは確かめた（unity7-evaluation.md 2章）。`LessonDto`・`ExamResultDto` は未確認」に直す（確かめられなかったら直さない）
@@ -740,6 +741,7 @@ EditMode のテストは foundation 3.3.7 の書き方（偽の View・`FakeScre
 |---|---|---|
 | `ProduceOperationTests.cs`（server、結合。タスク 1） | `Lesson_Response_HasUsableHandSameLengthAsHand` | `var lesson = await StartLessonAsync(player);` → `Assert.NotNull(lesson.Lesson.UsableHand)`、`Assert.Equal(lesson.Lesson.Hand.Length, lesson.Lesson.UsableHand.Length)`。続けて `GetStateAsync(player, "req-5")` の応答でも同じ長さ |
 | | `WeekSelect_Response_HasNoLesson` | `StartProduceAsync(player, "req-3")` の応答の `Lesson` が `null`（`UsableHand` を読む経路が無い） |
+| `ServerReasonsTests.cs`（変更。タスク 2。定数を足したときだけ） | `Reasons_MatchContractsErrorCodes` に、足した定数の行を足す | `ServerReasons.ProduceStaleOperation == ProduceErrors.StaleOperation.Reason`、`ProduceUnexpectedPhase`・`ProduceInvalidArgument`・`ProduceInvalidFormation`・`ProduceNotInProgress`・`ProduceSessionDiscarded`・`ProduceAlreadyInProgress` も同じ（`ProduceErrors` の同名から `Produce` を除いたもの。`using Uta.Shared.Contracts.Produce;`） |
 | `ProduceSessionTests.cs`（タスク 2） | `Set_UpdatesCurrentAndPrevious` | 2 回 `Set` → `Previous` が 1 回目、`Current` が 2 回目 |
 | | `Set_ResetsExamResultShown` / `Set_Null_Throws` / `Clear_ResetsAll` | |
 | | `HasActive_ByPhase` | `Current == null`・`Nothing`・`Finished` は false、`WeekSelect` は true |
