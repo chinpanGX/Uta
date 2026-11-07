@@ -127,6 +127,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 ### 7.2 Prefab の読み込みは Addressables [決定。2026-11-07。ユーザーの判断]
 
 - 画面の Prefab は Addressables のグループ `Screens` に入れる。アドレスは Prefab の名前（例 `HomePage`）。登録は Editor のスクリプト（`AddressableAssetSettings` の API）が行う。`PageContainer`／`ModalContainer` の `AssetLoader` は USN の `AddressableAssetLoader`
+- **アドレス・グループ・ラベル・ロードと解放** [Uta案]: グループは `Screens` の 1 つ（MVP。画面数が増えたら機能ごとに分ける）。アドレスは Prefab の名前そのまま（`HomePage`、`GachaRatesModal`）で、Presenter の `[AssetAddress(nameof(HomePage))]` と同じ文字列。ラベルは付けない。ロードと解放は USN のコンテナー（`AddressableAssetLoader`）が Push／Pop で行い、Presenter・View は `Addressables` の API を呼ばない。リスト行などの共通部品の Prefab は Addressables に入れず、View の `[SerializeField]` で直接参照する（画面の Prefab と一緒にビルドされる）。Editor のスクリプトが、`Assets/Prefabs/Screens/` の Prefab を `Screens` グループにアドレス付きで登録する
 - 基盤の `IScreenNavigator`（Presenter 駆動。`[AssetAddress("HomePage")]` のキーがアドレスになる）をそのまま使う
 - プレイヤーのビルドの前に `AddressableAssetSettings.BuildPlayerContent()` を実行する（`BuildCommands` に足す）
 - **未確認**: Addressables 4.1.2 の Unity 7（`7000.0.0a12`）での動作（Editor の Play、Windows の IL2CPP、`BuildPlayerContent`）。計画の最初のタスクで確かめ、動かなければ止まって報告する（別の読み込み方法に勝手に変えない）
