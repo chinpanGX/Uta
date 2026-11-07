@@ -1,39 +1,64 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
 status: draft
-updated: 2026-11-03
+updated: 2026-11-07
 spec: ../wiki/systems/idol-support.md
 ---
 
 # 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
 
+## この計画で決めたこと
+
+ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。
+
+1. **画面は P2 の Prefab と View の骨格の上に作る**（2026-11-07 の Prefab 化）。`OwnedPage`・`SupportDetailPage` の Prefab・子の並び・`[SerializeField]` のフィールドは P2（[2026-11-07-client-prefabs-screens-a.md](2026-11-07-client-prefabs-screens-a.md) 3.2・3.3）が作る。この計画は、その骨格に `IOwnedView`・`ISupportDetailView` の実装（フィールドを使う表示と、`Awake` でのボタンの購読）を足すだけで、C# で UI を組まない（旧版の `BuildUi`・`UiFactory`・`EnsureBuilt` と「画面のレイアウト」の節はやめた）
+2. **P2 の構造に合わせた表示の決め方**: 0 件の「ありません」は一覧の外の `emptyText` を出し隠しする（一覧の中に置かない）。タブの選択は `UtaTabBarView.SetSelected`（下線 `underline` の表示）で表す（旧: ボタンを押せなくする）。プラン・タイプのボタンは `filterRow`（下段）ごと出し隠しする。所持一覧の行は P1 の `UtaListRow`（`TitleText`・`SubText`・`RightText`。`RightText` は空）。レベルのボタン（+1／+5／最大）は Prefab に固定で 3 つあり、ラベルと押せるかだけを変える
+3. **所持一覧・詳細は `Home` シーンの中のページ**（screen-design 8章、foundation 3.3.1）。ホームの「アイドル」ボタン（P2 の `HomePage` の `Menu/OwnedButton`）→ `HomePresenter.OpenOwnedAsync` → `OwnedPresenter` を積む → 行のタップで `SupportDetailPresenter` を積む → 上限解放の素材は `OwnedPresenter`（選択モード）をもう 1 枚積む。どれも `Home` シーンの `IScreenNavigator` で積み、「＜」で `PopPageAsync(this)`。シーンはまたがない
+4. **ユースケース・ゲートウェイの登録は `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足すだけ**。画面の登録（旧 `UiRoot.RegisterPage`）は無い（Prefab は P2 が Addressables の `Screens` に登録済み。Presenter は基盤が Push のたびに作る）
+5. `ServerReasons`（2 本目）に、この計画が使う reason 6 つ（`SUPPORT_*` 5 つと `PLAYER_NOT_ENOUGH_GOLD`）を足す（2 本目の「ほかの reason は、それを使う計画が足す」のとおり）
+6. **[Uta案] 育成アイドルの一覧は `IdolId` の昇順に固定**し、並び替え・絞り込みを持たない（MVP の育成アイドルは 4 人で、並べ替える意味が小さいため）。叩き台 [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び: レア度・Lv・入手順。絞り込み: プラン」は、MVP では**サポートカードだけ**に持たせる（叩き台との差。タスク 5 で screen-wireframes.md 10 に注記する）（確認 1）
+7. サポートカードの「入手順」は所持ID（ULID）の昇順（ULID は発行時刻の順。`string.CompareOrdinal` で比べる。サーバーの返す並びに頼らない）
+8. 上限解放の素材は、仕様（idol-support.md 2.2.1）どおり**プレイヤーが選ぶ**。選び方は所持一覧の選択モード（素材の選択）を使う
+9. レベル上げ（+1／+5／最大）と上限解放は、**確認ダイアログを出してから** RPC を呼ぶ（叩き台 10「強化・上限解放…は、確認ダイアログ → サーバーで確定」）。上限解放の確認には、素材の Lv にかかわらず常に「素材は無くなります。強化に使った強化pt・ゴールドは戻りません。」を出す（確認 3）
+10. サポートカードの詳細と強化（レベル上げ・上限解放）は **1 ページ**（`SupportDetailPage`）にする（screen-design.md 2・3章の「詳細 ─▶ 強化」を 1 枚にまとめる。タスク 5 で 2・3章を直す）（確認 2）
+11. 詳細のアビリティは枠 1（`SupportAbility` の行）を、今のレベルの値で出す（`ProduceFormulas.AbilityValue`。サーバーのプロデュース開始と同じ計算）
+12. 上限解放の最大回数はマスタ（`IGameMaster.GetSupportMaxLimitBreak`）から読む。サーバーは定数 `SupportRules.MaxLimitBreak = 4` を使うので、マスタの `SupportLevelCap` に各レアの `LimitBreak = 4` の行があることが前提（今のマスタはそうなっている。食い違っても、超えた分はサーバーが `SUPPORT_MAX_LIMIT_BREAK` で拒否する）
+13. プランの適合の規則は Shared.Domain の `FormationValidator.IsPlanCompatible` に 1 つ（shared/ の変更。サーバーの `Validate` も使う）
+
+## ユーザーの確認が要ること
+
+1. **育成アイドルの一覧を `IdolId` の順に固定し、並び・絞り込みをサポートカードだけにしてよいか**（決めたこと 6。叩き台 10 からの縮小）。代わりの案は、育成アイドルにもプランの絞り込みを付ける（分岐が増える）
+2. **サポートカードの詳細と強化を 1 ページにしてよいか**（決めたこと 10。screen-design 2・3章の「詳細 ─▶ 強化」の 2 枚からの変更）
+3. **上限解放の確認文「強化に使った強化pt・ゴールドは戻りません」を、素材の Lv にかかわらず常に出してよいか**（決めたこと 9。仕様 2.2.1 は「素材のレベルが 1 より大きいとき」）
+
 ## 1. 目的と前提
 
-[game-spec.md](../wiki/overview/game-spec.md) の順 7 の 3 本目。所持一覧（育成アイドル・サポートカード）と、サポートカードの詳細（アビリティの表示・レベル上げ・上限解放）の画面、`ISupportService` を呼ぶクライアントの層を作る。所持一覧には、**編成（4 本目）と上限解放の素材が使う「選択モード」**を持たせる。あわせて、プランの適合の規則を Shared.Domain の `FormationValidator.IsPlanCompatible` に 1 つにまとめる（shared/ の変更）。画面の叩き台は [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10、仕様は [idol-support.md](../wiki/systems/idol-support.md)（IDL-01・SUP-01・SUP-02。2.1 編成のルール、2.2.1 上限解放の操作、2.3 アビリティ）、RPC は `shared/Uta.Shared.Contracts/Support/`・[gacha-support-server.md](../wiki/architecture/server/gacha-support-server.md)。
+[game-spec.md](../wiki/overview/game-spec.md) の順 7 の C# の 3 本目。所持一覧（育成アイドル・サポートカード）と、サポートカードの詳細（アビリティの表示・レベル上げ・上限解放）の画面、`ISupportService` を呼ぶクライアントの層を作る。所持一覧には、**編成（4 本目）と上限解放の素材が使う「選択モード」**を持たせる。あわせて、プランの適合の規則を Shared.Domain の `FormationValidator.IsPlanCompatible` に 1 つにまとめる（shared/ の変更）。画面の叩き台は [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10、仕様は [idol-support.md](../wiki/systems/idol-support.md)（IDL-01・SUP-01・SUP-02。2.1 編成のルール、2.2.1 上限解放の操作、2.3 アビリティ）、RPC は `shared/Uta.Shared.Contracts/Support/`・[gacha-support-server.md](../wiki/architecture/server/gacha-support-server.md)。
 
-- 方針の正は [screen-design.md](../wiki/architecture/screen-design.md) 7章。画面の作り方（Presenter・View・Args・遷移・実行中フラグ・テストの書き方）は **[1 本目](2026-11-03-client-screens-foundation.md) 3.3 の共通ルールに従う**（この計画では繰り返さない）。基盤の `IScreenNavigator`（`external/UnityScreenNavigator`）をそのまま使う
+- 方針の正は [screen-design.md](../wiki/architecture/screen-design.md) 7章（Prefab・Addressables・TextMeshPro）と 8章（シーン構成）。画面の作り方（Presenter・View・Args・遷移・実行中フラグ・破棄の印・テストの書き方）は **[foundation](2026-11-03-client-screens-foundation.md) 3.3 の共通ルールに従う**（この計画では繰り返さない）。C# の公開 API の正は foundation の 3章（一覧は 3.0）。基盤の `IScreenNavigator`（`external/UnityScreenNavigator`）をそのまま使う
+- **PR #28 の読み替え**: PR #28（未マージ。PR #28 が足す ADR）は `external/` のサブモジュールを全部消す（UnityScreenNavigator・Supplement・VolTech-MagicOnion・MasterMemoryAddons）。サーバー・shared は `packages/` の `.nupkg`、Unity は `manifest.json` の git URL で参照し、`Uta.slnx` から共通基盤が外れる。**PR #28 のあとは、共通基盤のソース（USN の `Runtime/ChinpanGX`・README・`AddressableAssetLoader`、VolTech-MagicOnion のコードなど）は `client/uta/Library/PackageCache/<パッケージ名>@<ハッシュ>/`（USN は `com.harumak.unityscreennavigator`。Unity でパッケージを解決した環境にだけある）か GitHub のリポジトリを読む。マージ前は `external/<名前>`**。この計画に書いた `external/` のパスは、そう読み替える（`external/` は直さない、の決まりは変わらない）
+- **Prefab と View のフィールドの正は P2**（[2026-11-07-client-prefabs-screens-a.md](2026-11-07-client-prefabs-screens-a.md) 3.1 の表・3.2 の `OwnedPage`／`SupportDetailPage`・3.3 の対応表）。この計画はフィールドを足さない・名前を変えない。足りなければ止まって報告する（P2 を直す）
 - 関係する ADR: [0008](../wiki/decisions/0008-shared-domain-and-onion.md)（層。判定は Shared.Domain の関数を両側で使う）、[0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・VContainer・UniTask）
-- 使う前の計画の型: 1 本目の `PageBase`・`UiFactory`・`UiTheme`・`DialogService`・`IGameMaster`（`GetSupportAbilities` を含む）・`RefreshPlayerUseCase`・`HomePresenter`・`CallLog`・`FakeScreenNavigator`・`FakeDialogService`。2 本目の `PortResult<T>`・`ServerReasons`・`FakeGameMaster`、`HomePresenter` に足された `IScreenNavigator`
-- **前提**: 1・2 本目が done（game-spec.md の順 7 の行のとおり、3 は 2 の型を使うので 2 の後）
-- **決めないこと / 作らないもの**: 育成アイドルの詳細・強化（IDL-02。MVP の画面に入れない）、アビリティの枠 2〜6（MVP は枠 1 だけ。[idol-support.md](../wiki/systems/idol-support.md) 2.3）、スキルカードサポート・イベント（MVP 外）。編成の画面での開始時の補正の表示は 4 本目が決める
-- **決めたこと（この計画で）**:
-  - [Uta案] **育成アイドルの一覧は `IdolId` の昇順に固定**し、並び替え・絞り込みを持たない（MVP の育成アイドルは 4 人で、並べ替える意味が小さいため）。叩き台 [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び: レア度・Lv・入手順。絞り込み: プラン」は、MVP では**サポートカードだけ**に持たせる（叩き台との差。タスク 5 で screen-wireframes.md 10 に注記する）
-  - サポートカードの「入手順」は所持ID（ULID）の昇順（ULID は発行時刻の順。`string.CompareOrdinal` で比べる。サーバーの返す並びに頼らない）
-  - 上限解放の素材は、仕様（idol-support.md 2.2.1）どおり**プレイヤーが選ぶ**。選び方は所持一覧の選択モード（素材の選択）を使う
-  - レベル上げ（+1／+5／最大）と上限解放は、**確認ダイアログを出してから** RPC を呼ぶ（叩き台 10「強化・上限解放…は、確認ダイアログ → サーバーで確定」）。上限解放の確認には、素材の Lv にかかわらず常に「素材は無くなります。強化に使った強化pt・ゴールドは戻りません。」を出す（仕様は「素材のレベルが 1 より大きいとき」。常に出すほうが安全なので広げる。タスク 5 で実装メモに書く）
-  - サポートカードの詳細と強化（レベル上げ・上限解放）は **1 ページ**（`SupportDetailPage`）にする（screen-design.md 2・3章の「詳細 ─▶ 強化」を 1 枚にまとめる。タスク 5 で 2・3章を直す）
-  - 詳細のアビリティは枠 1（`SupportAbility` の行）を、今のレベルの値で出す（`ProduceFormulas.AbilityValue`。サーバーのプロデュース開始と同じ計算）
-  - 上限解放の最大回数はマスタ（`IGameMaster.GetSupportMaxLimitBreak`）から読む。サーバーは定数 `SupportRules.MaxLimitBreak = 4` を使うので、マスタの `SupportLevelCap` に各レアの `LimitBreak = 4` の行があることが前提（今のマスタはそうなっている。食い違っても、超えた分はサーバーが `SUPPORT_MAX_LIMIT_BREAK` で拒否する）
+- 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1（[prefabs-common](2026-11-07-client-prefabs-common.md)）→ P2 → foundation → gacha → **この計画** → P3 → formation・week・lesson
+- 使う前の計画の型:
+  - P1: `PageBase`、部品の View（`UtaButtonView`・`UtaHeaderView`・`UtaTabBarView`・`UtaTabView`・`ListRowBase`・`UtaListRowView`）、部品の Prefab `UtaListRow`
+  - P2: `OwnedPage`・`SupportDetailPage` の骨格（フィールドだけ）と Prefab（Addressables のアドレス `OwnedPage`・`SupportDetailPage`）
+  - foundation: 部品の View に足したメソッド（3.2。`UtaButtonView.Button`・`SetLabel`・`SetInteractable`、`UtaHeaderView.BackButton`・`SetTitle`、`UtaTabBarView.TabClicked`・`SetSelected`、`ListRowBase.Button`・`SetInteractable`、`UtaListRowView.SetTexts`）、`UiObjects.ClearChildren`・`AddRow<T>`、`DialogService`・`DialogResult`、`IGameMaster`（`GetSupportAbilities` を含む）、`RefreshPlayerUseCase`、`PlayerCache`、`HomePresenter`、`BootstrapEntry.RegisterUseCases`、`UtaErrors`（`SupportErrors` 5 つと `PlayerErrors.NotEnoughGold` が `Stay` で登録済み）、テスト用の `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`StubPlayerPort`
+  - gacha（2 本目）: `PortResult<T>`・`ServerReasons`・テスト用の `FakeGameMaster`（`Tests/EditMode/Fakes/`。`Abilities` の口を持つ）、`HomePresenter` に足された `IScreenNavigator`
+- **前提 1**: P1・P2・foundation・gacha が done。タスク 1 の前に、`Presentation/Owned/OwnedPage.cs`・`SupportDetailPage.cs` のフィールドが P2 の 3.1 の表と同じこと、`HomePresenter` のコンストラクターに `IScreenNavigator` があることを確かめ、違えば止まって報告する
+- **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、コンパイル・EditMode のテスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）。shared/ の変更（タスク 1 の 1）は .NET SDK で確かめられる
+- **決めないこと / 作らないもの**: 育成アイドルの詳細・強化（IDL-02。MVP の画面に入れない）、アビリティの枠 2〜6（MVP は枠 1 だけ。[idol-support.md](../wiki/systems/idol-support.md) 2.3）、スキルカードサポート・イベント（MVP 外）。編成の画面での開始時の補正の表示は 4 本目が決める。Prefab の階層・見た目の値（P2）
 
 ## 2. 触るファイル
 
-パスは、`client/uta/Assets/` で始まらないものはリポジトリのルートからの相対、それ以外は `client/uta/Assets/` からの相対。新しい `.cs` の `.meta` は Unity が作ったものをコミットする。
+パスは、`client/uta/Assets/` で始まらないものはリポジトリのルートからの相対、それ以外は `client/uta/Assets/` からの相対。新しい `.cs` の `.meta` は Unity が作ったものをコミットする。Prefab（`.prefab`）と Addressables の設定は触らない（P2 の生成物）。
 
 | 操作 | パス | 中身 |
 |---|---|---|
 | 変更 | `shared/Uta.Shared.Domain/Produce/FormationValidator.cs` | `IsPlanCompatible` を足し、`Validate` がそれを呼ぶ（3.1） |
 | 変更 | `shared/Uta.Shared.Domain.Tests/Produce/FormationValidatorTests.cs` | `IsPlanCompatible` のテストを足す（5章） |
 | 作成 | `Scripts/Presentation/Common/DisplayText.cs` | レア度・プラン・タイプ・パラメータ・アビリティの表示名（3.2） |
+| 変更 | `Scripts/Application/Common/ServerReasons.cs` | reason を 6 つ足す（3.3） |
 | 作成 | `Scripts/Application/Support/ISupportPort.cs`・`SupportLevelUpResult.cs`・`SupportLimitBreakResult.cs` | 通信ポートと、ポートが返す型（3.3） |
 | 作成 | `Scripts/Application/Support/SupportStatus.cs`・`SupportOutcome.cs`・`LevelUpStep.cs` | ユースケースの結果の型（3.3） |
 | 作成 | `Scripts/Application/Support/SupportLevelPlanner.cs` | 目標レベルの決め方（3.3） |
@@ -44,18 +69,31 @@ spec: ../wiki/systems/idol-support.md
 | 変更 | `Scripts/Infrastructure/Api/UtaApiClient.cs` | `Support`（`SupportApi`）を足す（3.5） |
 | 変更 | `Scripts/Infrastructure/Api/UtaMagicOnionClientInitializer.cs` | `typeof(ISupportService)` を足す（3.5） |
 | 作成 | `Scripts/Infrastructure/Support/SupportGateway.cs` | `ISupportPort` の実装（3.5） |
-| 作成 | `Scripts/Presentation/Owned/OwnedTab.cs`・`OwnedArgs.cs`・`OwnedRowViewData.cs`・`IOwnedView.cs`・`OwnedPage.cs`・`OwnedPresenter.cs` | 所持一覧（3.6） |
-| 作成 | `Scripts/Presentation/Owned/SupportDetailArgs.cs`・`ISupportDetailView.cs`・`SupportDetailPage.cs`・`SupportDetailPresenter.cs` | サポートカードの詳細（3.7） |
+| 作成 | `Scripts/Presentation/Owned/OwnedTab.cs`・`OwnedArgs.cs`・`OwnedRowViewData.cs`・`IOwnedView.cs`・`OwnedPresenter.cs` | 所持一覧（3.6） |
+| 変更 | `Scripts/Presentation/Owned/OwnedPage.cs` | P2 の骨格に `IOwnedView` の実装を足す（3.6。フィールドは変えない） |
+| 作成 | `Scripts/Presentation/Owned/SupportDetailArgs.cs`・`ISupportDetailView.cs`・`SupportDetailPresenter.cs` | サポートカードの詳細（3.7） |
+| 変更 | `Scripts/Presentation/Owned/SupportDetailPage.cs` | P2 の骨格に `ISupportDetailView` の実装を足す（3.7。フィールドは変えない） |
 | 変更 | `Scripts/Presentation/Home/HomePresenter.cs` | `OpenOwnedAsync` の中身を、所持一覧を積む処理に置き換える（3.8） |
-| 変更 | `Scripts/Bootstrap/UtaBootstrap.cs` | 雛形の登録 2 行と DI の登録（3.8） |
-| 変更 | `Tests/EditMode/<2 本目の置き場>/FakeGameMaster.cs` | アビリティを差し込む口が無ければ足す（タスク 1。置き場は 2 本目の計画のとおり） |
-| 変更 | `Tests/EditMode/HomePresenterTests.cs` | 「アイドル」が準備中でなくなった分を直し、1 本足す（5章） |
+| 変更 | `Scripts/Bootstrap/BootstrapEntry.cs` | `RegisterUseCases` に 3 行足す（3.8） |
+| 変更 | `Tests/EditMode/ServerReasonsTests.cs` | 足した reason の行を足す（5章） |
+| 変更 | `Tests/EditMode/HomePresenterTests.cs` | 「アイドル」のボタンのテストを差し替え、1 本足す（5章） |
 | 作成 | `Tests/EditMode/*.cs`（5章） | テスト |
 | 変更 | `uta_docs/wiki/architecture/screen-design.md`・`architecture/produce-domain.md`・`overview/screen-wireframes.md`・`systems/idol-support.md`・`architecture/unity7-evaluation.md` | 結果の記録（タスク 5） |
+
+`Tests/EditMode/Fakes/FakeGameMaster.cs`（2 本目）は変えない（アビリティは 2 本目の `Abilities` の口に入れる）。asmdef は変えない（foundation 3.1 と P1 で足りている）。
 
 ## 3. 型とシグネチャ
 
 C# は、`shared/`・`client/` とも C# 9 の範囲（1 本目 3章の冒頭のとおり。コレクション式 `[...]` は使わず `new[] { ... }`）。名前空間はフォルダに合わせる: `Scripts/Application/Support` → `Uta.Client.Application.Support`、`Application/Owned` → `Uta.Client.Application.Owned`、`Infrastructure/Api` → `Uta.Client.Infrastructure.Api`、`Infrastructure/Support` → `Uta.Client.Infrastructure.Support`、`Presentation/Owned` → `Uta.Client.Presentation.Owned`、`Presentation/Common` → `Uta.Client.Presentation.Common`。数値の 3 桁区切りは 1 本目 3.3.6 のとおり `ToString("N0", CultureInfo.InvariantCulture)`（以下 `N0(x)` と書く）。
+
+### 3.0 後続の計画が使う公開 API（一覧）
+
+| 型・メンバー | 使う計画 | 節 |
+|---|---|---|
+| `FormationValidator.IsPlanCompatible(Plan idolPlan, Plan supportPlan)`（shared/） | formation（編成の表示）、サーバー | 3.1 |
+| `DisplayText.RarityName`・`PlanName`・`SupportTypeName`・`ParamName`・`Ability` | formation・week・lesson | 3.2 |
+| `ServerReasons` の `Support*`・`PlayerNotEnoughGold` | — | 3.3 |
+| `OwnedArgs`・`OwnedSelectionRequest.ForIdol`／`ForSupportCard`／`ForLimitBreakMaterial`・`OwnedSelection`・`OwnedPresenter`（選択モード。`PushPageAsync<OwnedPresenter, OwnedArgs>` → `WaitForPopAsync<OwnedSelection>`） | formation | 3.4・3.6 |
 
 ### 3.1 `Uta.Shared.Domain.Produce.FormationValidator`（shared/）
 
@@ -80,33 +118,41 @@ public static class FormationValidator
 ### 3.2 `Uta.Client.Presentation.Common.DisplayText`
 
 ```csharp
-using LessonPlan = Uta.Shared.Domain.Lesson.Plan;            // メソッド名 Plan と型名 Plan がぶつかるので、本体では別名で書く
-using LessonRarity = Uta.Shared.Domain.Lesson.Rarity;
-using LessonParamKind = Uta.Shared.Domain.Lesson.ParamKind;
-using ProduceSupportType = Uta.Shared.Domain.Produce.SupportType;
-using ProduceAbilityKind = Uta.Shared.Domain.Produce.SupportAbilityKind;
+using Uta.Shared.Domain.Lesson;    // Rarity・Plan・ParamKind（マスタの生成の名前空間は using しない: 同名の enum があるため）
+using Uta.Shared.Domain.Produce;   // SupportType・SupportAbilityKind
 
 public static class DisplayText
 {
-    public static string Rarity(LessonRarity rarity);          // N → "N"、R → "R"、SR → "SR"、SSR → "SSR"、Nothing → "-"
-    public static string Plan(LessonPlan plan);                // Free → "共通"、Sense → "感性"、Logic → "理論"、Nothing → "-"
-    public static string SupportType(ProduceSupportType type); // Singing → "歌唱"、Rhythm → "律動"、Expression → "表現"、Assist → "アシスト"、Nothing → "-"
-    public static string Param(LessonParamKind param);         // Singing → "歌唱"、Rhythm → "律動"、Expression → "表現"、Nothing → "-"
+    public static string RarityName(Rarity rarity);            // N → "N"、R → "R"、SR → "SR"、SSR → "SSR"、Nothing → "-"
+    public static string PlanName(Plan plan);                  // Free → "共通"、Sense → "感性"、Logic → "理論"、Nothing → "-"
+    public static string SupportTypeName(SupportType type);    // Singing → "歌唱"、Rhythm → "律動"、Expression → "表現"、Assist → "アシスト"、Nothing → "-"
+    public static string ParamName(ParamKind param);           // Singing → "歌唱"、Rhythm → "律動"、Expression → "表現"、Nothing → "-"
     /// <summary>
     /// アビリティ（枠 1）の 1 行の文字。value は今のレベルの値。
-    /// InitialParam → "初期" + Param(param) + " +" + value（例 "初期歌唱 +49"）。
-    /// ParamBonus（千分率）→ Param(param) + "ボーナス +" + (value / 10) + "." + (value % 10) + "%"（例 85 → "歌唱ボーナス +8.5%"。float を使わない）。
+    /// InitialParam → "初期" + ParamName(param) + " +" + value（例 "初期歌唱 +49"）。
+    /// ParamBonus（千分率）→ ParamName(param) + "ボーナス +" + (value / 10) + "." + (value % 10) + "%"（例 85 → "歌唱ボーナス +8.5%"。float を使わない）。
     /// MaxHp → "最大体力 +" + value。Nothing → "-"。
     /// </summary>
-    public static string Ability(ProduceAbilityKind kind, LessonParamKind param, int value);
+    public static string Ability(SupportAbilityKind kind, ParamKind param, int value);
 }
 ```
 
-- **本体では型を別名（`LessonPlan.Free` など）で書く**。クラスの中で単純名 `Plan` はメソッド `Plan` に束縛され、`Plan.Free` がコンパイルエラーになるため（引数の型の位置は型として解決されるので、シグネチャは上のままでよい）。呼び出し側は `DisplayText.Plan(x)` と書く（5・6 本目の計画もこの名前で使う）
+- **メソッド名を型と同じにしない**（`RarityName`・`PlanName`・`SupportTypeName`・`ParamName`。week の `CardTypeName`、lesson の `LessonKindName` と同じ規則）。型と同じ名前のメソッドにすると、クラスの中の単純名 `Plan` がメソッドに束縛され、`Plan.Free` がコンパイルエラーになるため。呼び出し側は `DisplayText.PlanName(x)` と書く（4〜6 本目の計画もこの名前で使う）
 - `Plan` の `Free` を「共通」にするのは用語集（glossary.md の「プラン」）・idol-support.md 2.1 に合わせるため
 - 範囲外の値（enum に無い数値）は `"-"`
 
 ### 3.3 `Uta.Client.Application.Support`
+
+まず 2 本目の `Uta.Client.Application.Common.ServerReasons` に次の 6 つを足す（値は `Uta.Shared.Contracts` の `ErrorCode.Reason` と同じ文字列。食い違いは `ServerReasonsTests` で確かめる）:
+
+```csharp
+public const string SupportInvalidTargetLevel = "SUPPORT_INVALID_TARGET_LEVEL";   // SupportErrors.InvalidTargetLevel
+public const string SupportNotEnoughPoints = "SUPPORT_NOT_ENOUGH_POINTS";         // SupportErrors.NotEnoughPoints
+public const string SupportMaxLimitBreak = "SUPPORT_MAX_LIMIT_BREAK";             // SupportErrors.MaxLimitBreak
+public const string SupportNotOwned = "SUPPORT_NOT_OWNED";                        // SupportErrors.NotOwned
+public const string SupportInvalidMaterial = "SUPPORT_INVALID_MATERIAL";          // SupportErrors.InvalidMaterial
+public const string PlayerNotEnoughGold = "PLAYER_NOT_ENOUGH_GOLD";               // PlayerErrors.NotEnoughGold
+```
 
 ```csharp
 public sealed class SupportLevelUpResult
@@ -338,7 +384,7 @@ public interface IOwnedView
     event Action BackClicked;
 }
 
-public sealed class OwnedPage : PageBase, IOwnedView { ... }   // レイアウトは下
+public sealed class OwnedPage : PageBase, IOwnedView { ... }   // フィールドは P2 の骨格。実装は下の「OwnedPage の実装」
 
 [AssetAddress(nameof(OwnedPage))]
 public sealed class OwnedPresenter : IScreenWithArgs<OwnedArgs>
@@ -349,7 +395,7 @@ public sealed class OwnedPresenter : IScreenWithArgs<OwnedArgs>
         // args が null なら ArgumentNullException
     public UniTask InitializeAsync();          // 7 つのイベントを購読し、Refresh()。UniTask.CompletedTask
     public void DidPopEnter();                 // Refresh()（詳細から戻ったとき）
-    public void Dispose();                     // 7 つの購読を解く
+    public void Dispose();                     // disposed = true、7 つの購読を解く
     public UniTask<object> CompleteAsync();    // UniTask.FromResult<object>(result)。基盤が Pop の完了時に呼び、WaitForPopAsync の結果になる
     public UniTask SelectRowAsync(int index);  // RowClicked の受け口が Forget で呼ぶ
     public UniTask BackAsync();                // BackClicked の受け口が Forget で呼ぶ
@@ -372,7 +418,7 @@ if (selection == null || selection.IsCancelled) { /* 何もしない */ }
 （結果は `OwnedPresenter.CompleteAsync` が返す。画面が戻る以外の理由で閉じても、基盤が `CompleteAsync` を呼ぶので `await` は止まらない。テストの `FakeScreenNavigator` は `PopResults` が空なら `null` を返すので、`null` はキャンセルと同じに扱う。）
 
 **`OwnedPresenter` の状態**
-- `request = args.Selection`、`result = OwnedSelection.Cancelled`、`rows`（直近に組んだ `IReadOnlyList<OwnedRowData>`）、`running`（実行中フラグ。1 本目 3.3.2 の 5）、`closed`（`PopPageAsync(this)` を呼んだら true にし、戻さない）
+- `request = args.Selection`、`result = OwnedSelection.Cancelled`、`rows`（直近に組んだ `IReadOnlyList<OwnedRowData>`）、`running`（実行中フラグ。1 本目 3.3.2 の 5）、`closed`（`PopPageAsync(this)` を呼んだら true にし、戻さない）、`disposed`（破棄の印。1 本目 3.3.2 の 6）
 - モードごとの初期値:
 
 | モード（`request`） | 見出し（`SetTitle`） | `tab` | タブの表示 | 並び・絞り込みの行 | プラン・タイプのボタン | 初期の並び |
@@ -388,14 +434,14 @@ if (selection == null || selection.IsCancelled) { /* 何もしない */ }
 1. `var player = cache.Current;`
 2. `tab == Idols` なら `rows = OwnedListBuilder.BuildIdols(player, master, request)`、そうでなければ `rows = OwnedListBuilder.BuildSupportCards(player, master, sortKey, descending, filtersVisible ? planFilter : null, filtersVisible ? typeFilter : null, request)`（`filtersVisible` は上の表の「プラン・タイプのボタン」）
 3. 行の文字（`OwnedRowViewData`）:
-   - `title` = `Name + " [" + DisplayText.Rarity(Rarity) + "]"`
-   - `detail`: 育成アイドルは `DisplayText.Plan(Plan) + "　かけら " + Shards`、サポートカードは `DisplayText.SupportType(SupportType) + "　" + DisplayText.Plan(Plan) + "　Lv " + Level + "　解放 " + LimitBreak`（区切りは全角の空白 1 つ）
+   - `title` = `Name + " [" + DisplayText.RarityName(Rarity) + "]"`
+   - `detail`: 育成アイドルは `DisplayText.PlanName(Plan) + "　かけら " + Shards`、サポートカードは `DisplayText.SupportTypeName(SupportType) + "　" + DisplayText.PlanName(Plan) + "　Lv " + Level + "　解放 " + LimitBreak`（区切りは全角の空白 1 つ）
    - 無効の行は `detail` の末尾に `"　（編成済み）"`（`AlreadyInFormation`）／`"　（同じカードは編成できない）"`（`SameCardInFormation`）／`"　（プランが合わない）"`（`PlanMismatch`）を足す
 4. `view.SetTitle(見出し)`、`view.SetTabs(tab, タブの表示)`、`view.SetControls(並び・絞り込みの行の表示, sortLabel, orderLabel, planLabel, typeLabel, filtersVisible)`、`view.SetRows(行の文字)` の順に呼ぶ
    - `sortLabel`: `Rarity` → `"並び: レア度"`、`Level` → `"並び: Lv"`、`Acquired` → `"並び: 入手順"`
    - `orderLabel`: `descending` なら `"降順"`、そうでなければ `"昇順"`
-   - `planLabel`: `planFilter` が null なら `"プラン: 全て"`、そうでなければ `"プラン: " + DisplayText.Plan(planFilter.Value)`
-   - `typeLabel`: `typeFilter` が null なら `"タイプ: 全て"`、そうでなければ `"タイプ: " + DisplayText.SupportType(typeFilter.Value)`
+   - `planLabel`: `planFilter` が null なら `"プラン: 全て"`、そうでなければ `"プラン: " + DisplayText.PlanName(planFilter.Value)`
+   - `typeLabel`: `typeFilter` が null なら `"タイプ: 全て"`、そうでなければ `"タイプ: " + DisplayText.SupportTypeName(typeFilter.Value)`
    - 行を出さないモード（`Idol`）でもラベルは上の規則で作って渡す（View が隠す）
 
 **操作**
@@ -404,28 +450,56 @@ if (selection == null || selection.IsCancelled) { /* 何もしない */ }
 - `ToggleSortOrder()`: `tab != SupportCards` なら何もしない。`descending` を反転。`Refresh()`
 - `CyclePlanFilter()`: `tab != SupportCards` か `filtersVisible` が false なら何もしない。null → `Free` → `Sense` → `Logic` → null。`Refresh()`
 - `CycleTypeFilter()`: 同じ条件。null → `Singing` → `Rhythm` → `Expression` → `Assist` → null。`Refresh()`
-- `SelectRowAsync(index)`: `if (running || closed) return; running = true; try { ... } finally { running = false; }`。中身:
+- `SelectRowAsync(index)`: `if (running || closed || disposed) return; running = true; try { ... } finally { running = false; }`。中身:
   1. `index` が `rows` の範囲外なら何もしない
   2. `var row = rows[index];`
   3. 選択モード（`request != null`）: `!row.Enabled` なら何もしない。そうでなければ `result = row.IsIdol ? OwnedSelection.ForIdol(row.IdolId) : OwnedSelection.ForSupportCard(row.SupportCardUid);`、`closed = true;`、`await navigator.PopPageAsync(this, playAnimation: false);`
   4. 閲覧モードでサポートカード: `await navigator.PushPageAsync<SupportDetailPresenter, SupportDetailArgs>(new SupportDetailArgs(row.SupportCardUid), playAnimation: false);`
   5. 閲覧モードで育成アイドル: 何もしない（育成アイドルの詳細は MVP で作らない）
-- `BackAsync()`: `if (running || closed) return; running = true; try { closed = true; await navigator.PopPageAsync(this, playAnimation: false); } finally { running = false; }`（`result` は `Cancelled` のまま）
-- `closed` で、行のタップと「戻る」の連打・組み合わせで `PopPageAsync(this)` が 2 回呼ばれるのを防ぐ（1 本目 3.3.2 の 8。閉じた後の Presenter を渡すと基盤が `InvalidOperationException` を投げる）
-
-**`OwnedPage` のレイアウト**（`BuildUi(body)`。見た目は仮）: `var root = UiFactory.CreateVertical(body, "Root");` の子に上から
-1. "Header"（`CreateHorizontal`。`SetHeight(UiTheme.ButtonHeight)`）の子に "Back"（`CreateButton("＜")`）と "Title"（`CreateText("", UiTheme.FontTitle, TextAnchor.MiddleLeft)`）。横幅は半分ずつ（`CreateHorizontal` の既定のまま）
-2. "Tabs"（`CreateHorizontal`。`SetHeight(UiTheme.ButtonHeight)`）の子に "TabIdols"「育成アイドル」と "TabSupport"「サポート」（`CreateButton`）
-3. "Controls"（`CreateHorizontal`。`SetHeight(UiTheme.ButtonHeight)`）の子に "Sort"・"Order"・"Plan"・"Type"（`CreateButton("")`）
-4. "List"（`CreateScrollContent`）。戻り値の Content をフィールドに持つ
-- `SetTitle`: Title の `text` を替える
-- `SetTabs(selected, visible)`: "Tabs" を `SetActive(visible)`。選んでいるタブのボタンを `UiFactory.SetInteractable(…, false)`（無効の色で「選んでいる」を表す）、もう一方を `true`
-- `SetControls(visible, sort, order, plan, type, filtersVisible)`: "Controls" を `SetActive(visible)`。4 つのボタンのラベルを `UiFactory.SetLabel` で替え、"Plan"・"Type" を `SetActive(filtersVisible)`
-- `SetRows(rows)`: `UiFactory.ClearChildren(content)` のあと、添字 `i` ごとに `var button = UiFactory.CreateButton(content, "Row" + i, row.Title + "\n" + row.Detail, 160f);`、`UiFactory.SetInteractable(button, row.Enabled)`、`var index = i; button.onClick.AddListener(() => RowClicked?.Invoke(index));`。0 件のときは `CreateText(content, "Empty", "ありません", UiTheme.FontBody, TextAnchor.MiddleCenter)` を 1 つ置く
-- ボタンの `onClick`: Back → `BackClicked`、TabIdols → `TabSelected(OwnedTab.Idols)`、TabSupport → `TabSelected(OwnedTab.SupportCards)`、Sort → `SortKeyClicked`、Order → `SortOrderClicked`、Plan → `PlanFilterClicked`、Type → `TypeFilterClicked`
-- 公開メソッドの先頭で `EnsureBuilt()` を呼ぶ（1 本目 3.3.3）
+- `BackAsync()`: `if (running || closed || disposed) return; running = true; try { closed = true; await navigator.PopPageAsync(this, playAnimation: false); } finally { running = false; }`（`result` は `Cancelled` のまま）
+- `closed` で、行のタップと「戻る」の連打・組み合わせで `PopPageAsync(this)` が 2 回呼ばれるのを防ぐ（1 本目 3.3.2 の 9。閉じた後の Presenter を渡すと基盤が `InvalidOperationException` を投げる）
+- 同期の 5 つ（`SelectTab` など）は、`disposed` なら何もしない
 
 イベントの受け口: `TabSelected` → `SelectTab`、`SortKeyClicked` → `CycleSortKey`、`SortOrderClicked` → `ToggleSortOrder`、`PlanFilterClicked` → `CyclePlanFilter`、`TypeFilterClicked` → `CycleTypeFilter`、`RowClicked` → `SelectRowAsync(index).Forget()`、`BackClicked` → `BackAsync().Forget()`。
+
+**`OwnedPage` の実装**（P2 の骨格に足す。foundation 3.3.3 の形。フィールドと Prefab の子の対応は P2 の 3.3 の表）
+
+P2 の骨格のフィールド（変えない）: `UtaHeaderView header`、`UtaTabBarView tabBar`、`RectTransform controls`、`RectTransform filterRow`、`UtaButtonView sortButton`・`orderButton`・`planButton`・`typeButton`、`TMP_Text emptyText`、`RectTransform listContent`、`UtaListRowView rowPrefab`。足すもの:
+
+```csharp
+public sealed class OwnedPage : PageBase, IOwnedView
+{
+    // [SerializeField] のフィールドは P2 のまま
+
+    public event Action<OwnedTab> TabSelected;
+    public event Action SortKeyClicked;
+    public event Action SortOrderClicked;
+    public event Action PlanFilterClicked;
+    public event Action TypeFilterClicked;
+    public event Action<int> RowClicked;
+    public event Action BackClicked;
+
+    private void Awake();
+    public void SetTitle(string title);
+    public void SetTabs(OwnedTab selected, bool visible);
+    public void SetControls(bool visible, string sortLabel, string orderLabel, string planLabel, string typeLabel, bool filtersVisible);
+    public void SetRows(IReadOnlyList<OwnedRowViewData> rows);
+}
+```
+
+- タブの添字: `0` = `OwnedTab.Idols`（`TabIdols`）、`1` = `OwnedTab.SupportCards`（`TabSupport`）（P2 の `tabs` の並び）
+- `Awake()`:
+  - `header.BackButton.Button.onClick.AddListener(() => BackClicked?.Invoke());`
+  - `tabBar.TabClicked += index => TabSelected?.Invoke(index == 0 ? OwnedTab.Idols : OwnedTab.SupportCards);`（`UtaTabBarView` が自分の `Awake` でタブのボタンを購読し、添字で知らせる。どちらの `Awake` が先でも C# の `event` の購読なので動く）
+  - `sortButton.Button.onClick` → `SortKeyClicked`、`orderButton` → `SortOrderClicked`、`planButton` → `PlanFilterClicked`、`typeButton` → `TypeFilterClicked`（どれも `AddListener(() => Xxx?.Invoke())`）
+- `SetTitle(title)`: `header.SetTitle(title)`
+- `SetTabs(selected, visible)`: `tabBar.gameObject.SetActive(visible);` → `tabBar.SetSelected(selected == OwnedTab.Idols ? 0 : 1);`（選んだタブの下線 `underline` を出し、もう一方を消す。ボタンはどちらも押せるまま。今のタブを押したときは Presenter が何もしない）
+- `SetControls(visible, sortLabel, orderLabel, planLabel, typeLabel, filtersVisible)`: `controls.gameObject.SetActive(visible);` → `filterRow.gameObject.SetActive(filtersVisible);`（プラン・タイプの段ごと）→ `sortButton.SetLabel(sortLabel)`・`orderButton.SetLabel(orderLabel)`・`planButton.SetLabel(planLabel)`・`typeButton.SetLabel(typeLabel)`（隠しているボタンのラベルも替える）
+- `SetRows(rows)`:
+  1. `UiObjects.ClearChildren(listContent);`
+  2. `emptyText.gameObject.SetActive(rows.Count == 0);`（文字は Prefab の「ありません」のまま。C# は替えない）
+  3. 添字 `i` ごとに `var row = UiObjects.AddRow(rowPrefab, listContent, "Row" + i);`、`row.SetTexts(rows[i].Title, rows[i].Detail, "");`（右の文字は使わない）、`row.SetInteractable(rows[i].Enabled);`（押せない行は Button の ColorTint の disabled で暗くなる）、`var index = i; row.Button.onClick.AddListener(() => RowClicked?.Invoke(index));`（行は次の `ClearChildren` で消えるので、解除は書かない）
+- 文字の大きさ・色・行の高さは Prefab（P1 の `UtaListRow` は高さ 160、`TitleText`・`SubText` の 2 段）が決める。C# は文字と表示・押せるかだけを変える（foundation 3.3.3）
 
 ### 3.7 サポートカードの詳細（`Uta.Client.Presentation.Owned`）
 
@@ -450,7 +524,7 @@ public interface ISupportDetailView
     event Action BackClicked;
 }
 
-public sealed class SupportDetailPage : PageBase, ISupportDetailView { ... }   // レイアウトは下
+public sealed class SupportDetailPage : PageBase, ISupportDetailView { ... }   // フィールドは P2 の骨格。実装は下の「SupportDetailPage の実装」
 
 [AssetAddress(nameof(SupportDetailPage))]
 public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
@@ -462,7 +536,7 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
         LevelUpSupportUseCase levelUp, LimitBreakSupportUseCase limitBreak, DialogService dialogs, IScreenNavigator navigator);
     public UniTask InitializeAsync();             // 5 つのイベントを購読し、Refresh()
     public void DidPopEnter();                    // Refresh()（素材の選択から戻ったとき）
-    public void Dispose();                        // 5 つの購読を解く
+    public void Dispose();                        // disposed = true、5 つの購読を解く
     public UniTask LevelUpAsync(LevelUpStep step);
     public UniTask LimitBreakAsync();
     public UniTask BackAsync();
@@ -473,7 +547,7 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 
 **`Refresh()`**
 - `card` が null（素材にした・キャッシュから消えた）: `SetInfo(new[] { "このカードは所持していません。" })`、`SetAbilities(new string[0])`、`SetResources("")`、`SetLevelButtons("+1", "+5", "最大", false, false, false)`、`SetLimitBreak("上限解放", false)` で終わる
-- `SetInfo` の 4 行: `info.Name`、`DisplayText.Rarity(info.Rarity) + "　" + DisplayText.SupportType(info.Type) + "　" + DisplayText.Plan(info.Plan)`、`"Lv " + card.Level + " / " + maxLevel`、`"上限解放 " + card.LimitBreak + " / " + maxBreak`
+- `SetInfo` の 4 行: `info.Name`、`DisplayText.RarityName(info.Rarity) + "　" + DisplayText.SupportTypeName(info.Type) + "　" + DisplayText.PlanName(info.Plan)`、`"Lv " + card.Level + " / " + maxLevel`、`"上限解放 " + card.LimitBreak + " / " + maxBreak`
 - `SetAbilities`: `master.GetSupportAbilities(info.SupportCardId)` の各行 `a`（`Order` の昇順）を `a.Order + " " + DisplayText.Ability(a.Kind, a.Param, ProduceFormulas.AbilityValue(a.ValueAtLv1, a.ValueAtMax, card.Level, fullMaxLevel))`（例 `"1 初期歌唱 +49"`）。0 件なら `new[] { "なし" }`
 - `SetResources("強化pt " + N0(sp) + "　ゴールド " + N0(gold))`
 - `SetLevelButtons`: 3 つの `step`（名前は `+1`・`+5`・`最大`）ごとに `target = SupportLevelPlanner.PlanTarget(card, info.Rarity, sp, gold, step, master)`
@@ -482,95 +556,136 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
   - それ以外（`最大` で、1 レベルも払えない）: 無効。ラベル `"最大（足りません）"`
 - `SetLimitBreak`: `card.LimitBreak >= maxBreak` なら `("上限解放（最大）", false)`、それ以外は `("上限解放（素材を選ぶ）", true)`
 
-**`LevelUpAsync(step)`**（`running`・`closed` は 3.6 と同じ。`if (running || closed) return; running = true; try { ... } finally { running = false; }`）
+**`LevelUpAsync(step)`**（`running`・`closed`・`disposed` は 3.6 と同じ。`if (running || closed || disposed) return; running = true; try { ... } finally { running = false; }`。下の「`await` のあと」は、どれも `if (disposed) return;` を先に置く: 1 本目 3.3.2 の 6）
 1. `card = FindCard()`。null なら終わる
 2. **押した時点の値で**計算し直す: `target = SupportLevelPlanner.PlanTarget(card, info.Rarity, sp, gold, step, master)`。`target <= card.Level` なら何もしない（無効のボタンのイベントが来ても安全）
-3. `cost = master.GetSupportLevelUpCost(info.Rarity, card.Level, target)`。`await dialogs.ConfirmAsync("Lv " + card.Level + " → Lv " + target + " に上げます。\n強化pt " + N0(cost.SupportPoints) + "・ゴールド " + N0(cost.Gold) + " を使います。")`。`Negative` なら終わる
-4. `var outcome = await levelUp.ExecuteAsync(card, target);`
-5. `Succeeded` → `Refresh()`（`RefreshFailed` でもキャッシュは直してあるので同じ。追加のダイアログは出さない）。`NotEnoughPoints` → `dialogs.ShowInfoAsync("強化ptが足りません。")`、`NotEnoughGold` → `"ゴールドが足りません。"`、`InvalidTarget` → `"レベルを上げられません。"`、`NotOwned` → `"このカードは所持していません。"`（どれも `await` し、そのあと `Refresh()`）。`Failed` → 何も出さない（ApiCore が出し終えている）
+3. `cost = master.GetSupportLevelUpCost(info.Rarity, card.Level, target)`。`await dialogs.ConfirmAsync("Lv " + card.Level + " → Lv " + target + " に上げます。\n強化pt " + N0(cost.SupportPoints) + "・ゴールド " + N0(cost.Gold) + " を使います。")`。`await` のあと。`Negative` なら終わる
+4. `var outcome = await levelUp.ExecuteAsync(card, target);` `await` のあと
+5. `Succeeded` → `Refresh()`（`RefreshFailed` でもキャッシュは直してあるので同じ。追加のダイアログは出さない）。`NotEnoughPoints` → `dialogs.ShowInfoAsync("強化ptが足りません。")`、`NotEnoughGold` → `"ゴールドが足りません。"`、`InvalidTarget` → `"レベルを上げられません。"`、`NotOwned` → `"このカードは所持していません。"`（どれも `await` し、`await` のあと `Refresh()`）。`Failed` → 何も出さない（ApiCore が出し終えている）
 
-**`LimitBreakAsync()`**（実行中フラグは同じ）
+**`LimitBreakAsync()`**（実行中フラグ・破棄の印は同じ）
 1. `card = FindCard()`。null なら終わる。`card.LimitBreak >= maxBreak` なら何もしない
 2. 素材の候補 = `cache.Current.SupportCards` のうち `CardId == card.CardId` かつ `SupportCardUid != card.SupportCardUid`。0 件なら `await dialogs.ShowInfoAsync("素材にできる同じカードがありません。")` で終わる
-3. 素材を選ばせる: `var presenter = await navigator.PushPageAsync<OwnedPresenter, OwnedArgs>(new OwnedArgs(OwnedSelectionRequest.ForLimitBreakMaterial(card.CardId, card.SupportCardUid)), playAnimation: false); var selection = await navigator.WaitForPopAsync<OwnedSelection>(presenter);` `selection == null || selection.IsCancelled` なら終わる
+3. 素材を選ばせる（同じ `Home` シーンの中で、所持一覧の選択モードをもう 1 枚積む）: `var presenter = await navigator.PushPageAsync<OwnedPresenter, OwnedArgs>(new OwnedArgs(OwnedSelectionRequest.ForLimitBreakMaterial(card.CardId, card.SupportCardUid)), playAnimation: false); var selection = await navigator.WaitForPopAsync<OwnedSelection>(presenter);` `await` のあと。`selection == null || selection.IsCancelled` なら終わる（素材の一覧が閉じると、このページの `DidPopEnter` が先に `Refresh()` する）
 4. `material = cache.Current.SupportCards` から `selection.SupportCardUid` で探す。null なら終わる
-5. `await dialogs.ConfirmAsync("Lv " + material.Level + " の「" + info.Name + "」を素材にして上限解放します（" + card.LimitBreak + " → " + (card.LimitBreak + 1) + "）。\n素材は無くなります。強化に使った強化pt・ゴールドは戻りません。")`。`Negative` なら終わる
-6. `var outcome = await limitBreak.ExecuteAsync(card, material);`
-7. `Succeeded` → `Refresh()`。`MaxLimitBreak` → `"これ以上は解放できません。"`、`InvalidMaterial` → `"素材にできません。"`、`NotOwned` → `"このカードは所持していません。"`（`ShowInfoAsync` を `await` し、そのあと `Refresh()`）。`Failed` → 何も出さない
+5. `await dialogs.ConfirmAsync("Lv " + material.Level + " の「" + info.Name + "」を素材にして上限解放します（" + card.LimitBreak + " → " + (card.LimitBreak + 1) + "）。\n素材は無くなります。強化に使った強化pt・ゴールドは戻りません。")`。`await` のあと。`Negative` なら終わる
+6. `var outcome = await limitBreak.ExecuteAsync(card, material);` `await` のあと
+7. `Succeeded` → `Refresh()`。`MaxLimitBreak` → `"これ以上は解放できません。"`、`InvalidMaterial` → `"素材にできません。"`、`NotOwned` → `"このカードは所持していません。"`（`ShowInfoAsync` を `await` し、`await` のあと `Refresh()`）。`Failed` → 何も出さない
 
 **`BackAsync()`**: 3.6 の `BackAsync` と同じ（`closed = true` のあと `PopPageAsync(this, playAnimation: false)`）。
 
-**`SupportDetailPage` のレイアウト**（`BuildUi(body)`。見た目は仮）: `var root = UiFactory.CreateVertical(body, "Root");` の子に上から
-1. "Header"（`CreateHorizontal`。`SetHeight(UiTheme.ButtonHeight)`）の子に "Back"（`CreateButton("＜")`）と "Title"（`CreateText("サポートカード", UiTheme.FontTitle, TextAnchor.MiddleLeft)`）
-2. "Info"（`CreateText("", UiTheme.FontBody, TextAnchor.UpperLeft)`）。`SetInfo` は行を `"\n"` でつないで入れる
-3. "Resources"（`CreateText("", UiTheme.FontBody, TextAnchor.MiddleLeft)`）
-4. "Plus1"・"Plus5"・"Max"（`CreateButton("")`。縦に 3 つ）。`SetLevelButtons` で `SetLabel` と `SetInteractable`
-5. "LimitBreak"（`CreateButton("")`）。`SetLimitBreak` で `SetLabel` と `SetInteractable`
-6. "AbilityHeader"（`CreateText("アビリティ", UiTheme.FontBody, TextAnchor.MiddleLeft)`）
-7. "Abilities"（`CreateText("", UiTheme.FontSmall, TextAnchor.UpperLeft)`）。`SetAbilities` は行を `"\n"` でつないで入れる
-8. "Spacer"（`CreateRect`。`SetFlexibleHeight(1)`）
-- `onClick`: Back → `BackClicked`、Plus1 → `Plus1Clicked`、Plus5 → `Plus5Clicked`、Max → `MaxClicked`、LimitBreak → `LimitBreakClicked`
-- イベントの受け口: `Plus1Clicked` → `LevelUpAsync(LevelUpStep.Plus1).Forget()`、`Plus5Clicked` → `Plus5`、`MaxClicked` → `Max`、`LimitBreakClicked` → `LimitBreakAsync().Forget()`、`BackClicked` → `BackAsync().Forget()`
+イベントの受け口: `Plus1Clicked` → `LevelUpAsync(LevelUpStep.Plus1).Forget()`、`Plus5Clicked` → `LevelUpAsync(LevelUpStep.Plus5).Forget()`、`MaxClicked` → `LevelUpAsync(LevelUpStep.Max).Forget()`、`LimitBreakClicked` → `LimitBreakAsync().Forget()`、`BackClicked` → `BackAsync().Forget()`。
+
+**`SupportDetailPage` の実装**（P2 の骨格に足す。foundation 3.3.3 の形。フィールドと Prefab の子の対応は P2 の 3.3 の表）
+
+P2 の骨格のフィールド（変えない）: `UtaHeaderView header`、`TMP_Text infoText`、`TMP_Text resourcesText`、`UtaButtonView plus1Button`・`plus5Button`・`maxButton`・`limitBreakButton`、`TMP_Text abilitiesText`。見出し「サポートカード」と「アビリティ」は Prefab の固定の文字（C# は替えない）。足すもの:
+
+```csharp
+public sealed class SupportDetailPage : PageBase, ISupportDetailView
+{
+    // [SerializeField] のフィールドは P2 のまま
+
+    public event Action Plus1Clicked;
+    public event Action Plus5Clicked;
+    public event Action MaxClicked;
+    public event Action LimitBreakClicked;
+    public event Action BackClicked;
+
+    private void Awake();
+    public void SetInfo(IReadOnlyList<string> lines);
+    public void SetAbilities(IReadOnlyList<string> lines);
+    public void SetResources(string text);
+    public void SetLevelButtons(string plus1, string plus5, string max, bool plus1Enabled, bool plus5Enabled, bool maxEnabled);
+    public void SetLimitBreak(string label, bool enabled);
+}
+```
+
+- `Awake()`: `header.BackButton.Button.onClick` → `BackClicked`、`plus1Button.Button.onClick` → `Plus1Clicked`、`plus5Button` → `Plus5Clicked`、`maxButton` → `MaxClicked`、`limitBreakButton` → `LimitBreakClicked`（どれも `AddListener(() => Xxx?.Invoke())`）
+- `SetInfo(lines)`: `infoText.text = string.Join("\n", lines);`
+- `SetAbilities(lines)`: `abilitiesText.text = string.Join("\n", lines);`（0 行なら空文字）
+- `SetResources(text)`: `resourcesText.text = text;`
+- `SetLevelButtons(...)`: `plus1Button.SetLabel(plus1); plus1Button.SetInteractable(plus1Enabled);`、`plus5Button`・`maxButton` も同じ。ボタンは Prefab に固定で 3 つ（P2 の決めたこと 4。ラベルは 32pt で「+1 → Lv 43（強化pt 5,140 / G 5,140）」が 1 行に入る）
+- `SetLimitBreak(label, enabled)`: `limitBreakButton.SetLabel(label); limitBreakButton.SetInteractable(enabled);`
 
 ### 3.8 ホームと Bootstrap
 
-- `HomePresenter.OpenOwnedAsync()`（1 本目 3.7。2 本目で `IScreenNavigator navigator` がコンストラクターに足されている）: 実行中フラグ（1 本目 3.3.2 の 5）の中身を `await navigator.PushPageAsync<OwnedPresenter, OwnedArgs>(OwnedArgs.Browse(), playAnimation: false);` に置き換える（「準備中です。」を出さなくなる）。コンストラクターの依存は足さない。`using Uta.Client.Presentation.Owned;` を足す
-- `UtaBootstrap.RegisterScreens` に `uiRoot.RegisterPage<OwnedPage>();`・`uiRoot.RegisterPage<SupportDetailPage>();` の 2 行を足す
-- DI（通常起動・診断モードで共通の登録の後ろ）: `builder.Register<SupportGateway>(Lifetime.Singleton).As<ISupportPort>();`、`builder.Register<LevelUpSupportUseCase>(Lifetime.Singleton);`、`builder.Register<LimitBreakSupportUseCase>(Lifetime.Singleton);`。**Presenter は登録しない**（1 本目 3.3.2。基盤が Push のたびに子スコープで作る）
+- `HomePresenter.OpenOwnedAsync()`（foundation 3.7。gacha で `IScreenNavigator navigator` がコンストラクターに足されている）: 実行中フラグ（foundation 3.3.2 の 5）の `try` の中身を `await navigator.PushPageAsync<OwnedPresenter, OwnedArgs>(OwnedArgs.Browse(), playAnimation: false);` に置き換える（「準備中です。」を出さなくなる。戻り値は使わない）。コンストラクターの依存は足さない。`using Uta.Client.Presentation.Owned;` を足す。押すボタンは P2 の `HomePage` の `Body/Main/Menu/OwnedButton`（ラベル「アイドル」。foundation の `IHomeView.OwnedClicked`）で、`HomePage` は変えない
+- 積む先は `Home` シーンのスコープの `IScreenNavigator`（`HomeLifetimeScope` の `SceneUiInstaller.Install`。foundation 3.2）。所持一覧・詳細・素材の一覧はどれも `Home` シーンのページで、`ISceneNavigator` は使わない。一覧からホームへは「＜」で 1 枚ずつ戻る（ホームの `DidPopEnter` が表示をやり直す）
+- `BootstrapEntry.RegisterUseCases`（foundation 3.8）の最後に 3 行足す: `builder.Register<SupportGateway>(Lifetime.Singleton).As<ISupportPort>();`、`builder.Register<LevelUpSupportUseCase>(Lifetime.Singleton);`、`builder.Register<LimitBreakSupportUseCase>(Lifetime.Singleton);`。`using Uta.Client.Application.Support;`・`using Uta.Client.Infrastructure.Support;` を足す
+- **Presenter・ページは登録しない**（foundation 3.3.2・3.3.9。基盤が Push のたびに子スコープで作り、Prefab は Addressables のアドレス `OwnedPage`・`SupportDetailPage` から読む。アドレスの登録は P2 が済ませている）
 
 ## 4. タスク
 
-各タスクの終わりの確かめ方は 1 本目 4章の冒頭のとおり（`client/uta` で `unity recompile --format json` のコンパイルエラー 0、EditMode のテストは Editor が開いている環境で `unity test --mode EditMode`。1 本目のタスク 1 で使えなかったときは Editor の Test Runner の EditMode）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。shared/ のテストは `dotnet test --project shared/Uta.Shared.Domain.Tests`。
+各タスクの終わりに、`client/uta` で `unity recompile --format json` がコンパイルエラー 0、`unity test --mode EditMode` で既存とそのタスクまでのテストが全部通る状態にする（foundation 4章の冒頭のとおり）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告してユーザーに実行を頼む**。shared/ のテストは `dotnet test --project shared/Uta.Shared.Domain.Tests`。コミットの前に `Uta/Prefabs/Clear Dynamic Font Data`（P1。`unity command eval 'Uta.Client.Editor.Prefabs.FontAssetBuilder.ClearDynamicData(); return "ok";'`）を実行する（Play で日本語を出すとフォントのアセットに字が足されるため）。Prefab（`.prefab`）と `AddressableAssetsData/` に差分が出ていたら、この計画の変更ではないので戻し、報告に書く。
 
 ### タスク 1: Shared.Domain のプランの適合と、表示名・一覧の組み立て
 
-触る: `shared/Uta.Shared.Domain/Produce/FormationValidator.cs`、`shared/Uta.Shared.Domain.Tests/Produce/FormationValidatorTests.cs`、`Presentation/Common/DisplayText.cs`、`Application/Owned/*`、`FakeGameMaster.cs`（必要なとき）。
+前提の確認: 1章の前提 1（P2 の `OwnedPage`・`SupportDetailPage` のフィールド、`HomePresenter` の `IScreenNavigator`、2 本目の `FakeGameMaster` の `Abilities`）。違えば止まって報告する。
+
+触る: `shared/Uta.Shared.Domain/Produce/FormationValidator.cs`、`shared/Uta.Shared.Domain.Tests/Produce/FormationValidatorTests.cs`、`Presentation/Common/DisplayText.cs`、`Application/Owned/*`、`Tests/EditMode/DisplayTextTests.cs`・`OwnedListBuilderTests.cs`・`OwnedSelectionRequestTests.cs`。
 手順:
 1. 3.1 のとおり `IsPlanCompatible` を足し、`Validate` の条件を置き換える。5章の `FormationValidatorTests` を足す。`dotnet build Uta.slnx`（警告 0・エラー 0）と `dotnet test --project shared/Uta.Shared.Domain.Tests` を通す（既存の `Validate_Cases_ReturnsExpected` が変わらず通ること）。サーバーも `FormationValidator.Validate` を使うので `dotnet test --project server/Uta.Server.Tests` も回す（Docker が無ければ結合テストは確かめていないと報告する）
 2. 3.2・3.4 のとおり作る
-3. 2 本目の `FakeGameMaster` に、`GetSupportAbilities` が返す行を差し込む口（public フィールド）が無ければ、`public Dictionary<int, List<SupportAbilityInfo>> AbilityList = new Dictionary<int, List<SupportAbilityInfo>>();` を足し、`GetSupportAbilities(id)` は `SupportCardList` に `id` が無ければ `KeyNotFoundException`、あれば `AbilityList` の値（無いキーは空のリスト）を返すようにする。口が既にあれば、それを使い、このファイルは触らない
+3. テストのアビリティは 2 本目の `FakeGameMaster.Abilities`（`Dictionary<int, List<SupportAbilityInfo>>`）に入れる（`FakeGameMaster.cs` は変えない）
 確かめ方: `DisplayTextTests`・`OwnedListBuilderTests`・`OwnedSelectionRequestTests` が通る。
 
 ### タスク 2: ユースケース・API・ゲートウェイ
 
-触る: `Application/Support/*`、`Infrastructure/Api/SupportApi.cs`・`UtaApiClient.cs`・`UtaMagicOnionClientInitializer.cs`、`Infrastructure/Support/SupportGateway.cs`。
-手順: 3.3・3.5 のとおり作る。
-確かめ方: `SupportLevelPlannerTests`・`SupportSnapshotEditsTests`・`LevelUpSupportUseCaseTests`・`LimitBreakSupportUseCaseTests` が通る。`unity recompile` のあと、`ISupportService` のクライアントの生成コード（`UtaMagicOnionClientInitializer` の `partial`）でエラーが出ていないこと（コンソールの読み出しは [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章のコマンド）。
+触る: `Application/Common/ServerReasons.cs`、`Application/Support/*`、`Infrastructure/Api/SupportApi.cs`・`UtaApiClient.cs`・`UtaMagicOnionClientInitializer.cs`、`Infrastructure/Support/SupportGateway.cs`、`Tests/EditMode/ServerReasonsTests.cs`・`SupportLevelPlannerTests.cs`・`SupportSnapshotEditsTests.cs`・`LevelUpSupportUseCaseTests.cs`・`LimitBreakSupportUseCaseTests.cs`。
+手順: 3.3・3.5 のとおり作る（`ServerReasons` に 6 つ足す）。
+確かめ方: `ServerReasonsTests`・`SupportLevelPlannerTests`・`SupportSnapshotEditsTests`・`LevelUpSupportUseCaseTests`・`LimitBreakSupportUseCaseTests` が通る。`unity recompile` のあと、`ISupportService` のクライアントの生成コード（`UtaMagicOnionClientInitializer` の `partial`）でエラーが出ていないこと（コンソールの読み出しは [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章のコマンド）。
 
-### タスク 3: 所持一覧の画面
+### タスク 3: View の実装と所持一覧の画面
 
-触る: `Presentation/Owned/OwnedTab.cs`・`OwnedArgs.cs`・`OwnedRowViewData.cs`・`IOwnedView.cs`・`OwnedPage.cs`・`OwnedPresenter.cs`、`Presentation/Home/HomePresenter.cs`、`Bootstrap/UtaBootstrap.cs`（`OwnedPage` の雛形の登録と DI の 3 行）、`Tests/EditMode/HomePresenterTests.cs`。
-手順: 3.6・3.8 のとおり作る。`OwnedPresenter` の閲覧モードの行のタップは `SupportDetailPresenter` を使うので、このタスクでは `SupportDetailArgs`・`SupportDetailPresenter` の型が無いとコンパイルが通らない。**`SupportDetailArgs.cs` と、3.7 のシグネチャだけを持つ `SupportDetailPresenter`（`InitializeAsync` は `UniTask.CompletedTask`、ほかは空。`[AssetAddress(nameof(SupportDetailPage))]` と `SupportDetailPage`（`BuildUi` が空））をこのタスクで作り**、タスク 4 で中身を書く。
-確かめ方: `OwnedPresenterTests`・`HomePresenterTests` が通る。
+触る: `Presentation/Owned/OwnedTab.cs`・`OwnedArgs.cs`・`OwnedRowViewData.cs`・`IOwnedView.cs`・`OwnedPresenter.cs`（作成）、`OwnedPage.cs`（P2 の骨格に足す）、`SupportDetailArgs.cs`・`ISupportDetailView.cs`・`SupportDetailPresenter.cs`（作成。Presenter は仮）、`SupportDetailPage.cs`（P2 の骨格に足す）、`Presentation/Home/HomePresenter.cs`、`Bootstrap/BootstrapEntry.cs`、`Tests/EditMode/OwnedPresenterTests.cs`・`HomePresenterTests.cs`。
+手順:
+1. 3.6 の `OwnedTab`・`OwnedArgs`・`OwnedRowViewData`・`IOwnedView` と、3.7 の `SupportDetailArgs`・`ISupportDetailView` を作る
+2. `OwnedPage`・`SupportDetailPage` に、3.6・3.7 の「…の実装」を足す。**`[SerializeField]` のフィールドは足さない・名前を変えない・消さない**（Prefab の参照が外れるため）。実装に要るフィールドが骨格に無ければ止まって報告する
+3. `OwnedPresenter` を 3.6 のとおり作る。閲覧モードの行のタップが `SupportDetailPresenter` を使うので、**3.7 のシグネチャだけを持つ仮の `SupportDetailPresenter`** をこのタスクで作る（`[AssetAddress(nameof(SupportDetailPage))]`、`IScreenWithArgs<SupportDetailArgs>`、コンストラクター 2 本は引数を保存するだけ、`InitializeAsync` は `UniTask.CompletedTask`、`DidPopEnter`・`Dispose` は空、`LevelUpAsync`・`LimitBreakAsync`・`BackAsync` は `UniTask.CompletedTask`）。中身はタスク 4
+4. 3.8 のとおり `HomePresenter`・`BootstrapEntry` を直す
+5. 5章の `OwnedPresenterTests` を作り、`HomePresenterTests` を直す
+確かめ方: コンパイルエラー 0。`OwnedPresenterTests`・`HomePresenterTests` と既存のテスト（P1 の `PrefabContractTests`、P2 の `OwnedPrefabTests` を含む。フィールドを変えていないことの確かめ）が通る。
 
-### タスク 4: サポートカードの詳細の画面
+### タスク 4: サポートカードの詳細の Presenter
 
-触る: `Presentation/Owned/ISupportDetailView.cs`・`SupportDetailPage.cs`・`SupportDetailPresenter.cs`、`Bootstrap/UtaBootstrap.cs`（`SupportDetailPage` の雛形の登録）。
-手順: 3.7 のとおり作る。
-確かめ方: `SupportDetailPresenterTests` が通る。Play モード（5章）。
+触る: `Presentation/Owned/SupportDetailPresenter.cs`（仮を置き換える）、`Tests/EditMode/SupportDetailPresenterTests.cs`。
+手順: 3.7 のとおり書く。5章の `SupportDetailPresenterTests` を作る。
+確かめ方: `SupportDetailPresenterTests` と既存のテストが通る。
 
-### タスク 5: 結果の記録
+### タスク 5: Play モードの確認（止まる条件あり）
 
-1. [screen-design.md](../wiki/architecture/screen-design.md): 2章の表の「所持一覧・詳細」と「サポートカードの強化」を、「詳細と強化（レベル上げ・上限解放）は 1 ページ（`SupportDetailPage`）」に直す。3章の図の「所持一覧 ─▶ 詳細 ─▶ 強化」を「所持一覧 ─▶ サポートカードの詳細（強化を含む）」に直し、「上限解放の素材は所持一覧の選択モードで選ぶ」を足す。7.2 の部品の表に、所持一覧の選択モード（`OwnedArgs`・`OwnedSelectionRequest`・`WaitForPopAsync<OwnedSelection>`）を 1 行足す。実装メモに、計画とのズレ（なければ「なし」）を書く
+触る: なし（確かめだけ）。
+手順: Editor で Play（`Bootstrap` から始まる。サーバーは CLAUDE.md の「ローカルのサーバー」の手順で起動済み）。5章の「Play モード・手動」をユーザーに見てもらう（Play の開始と停止、コンソールの読み出しは [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章のコマンド）。コンソールに例外・エラーが無いこと。
+止まる条件（当たったら止まって報告する。直し方を自分で決めない）:
+- `OwnedPage`・`SupportDetailPage` が Addressables から読めない（Push で例外。P2 の登録か基盤の読み込みの問題）
+- 素材の一覧（2 枚目の `OwnedPresenter`）から戻ったときに、`WaitForPopAsync` が返らない
+終わったことの確かめ方: 5章の Play の項目を全部見た。Editor が開けないときは「確認できていない」と書いてユーザーに頼む。
+
+### タスク 6: 結果の記録
+
+1. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）: 2章の表の「所持一覧・詳細」と「サポートカードの強化」を、「詳細と強化（レベル上げ・上限解放）は 1 ページ（`SupportDetailPage`）」に直す。3章の図の「所持一覧 ─▶ 詳細 ─▶ 強化」を「所持一覧 ─▶ サポートカードの詳細（強化を含む）」に直し、「上限解放の素材は所持一覧の選択モード（`OwnedArgs`・`OwnedSelectionRequest`・`WaitForPopAsync<OwnedSelection>`。`Home` シーンの中のページ）で選ぶ」を足す。実装メモに、計画とのズレ（なければ「なし」）を書く
 2. [produce-domain.md](../wiki/architecture/produce-domain.md) の Shared.Domain の型の一覧（`FormationValidator(編成の検証 5・6)` の行）に `IsPlanCompatible`（プランの適合。クライアントの表示も使う）を足す
 3. [idol-support.md](../wiki/systems/idol-support.md): 2.1 の「検証の置き場」の「同じ関数」に `FormationValidator.IsPlanCompatible`（6）と書き添える。「実装メモ」に「上限解放の確認ダイアログは、素材の Lv にかかわらず常に『強化に使った強化pt・ゴールドは戻らない』を出す（2.2.1 の『素材のレベルが 1 より大きいとき』より広い）」と書く
 4. screen-wireframes.md 10 の「一覧の並び」の行の後ろに「[Uta案] MVP では育成アイドルは 4 人なので、`IdolId` の昇順に固定し、並び・絞り込みはサポートカードだけに出す（計画）」を足す
-5. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md): 2章の表・3.3 に、所持一覧（スクロール・動的に作る行のボタン）と詳細の画面で確かめたこと・確かめていないことを足す
-6. この計画の frontmatter を `status: done`、`updated` をその日にする
+5. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md): 2章の表・3.3 に、所持一覧（Addressables からのページの読み込み・スクロール・行の Prefab の Instantiate）と詳細の画面で確かめたこと・確かめていないことを足す
+6. `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
+7. この計画の frontmatter を `status: done`、`updated` をその日にする
 
 ## 5. テスト
 
-置き場・名前空間・書き方は 1 本目 5章・3.3.7（client/ の EditMode。偽の View は各テストのファイルの中の `private sealed class`。`FakeScreenNavigator`・`FakeDialogService`・偽の View は同じ `CallLog` を使う）。shared/ は xUnit（既存の `FormationValidatorTests` に足す）。
+置き場・名前空間・書き方は foundation 3.3.7・3.3.8（client/ の EditMode。名前空間 `Uta.Client.Infrastructure.Tests`。偽の View は各テストのファイルの中の `private sealed class`。`FakeScreenNavigator`・`FakeDialogService`・偽の View は同じ `CallLog` を使う）。shared/ は xUnit（既存の `FormationValidatorTests` に足す）。**`OwnedPage`・`SupportDetailPage`（Prefab の View）の EditMode のテストは書かない**（foundation 3.3.7。フィールドと子の対応は P2 の `OwnedPrefabTests`、参照の欠けは P1 の `PrefabContractTests` が見る。表示は Play で見る）。
 
 偽の View の記録の書式（3.3.7 の `"<メソッド名>:<引数を , でつないだもの>"` に従い、リストは `|` でつなぐ）:
 - `FakeOwnedView`: `"SetTitle:" + title`、`"SetTabs:" + selected + "," + visible`、`"SetControls:" + visible + "," + sort + "," + order + "," + plan + "," + type + "," + filtersVisible`、`"SetRows:" + string.Join("|", rows の各 r の r.Title + "/" + r.Detail + "/" + r.Enabled)`。`RaiseRowClicked(int)` などでイベントを起こす
 - `FakeSupportDetailView`: `"SetInfo:" + string.Join("|", lines)`、`"SetAbilities:" + string.Join("|", lines)`、`"SetResources:" + text`、`"SetLevelButtons:" + plus1 + "," + plus5 + "," + max + "," + 3 つの bool`、`"SetLimitBreak:" + label + "," + enabled`
-- 偽のポート（`FakeSupportPort : ISupportPort`。返す `PortResult` を public フィールドで差し込み、呼ばれた引数を `List<string>` に記録）と偽の `IPlayerPort`（`SignInAsync` の結果を public フィールドで差し込む。`Failure` を返すと `RefreshPlayerUseCase` が例外を投げる）は、使うテストのファイルの中に書く
+- 偽のポート `FakeSupportPort : ISupportPort`（返す `PortResult` を public フィールド `LevelUpResult`・`LimitBreakResult` で差し込み、呼ばれた引数を `List<string> Calls` に `"LevelUp:" + uid + "," + targetLevel`／`"LimitBreak:" + uid + "," + materialUid` で記録）は、使うテストのファイルの中に `private sealed class` で書く
+- 取り直し（`RefreshPlayerUseCase`）は foundation の `StubPlayerPort` で作る。取り直しの失敗は `SignInResults.Enqueue(PlayerSignInResult.Failure("e"))`（`RefreshPlayerUseCase` が例外を投げる）、成功は `Snapshot` に入れた値
 
 | ファイル | テスト | 内容 |
 |---|---|---|
 | `shared/.../FormationValidatorTests.cs` | `IsPlanCompatible_Cases_ReturnsExpected`（`[Theory]`） | `(Sense, Free)` true、`(Sense, Sense)` true、`(Sense, Logic)` false、`(Logic, Sense)` false、`(Logic, Free)` true、`(Sense, Nothing)` false |
-| `DisplayTextTests.cs` | `Rarity_AllValues` / `Plan_AllValues` / `SupportType_AllValues` / `Param_AllValues` | 各 enum の全部の値（`Nothing` を含む）と、範囲外の値（`(Plan)99` など）が `"-"` |
+| `ServerReasonsTests.cs`（変更） | `Reasons_MatchContractsErrorCodes` に 6 行足す | `ServerReasons.SupportInvalidTargetLevel == SupportErrors.InvalidTargetLevel.Reason`、`SupportNotEnoughPoints`・`SupportMaxLimitBreak`・`SupportNotOwned`・`SupportInvalidMaterial` も同じ、`PlayerNotEnoughGold == PlayerErrors.NotEnoughGold.Reason` |
+| `DisplayTextTests.cs` | `RarityName_AllValues` / `PlanName_AllValues` / `SupportTypeName_AllValues` / `ParamName_AllValues` | 各 enum の全部の値（`Nothing` を含む）と、範囲外の値（`(Plan)99` など）が `"-"` |
 | | `Ability_InitialParam` / `Ability_ParamBonus_PerThousand` / `Ability_MaxHp` | `"初期歌唱 +49"`、85 → `"歌唱ボーナス +8.5%"`・100 → `"歌唱ボーナス +10.0%"`、`"最大体力 +9"` |
 | `SupportLevelPlannerTests.cs` | `Plus1_BelowMax_ReturnsLevelPlusOne` / `Plus5_NearMax_ClampsToMax` / `AtMax_ReturnsCurrentLevel` | `FakeGameMaster.MaxLevel = (_, lb) => 20 + lb * 5` |
 | | `Plus5_NotAffordable_StillReturnsTarget` | 強化pt 0 でも Lv 3 → 8 |
@@ -589,7 +704,7 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 | | `BuildSupportCards_Material_ListsSameCardExceptTarget` | 同じ CardId の 3 枚（target を含む）と別の CardId 1 枚 → target 以外の 2 枚だけ、全部有効 |
 | | `BuildSupportCards_IdolRequest_Throws` / `BuildSupportCards_Empty_ReturnsEmpty` | |
 | `LevelUpSupportUseCaseTests.cs` | `Execute_Success_Refreshes` | `RefreshFailed == false`、キャッシュはサインインの値 |
-| | `Execute_SuccessButRefreshFails_PatchesCache` | `IPlayerPort.SignInAsync` が `Failure` → `Succeeded`・`RefreshFailed == true`、キャッシュの該当カードの Level と Gold・SupportPoints が応答の値 |
+| | `Execute_SuccessButRefreshFails_PatchesCache` | `StubPlayerPort.SignInResults` に `Failure` → `Succeeded`・`RefreshFailed == true`、キャッシュの該当カードの Level と Gold・SupportPoints が応答の値 |
 | | `Execute_NotEnoughPoints_ReturnsStatus` / `Execute_NotEnoughGold_ReturnsStatus` / `Execute_InvalidTarget_ReturnsStatus` / `Execute_NotOwned_ReturnsStatus` | |
 | | `Execute_OtherFailure_ReturnsFailed` / `Execute_TargetNotAboveLevel_Throws` | 後者はポートが呼ばれない |
 | `LimitBreakSupportUseCaseTests.cs` | `Execute_Success_Refreshes` / `Execute_SuccessButRefreshFails_PatchesCache` | 後者は素材がキャッシュから消え、該当の LimitBreak が応答の値 |
@@ -608,6 +723,7 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 | | `BackAsync_Selection_CompletesCancelled` | `CompleteAsync()` の結果の `IsCancelled == true` |
 | | `InitializeAsync_IdolSelection_HidesTabsAndControls` / `InitializeAsync_Material_HidesFiltersAndSortsByLevelAscending` | `"SetTitle:育成アイドルを選ぶ"`・`"SetTabs:Idols,False"`・`"SetControls:False,…"`／`"SetTitle:素材にするカードを選ぶ"`・`"SetControls:True,並び: Lv,昇順,…,False"` |
 | | `Dispose_UnsubscribesEvents` | `Dispose()` のあと `RaiseBackClicked()` しても `"PopPage:"` が無い |
+| | `SelectRowAsync_AfterDispose_DoesNothing` | `Dispose()` のあと `SelectRowAsync(0)` → `"PushPage:"`・`"PopPage:"` が無い |
 | `SupportDetailPresenterTests.cs` | `InitializeAsync_ShowsInfoAbilitiesAndButtons` | `"SetInfo:名前|SSR　歌唱　共通|Lv 3 / 40|上限解放 0 / 4"`、`"SetAbilities:1 初期歌唱 +…"`、ボタンのラベルと有効/無効 |
 | | `InitializeAsync_AtMaxLevel_ButtonsShowCap` / `InitializeAsync_MaxNotAffordable_ShowsShortage` | `"+1（上限）"` 等／`"最大（足りません）"`・無効 |
 | | `LevelUpAsync_Confirmed_ExecutesAndRefreshes` | `"Confirm:Lv 3 → Lv 4 に上げます。\n強化pt …"` の後、ポートに `(uid, 4)`、View の再表示 |
@@ -619,17 +735,24 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 | | `LimitBreakAsync_SelectionCancelled_DoesNotExecute` | `PopResults` が空（null）→ `"Confirm:"` が無く、ポートが呼ばれない |
 | | `LimitBreakAsync_AtMax_DoesNothing` | `LimitBreak == 4` → `"PushPage:"` も `"Info:"` も無い |
 | | `Refresh_CardGone_DisablesAll` | キャッシュに所持が無い → `"SetInfo:このカードは所持していません。"`、ボタンが全部無効 |
-| `HomePresenterTests.cs`（変更） | `Clicks_ShowNotReady` | 「アイドル」（`OwnedClicked`）は `"Info:準備中です。"` を出さなくなるので、期待する回数から 1 つ減らす（2 本目の変更の後の回数から） |
+| | `LevelUpAsync_AfterDispose_DoesNothing` | `Dispose()` のあと `LevelUpAsync(Plus1)` → `"Confirm:"` が無く、ポートが呼ばれない |
+| `HomePresenterTests.cs`（変更） | `OwnedClicked_ShowsNotReady` を `OwnedClicked_PushesOwnedBrowse` に差し替える | `InitializeAsync` のあと `RaiseOwnedClicked()` → `InitializeAsync` の後の記録が `"PushPage:OwnedPresenter"` だけ。ほかのボタンのテストは変えない（foundation の決めたこと 16） |
 | | `OpenOwnedAsync_PushesOwnedBrowse`（追加） | `"PushPage:OwnedPresenter"`、`Args[0]` が `OwnedArgs` で `Selection == null` |
 
-Play モード・手動（Editor、サーバー起動済み。初期付与済みのプレイヤーに、ガチャで同じサポートカードを 2 枚以上引かせておく）:
-- ホーム →「アイドル」で所持一覧。育成アイドルのタブは IdolId の順で、並び・絞り込みの行が出ない。サポートのタブで並び・プラン・タイプが効く
-- サポートカードをタップ → 詳細。アビリティが「1 初期歌唱 +N」の形で出る。「+1」→ 確認 → Lv が上がり、強化pt・ゴールドが減る。「最大」で足りる範囲の最大まで上がる
+Play モード・手動（タスク 5。Editor、サーバー起動済み。初期付与済みのプレイヤーに、ガチャで同じサポートカードを 2 枚以上引かせておく）:
+- タイトル → ホームの「アイドル」で所持一覧（`Home` シーンのまま。ヘッダーに「＜ 所持一覧」、タブ 2 つ）。育成アイドルのタブは IdolId の順で、並び・絞り込みの 2 段が出ない。選んでいるタブに下線が出る
+- 「サポート」のタブで、並び・昇順/降順・プラン・タイプの 2 段が出て、押すとラベルと並びが変わる。絞り込みで 0 件になると一覧の下に「ありません」が出て、戻すと消える
+- サポートカードの行をタップ → 詳細。上から名前・レア度などの 4 行、強化pt・ゴールド、+1・+5・最大（ラベルが 1 行に入る）、上限解放、「アビリティ」と「1 初期歌唱 +N」の形
+- 「+1」→ 確認 → Lv が上がり、強化pt・ゴールドが減る。「最大」で足りる範囲の最大まで上がる
 - 強化ptが足りないときの「+5」→ 確認 →「強化ptが足りません。」
-- 同じカードを 2 枚持った状態で「上限解放（素材を選ぶ）」→ 素材の一覧（同じカードだけ）→ 選ぶ → 確認 → 解放数が増え、所持一覧に戻ると素材が消えている
+- 同じカードを 2 枚持った状態で「上限解放（素材を選ぶ）」→ 素材の一覧（見出し「素材にするカードを選ぶ」、タブなし、プラン・タイプの段なし、同じカードだけ）→ 選ぶ → 確認 → 解放数が増え、「＜」で所持一覧に戻ると素材が消えている
 - 素材の一覧で「＜」→ 詳細に戻り、何も起きない
+- 所持一覧で「＜」→ ホームに戻り、ホームの表示（プレイヤーLv・ガチャ通貨）が今の値
 - 選択モード（育成アイドル・サポートカード）は 4 本目の編成で確かめる
 
 ## 6. 未決事項
 
-なし
+いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
+
+- 「ユーザーの確認が要ること」の 1〜3 の答え
+- 他の計画との食い違い（進行役が扱う。この計画では直さない）: foundation 3.9 は `HomePage.resumePanel` を `GameObject`、P2 3.1 は `RectTransform` としている（この計画は `HomePage` を触らないので影響しない）

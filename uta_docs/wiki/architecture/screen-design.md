@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-07
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -134,8 +134,13 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 
 ### 7.3 文字は TextMeshPro + 日本語のフォントアセット [決定。2026-11-07。ユーザーの判断]
 
-- 文字は TextMeshPro。日本語のフォントのファイルを `Assets/Fonts/` に置き、動的な SDF のフォントアセット（Atlas Population Mode = Dynamic。全部の漢字を事前に焼かない）を Editor のスクリプトで作って、TMP の既定のフォントにする。フォントは **Noto Sans JP（SIL Open Font License 1.1）** を想定する（ライセンスの表示の扱いは計画の「確認が要ること」でユーザーに確認する）
-- TMP の Essential Resources を取り込む（Editor のスクリプトで実行）
+- 文字は TextMeshPro。フォントは **Noto Sans JP（SIL Open Font License 1.1）**。フォントのアセットは**作成済み**（ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。2026-11-07 時点で main には未マージ。画面の Prefab の計画は積み PR で前提にする）: `client/uta/Assets/Fonts/NotoSansJP/` に静的な ttf（Regular・Bold）、`OFL.txt`（ライセンス文）、TMP の動的 SDF のフォントアセット `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic で全部の漢字を事前に焼かない。Multi Atlas、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効）。可変フォントは TMP の Dynamic が wght 軸を扱わないので使わない
+- 文字は Regular のアセット、**太字は Bold のアセット**を使う（TMP の疑似太字 `FontStyles.Bold` は使わない）
+- **フォントの読み込みはシリアライズ参照**: `TMP_Text.font` は生成スクリプトが Prefab に入れる参照で持つ。TMP の既定のフォントも Regular のアセット。フォントは Addressables に入れない（Addressables に入れるのは画面の Prefab だけ。フォントは Prefab・シーンから参照されてビルドに入る）
+- Editor で文字を描くと動的アセットのアトラスに字が足され `.asset` が変わる。Prefab の生成の最後に動的データを空に戻し、残った差分はコミットしない（コミットするアセットはアトラスが空）
+- [Uta案。確認待ち] Unity 7（uGUI 7.0.0）は TMP の Essential Resources の取り込みが無い（既定の設定・シェーダーがパッケージに同梱）。そのため取り込みはせず、プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り（無ければ）、既定のフォントを Regular のアセットにする
+- 確かめてあること（フォントの作業。Editor）: `com.unity.ugui` 7.0.0 に TMPro の型がある、`Assets/` に `TextMesh Pro` フォルダが無くても `Shader.Find("TextMeshPro/Distance Field")` が見つかる、アセットのシェーダーは `TextMeshPro/Mobile/Distance Field`、日本語 15 文字がアトラスに載る。**未確認**: 実際の `TMP_Text` の表示、TMP Settings の既定のフォントの設定状況、プレイヤーのビルド・実機。Prefab の計画（P1）の最初のタスクのスパイクで確かめる
+- アプリ内のライセンス表示の画面は MVP では作らない（ストアに出すときに作る。ユーザーの確認待ち）
 
 ### 7.4 Presentation の部品と置き場 [Uta案]
 

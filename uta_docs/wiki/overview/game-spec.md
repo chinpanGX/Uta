@@ -1,7 +1,7 @@
 ---
 title: ゲーム概要仕様
 status: draft
-updated: 2026-11-01
+updated: 2026-11-07
 ---
 
 # ゲーム概要仕様
@@ -113,7 +113,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 5a | **done**（2026-11-01）server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足した。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
 | 5 | **done**（2026-11-01）server/ のプレイヤー（初期付与）・ガチャ・強化（[初期付与](../../plans/2026-11-01-server-initial-grant.md)・[ガチャ](../../plans/2026-11-01-server-gacha.md)・[強化](../../plans/2026-11-01-server-support-upgrade.md)） | 1・2・3（レベル上げ・上限解放まで。性能への反映は 6） | 1、2、5a |
 | 6 | **done**（2026-11-03）server/ のプロデュース（[ProduceSnapshot](../../plans/2026-11-03-produce-snapshot.md)・[開始・保存](../../plans/2026-11-03-server-produce-start.md)・[操作・報酬](../../plans/2026-11-03-server-produce-play.md)） | 3 の「開始時の性能への反映」・4・5 | 4・5 |
-| 7 | client/ の画面（6 本の計画。クライアントのサインアップ・サインイン呼び出しは、7 の前に別の計画で **done**（2026-11-03）。[計画](../../plans/2026-11-03-client-signup-signin.md)）: [0 スキルカードの名前と説明文（masterdata）](../../plans/2026-11-03-masterdata-card-text.md) → [1 土台・起動・ホーム](../../plans/2026-11-03-client-screens-foundation.md) → [2 ガチャ](../../plans/2026-11-03-client-screens-gacha.md) → [3 所持一覧・サポートカードの強化](../../plans/2026-11-03-client-screens-owned.md)（2 の型を使う） → [4 編成・プロデュースの開始と再開](../../plans/2026-11-03-client-screens-formation.md)（3 の後。`LessonDto` の `UsableHand` を足す）→ [5 週の行動選択・授業・支給・スキルカードの選択肢](../../plans/2026-11-03-client-screens-week.md) → [6 レッスン・試験・結果](../../plans/2026-11-03-client-screens-lesson.md) | 6・7（7 は画面を作らない確認だけ。Android は別の項目） | 1・6 |
+| 7 | client/ の画面（10 本の計画。全体の順番・関係・確認事項は [索引](../../plans/2026-11-07-client-screens-index.md)。クライアントのサインアップ・サインイン呼び出しは、7 の前に別の計画で **done**（2026-11-03）。[計画](../../plans/2026-11-03-client-signup-signin.md)）: [計画 0 カードの名前と説明文](../../plans/2026-11-03-masterdata-card-text.md) → [P1 共通部品](../../plans/2026-11-07-client-prefabs-common.md) → [P2 Title・Home・ガチャ・所持一覧の Prefab](../../plans/2026-11-07-client-prefabs-screens-a.md) → [foundation](../../plans/2026-11-03-client-screens-foundation.md) → [gacha](../../plans/2026-11-03-client-screens-gacha.md) → [owned](../../plans/2026-11-03-client-screens-owned.md) → [P3 編成・プロデュースの Prefab](../../plans/2026-11-07-client-prefabs-screens-b.md) → [formation](../../plans/2026-11-03-client-screens-formation.md) → [week](../../plans/2026-11-03-client-screens-week.md) → [lesson](../../plans/2026-11-03-client-screens-lesson.md) | 6・7（7 は画面を作らない確認だけ。Android は別の項目） | 1・6 |
 
 ### MVP の最小のコンテンツ
 
