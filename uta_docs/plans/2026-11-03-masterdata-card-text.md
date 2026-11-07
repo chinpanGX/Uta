@@ -1,7 +1,7 @@
 ---
 title: 実装計画: マスタ スキルカードの名前と説明文
 status: ready
-updated: 2026-11-03
+updated: 2026-11-08
 spec: ../wiki/architecture/master/lesson-tables.md
 ---
 
@@ -273,7 +273,7 @@ ID の対応は 14章の ID → `CardId`（F01〜F07 = 1〜7、S01〜S14 = 101�
 - 手順:
   1. 5章のクライアントのテスト 1 つを `MasterDataLoaderTests` に足す（C# 9 の範囲。`using System.Linq;` を足す）
   2. `client/uta` で `unity recompile --format json` を実行し、エラー 0
-  3. `client/uta` で `unity test --mode EditMode` を実行する（同じプロジェクトを開いた Editor があると使えない。先に `unity close .`。[masterdata-pipeline.md](../wiki/architecture/master/masterdata-pipeline.md) 実装メモ）。使えなければユーザーに「Editor の Test Runner → EditMode → Run All を実行して結果を教えてほしい」と依頼する
+  3. Editor を開いたまま、EditMode のテストを `TestRunnerApi` の eval で回す（[P1](2026-11-07-client-prefabs-common.md) の決めたこと 12。コマンドは CLAUDE.md「ビルド・テスト・実行」・[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章。Editor は閉じない）。回せなければユーザーに「Editor の Test Runner → EditMode → Run All を実行して結果を教えてほしい」と依頼する
 - 確かめ方: EditMode のテストがすべて通る（既存の `Load_Bundled_ReturnsDatabase`・`MasterCardCatalogTests` を含む。新しいバイナリが新しい `MasterDataSchema.Hash` で読めることもこれで確かめる）。結果を見ずに「通った」と書かない
 
 ### タスク 3: wiki の更新

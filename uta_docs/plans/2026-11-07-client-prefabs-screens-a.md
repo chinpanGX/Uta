@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の Prefab 2/3 Title・Home・ガチャ・所持一覧
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
 
@@ -37,7 +37,7 @@ spec: ../wiki/architecture/screen-design.md
 
 - 関係する ADR: [0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・縦画面）、[0006](../wiki/decisions/0006-adopt-unity-7-early.md)（Unity 7）、[0001](../wiki/decisions/0001-ip-policy.md)（文言・名前はオリジナル）
 - **使う P1（[2026-11-07-client-prefabs-common.md](2026-11-07-client-prefabs-common.md)）の型**: `PageBase`・`ModalBase`・`UiTheme`、部品の View（`ButtonView`・`HeaderView`・`TabBarView`・`ListRowView`）、部品の Prefab（`Label`・`Button`・`Panel`・`Header`・`Tab`・`TabBar`・`ListRow`）、Editor の `PrefabBuildUtil`・`RectSpec`・`LayoutSpec`・`TextSpec`・`ButtonStyle`・`IPrefabBuilder`・`PrefabBuildCommands`、テストの `PrefabContract`。名前とシグネチャは P1 の 3.3・3.5・3.6 が正
-- **前提 1**: P1 が done（部品の Prefab 10 個があり、`BuildAll()` が `built 10` を返し、EditMode のテストが通る。テストの回し方は P1 のタスク 5 の手順 2）
+- **前提 1**: P1 が done（部品の Prefab 10 個があり、`BuildAll()` が `built 10` を返し、EditMode のテストが通る。テストの回し方は P1 の決めたこと 12）
 - **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
 - **この計画で決めないこと**: View のメソッド（`Set…`・イベント・`IXxxView` の実装）、Presenter、Args、ユースケース、シーンへの配置・DI（foundation・gacha・owned の C# の計画）。各シーンの `LifetimeScope` からのページの Push（foundation）。編成・プロデュースの画面（P3）。`SceneBuilder.cs` と既存の `TitleView`・`HomeView`（シーンの最小の uGUI。foundation が置き換える。この計画は触らない）
 
@@ -625,7 +625,7 @@ public static class ScreenPrefabAssert
 
 各タスクの終わりに、Editor のコンパイルエラーが 0（`unity recompile --format json`）で、EditMode のテストが全部通る状態にする。Editor が開けないときは、どのタスクも「確認できていない」と書いて止まり、ユーザーに実行を頼む。
 
-**テストの回し方**（以下「テストを回す」）: [P1](2026-11-07-client-prefabs-common.md) のタスク 5 の手順 2（テストの回し方）のとおり。`unity test` は同じプロジェクトを開いた Editor があると使えないので、`unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'` → `client/uta` で `unity close .`（保存せずに閉じる）→ `unity test --mode EditMode`（終了コード 0。結果は `client/uta/test-results.xml`）→ `unity open .` → `unity status --until-ready` が ready。`unity command eval`（Prefab の生成・改名）は Editor が要るので、eval とテストを交互に行うときは、その間に必ずこの close と open を挟む。P1 の実施後に CLAUDE.md「ビルド・テスト・実行」に EditMode のテストの行があれば、その行の方法が正（違っていたらそちらに従う）。行が無い（P1 で `unity test` が使えないと分かった）ときは、Editor の Test Runner で EditMode を全部実行してもらう（手動）。
+**テストの回し方**（以下「テストを回す」）: [P1](2026-11-07-client-prefabs-common.md) の決めたこと 12 のとおり、**Editor を開いたまま** `unity command --timeout 300 eval` で `TestRunnerApi` を呼ぶ（コマンドの正は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章と CLAUDE.md「ビルド・テスト・実行」。結果は `client/uta/Temp/uta-test-results.xml` の `<test-run>` の `failed` が 0 であることを見る）。Editor は閉じない（`unity test` は Editor が開いていると使えないので使わない）。1 つのクラスに絞るときは、同じコマンドの `Filter` に `groupNames = new[] { "<テストのクラス名>" }` を足す。eval で回せないときは、Editor の Test Runner で EditMode を全部実行してもらい（手動）、確認できていないと報告する（止まらない）。**この計画ではプレイヤーのビルド・`BuildAllBatch` のバッチ起動を確かめない**（P1 の決めたこと 19）。
 
 `BuildAll()` の呼び方（P1 の 3.5）: `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'`。以下の件数は P1 の部品 10 個を含む（P3 が先に入っていれば、その分を足した数になる）。
 
@@ -685,7 +685,7 @@ public static class ScreenPrefabAssert
 
 触る: なし（確かめだけ）。
 
-手順（1〜2 は Editor が開いている状態、3〜6 は閉じた状態、7 で開き直す）:
+手順（すべて Editor を開いたまま行う）:
 1. `BuildAll()` をもう一度実行し、`git status`・`git diff --stat` で `Prefabs/Screens/`・`Prefabs/Parts/Gacha*`・`AddressableAssetsData/` に差分が出るかを見る。**出ても止まらない**（P1 のタスク 4 と同じ扱い）。差分の有無と、出たならどの値か（`m_` のどの値か・fileID か）を報告に書く
 2. わざと壊す（Prefab の子を改名して保存する）。次の 1 式を実行し、`renamed` が返る（`unity command eval` は `return` が要る。見つからなければ `not found` が返るので、止まって報告する）:
    ```
@@ -693,13 +693,12 @@ public static class ScreenPrefabAssert
    ```
    - `NavGachaButton` は `Button` の Prefab をネストしたインスタンスなので、名前の変更は `HomePage.prefab` の中のオーバーライド（`m_Name` の property modification）として保存される。`Button.prefab` そのものは変わらない（`git status` で `Parts/Button.prefab` に差分が無いことを見る）
    - 続けて `unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'`
-3. `client/uta` で `unity close .`
-4. `unity test --mode EditMode --filter HomePrefabTests` が終了コード 8（テストの失敗）で、`test-results.xml` で `HomePage_FieldsPointToChildren` が失敗し、失敗の文に `navGachaButton` と `Body/Main/Nav/NavGachaButton` が入る。**`--filter` はまだ実績が無い**（P1 のタスク 5 で確かめる）。`--filter` が効かない（オプションのエラー、0 件しか走らない、全件が走る）ときは、`--filter` を外して `unity test --mode EditMode` を全件実行し、`test-results.xml` で失敗したテストの名前が `HomePage_FieldsPointToChildren` だけであること（ほかに失敗が無いこと）を見る。どちらで確かめたかを報告に書く
-5. Editor を閉じたまま、バッチの入口で元に戻す: `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` が終了コード 0、ログに `[Uta] prefabs: built 20`（バッチの入口の確かめを兼ねる）
-6. `unity test --mode EditMode` が終了コード 0（全部通る）
-7. `unity open .` → `unity status --until-ready` が ready。`git status` で `Prefabs/Screens/Home/HomePage.prefab` に手順 2 の改名が残っていないこと
+3. テストを回す（`Filter` に `groupNames = new[] { "HomePrefabTests" }`。絞り込みは P1 のタスク 5 で効いた）。`uta-test-results.xml` で `HomePage_FieldsPointToChildren` が失敗し、失敗の文に `navGachaButton` と `Body/Main/Nav/NavGachaButton` が入る。絞り込みが効かない（0 件しか走らない・全件が走る）ときは、絞らずに全件を回し、失敗したテストの名前が `HomePage_FieldsPointToChildren` だけであること（ほかに失敗が無いこと）を見る。どちらで確かめたかを報告に書く
+4. `BuildAll()`（eval）で元に戻す。`built 20`
+5. テストを回す（全件）。全部通る
+6. `git status` で `Prefabs/Screens/Home/HomePage.prefab` に手順 2 の改名が残っていないこと。`Fonts/NotoSansJP/` の差分は `git restore` で戻す
 
-終わったことの確かめ方: 手順 4 で壊すと失敗し、手順 6 で戻すと通る。バッチの入口が終了コード 0。
+終わったことの確かめ方: 手順 3 で壊すと失敗し、手順 5 で戻すと通る。
 
 **この計画では Play モードとプレイヤーのビルドで画面を出さない**（Presenter と Push は C# の計画が作る。画面が Addressables から読めることの確かめは、foundation・gacha・owned の C# の計画のタスクで行う。P1 のスパイクで `AddressableAssetLoader` の Push は確かめ済み）。
 
@@ -726,7 +725,7 @@ public static class ScreenPrefabAssert
 | `OwnedPrefabTests.cs` | `OwnedPage_FieldsPointToChildren`・`OwnedPage_TabsAreIdolsThenSupport`・`OwnedPage_EmptyTextIsInactive`・`SupportDetailPage_FieldsPointToChildren` | 3.6 |
 | P1 の `PrefabContractTests.cs`（変えない） | `AllPrefabs_SerializedReferences_AreAssigned`・`ScreenPrefabs_RootViewIsNamedAfterPrefab`・`ScreenPrefabs_AreRegisteredInScreensGroup`・`ScreensGroup_ContainsOnlyScreenPrefabs` | この計画の 10 個の Prefab が自動で対象になる |
 
-実行: 4章の冒頭の「テストの回し方」（`client/uta` で `unity close .` → `unity test --mode EditMode` → `unity open .`。P1 のタスク 5 の手順 2）。
+実行: 4章の冒頭の「テストの回し方」（Editor を開いたまま `TestRunnerApi` を eval で回す。P1 の決めたこと 12）。
 
 Editor でしか確かめられないもの（自動のテストにしない）:
 - 見た目（並び・文字が日本語で出る・はみ出し） → タスク 2〜4 の手動の確認

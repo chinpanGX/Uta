@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
 
@@ -44,7 +44,7 @@ spec: ../wiki/architecture/screen-design.md
 - **PR #28 の読み替え**: PR #28（未マージ。PR #28 が足す ADR）は `external/` のサブモジュールを全部消す（UnityScreenNavigator・Supplement・VolTech-MagicOnion・MasterMemoryAddons）。サーバー・shared は `packages/` の `.nupkg`、Unity は `manifest.json` の git URL で参照し、`Uta.slnx` から共通基盤が外れる。**PR #28 のあとは、共通基盤のソース（USN の `Runtime/ChinpanGX`・README・`AddressableAssetLoader`、VolTech-MagicOnion のコードなど）は `client/uta/Library/PackageCache/<パッケージ名>@<ハッシュ>/`（USN は `com.harumak.unityscreennavigator`。Unity でパッケージを解決した環境にだけある）か GitHub のリポジトリを読む。マージ前は `external/<名前>`**。この計画に書いた `external/` のパスは、そう読み替える（`external/` は直さない、の決まりは変わらない）
 - **前提 1**: PR #24（シーン構成・サインアップ・サインイン）が main に入っていること（入っている）。触る既存のコードは `client/uta/Assets/Scripts/` の `Bootstrap/`・`Presentation/{Title,Home,Startup}/`・`Editor/SceneBuilder.cs`・`Infrastructure/Api/`（`Presentation/Produce/` は触らない: 決めたこと 12）
 - **前提 2**: 計画 0（[masterdata-card-text](2026-11-03-masterdata-card-text.md)）が **main にマージ済み**で（積み PR の連鎖 main → P1 → P2 → この計画には計画 0 の変更が入らないので、計画 0 を先に main へマージしてから P1 を始める。[索引](2026-11-07-client-screens-index.md) 1章・5章の 1）、生成された `Uta.MasterData.Card` に `string Name`、`Uta.MasterData.CardFace` に `string Description` があること。タスク 2 の前に確かめ、無ければ止まって報告する
-- **前提 3**: P1 が done で、`Presentation/Common/` に `UiTheme`・`PageBase`・`ModalBase`・`UiRoot`・`BusyIndicator`（骨格）・`SafeAreaFitter`・`WindowAspectKeeper`、`Common/Parts/` に部品の View の骨格、`Assets/Prefabs/Parts/` に 10 個の部品（`UiRoot.prefab` を含む）、テストの `PrefabContract` があること。タスク 1 の前に確かめ、無ければ止まって報告する。テストは `unity test --mode EditMode`（回し方は P1 タスク 5 の「テストの回し方」）で回す。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則。CLAUDE.md に行が無いことは止まる理由にしない）
+- **前提 3**: P1 が done で、`Presentation/Common/` に `UiTheme`・`PageBase`・`ModalBase`・`UiRoot`・`BusyIndicator`（骨格）・`SafeAreaFitter`・`WindowAspectKeeper`、`Common/Parts/` に部品の View の骨格、`Assets/Prefabs/Parts/` に 10 個の部品（`UiRoot.prefab` を含む）、テストの `PrefabContract` があること。タスク 1 の前に確かめ、無ければ止まって報告する。テストは P1 の決めたこと 12 の回し方で回す（Editor を開いたまま `TestRunnerApi` を eval で回す。コマンドは CLAUDE.md「ビルド・テスト・実行」・unity7-evaluation 4章）で回す。**eval で回せなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない**（P1 の決めたこと 12）
 - **前提 4**: P2 が done で、`Presentation/Title/TitlePage.cs`・`Presentation/Home/HomePage.cs`（`PageBase` の派生。3.9 のフィールド）と、`Assets/Prefabs/Screens/Title/TitlePage.prefab`・`Assets/Prefabs/Screens/Home/HomePage.prefab`（Addressables の `Screens` に、アドレス `TitlePage`・`HomePage`）があること。タスク 1 の前に確かめ、3.9 とフィールドの名前・型が違えば止まって報告する
 - **前提 5**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、コンパイル・テスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
 - **この計画で決めないこと**: ガチャ・所持一覧・編成・プロデュースの画面（2〜6 本目）。ホームの 3 つのボタンの動作（プロデュース・ガチャ・アイドル）の行き先（2〜4 本目が `HomePresenter` の対応するメソッドの中身を書き換える）。`Produce` シーンの作り直し（4 本目）。モーダル（`PushModalAsync`）を実際に出して確かめるのは、最初に使う計画（2 本目のガチャの結果）。画面の Prefab と見た目（P2・P3）。Android・iOS の実機（順 7 の別項目）
@@ -1036,13 +1036,13 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 
 ## 4. タスク
 
-各タスクの終わりに、`unity recompile --format json`（`client/uta` で実行。コンパイルエラー 0）が通り、`unity test --mode EditMode`（`client/uta` で実行。回し方は P1 タスク 5 の「テストの回し方」）で既存とそのタスクまでのテストが全部通る状態にする。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'` を実行する（P1。テスト・Play で動的フォントに足された字を消す。3.3.7）。
+各タスクの終わりに、`unity recompile --format json`（`client/uta` で実行。コンパイルエラー 0）が通り、EditMode のテスト（回し方は P1 の決めたこと 12: Editor を開いたまま `TestRunnerApi` を eval で回す。コマンドは CLAUDE.md「ビルド・テスト・実行」・unity7-evaluation 4章）で既存とそのタスクまでのテストが全部通る状態にする。**eval で回せなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない**（P1 の決めたこと 12）。**Editor を開けない環境では、通ったとは書かず、確かめていないと報告する**。コミットの前に `unity command eval 'Uta.Client.Editor.Prefabs.FontAssets.ClearDynamicData(); return "ok";'` を実行する（P1。テスト・Play で動的フォントに足された字を消す。3.3.7）。
 
 タスク 1・2 の間、アプリの動き（#24 のシーン・legacy `Text` の仮の画面）は変わらない（足した型はまだシーンから使わない）。タスク 3 から Title・Home を P2 の Prefab に置き換える。
 
 #### タスク 1: 共通部品とテスト用の偽
 
-前提の確認: 前提 3（P1 の型・Prefab。`unity test` が動かないことは止まる理由にしない）と前提 4（P2 の `TitlePage`・`HomePage` の骨格と Prefab）。無ければ止まって報告する。
+前提の確認: 前提 3（P1 の型・Prefab。テストを eval で回せないことは止まる理由にしない）と前提 4（P2 の `TitlePage`・`HomePage` の骨格と Prefab）。無ければ止まって報告する。
 
 触る: テストの asmdef（3.1）、`Presentation/Common/BusyIndicator.cs`（足す）・`Parts/` の 7 ファイル（足す）、`UiObjects.cs`・`DialogResult.cs`・`DialogService.cs`・`PageStack.cs`・`ActiveSceneUi.cs`・`SceneUiActivation.cs`・`SceneUiInstaller.cs`、`Tests/EditMode/Fakes/*.cs`、`Tests/EditMode/BusyIndicatorTests.cs`・`DialogServiceTests.cs`・`PageStackTests.cs`・`ActiveSceneUiTests.cs`。
 
@@ -1050,7 +1050,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 1. テストの asmdef を 3.1 のとおりに直す
 2. 3.2 のとおりに足す・作る（P1 のフィールドは変えない）
 3. 3.3.8 の偽を作る
-4. 5章のテストを作り、`unity recompile` → `unity test --mode EditMode`
+4. 5章のテストを作り、`unity recompile` → EditMode のテスト
 
 境界: `ChooseAsync` に null・0 個・5 個以上のラベルを渡すと `ArgumentException`（待ち行列に入れない）。`DialogService` の層が破棄済み（Unity の null）なら、ダイアログを出さずに −1（`Negative`）で終わる。C# の null の層は今までどおり `InvalidOperationException`（3.2）。`BusyIndicator.End` を `Begin` より多く呼んでも数は 0 より下がらない。`PageStack` は枚数が 0・1 のとき Pop を呼ばない。`ActiveSceneUi.Detach` は別の `UiRoot` を渡されたら何もしない。
 
@@ -1081,7 +1081,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 手順:
 1. 3.7 のとおりに作る・置き換える・削除する（削除は `.cs` と `.meta` の両方）。3.7 のコメントの直しもする
 2. `Editor/SceneBuilder.cs` が消した型（`TitleView`・`HomeView`）を参照してコンパイルが通らなくなるので、このタスクで 3.10 のとおりに `SceneBuilder.cs` も直す（シーンの作り直しはタスク 4）
-3. 5章のテストを作り、`unity recompile` → `unity test --mode EditMode`
+3. 5章のテストを作り、`unity recompile` → EditMode のテスト
 
 境界: `TitlePresenter.StartAsync` を実行中にもう一度呼ぶと何もしない。サインインの途中で `Dispose` されたら、そのあと View に触らない。`HomeEntry` は `cache.Current` が null ならページを積まない。
 
@@ -1095,7 +1095,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 
 手順:
 1. 3.1 の Bootstrap の asmdef、3.8 のとおりに作る・直す。`StartupView.cs`（と `.meta`）を削除する
-2. 5章の `ApiActivityBridgeTests`・`ErrorDialogViewTests`・`ErrorNavigatorTests`・`BootstrapEntryTests` を作り、`unity recompile` → `unity test --mode EditMode`
+2. 5章の `ApiActivityBridgeTests`・`ErrorDialogViewTests`・`ErrorNavigatorTests`・`BootstrapEntryTests` を作り、`unity recompile` → EditMode のテスト
 3. シーンを作り直す: `unity command eval 'Uta.Client.Editor.SceneBuilder.CreateScenes(); return "ok";'` が `ok`。`git status` で `Scenes/` の `Bootstrap`・`Title`・`Home` の `.unity` が変わり、`SampleScene` などほかのシーンが増えていないこと（`Produce.unity` は #24 と同じ中身を作り直すだけなので、差分が出ても出なくてもよい。中身の形が変わっていたら止まって報告する）
 4. `ProjectSettings.asset` を直す（テキストで該当行だけ。Editor を閉じてから編集し、開き直す）: `defaultScreenWidth: 540`、`defaultScreenHeight: 960`、`fullscreenMode: 3`、`resizableWindow: 1`、`defaultScreenOrientation: 0`、`allowedAutorotateToPortrait: 1`、`allowedAutorotateToPortraitUpsideDown: 0`、`allowedAutorotateToLandscapeRight: 0`、`allowedAutorotateToLandscapeLeft: 0`（いまは順に 1024・768・1・0・4・1・1・1・1）
 5. Play で確かめる（ローカルのサーバーを起動した状態。CLAUDE.md「ローカルのサーバー」）:
@@ -1146,7 +1146,7 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 
 ## 5. テスト
 
-置き場: `Tests/EditMode/`。既存のテスト用 asmdef（`Uta.Client.Infrastructure.Tests.EditMode`）を使う。名前空間は `Uta.Client.Infrastructure.Tests`。書き方は 3.3.7。実行は `unity test --mode EditMode`（`client/uta` で実行。動かなければ Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。4章の冒頭）。
+置き場: `Tests/EditMode/`。既存のテスト用 asmdef（`Uta.Client.Infrastructure.Tests.EditMode`）を使う。名前空間は `Uta.Client.Infrastructure.Tests`。書き方は 3.3.7。実行は Editor を開いたまま `TestRunnerApi` を eval で回す（P1 の決めたこと 12。回せなければ Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。4章の冒頭）。
 
 | タスク | ファイル | テスト | 内容 |
 |---|---|---|---|

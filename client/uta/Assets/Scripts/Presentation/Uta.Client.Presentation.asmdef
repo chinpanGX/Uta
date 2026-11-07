@@ -6,7 +6,9 @@
         "Uta.Shared.Domain",
         "UniTask",
         "VContainer",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "UnityScreenNavigator",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

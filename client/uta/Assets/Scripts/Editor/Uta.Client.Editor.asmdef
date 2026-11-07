@@ -6,7 +6,12 @@
         "Uta.Client.Presentation",
         "UnityEngine.UI",
         "Unity.InputSystem",
-        "VContainer"
+        "VContainer",
+        "UnityScreenNavigator",
+        "Unity.TextMeshPro",
+        "Unity.Addressables",
+        "Unity.Addressables.Editor",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [
         "Editor"

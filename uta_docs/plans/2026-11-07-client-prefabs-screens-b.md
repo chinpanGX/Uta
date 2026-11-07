@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の Prefab 3/3 編成・プロデュース
 status: ready
-updated: 2026-11-07
+updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
 
@@ -39,7 +39,7 @@ spec: ../wiki/architecture/screen-design.md
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1（[common](2026-11-07-client-prefabs-common.md)）→ P2（[screens-a](2026-11-07-client-prefabs-screens-a.md)）→ foundation → gacha → owned → **P3（この計画）** → formation → week → lesson
 - **前提 1**: P1 が done（`PrefabBuildUtil`・`IPrefabBuilder`・`RectSpec`・`LayoutSpec`・`TextSpec`・`ButtonStyle`・`PrefabBuildCommands`・`PrefabContract`／`PrefabContractTests`・部品の Prefab 10 個・`PageBase`／`ModalBase`・部品の View・`UiTheme`）。加えて P2 が done（Editor の補助 `ScreenLayout`。3.3）。P3 の View の型が使うのは P1 の型だけ、生成が使うのは P1 と P2 の `ScreenLayout` だけ（foundation・C# の計画の型には依存しない）。無ければ止まって報告する
 - **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
-- **前提 3**: テストの回し方は [P1](2026-11-07-client-prefabs-common.md) のタスク 5 の手順 2（`unity test` は同じプロジェクトを開いた Editor があると使えないので、`unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'` → `client/uta` で `unity close .` → `unity test --mode EditMode` → `unity open .` → `unity status --until-ready`）。P1 の実施後に CLAUDE.md「ビルド・テスト・実行」に EditMode のテストの行があれば、その行の方法が正。行が無い（`unity test` が使えないと分かった）ときは、Editor の Test Runner の EditMode を全部実行してもらう（手動）
+- **前提 3**: テストの回し方は [P1](2026-11-07-client-prefabs-common.md) の決めたこと 12（**Editor を開いたまま** `unity command --timeout 300 eval` で `TestRunnerApi` を呼ぶ。コマンドの正は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章と CLAUDE.md「ビルド・テスト・実行」。結果は `client/uta/Temp/uta-test-results.xml`）。Editor は閉じない（`unity test` は使わない）。eval で回せないときは、Editor の Test Runner の EditMode を全部実行してもらい（手動）、確認できていないと報告する（止まらない）。この計画ではプレイヤーのビルドを確かめない（P1 の決めたこと 19）
 - **この計画で決めないこと**: View のメソッド・`IXxxView` の実装・Presenter・`ProduceFlow`（C# の計画）。どのシーンにどの画面を積むか（formation の計画が正。決めたこと 9）。`HeaderView`・`ButtonView` の表示のメソッド（foundation 3.2 が足す: `HeaderView.SetTitle`、`ButtonView.SetLabel`・`SetInteractable`）
 
 ## 2. 触るファイル
@@ -642,7 +642,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 
 手順:
 1. 6章のテストを作る
-2. テストを回す（前提 3。保存 → `unity close .` → `unity test --mode EditMode` → `unity open .`）。P1 の `PrefabContractTests`（全部の Prefab の参照・画面の名前と登録）と `ProducePrefabTests` が全部通る。手順 3・4 は Editor を開き直してから行う
+2. テストを回す（前提 3。Editor を開いたまま）。P1 の `PrefabContractTests`（全部の Prefab の参照・画面の名前と登録）と `ProducePrefabTests` が全部通る
 3. 冪等の確かめ: もう一度 `BuildAll()` を実行し、`git diff --stat` で `Prefabs/Parts/`・`Prefabs/Screens/`・`AddressableAssetsData/` に差分が出るかを見る。**出ても止まらない**（P1 タスク 4 と同じ扱い）。差分の有無と、出たならどの値かを報告に書く。`Fonts/NotoSansJP-Regular SDF.asset` に差分が無いこと
 4. ユーザーに、Editor で 10 個の画面と 5 個の行の Prefab を Prefab モードで開き、表の配置になっていること、日本語と `≡`（`MenuButton`）が豆腐でないことを見てもらう。`◀`・`＜` は仮の文字に無いので、`ExamRankingRow` を Prefab モードで開き、`Text` の TMP の text 欄に `◀＜` を入れて見るだけにし、保存せずに閉じる（手動。決めたこと 11）
 
@@ -787,7 +787,7 @@ private static readonly (string Prefab, string[] Children)[] NamedChildren =
 
 共通の確かめ（P1 の `PrefabContractTests` が自動で対象にする）: 全フィールドの参照が `null` でない、画面のルートの型名 = ファイル名、`Screens` グループにアドレス = ファイル名で登録・ラベル無し、`Screens` に画面以外が無い。
 
-実行: `unity test --mode EditMode`（前提 3）。
+実行: Editor を開いたまま `TestRunnerApi` を eval で回す（前提 3）。
 
 Editor でしか確かめられないもの（自動のテストにしない）: 見た目と日本語・記号の字形（タスク 5 の手動）。Addressables からの読み込みと画面の動きは、Presenter ができる C# の計画（formation・week・lesson）の Play モードと Windows の IL2CPP で確かめる。
 
