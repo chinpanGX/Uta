@@ -23,7 +23,8 @@ namespace Uta.Client.Editor.Prefabs.Parts
             PrefabBuildUtil.SetRect((RectTransform)root.transform, RectSpec.Top(UiTheme.HeaderHeight));
             PrefabBuildUtil.AddImage(root, UiTheme.Header, true);
             PrefabBuildUtil.AddHorizontal(root, new LayoutSpec(16f, 24, 24, 10, 10, TextAnchor.MiddleCenter, true, true, false, true));
-            PrefabBuildUtil.SetLayout(root, minHeight: UiTheme.HeaderHeight, preferredHeight: UiTheme.HeaderHeight);
+            // flexibleHeight 0: HLG の伸ばす H が true なので、明示しないと flexibleHeight 1 になり、親の VLG の余りを吸って高くなる
+            PrefabBuildUtil.SetLayout(root, minHeight: UiTheme.HeaderHeight, preferredHeight: UiTheme.HeaderHeight, flexibleHeight: 0f);
             var view = root.AddComponent<HeaderView>();
 
             var backButton = PrefabBuildUtil.AddButtonPart(root.transform, "BackButton", "戻る", ButtonStyle.Secondary);
