@@ -114,54 +114,65 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
 - **MVP のカードの使用可否はサーバーが判定して返す** [決定。2026-11-03。ユーザーの判断]: `LessonDto` に `UsableHand`（`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true）を足す（[server/produce-server.md](server/produce-server.md) 6章）。`LessonDto` から `LessonState` を復元するには持続効果の定義（`EffectDef`）などが足りず、クライアントだけでは判定できないため。ADR 0008 の「クライアントが判定」からは外れるが、確定はサーバー、表示のための判定もサーバーの値を使う、という向きは同じ。クライアントの予測（効果の見込み）は MVP では出さない（[lesson-domain-types.md](lesson-domain-types.md)）
 
-## 7. MVP の画面の実装方針 [決定。2026-11-03]
+## 7. MVP の画面の実装方針 [決定。2026-11-07]
 
-MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を作る実装計画（6 本。[game-spec.md](../overview/game-spec.md) の順 7）が共通して従う方針。型のシグネチャは各計画が持ち、このページは「なぜそうするか」と置き場を持つ。
+MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を作る実装計画（順 7。[索引](../../plans/2026-11-07-client-screens-index.md)）が共通して従う方針。型のシグネチャと Prefab の構造は各計画が持ち、このページは「なぜそうするか」と置き場を持つ。シーンの分け方は 8章。
 
-### 7.1 UI はコードで組む [決定。ユーザーの判断]
+### 7.1 画面は Prefab で作る。Prefab は Editor のスクリプトで生成する [決定。2026-11-07。ユーザーの判断]
 
-- 画面・部品は C# で `GameObject` と uGUI（`UnityEngine.UI`）から組み立てる。`.prefab`・`.unity` は作らない（Sonnet が YAML で手書きするのは現実的でないため。見た目は仮でよい）
-- `UnityScreenNavigator`（USN。自作のフォーク）の **Presenter 駆動のナビゲーション**（`Runtime/ChinpanGX`: `IScreenNavigator`・`IPresenter`・`[AssetAddress]`・`IScreenWithArgs<TArgs>`・`OverlayContainer`。遷移は待ち行列で直列になる）をそのまま使い、自前のナビゲーターは作らない [決定。2026-11-03。レビューの指摘: 同じ役割の実装が基盤にある]。ページ・モーダルの雛形は、`PreloadedAssetLoader` に「コンポーネントだけを付けた空の `GameObject`」として登録して渡す。雛形が `Instantiate` されたあと、`Page.Initialize()`（モーダルは `Modal.Initialize()`）の中で子の UI を組む（雛形には子を作らない。`Instantiate` は非シリアライズのフィールドを複製しないため）
-- 文字は `UnityEngine.UI.Text`（legacy）と OS のフォント（`Font.CreateDynamicFontFromOSFont`）。TextMeshPro とフォントのアセットは使わない（日本語のフォントのアセットを置かないため。仮の見た目）
-- 入力は Input System だけが有効（`ProjectSettings` の `activeInputHandler: 1`）なので、`EventSystem` には `InputSystemUIInputModule` を付ける
+- 画面（ページ・モーダル）と共通部品は **Prefab**。Prefab は Sonnet が YAML で手書きせず、**Unity Editor を unity-cli で動かして、C# の Editor スクリプト（`Scripts/Editor/Prefabs/`）で生成し、保存する**。生成された `.prefab`・`.meta` をコミットする。スクリプトは冪等（再実行すると同じ Prefab ができる）にする。Editor で手作業した修正は、生成スクリプトに戻す（戻さないと次の再生成で消える）
+- C# は GameObject を組み立てない。View は Prefab のルートに付く MonoBehaviour（`PageBase`／`ModalBase` を継承）で、子の参照を `[SerializeField]` で持つ。参照は生成スクリプトが `SerializedObject` で代入する。参照が欠けていないことは EditMode のテスト（`PrefabContractTests`: 全 Prefab を読み、必須の参照が `null` でないこと）で確かめる
+- Unity の Editor が開いていない環境では、Prefab の生成・確認はできない。計画のタスクは「確認できていない」と書き、ユーザーに実行を頼む（推測で「通った」と書かない）
 
-### 7.2 Presentation の部品と置き場 [Uta案]
+### 7.2 Prefab の読み込みは Addressables [決定。2026-11-07。ユーザーの判断]
+
+- 画面の Prefab は Addressables のグループ `Screens` に入れる。アドレスは Prefab の名前（例 `HomePage`）。登録は Editor のスクリプト（`AddressableAssetSettings` の API）が行う。`PageContainer`／`ModalContainer` の `AssetLoader` は USN の `AddressableAssetLoader`
+- 基盤の `IScreenNavigator`（Presenter 駆動。`[AssetAddress("HomePage")]` のキーがアドレスになる）をそのまま使う
+- プレイヤーのビルドの前に `AddressableAssetSettings.BuildPlayerContent()` を実行する（`BuildCommands` に足す）
+- **未確認**: Addressables 4.1.2 の Unity 7（`7000.0.0a12`）での動作（Editor の Play、Windows の IL2CPP、`BuildPlayerContent`）。計画の最初のタスクで確かめ、動かなければ止まって報告する（別の読み込み方法に勝手に変えない）
+
+### 7.3 文字は TextMeshPro + 日本語のフォントアセット [決定。2026-11-07。ユーザーの判断]
+
+- 文字は TextMeshPro。日本語のフォントのファイルを `Assets/Fonts/` に置き、動的な SDF のフォントアセット（Atlas Population Mode = Dynamic。全部の漢字を事前に焼かない）を Editor のスクリプトで作って、TMP の既定のフォントにする。フォントは **Noto Sans JP（SIL Open Font License 1.1）** を想定する（ライセンスの表示の扱いは計画の「確認が要ること」でユーザーに確認する）
+- TMP の Essential Resources を取り込む（Editor のスクリプトで実行）
+
+### 7.4 Presentation の部品と置き場 [Uta案]
 
 | 要素 | 置き場 | 役割 |
 |---|---|---|
-| 共通部品 | `Presentation/Common/` | `UiTheme`・`UiFactory`（uGUI の部品を作る）・`SafeAreaFitter`・`UiRoot`（`Canvas`・`PageContainer`・`ModalContainer`・ブロッカー）・`PageBase`・`ModalBase`・`Presenter<TView>`・`ScreenNavigator`・`BusyIndicator` |
-| 画面 | `Presentation/<機能>/` | `<名前>Page`（`PageBase`。View。ロジックを持たない）、`I<名前>View`（Presenter が見る View の IF）、`<名前>Presenter`（`Presenter<I<名前>View>`。EditMode のテストで偽の View を渡して確かめる） |
-| ユースケース | `Application/<機能>/` | `<名前>UseCase`。通信は `I<機能>Port`（Application が持つ IF）越し。`Presentation` は `Infrastructure` に触れない |
-| 組み立て | `Bootstrap/` | VContainer のスコープ。Presenter は `Transient`、ユースケース・ゲートウェイ・`PlayerCache` は `Singleton` |
+| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く |
+| 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う |
+| View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
+| Presenter | 同上 | View と `Application` のユースケースをつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
+| ユースケース | `Application/<機能>/` | 通信は `I<機能>Port` 越し。`Presentation` は `Infrastructure` に触れない |
+| 組み立て | 各シーンの `LifetimeScope`（8章） | Presenter とシーンの `UiRoot` を登録する。ユースケース・ゲートウェイは Bootstrap のルートのスコープ |
 
-- **Presenter の作り方**: `ScreenNavigator` が USN で画面を出し、VContainer から `TPresenter` を解決して `Bind(view)` を呼ぶ。画面が閉じられたら `Dispose()`。Presenter の入力（遷移先に渡す値）は、`ScreenNavigator` の `configure` コールバックで `Bind` の前に設定する
-- **画面の ID**: 雛形のキーは Presenter の `[AssetAddress("<ページの型名>")]`。USN の `pageId` は指定せず自動
-- **Presenter の形**: `IPresenter` を実装する普通のクラス。コンストラクターで、読み込まれた `Page`/`Modal` の具象型・`IScreenWithArgs<TArgs>` の引数・ユースケースを受ける（VContainer が子スコープで解決する）。EditMode のテストのため、`IXxxView`（インターフェース）を受ける 2 つ目のコンストラクターも持ち、画面の具象型を受けるほうに `[Inject]` を付ける
-- **遷移**: ホームをスタックの底にする。ホームへ戻るときは、ホーム以外のページをすべて `Pop` する。ガチャ・所持一覧などはホームの上に `Push`。プロデュースの局面ごとの画面は、現在のプロデュースの画面を `Pop` して次の画面を `Push` する（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではないため。戻るボタンで前の局面に戻れてしまうのを避ける。実装は `ProduceFlow`）
+- **遷移**: ホーム（またはシーンの最初のページ）を底にする。局面ごとの切り替えは、いまのページを `Pop` してから次を `Push`（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではない）。ホームへ戻るときは上のページ・モーダルを全部 `Pop`
+- **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
+- **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品は `Uta` 接頭辞（`UtaButton`・`UtaLabel`）
 
-### 7.3 通信・状態・マスタの扱い [Uta案]
+### 7.5 通信・状態・マスタの扱い [Uta案]
 
-- **所持データのキャッシュ**: `PlayerCache.Current`（サインインで取った `PlayerSnapshot`）。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、**`RefreshPlayerUseCase`（`IPlayerPort.SignInAsync` を呼んで `PlayerCache` を差し替える）で取り直す**。サーバーの確定値と食い違わせないため。サインインはプロデュースの破棄（古いセッション）も行うが、実行中のクライアントのバージョンは変わらないので起きない
-- **マスタ**: 画面が使うマスタの値（名前・レア度・プラン・ガチャの価格と重み・シナリオ・サポートカードのレベル表）は、`Application` の読み取り専用の IF `IGameMaster` と読み取り用の型（`IdolInfo` など）で受ける。実装は `Infrastructure` の `MasterGameData`（`MemoryDatabase` から詰め替える）。`Uta.MasterData` の型を `Application`・`Presentation` に出さない。スキルカードは `Uta.Shared.Domain` の `CardCatalog`（`ICardCatalog`）をそのまま使う
-- **スキルカードの表示**（MVP）: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。`Card.Name`・`CardFace.Description`。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類（`CardType`）・消費（`CostKind` と値）・強化済みの印（`+`）・説明文を出す。効果の予測値は出さない
-- **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler`（進行中の呼び出しが 0→1 で開始、1→0 で終了。冪等性の順番待ち・再認証の再送を含む）を `ApiActivityBridge` で `BusyIndicator` につなぐ。進行中は全面の透明な `Image`（`raycastTarget`）で入力を止める。画面は個別に包まない
-- **エラーの遷移先**: `IErrorNavigator` を `UtaErrorNavigator` で実装する。「タイトルへ」は起動の流れ（`StartupFlow`）のやり直し、「ホームへ」はサインインで取り直してホームに戻る、「ストアへ」は何もしない
-- **エラー**: `ApiCore` の共通ハンドラーが出すダイアログ（ネットワークの失敗・`DATE_CHANGED` など。[5章](#5-通信とエラーの画面側の扱い-uta案)）に任せる。業務エラー（ガチャの通貨不足・`PRODUCE_STALE_OPERATION` など）は、ゲートウェイが `ApiResult` の失敗をユースケースの結果の型（成功／業務エラー／その他）に直し、Presenter が文言を選んで `DialogService` で出す。診断用だった IMGUI の `ErrorDialogView`・`StartupView` は uGUI に置き換える
-- **起動の診断モード**: `-uta-quit-after-check` を付けたときだけ、いまの診断（`unity7-evaluation.md` 3.1。通信の疎通・再認証の再送・サーバーのエラーの受け取り）を画面なしで実行して終了コードを返す（`StartupDiagnostics`）。付けないときは通常の起動（画面）
+- **所持データのキャッシュ**: `PlayerCache.Current`。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`RefreshPlayerUseCase`）。サーバーの確定値と食い違わせないため
+- **マスタ**: 画面が使うマスタの値は、`Application` の読み取り専用の IF `IGameMaster` と読み取り用の型で受ける。`Uta.MasterData` の型を `Application`・`Presentation` に出さない
+- **スキルカードの表示**: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類・消費・強化済みの印・説明文を出す。効果の予測値は出さない
+- **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler` を `BusyIndicator` につなぐ（進行中は全面の透明な Image で入力を止める）。画面は個別に包まない
+- **エラー**: 業務エラーのコードは `UtaErrors` に `Stay` で登録し、画面が文言を出す。「タイトルへ」「ホームへ」は `IErrorNavigator`（8章の `ISceneNavigator` を呼ぶ）
+- **カードの使用可否はサーバーが判定して返す**（6章の `UsableHand`）
 
-### 7.4 プロデュースの画面の流れ [Uta案]
+### 7.6 プロデュースの画面の流れ [Uta案]
 
-- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（`Application`。最新の `ProduceStateView` と次の操作番号を持つ）が操作のたびに更新され、`ProduceFlow`（`Presentation`）が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業は選択肢を別のページ（授業のページ）に出す。screen-wireframes の共通の方針のとおり授業・支給はページ）、`CardOffer` → スキルカード獲得、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
-- 操作のレスポンスの `ExamResult` が入っている（再挑戦が残らず `ExamResult` の局面を飛ばした場合を含む）ときは、次の局面の前に試験結果の画面を出す（[produce-domain.md](produce-domain.md) 8章）
-- `PRODUCE_STALE_OPERATION` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたらホームに戻る（サインインで取り直す）
-- 授業・支給・休むの結果（上がった値）は、操作の前後の `ProduceStateView` の差でクライアントが出す（サーバーは差を返さない）
+- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（最新の `ProduceStateView` と次の操作番号）を操作のたびに更新し、`ProduceFlow` が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業は別ページ。screen-wireframes のとおり授業・支給はページ）、`CardOffer` → スキルカード獲得（モーダル）、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
+- 試験が終わった応答の `ExamResult` は、次の局面の前に試験結果の画面で見せる
+- `PRODUCE_STALE_OPERATION` は `GetStateAsync` で取り直す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` はホームへ戻る
+- 授業・休むの結果は、操作の前後の状態の差で出す。ターン終了時の効果の 1 件ずつの表示は MVP から外す（応答に効果の記録が無い）
 
-### 7.5 ウィンドウ・確かめ方 [Uta案]
+### 7.7 ウィンドウ・確かめ方 [Uta案]
 
-- Windows: 初期 540×960、ウィンドウモード、縦向きのみ。比率を 9:16 に保つ補正を `WindowAspectKeeper`（Windows のスタンドアロンだけ）が行う
-- 確かめ方は計画ごとに「EditMode のテスト（`unity` CLI または Test Runner）／ Play モード／ Windows の IL2CPP のビルド／手動」のどれで確かめるかを書く。Unity の Editor を開けない環境では、確かめられていないと計画・報告に書く（推測で「通った」と書かない）
+- Windows: 初期 540×960、ウィンドウモード、縦向きのみ。比率を 9:16 に保つ補正（`WindowAspectKeeper`）
+- 確かめ方は計画ごとに「EditMode のテスト／ Play モード／ Windows の IL2CPP のビルド／手動」のどれかを書く。Editor が開けない環境では、確かめていないと書く
 
-## 7. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
+## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
 
 Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（順 7 の画面の計画で使う。この章の時点では各シーンに最小の uGUI を置くだけ）。
 
@@ -178,7 +189,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
 - **Home に入ったとき `PlayerCache.Current` が無い**（サインインしていない）場合は、`Title` へ戻す
 - 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。画面の計画で、診断を別の入口に分ける [Uta案]
-- 最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする（手で組み立てを再現できるように）。文字は英語の組み込みフォント（`LegacyRuntime.ttf`）。日本語の文字・TextMeshPro・デザインは画面の計画（順 7）
+- 最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする（手で組み立てを再現できるように）。順 7 の画面の計画で、各シーンの最小の uGUI を 7章の Prefab に置き換える（日本語の文字は TextMeshPro + フォントアセット）
 - 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）
 
 ## 未決事項
