@@ -73,9 +73,8 @@ spec: ../wiki/systems/produce.md
 | 変更 | `Scripts/Presentation/Produce/SkillCardRowView.cs` | P3 の骨格に `SetTexts` を足す（3.5。6 本目も使う） |
 | 変更 | `Scripts/Presentation/Produce/ProduceFlow.cs` | `PushForPhaseAsync` に `WeekSelect`・`CardOffer` の `case`（3.6） |
 | 作成 | `Tests/EditMode/Fakes/FakeProduceFlow.cs` | テスト用の `ProduceFlow` の派生（5.1。6 本目も使う） |
-| 変更 | `Tests/EditMode/Fakes/FakeGameMaster.cs`（gacha の置き場のまま） | `GetCardText` が `CardTextList` から引くようにする（gacha で済んでいれば変えない。タスク 1） |
 | 作成 | `Tests/EditMode/ProduceChangeTests.cs`・`CardSummaryBuilderTests.cs`・`WeekProgressTests.cs`・`DisplayTextCardTests.cs`・`WeekPresenterTests.cs`・`ClassPresenterTests.cs`・`SupplyPresenterTests.cs`・`CardOfferPresenterTests.cs` | テスト（5.2） |
-| 変更 | `Tests/EditMode/ProduceFlowTests.cs`・`ProduceEntryTests.cs`（formation が作ったもの） | `WeekSelect` が「準備中」でなくなるので、期待を直し、テストを足す（5.2・タスク 4） |
+| 変更 | `Tests/EditMode/ProduceFlowTests.cs`・`ProduceEntryTests.cs`（formation が作ったもの） | `WeekSelect` が「準備中」でなくなるので、期待を直し、テストを足す（5.2・タスク 4b・4c） |
 | 変更 | `uta_docs/wiki/architecture/screen-design.md`・`uta_docs/wiki/overview/screen-wireframes.md`・`uta_docs/wiki/architecture/unity7-evaluation.md` | 結果の記録（タスク 5） |
 
 触らないもの: Prefab・Addressables・シーン・Editor の生成スクリプト（P3）、`ProduceLifetimeScope.cs`・`BootstrapEntry.cs`（決めたこと 10）、`ProduceEntry.cs`・`ProduceMenu.cs`（formation）。
@@ -142,6 +141,7 @@ public static string Costs(CardSummary card);
 public static IReadOnlyList<string> Change(ProduceChange change);
 ```
 
+- `DisplayText.cs` の `using` は、owned の `Uta.Shared.Domain.Lesson`（`CardType`・`CostKind`）・`Uta.Shared.Domain.Produce` に、無ければ `using System.Collections.Generic;`（`IReadOnlyList`）と `using Uta.Client.Application.Produce;`（`CardSummary`・`ProduceChange`）を足す。ほかは足さない
 - メソッド名を `CardTypeName`・`CostKindName` にする（型と同じ名前のメソッドにすると、メソッドの中の `CardType.Active` がメソッドに解決されてコンパイルできないため）
 - 名前の 歌唱・律動・表現 は `DisplayText.ParamName(ParamKind.Singing)` などを使う。体力は `"体力"`
 - 用語は [glossary.md](../wiki/glossary.md) のコストの種類（消費 / 体力消費）に合わせる
@@ -405,11 +405,11 @@ case ProducePhase.CardOffer:
 
 ### タスク 1: Application の値と文字
 
-触る: `Application/Produce/ProduceChange.cs`・`CardSummary.cs`・`CardSummaryBuilder.cs`・`WeekProgress.cs`、`Presentation/Common/DisplayText.cs`、`Tests/EditMode/Fakes/FakeGameMaster.cs`（必要なときだけ）、`ProduceChangeTests.cs`・`CardSummaryBuilderTests.cs`・`WeekProgressTests.cs`・`DisplayTextCardTests.cs`。
+触る: `Application/Produce/ProduceChange.cs`・`CardSummary.cs`・`CardSummaryBuilder.cs`・`WeekProgress.cs`、`Presentation/Common/DisplayText.cs`、`ProduceChangeTests.cs`・`CardSummaryBuilderTests.cs`・`WeekProgressTests.cs`・`DisplayTextCardTests.cs`。
 
 手順:
 1. 3.1・3.2 のとおり作る・足す
-2. gacha の `FakeGameMaster` の `GetCardText` を読む。`public List<CardTextInfo> CardTextList` フィールドから `CardId` で探し、無ければ `KeyNotFoundException` を投げる形になっていなければ、その形に直す（フィールドを足し、`GetCardText` の中身を置き換える。ほかのメンバーは変えない）
+2. gacha の `FakeGameMaster` は変えない（gacha タスク 1 の 2: `public Dictionary<int, CardTextInfo> CardTexts`（空で初期化）を持ち、`GetCardText(id)` は `CardTexts` に無ければ `KeyNotFoundException`）。テストではカードの文字を `master.CardTexts[1] = new CardTextInfo(1, "テストカード", "通常の説明", "強化の説明");` のように入れる。`FakeGameMaster` にこの形のフィールドが無ければ止まって報告する
 3. 5.2 の 4 つのテストのファイルを作る
 
 境界: `ProduceChange.Create(null, cur)` は全部 0。`WeekProgress.NextExam` は試験の週が無ければ `(Nothing, 0)`。`DisplayText.Costs` はコスト 0 件で `"コストなし"`。
@@ -425,7 +425,7 @@ case ProducePhase.CardOffer:
 2. 3.3 の IF・ViewData・Args と、3.5 の View の実装を書く。骨格のフィールド宣言は変えず、メソッド・イベント・インターフェースだけを足す
 3. `unity recompile --format json` のエラーが 0。P1 の `PrefabContractTests` と P3 の `ProducePrefabTests` が引き続き通る
 
-確かめ方: 上の 3。View の EditMode のテストは書かない（foundation 3.3.7）。表示はタスク 4 の Play で見る。
+確かめ方: 上の 3。View の EditMode のテストは書かない（foundation 3.3.7）。表示はタスク 5 の Play で見る。
 
 ### タスク 3: テスト用の部品
 
@@ -435,25 +435,60 @@ case ProducePhase.CardOffer:
 1. formation の `FakeProducePort`・`FakePlayerPort`・`TestProduce` が `Tests/EditMode/Fakes/` にあることを確かめる（無ければ止まって報告する）
 2. 5.1 のとおり `FakeProduceFlow` を作る。コンストラクターは formation の `ProduceFlow(ProduceSession, IScreenNavigator, PageStack, DialogService, ISceneNavigator)` に引数を全部 `null` で渡す（`ProduceFlow` のコンストラクターが `null` を検査して投げるなら止まって報告する）
 
-確かめ方: コンパイルエラー 0（テストはタスク 4 で使う）。
+確かめ方: コンパイルエラー 0（テストはタスク 4a〜4c で使う）。
 
-### タスク 4: Presenter と `ProduceFlow`
+### タスク 4 の分け方（依存の向き）
 
-触る: `Presentation/Produce/WeekPresenter.cs`・`ClassPresenter.cs`・`SupplyPresenter.cs`・`CardOfferPresenter.cs`・`ProduceFlow.cs`、`Tests/EditMode/WeekPresenterTests.cs`・`ClassPresenterTests.cs`・`SupplyPresenterTests.cs`・`CardOfferPresenterTests.cs`・`ProduceFlowTests.cs`・`ProduceEntryTests.cs`。
+Presenter は型で次の Presenter を参照するので、**参照される側を先に作る**: `WeekPresenter` は `PushPageAsync<ClassPresenter, …>`・`PushPageAsync<SupplyPresenter, …>` を書き、`ProduceFlow` は `PushPageAsync<WeekPresenter>`・`PushModalAsync<CardOfferPresenter>` を書く。依存の向きは `ProduceFlow` → `WeekPresenter` → `ClassPresenter`・`SupplyPresenter`、`ProduceFlow` → `CardOfferPresenter`（`ClassPresenter`・`SupplyPresenter`・`CardOfferPresenter` は `ProduceFlow` を引数で受けるだけで、ほかの Presenter を参照しない）。なので 4a → 4b → 4c の順にし、**各タスクの終わりに `unity recompile --format json` のエラーが 0、`unity test --mode EditMode` で既存（formation まで）とそのタスクまでのテストが全部通る**状態にする。`ProduceFlow` の `case` は、Push する Presenter ができたタスクで足す（`WeekSelect` は 4b、`CardOffer` は 4c）。
+
+### タスク 4a: `ClassPresenter`・`SupplyPresenter`
+
+触る: `Presentation/Produce/ClassPresenter.cs`・`SupplyPresenter.cs`、`Tests/EditMode/ClassPresenterTests.cs`・`SupplyPresenterTests.cs`。
 
 手順:
-1. formation の `ProduceFlow.cs` を読み、次を確かめる。違えば止まって報告する: (a) `ShowCurrentAsync` が `pageStack.PopToRootAsync(navigator)` のあと `PushForPhaseAsync(session.Current.Phase)` を呼ぶ、(b) `HandleStepAsync` の `Succeeded`・`Recovered` が `ShowCurrentAsync` を呼ぶ、(c) `PushForPhaseAsync` が `switch (phase)` で、`default` が「準備中です」のあと `ExitToHomeAsync`
-2. 3.3・3.4 のとおり 4 つの Presenter を作る。3.6 の `case` を `ProduceFlow.PushForPhaseAsync` に足す
+1. formation の `ProduceFlow.cs` を読み、次を確かめる。違えば止まって報告する: (a) `ShowCurrentAsync` が `pageStack.PopToRootAsync(navigator)` のあと `PushForPhaseAsync(session.Current.Phase)` を呼ぶ、(b) `HandleStepAsync` の `Succeeded`・`Recovered` が `ShowCurrentAsync` を呼ぶ、(c) `PushForPhaseAsync` が `switch (phase)` で、`default` が「準備中です」のあと `ExitToHomeAsync`、(d) `ShowCurrentAsync`・`HandleStepAsync`・`ExitToHomeAsync` が `virtual`（タスク 3 の `FakeProduceFlow` が上書きできる）
+2. 3.3・3.4 のとおり `ClassPresenter`・`SupplyPresenter` を作る（タスク 2 の View の IF・`WeekSlotArgs`、タスク 3 の `FakeProduceFlow` を使う。`ProduceFlow` は変えない）
+3. 5.2 の `ClassPresenterTests`・`SupplyPresenterTests` を作る
+
+境界: `ClassOptions` に無い添字、`Selectable == false` の選択肢は何もしない。
+
+確かめ方: `ClassPresenterTests`・`SupplyPresenterTests` と、formation までの EditMode のテストが全部通る（`ProduceFlow` を変えていないので、formation のテストは変わらない）。
+
+### タスク 4b: `WeekPresenter` と `ProduceFlow` の `WeekSelect`
+
+前提: タスク 4a が済んでいる（`WeekPresenter` が `ClassPresenter`・`SupplyPresenter` を型で参照する）。
+
+触る: `Presentation/Produce/WeekPresenter.cs`・`ProduceFlow.cs`、`Tests/EditMode/WeekPresenterTests.cs`・`ProduceFlowTests.cs`・`ProduceEntryTests.cs`。
+
+手順:
+1. 3.3・3.4 のとおり `WeekPresenter` を作る
+2. 3.6 の `case ProducePhase.WeekSelect:` だけを `ProduceFlow.PushForPhaseAsync` に足す（`CardOffer` の `case` は 4c）
 3. formation の既存のテストのうち、`WeekSelect` を「画面の無い局面」として使っているものを直す（`WeekSelect` に画面ができたため）:
    - `ProduceFlowTests.ShowCurrent_UnsupportedPhase_PopsToBackdropThenShowsInfoAndGoesHome`・`ShowCurrent_ModalOpen_PopsModalFirst`: `session` の局面を `ProducePhase.Nothing` にし、期待の文字を `"Info:この局面の画面は準備中です: Nothing"` にする（`Nothing` は 6 本目のあとも画面が無いので、期待が変わらない）
    - `ProduceFlowTests.HandleStep_SucceededAndRecovered_ShowCurrent`: 期待を `"PopPage:1"`, `"PushPage:WeekPresenter"` にする（`"Info:"`・`"GoToHome"` の行が無い）
    - `ProduceEntryTests.Start_Active_PushesBackdropThenShowsCurrent`: 期待を `"PushPage:ProduceBackdropPresenter"`, `"PushPage:WeekPresenter"` にする（`PageStack(() => 1, () => 0)` なので Pop の行は無い）
    - ほかのテスト（`ProduceMenuTests`・`HomePresenterTests` など）は `PushForPhaseAsync` を通らないので変えない。直す前に `ProduceFlowTests.cs`・`ProduceEntryTests.cs` を読み、`"準備中です: WeekSelect"` を期待しているテストがほかにもあれば、同じ考え（局面を `Nothing` にする、または `WeekPresenter` の Push を期待する）で直し、報告に書く
-4. 5.2 の Presenter のテストと `ProduceFlowTests`（追記）を作る
+4. 5.2 の `WeekPresenterTests` と、`ProduceFlowTests` の追記のうち `WeekSelect` の 2 本（`ShowCurrent_WeekSelect_PopsAboveBackdropThenPushesWeekPage`・`ShowCurrent_WeekSelectAfterModal_PopsModalThenPushesWeekPage`）を作る
 
-境界: `WeekActions`・`ClassOptions` に無い添字、`Selectable == false` の枠・選択肢は何もしない。`CardOffers` の範囲外の添字は何もしない。
+境界: `WeekActions` に無い添字、`Selectable == false` の枠は何もしない。
 
-確かめ方: 5.2 のテストと、formation の EditMode のテストが全部通る。
+確かめ方: `WeekPresenterTests`・`ProduceFlowTests`・`ProduceEntryTests`（直したもの）と、4a までのテストが全部通る。
+
+### タスク 4c: `CardOfferPresenter` と `ProduceFlow` の `CardOffer`
+
+前提: タスク 4b が済んでいる（`ProduceFlow.cs` に `WeekSelect` の `case` がある）。
+
+触る: `Presentation/Produce/CardOfferPresenter.cs`・`ProduceFlow.cs`、`Tests/EditMode/CardOfferPresenterTests.cs`・`ProduceFlowTests.cs`。
+
+手順:
+1. 3.3・3.4 のとおり `CardOfferPresenter` を作る
+2. 3.6 の `case ProducePhase.CardOffer:` を `ProduceFlow.PushForPhaseAsync` に足す
+3. `ProduceFlowTests.cs`・`ProduceEntryTests.cs` を読み、`CardOffer` を「画面の無い局面」として期待しているテスト（`"準備中です: CardOffer"`）があれば、4b の 3 と同じ考えで直し、報告に書く（formation 5章の表には無い）
+4. 5.2 の `CardOfferPresenterTests` と、`ProduceFlowTests` の追記のうち `CardOffer` の 2 本（`ShowCurrent_CardOffer_PopsPagesThenPushesModal`・`ShowCurrent_CardOfferOnBackdrop_PushesModalOnly`）を作る
+
+境界: `CardOffers` の範囲外の添字は何もしない。
+
+確かめ方: `CardOfferPresenterTests`・`ProduceFlowTests` と、4b までのテスト・formation の EditMode のテストが全部通る。
 
 ### タスク 5: Play の確認と結果の記録
 
@@ -499,6 +534,8 @@ Presenter のテストの組み立て（各テストのファイルに `private 
 
 ### 5.2 テストケース
 
+**例外のテストの書き方**（formation 5章の `FormationPresenterTests.Start_Exception_ShowsError` と同じ）: Presenter の `catch` は `Debug.LogException(e)` を呼ぶ。Unity の Test Runner は、予期しない `LogType.Exception` のログが出たテストを失敗にするので、**操作を `await` する前に `LogAssert.Expect(LogType.Exception, new Regex("FakeProducePort: no state result"));` を呼ぶ**（`using System.Text.RegularExpressions; using UnityEngine; using UnityEngine.TestTools;`。`Debug.LogException` のログの文は `"InvalidOperationException: FakeProducePort: no state result"` なので、部分一致の `Regex` で受ける）。`LogAssert.ignoreFailingMessages = true` は使わない（ほかの想定外のエラーまで隠すため）。例外は、`StateResults` を空にしておき、`ProduceActions` → `FakeProducePort` が投げる `InvalidOperationException("FakeProducePort: no state result")` で起こす（`ProduceActions` は例外を受けない: formation 決めたこと 12）。期待は「最後の記録が `"Info:エラーが発生しました: FakeProducePort: no state result"`」と「`"Flow.HandleStep:"` の行が無い」。
+
 `FakeProducePort` の記録は formation 3.7 の書式（`"ChooseWeekAction:" + op + "," + slot + "," + option + "," + param`、`"ResolveCardOffer:" + op + "," + kind + "," + offerIndex`、`"GetState"`）。「RPC の行が無い」は `"ChooseWeekAction:"`・`"ResolveCardOffer:"` で始まる行が無いこと。
 
 | ファイル | テスト | 内容 |
@@ -506,7 +543,7 @@ Presenter のテストの組み立て（各テストのファイルに `private 
 | `ProduceChangeTests.cs` | `Create_ComputesDifferences` | prev（歌唱 100・体力 30）→ cur（歌唱 140・体力 22）で `Singing == 40`、`Hp == -8`、ほかは 0 |
 | | `Create_PrevNull_AllZero` | `IsEmpty == true` |
 | | `IsEmpty_AllZero_True` / `IsEmpty_OneNonZero_False` | |
-| `CardSummaryBuilderTests.cs` | `Build_Enhanced_UsesEnhancedFaceAndDescription` | 下の作り方の `catalog` と `FakeGameMaster`（`CardTextList` に `new CardTextInfo(1, "テストカード", "通常の説明", "強化の説明")`）。`Build(catalog, master, 1, true)` の `Costs[0].Value == 3`、`Description == "強化の説明"`、`Name == "テストカード"`、`Rarity == Rarity.SR`、`Type == CardType.Active`。`Build(..., false)` は `Costs[0].Value == 4`、`Description == "通常の説明"` |
+| `CardSummaryBuilderTests.cs` | `Build_Enhanced_UsesEnhancedFaceAndDescription` | 下の作り方の `catalog` と `FakeGameMaster`（`master.CardTexts[1] = new CardTextInfo(1, "テストカード", "通常の説明", "強化の説明");`）。`Build(catalog, master, 1, true)` の `Costs[0].Value == 3`、`Description == "強化の説明"`、`Name == "テストカード"`、`Rarity == Rarity.SR`、`Type == CardType.Active`。`Build(..., false)` は `Costs[0].Value == 4`、`Description == "通常の説明"` |
 | | `Build_UnknownCard_Throws` | `Build(catalog, master, 99, false)` が `KeyNotFoundException` |
 | `WeekProgressTests.cs` | `NextExam_BeforeExam_ReturnsKindAndWeeks` | 5.1 のシナリオで `NextExam(s, 1) == (FinalExam, 2)` |
 | | `NextExam_OnExamWeek_ReturnsZero` | `NextExam(s, 3) == (FinalExam, 0)` |
@@ -526,7 +563,7 @@ Presenter のテストの組み立て（各テストのファイルに `private 
 | | `ChooseAction_RestConfirmed_ShowsChangeThenHandlesStep` | 体力 10 → 応答の体力 31。並びが `"Confirm:休みます。よろしいですか？"`, `"ChooseWeekAction:1,1,-1,Nothing"`, `"Info:体力 +21"`, `"Flow.HandleStep:Succeeded"` |
 | | `ChooseAction_RestDeclined_DoesNothing` | `ConfirmResults` に `Negative` → RPC の行が無い |
 | | `ChooseAction_NotSelectable_DoesNothing` | `Selectable == false` の枠 → 記録は `InitializeAsync` の分だけ |
-| | `ChooseAction_Exception_ShowsError` | (0, Lesson, true)、`ChooseResults` に 0、`StateResults` を空にする → 最後が `"Info:エラーが発生しました: FakeProducePort: no state result"`、`"Flow.HandleStep:"` の行が無い |
+| | `ChooseAction_Exception_ShowsError` | (0, Lesson, true)、`ChooseResults` に 0、`StateResults` を空にする、`LogAssert.Expect`（上の書き方）→ 最後が `"Info:エラーが発生しました: FakeProducePort: no state result"`、`"Flow.HandleStep:"` の行が無い |
 | | `OpenMenu_CallsMenu` | `"Menu.Show"` |
 | | `DidPopEnter_RefreshesFromLatest` | `InitializeAsync` のあと `session.Set(週 2 の Progress)` → `DidPopEnter()` → 最後の `"SetHeader:"` が `"SetHeader:週 2 / 3,最終試験まで 1 週"` |
 | | `Dispose_Unsubscribes` | `Dispose()` のあと `RaiseActionClicked(0)` で `"Choose:"` が増えない |
@@ -535,14 +572,17 @@ Presenter のテストの組み立て（各テストのファイルに `private 
 | | `ChooseOption_Rejected_HandlesStepAndStays` | 応答が `BusinessError(ServerReasons.ProduceInvalidArgument, "x")` → `"Flow.HandleStep:Rejected"`、`"Info:"`・`"PopPage:"` の行が無い |
 | | `ChooseOption_Recovered_NoChangeDialog` | `StateResults` に `BusinessError(ServerReasons.ProduceStaleOperation, "x")`、続けて成功（局面 `WeekSelect`、歌唱 140）→ 並びが `"ChooseWeekAction:1,2,0,Nothing"`, `"GetState"`, `"Flow.HandleStep:Recovered"`。`"Info:"` の行が無い |
 | | `ChooseOption_Disabled_DoesNothing` | `Selectable == false` → 記録は `InitializeAsync` の分だけ |
+| | `ChooseOption_Exception_ShowsError` | `WeekSlotArgs(2)`、選択肢 0、`ConfirmResults` は既定（`Positive`）、`StateResults` を空にする、`LogAssert.Expect`（上の書き方）→ 並びが `"Confirm:…"`, `"ChooseWeekAction:1,2,0,Nothing"`, `"Info:エラーが発生しました: FakeProducePort: no state result"`。`"Flow.HandleStep:"`・`"PopPage:"` の行が無い |
 | | `Back_PopsSelf` | `"PopPage:ClassPresenter"` |
 | `SupplyPresenterTests.cs` | `Receive_CallsActionAndHandlesStep` | `WeekSlotArgs(3)`、応答の局面 `CardOffer` → `"ChooseWeekAction:1,3,-1,Nothing"`, `"Flow.HandleStep:Succeeded"`、`"PopPage:"` の行が無い |
+| | `Receive_Exception_ShowsError` | `WeekSlotArgs(3)`、`StateResults` を空にする、`LogAssert.Expect`（上の書き方）→ 並びが `"ChooseWeekAction:1,3,-1,Nothing"`, `"Info:エラーが発生しました: FakeProducePort: no state result"`。`"Flow.HandleStep:"` の行が無い |
 | | `Back_PopsSelf` | `"PopPage:SupplyPresenter"` |
-| `CardOfferPresenterTests.cs` | `Initialize_BuildsCardsAndDeckCount` | `catalog` は `CardSummaryBuilderTests` と同じ作り（カード 1）、`CardOffers` = { 1 }、デッキ 14 枚 → `"SetCards:0/テストカード [SR] アクティブ/消費 4/通常の説明"`、`"SetDeckCount:デッキ 14 枚"` |
+| `CardOfferPresenterTests.cs` | `Initialize_BuildsCardsAndDeckCount` | `catalog` は `CardSummaryBuilderTests` と同じ作り（カード 1）、`master.CardTexts[1]` も同じ値、`CardOffers` = { 1 }、デッキ 14 枚 → `"SetCards:0/テストカード [SR] アクティブ/消費 4/通常の説明"`、`"SetDeckCount:デッキ 14 枚"` |
 | | `Pick_Confirmed_ResolvesThenHandlesStepWithoutPop` | 応答の局面 `WeekSelect`。並びが `"Confirm:テストカード [SR] アクティブ を獲得します。よろしいですか？"`, `"ResolveCardOffer:1,Pick,0"`, `"Flow.HandleStep:Succeeded"`。`"PopModal:"` の行が無い |
 | | `Pick_OutOfRange_DoesNothing` | `PickAsync(5)` → 記録は `InitializeAsync` の分だけ |
 | | `Decline_Confirmed_Declines` | `"Confirm:スキルカードを受け取りません。よろしいですか？"`, `"ResolveCardOffer:1,Decline,0"`, `"Flow.HandleStep:Succeeded"`。`"PopModal:"` の行が無い |
 | | `Decline_NotConfirmed_DoesNothing` | `Negative` → RPC の行が無い |
+| | `Pick_Exception_ShowsError` | `ConfirmResults` は既定（`Positive`）、`StateResults` を空にする、`LogAssert.Expect`（上の書き方）→ 並びが `"Confirm:…"`, `"ResolveCardOffer:1,Pick,0"`, `"Info:エラーが発生しました: FakeProducePort: no state result"`。`"Flow.HandleStep:"` の行が無い |
 | | `Resolve_Rejected_HandlesStepAndStays` | `BusinessError(ServerReasons.ProduceInvalidArgument, "x")` → `"Flow.HandleStep:Rejected"`、`"PopModal:"` の行が無い |
 | `ProduceFlowTests.cs`（追記。本物の `ProduceFlow`、formation 5章の作り） | `ShowCurrent_WeekSelect_PopsAboveBackdropThenPushesWeekPage` | 局面 `WeekSelect`、`PageStack(() => 3, () => 0)`（背景・週・授業）→ `"PopPage:2"`, `"PushPage:WeekPresenter"`。`"Info:"`・`"GoToHome"` の行が無い |
 | | `ShowCurrent_WeekSelectAfterModal_PopsModalThenPushesWeekPage` | 局面 `WeekSelect`、`PageStack(() => 1, () => 1)`（背景・カードの選択肢）→ `"PopModal:1"`, `"PushPage:WeekPresenter"` |

@@ -16,16 +16,18 @@ spec: ../wiki/systems/idol-support.md
 3. **所持一覧・詳細は `Home` シーンの中のページ**（screen-design 8章、foundation 3.3.1）。ホームの「アイドル」ボタン（P2 の `HomePage` の `Menu/OwnedButton`）→ `HomePresenter.OpenOwnedAsync` → `OwnedPresenter` を積む → 行のタップで `SupportDetailPresenter` を積む → 上限解放の素材は `OwnedPresenter`（選択モード）をもう 1 枚積む。どれも `Home` シーンの `IScreenNavigator` で積み、「＜」で `PopPageAsync(this)`。シーンはまたがない
 4. **ユースケース・ゲートウェイの登録は `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足すだけ**。画面の登録（旧 `UiRoot.RegisterPage`）は無い（Prefab は P2 が Addressables の `Screens` に登録済み。Presenter は基盤が Push のたびに作る）
 5. `ServerReasons`（2 本目）に、この計画が使う reason 6 つ（`SUPPORT_*` 5 つと `PLAYER_NOT_ENOUGH_GOLD`）を足す（2 本目の「ほかの reason は、それを使う計画が足す」のとおり）
-6. **[Uta案] 育成アイドルの一覧は `IdolId` の昇順に固定**し、並び替え・絞り込みを持たない（MVP の育成アイドルは 4 人で、並べ替える意味が小さいため）。叩き台 [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び: レア度・Lv・入手順。絞り込み: プラン」は、MVP では**サポートカードだけ**に持たせる（叩き台との差。タスク 5 で screen-wireframes.md 10 に注記する）（確認 1）
+6. **[Uta案] 育成アイドルの一覧は `IdolId` の昇順に固定**し、並び替え・絞り込みを持たない（MVP の育成アイドルは 4 人で、並べ替える意味が小さいため）。叩き台 [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び: レア度・Lv・入手順。絞り込み: プラン」は、MVP では**サポートカードだけ**に持たせる（叩き台との差。タスク 6 で screen-wireframes.md 10 に注記する）（確認 1）
 7. サポートカードの「入手順」は所持ID（ULID）の昇順（ULID は発行時刻の順。`string.CompareOrdinal` で比べる。サーバーの返す並びに頼らない）
 8. 上限解放の素材は、仕様（idol-support.md 2.2.1）どおり**プレイヤーが選ぶ**。選び方は所持一覧の選択モード（素材の選択）を使う
 9. レベル上げ（+1／+5／最大）と上限解放は、**確認ダイアログを出してから** RPC を呼ぶ（叩き台 10「強化・上限解放…は、確認ダイアログ → サーバーで確定」）。上限解放の確認には、素材の Lv にかかわらず常に「素材は無くなります。強化に使った強化pt・ゴールドは戻りません。」を出す（確認 3）
-10. サポートカードの詳細と強化（レベル上げ・上限解放）は **1 ページ**（`SupportDetailPage`）にする（screen-design.md 2・3章の「詳細 ─▶ 強化」を 1 枚にまとめる。タスク 5 で 2・3章を直す）（確認 2）
+10. サポートカードの詳細と強化（レベル上げ・上限解放）は **1 ページ**（`SupportDetailPage`）にする（screen-design.md 2・3章の「詳細 ─▶ 強化」を 1 枚にまとめる。タスク 6 で 2・3章を直す）（確認 2）
 11. 詳細のアビリティは枠 1（`SupportAbility` の行）を、今のレベルの値で出す（`ProduceFormulas.AbilityValue`。サーバーのプロデュース開始と同じ計算）
 12. 上限解放の最大回数はマスタ（`IGameMaster.GetSupportMaxLimitBreak`）から読む。サーバーは定数 `SupportRules.MaxLimitBreak = 4` を使うので、マスタの `SupportLevelCap` に各レアの `LimitBreak = 4` の行があることが前提（今のマスタはそうなっている。食い違っても、超えた分はサーバーが `SUPPORT_MAX_LIMIT_BREAK` で拒否する）
 13. プランの適合の規則は Shared.Domain の `FormationValidator.IsPlanCompatible` に 1 つ（shared/ の変更。サーバーの `Validate` も使う）
 
 ## ユーザーの確認が要ること
+
+1〜3 はどれも未回答（ユーザーの確認待ち）。答えが出るまで `status` は `draft` のまま。
 
 1. **育成アイドルの一覧を `IdolId` の順に固定し、並び・絞り込みをサポートカードだけにしてよいか**（決めたこと 6。叩き台 10 からの縮小）。代わりの案は、育成アイドルにもプランの絞り込みを付ける（分岐が増える）
 2. **サポートカードの詳細と強化を 1 ページにしてよいか**（決めたこと 10。screen-design 2・3章の「詳細 ─▶ 強化」の 2 枚からの変更）
@@ -78,7 +80,7 @@ spec: ../wiki/systems/idol-support.md
 | 変更 | `Tests/EditMode/ServerReasonsTests.cs` | 足した reason の行を足す（5章） |
 | 変更 | `Tests/EditMode/HomePresenterTests.cs` | 「アイドル」のボタンのテストを差し替え、1 本足す（5章） |
 | 作成 | `Tests/EditMode/*.cs`（5章） | テスト |
-| 変更 | `uta_docs/wiki/architecture/screen-design.md`・`architecture/produce-domain.md`・`overview/screen-wireframes.md`・`systems/idol-support.md`・`architecture/unity7-evaluation.md` | 結果の記録（タスク 5） |
+| 変更 | `uta_docs/wiki/architecture/screen-design.md`・`architecture/produce-domain.md`・`overview/screen-wireframes.md`・`systems/idol-support.md`・`architecture/unity7-evaluation.md` | 結果の記録（タスク 6） |
 
 `Tests/EditMode/Fakes/FakeGameMaster.cs`（2 本目）は変えない（アビリティは 2 本目の `Abilities` の口に入れる）。asmdef は変えない（foundation 3.1 と P1 で足りている）。
 
@@ -347,9 +349,27 @@ public sealed class SupportGateway : ISupportPort
 }
 ```
 
-- `LevelUpAsync` は `new LevelUpRequest(supportCardUid, targetLevel)` を送り、`handledCodes` に `SupportErrors.InvalidTargetLevel`・`SupportErrors.NotEnoughPoints`・`PlayerErrors.NotEnoughGold`・`SupportErrors.NotOwned` を渡す。`LimitBreakAsync` は `new LimitBreakRequest(supportCardUid, materialUid)`、`handledCodes` に `SupportErrors.MaxLimitBreak`・`SupportErrors.InvalidMaterial`・`SupportErrors.NotOwned`（どれも 1 本目で `UtaErrors` に `Stay` で登録済み。`handledCodes` に入れたものは共通ダイアログを出さずに返る）
-- 結果の直し方は 2 本目の `GachaGateway.DrawAsync` と同じ: `result.IsSuccess` → `PortResult.Success(new SupportLevelUpResult(v.Level, v.SupportPoints, v.Gold))`（上限解放は `new SupportLimitBreakResult(v.LimitBreak, v.MaxLevel)`）。失敗で `result.Error.Code.Domain == "uta"` かつ `Reason` が `handledCodes` のどれかの `Reason` → `PortResult.BusinessError(Reason, result.Error.ToString())`。それ以外 → `PortResult.Failure(result.Error.ToString())`
-- `UtaApiClient` に `public SupportApi Support { get; }` を足し、`Create` で `ServiceClientFactory.Create<ISupportService>(callInvoker)` から作る（`Gacha` と同じ形）。`UtaMagicOnionClientInitializer` の属性に `typeof(ISupportService)` を足す（`using Uta.Shared.Contracts.Support;`）
+- `SupportGateway` のフィールド（2 本目の `GachaGateway` の `drawHandled` と同じ書き方）:
+  ```csharp
+  private readonly SupportApi support;   // コンストラクターで api.Support
+  private readonly ErrorCode[] levelUpHandled = { SupportErrors.InvalidTargetLevel, SupportErrors.NotEnoughPoints, PlayerErrors.NotEnoughGold, SupportErrors.NotOwned };
+  private readonly ErrorCode[] limitBreakHandled = { SupportErrors.MaxLimitBreak, SupportErrors.InvalidMaterial, SupportErrors.NotOwned };
+  ```
+  どのコードも 1 本目で `UtaErrors` に `Stay` で登録済み。`handledCodes` に入れたものは共通ダイアログを出さずに返り、入れなかったもの（`Stay` のほかのコード、通信の失敗）は ApiCore が共通ダイアログを出してから返る
+- `LevelUpAsync`: `var result = await support.LevelUpAsync(new LevelUpRequest(supportCardUid, targetLevel), levelUpHandled);`
+  - `result.IsSuccess` → `PortResult<SupportLevelUpResult>.Success(new SupportLevelUpResult(result.Value.Level, result.Value.SupportPoints, result.Value.Gold))`
+  - 失敗で `IsHandled(levelUpHandled, result.Error.Code)` → `PortResult<SupportLevelUpResult>.BusinessError(result.Error.Code.Reason, result.Error.ToString())`
+  - それ以外 → `PortResult<SupportLevelUpResult>.Failure(result.Error.ToString())`
+- `LimitBreakAsync`: `var result = await support.LimitBreakAsync(new LimitBreakRequest(supportCardUid, materialUid), limitBreakHandled);`。分岐は `LevelUpAsync` と同じで、型は `PortResult<SupportLimitBreakResult>`、成功の値は `new SupportLimitBreakResult(result.Value.LimitBreak, result.Value.MaxLevel)`、判定の配列は `limitBreakHandled`
+- 判定は **2 本目の `GachaGateway.DrawAsync` と同じく `ErrorCode` の `Equals`**（`Domain`・`Reason` の文字列を自分で比べない）: `private static bool IsHandled(ErrorCode[] handled, ErrorCode code)` は `foreach (var c in handled) { if (c.Equals(code)) { return true; } } return false;`（LINQ を使わない）
+- `using`: `Cysharp.Threading.Tasks`、`Uta.Client.Application.Common`、`Uta.Client.Application.Support`、`Uta.Client.Infrastructure.Api`、`Uta.Shared.Contracts.Player`（`PlayerErrors`）、`Uta.Shared.Contracts.Support`、`VolTech.Server.Abstractions`（`ErrorCode`。`PlayerGateway` と同じ）
+- `UtaApiClient`（2 本目で `Gacha` を足した版に、同じ形で足す）:
+  - プロパティ `public SupportApi Support { get; }` を `Gacha` の次に足す
+  - private のコンストラクターの最後（`GachaApi gacha` の次）に `SupportApi support` を足し、本体の `Gacha = gacha;` の次に `Support = support;`
+  - `Create` で、`gachaClient` の行の次に `var supportClient = ServiceClientFactory.Create<ISupportService>(callInvoker);` を足し、最後の `new UtaApiClient(..., new PlayerApi(core, playerClient), new GachaApi(core, gachaClient))` を `new UtaApiClient(..., new PlayerApi(core, playerClient), new GachaApi(core, gachaClient), new SupportApi(core, supportClient))` にする（`...` の部分は変えない）
+  - `using Uta.Shared.Contracts.Support;` を足す
+- `UtaMagicOnionClientInitializer`: `[MagicOnionClientGeneration(typeof(IDeviceService), typeof(IPlayerService), typeof(IGachaService), typeof(ISupportService))]`（`using Uta.Shared.Contracts.Support;`）。生成は Unity の再コンパイルで行われる
+- `ApiResult` の成功・失敗はテストから作れない（`internal`。2 本目 3.3 と同じ）ので、`SupportGateway` の分岐は EditMode でテストしない（Play で見る）
 
 ### 3.6 所持一覧（`Uta.Client.Presentation.Owned`）
 
@@ -421,12 +441,14 @@ if (selection == null || selection.IsCancelled) { /* 何もしない */ }
 - `request = args.Selection`、`result = OwnedSelection.Cancelled`、`rows`（直近に組んだ `IReadOnlyList<OwnedRowData>`）、`running`（実行中フラグ。1 本目 3.3.2 の 5）、`closed`（`PopPageAsync(this)` を呼んだら true にし、戻さない）、`disposed`（破棄の印。1 本目 3.3.2 の 6）
 - モードごとの初期値:
 
-| モード（`request`） | 見出し（`SetTitle`） | `tab` | タブの表示 | 並び・絞り込みの行 | プラン・タイプのボタン | 初期の並び |
+| モード（`request`） | 見出し（`SetTitle`） | `tab` | タブの表示（`SetTabs` の `visible`） | 並び・絞り込みの行（`SetControls` の `visible`） | プラン・タイプのボタン（`filtersVisible`） | 初期の並び（`sortKey`・`descending`） |
 |---|---|---|---|---|---|---|
-| 閲覧（null） | 所持一覧 | `Idols` | 出す | `tab == SupportCards` のときだけ出す | 出す | `Rarity`・降順 |
-| `Idol` | 育成アイドルを選ぶ | `Idols` | 出さない | 出さない | — | — |
-| `SupportCard` | サポートカードを選ぶ | `SupportCards` | 出さない | 出す | 出す | `Rarity`・降順 |
-| `LimitBreakMaterial` | 素材にするカードを選ぶ | `SupportCards` | 出さない | 出す | 出さない | `Level`・昇順 |
+| 閲覧（null） | 所持一覧 | `Idols` | `true` | `tab == SupportCards` | `true` | `Rarity`・`true`（降順） |
+| `Idol` | 育成アイドルを選ぶ | `Idols` | `false` | `false` | `false` | `Rarity`・`true`（並べ替えには使わない。ラベルを作るためだけに持つ） |
+| `SupportCard` | サポートカードを選ぶ | `SupportCards` | `false` | `true` | `true` | `Rarity`・`true`（降順） |
+| `LimitBreakMaterial` | 素材にするカードを選ぶ | `SupportCards` | `false` | `true` | `false` | `Level`・`false`（昇順） |
+
+- `filtersVisible` はモードで決まる定数（コンストラクターで決め、変えない）。`Refresh()` はこの値を絞り込みの有無と `SetControls` の最後の引数の両方に使う
 
 - サポートカードの状態: `sortKey`・`descending`（上の表）、`planFilter`（null = 全て）、`typeFilter`（null = 全て）。タブを替えても残す（サポートに戻ったとき、ボタンのラベルに今の状態が出るので見える）
 
@@ -460,7 +482,14 @@ if (selection == null || selection.IsCancelled) { /* 何もしない */ }
 - `closed` で、行のタップと「戻る」の連打・組み合わせで `PopPageAsync(this)` が 2 回呼ばれるのを防ぐ（1 本目 3.3.2 の 9。閉じた後の Presenter を渡すと基盤が `InvalidOperationException` を投げる）
 - 同期の 5 つ（`SelectTab` など）は、`disposed` なら何もしない
 
-イベントの受け口: `TabSelected` → `SelectTab`、`SortKeyClicked` → `CycleSortKey`、`SortOrderClicked` → `ToggleSortOrder`、`PlanFilterClicked` → `CyclePlanFilter`、`TypeFilterClicked` → `CycleTypeFilter`、`RowClicked` → `SelectRowAsync(index).Forget()`、`BackClicked` → `BackAsync().Forget()`。
+イベントの受け口（2 本目の `GachaPresenter.InitializeAsync` の 1 と同じ書き方）: **受け口は名前付きの private の同期メソッドにし、ラムダで購読しない**。`InitializeAsync` で `view.Xxx += OnXxx;`、`Dispose` で同じメソッドを `view.Xxx -= OnXxx;` する（ラムダだと `-=` で外せないため）。
+- `private void OnTabSelected(OwnedTab tab) { SelectTab(tab); }`（`view.TabSelected`）
+- `private void OnSortKeyClicked() { CycleSortKey(); }`（`view.SortKeyClicked`）
+- `private void OnSortOrderClicked() { ToggleSortOrder(); }`（`view.SortOrderClicked`）
+- `private void OnPlanFilterClicked() { CyclePlanFilter(); }`（`view.PlanFilterClicked`）
+- `private void OnTypeFilterClicked() { CycleTypeFilter(); }`（`view.TypeFilterClicked`）
+- `private void OnRowClicked(int index) { SelectRowAsync(index).Forget(); }`（`view.RowClicked`）
+- `private void OnBackClicked() { BackAsync().Forget(); }`（`view.BackClicked`）
 
 **`OwnedPage` の実装**（P2 の骨格に足す。foundation 3.3.3 の形。フィールドと Prefab の子の対応は P2 の 3.3 の表）
 
@@ -574,7 +603,12 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 
 **`BackAsync()`**: 3.6 の `BackAsync` と同じ（`closed = true` のあと `PopPageAsync(this, playAnimation: false)`）。
 
-イベントの受け口: `Plus1Clicked` → `LevelUpAsync(LevelUpStep.Plus1).Forget()`、`Plus5Clicked` → `LevelUpAsync(LevelUpStep.Plus5).Forget()`、`MaxClicked` → `LevelUpAsync(LevelUpStep.Max).Forget()`、`LimitBreakClicked` → `LimitBreakAsync().Forget()`、`BackClicked` → `BackAsync().Forget()`。
+イベントの受け口（3.6 と同じ。名前付きの private の同期メソッドにし、`InitializeAsync` で `+=`、`Dispose` で同じメソッドを `-=` する。ラムダで購読しない）:
+- `private void OnPlus1Clicked() { LevelUpAsync(LevelUpStep.Plus1).Forget(); }`（`view.Plus1Clicked`）
+- `private void OnPlus5Clicked() { LevelUpAsync(LevelUpStep.Plus5).Forget(); }`（`view.Plus5Clicked`）
+- `private void OnMaxClicked() { LevelUpAsync(LevelUpStep.Max).Forget(); }`（`view.MaxClicked`）
+- `private void OnLimitBreakClicked() { LimitBreakAsync().Forget(); }`（`view.LimitBreakClicked`）
+- `private void OnBackClicked() { BackAsync().Forget(); }`（`view.BackClicked`）
 
 **`SupportDetailPage` の実装**（P2 の骨格に足す。foundation 3.3.3 の形。フィールドと Prefab の子の対応は P2 の 3.3 の表）
 
@@ -681,6 +715,21 @@ public sealed class SupportDetailPage : PageBase, ISupportDetailView
 - 偽のポート `FakeSupportPort : ISupportPort`（返す `PortResult` を public フィールド `LevelUpResult`・`LimitBreakResult` で差し込み、呼ばれた引数を `List<string> Calls` に `"LevelUp:" + uid + "," + targetLevel`／`"LimitBreak:" + uid + "," + materialUid` で記録）は、使うテストのファイルの中に `private sealed class` で書く
 - 取り直し（`RefreshPlayerUseCase`）は foundation の `StubPlayerPort` で作る。取り直しの失敗は `SignInResults.Enqueue(PlayerSignInResult.Failure("e"))`（`RefreshPlayerUseCase` が例外を投げる）、成功は `Snapshot` に入れた値
 
+**画面のテスト（`OwnedPresenterTests`・`SupportDetailPresenterTests`）の共通の前提**（各テストの `SetUp` で作る。期待の文字列はこの値から決まる）:
+- `FakeGameMaster`（2 本目）:
+  - `IdolList`: `new IdolInfo(1, "アイドルA", Rarity.SSR, Plan.Sense, 30, 50, 50, 50, ParamKind.Singing, ParamKind.Rhythm, ParamKind.Expression)`、`new IdolInfo(2, "アイドルB", Rarity.R, Plan.Logic, 30, 50, 50, 50, ParamKind.Singing, ParamKind.Rhythm, ParamKind.Expression)`
+  - `SupportCardList`: `new SupportCardInfo(10, "サポートA", Rarity.SSR, SupportType.Singing, Plan.Free)`、`new SupportCardInfo(11, "サポートB", Rarity.SR, SupportType.Rhythm, Plan.Sense)`、`new SupportCardInfo(12, "サポートC", Rarity.R, SupportType.Expression, Plan.Logic)`
+  - `Abilities[10] = new List<SupportAbilityInfo> { new SupportAbilityInfo(1, SupportAbilityKind.InitialParam, ParamKind.Singing, 10, 50) }`
+  - `MaxLevel = (_, lb) => 40 + lb * 5`、`MaxLimitBreak = _ => 4`、`LevelUpCost = (_, from, to) => new SupportLevelUpCost((to - from) * 100, (to - from) * 50)`
+- `PlayerCache` に `Set` する `PlayerSnapshot`: `new PlayerSnapshot(1, 0, 1000, 1000, 0, false, false, idols, cards)`（Gold 1000・SupportPoints 1000）
+  - `idols`: `new OwnedIdol(2, 0, 0, 0)`、`new OwnedIdol(1, 0, 0, 3)`（この順。かけらは 1 が 3、2 が 0）
+  - `cards`: `new OwnedSupportCard("01A", 10, 3, 0)`、`new OwnedSupportCard("01B", 11, 5, 1)`、`new OwnedSupportCard("01C", 12, 1, 0)`、`new OwnedSupportCard("01D", 10, 1, 0)`（この順）
+- `StubPlayerPort.Snapshot` は上と同じスナップショット（取り直しの成功で同じ値が入る。値を変えたいテストは差し替える）
+- 期待の行の文字列（3.6 の `Refresh()` の規則で作ったもの。以下この名前で書く）:
+  - `IdolRows` = `"アイドルA [SSR]/感性　かけら 3/True|アイドルB [R]/理論　かけら 0/True"`
+  - `SupportRowsRarityDesc` = `"サポートA [SSR]/歌唱　共通　Lv 3　解放 0/True|サポートA [SSR]/歌唱　共通　Lv 1　解放 0/True|サポートB [SR]/律動　感性　Lv 5　解放 1/True|サポートC [R]/表現　理論　Lv 1　解放 0/True"`（レア度の降順。同じ SSR の 01A・01D は所持ID の昇順）
+- 詳細（`SupportDetailArgs("01A")`）の既定の表示（この順）: `"SetInfo:サポートA|SSR　歌唱　共通|Lv 3 / 40|上限解放 0 / 4"`、`"SetAbilities:1 初期歌唱 +" + ProduceFormulas.AbilityValue(10, 50, 3, 60)`（`fullMaxLevel` = 40 + 4 × 5 = 60）、`"SetResources:強化pt 1,000　ゴールド 1,000"`、`"SetLevelButtons:+1 → Lv 4（強化pt 100 / G 50）,+5 → Lv 8（強化pt 500 / G 250）,最大 → Lv 13（強化pt 1,000 / G 500）,True,True,True"`（最大: 強化pt 1,000 で 10 レベル分）、`"SetLimitBreak:上限解放（素材を選ぶ）,True"`
+
 | ファイル | テスト | 内容 |
 |---|---|---|
 | `shared/.../FormationValidatorTests.cs` | `IsPlanCompatible_Cases_ReturnsExpected`（`[Theory]`） | `(Sense, Free)` true、`(Sense, Sense)` true、`(Sense, Logic)` false、`(Logic, Sense)` false、`(Logic, Free)` true、`(Sense, Nothing)` false |
@@ -709,32 +758,37 @@ public sealed class SupportDetailPage : PageBase, ISupportDetailView
 | | `Execute_OtherFailure_ReturnsFailed` / `Execute_TargetNotAboveLevel_Throws` | 後者はポートが呼ばれない |
 | `LimitBreakSupportUseCaseTests.cs` | `Execute_Success_Refreshes` / `Execute_SuccessButRefreshFails_PatchesCache` | 後者は素材がキャッシュから消え、該当の LimitBreak が応答の値 |
 | | `Execute_SameUid_Throws` / `Execute_InvalidMaterial_ReturnsStatus` / `Execute_MaxLimitBreak_ReturnsStatus` / `Execute_NotOwned_ReturnsStatus` | |
-| `OwnedPresenterTests.cs` | `InitializeAsync_Browse_ShowsIdolsWithoutControls` | `"SetTitle:所持一覧"`, `"SetTabs:Idols,True"`, `"SetControls:False,…"`, `"SetRows:…"`（IdolId の昇順） |
-| | `SelectTab_Support_ShowsControlsAndSortedRows` | `"SetControls:True,並び: レア度,降順,プラン: 全て,タイプ: 全て,True"`、行はレア度の降順 |
-| | `CycleSortKey_CyclesThreeKeys` / `CyclePlanFilter_Cycles` / `CycleTypeFilter_Cycles` | ラベルが `並び: Lv` → `並び: 入手順` → `並び: レア度`、`プラン: 共通` → `感性` → `理論` → `全て` など |
-| | `SelectTab_KeepsSupportFilters` | サポートで `typeFilter = 歌唱` → 育成アイドル → サポートに戻ると `タイプ: 歌唱` のまま |
-| | `SelectTab_InSelectionMode_Ignored` | |
-| | `SelectRowAsync_BrowseSupport_PushesDetail` | `"PushPage:SupportDetailPresenter"`、`Args[0]` が `SupportDetailArgs`（所持ID が行のもの） |
+| `OwnedPresenterTests.cs` | `InitializeAsync_Browse_ShowsIdolsWithoutControls` | `log` が `"SetTitle:所持一覧"`, `"SetTabs:Idols,True"`, `"SetControls:False,並び: レア度,降順,プラン: 全て,タイプ: 全て,True"`, `"SetRows:" + IdolRows`（IdolId の昇順）の順 |
+| | `SelectTab_Support_ShowsControlsAndSortedRows` | `SelectTab(SupportCards)` → 続く記録が `"SetTitle:所持一覧"`, `"SetTabs:SupportCards,True"`, `"SetControls:True,並び: レア度,降順,プラン: 全て,タイプ: 全て,True"`, `"SetRows:" + SupportRowsRarityDesc` |
+| | `CycleSortKey_CyclesThreeKeys` | サポートのタブで `CycleSortKey()` を 3 回 → `SetControls` の 2 つ目の値が順に `並び: Lv`・`並び: 入手順`・`並び: レア度`。`並び: Lv`（降順）の行は `"サポートB [SR]/律動　感性　Lv 5　解放 1/True|サポートA [SSR]/歌唱　共通　Lv 3　解放 0/True|サポートC [R]/表現　理論　Lv 1　解放 0/True|サポートA [SSR]/歌唱　共通　Lv 1　解放 0/True"`（Lv 1 の 01C・01D は所持ID の昇順）。`並び: 入手順`（降順）の行は 01D・01C・01B・01A の順 |
+| | `ToggleSortOrder_Toggles` | サポートのタブで `ToggleSortOrder()` → `"SetControls:True,並び: レア度,昇順,プラン: 全て,タイプ: 全て,True"`、行は 01C・01B・01A・01D の順 |
+| | `CyclePlanFilter_Cycles` | サポートのタブで `CyclePlanFilter()` を 4 回 → `SetControls` の 4 つ目の値が順に `プラン: 共通`・`プラン: 感性`・`プラン: 理論`・`プラン: 全て`。`プラン: 共通` の行は `"SetRows:サポートA [SSR]/歌唱　共通　Lv 3　解放 0/True|サポートA [SSR]/歌唱　共通　Lv 1　解放 0/True"` |
+| | `CycleTypeFilter_Cycles` | サポートのタブで `CycleTypeFilter()` を 5 回 → `SetControls` の 5 つ目の値が順に `タイプ: 歌唱`・`タイプ: 律動`・`タイプ: 表現`・`タイプ: アシスト`・`タイプ: 全て`。`タイプ: アシスト` の行は `"SetRows:"`（0 件） |
+| | `SelectTab_KeepsSupportFilters` | サポートで `CycleTypeFilter()`（`タイプ: 歌唱`）→ `SelectTab(Idols)` → `SelectTab(SupportCards)` → 最後の `SetControls` が `"SetControls:True,並び: レア度,降順,プラン: 全て,タイプ: 歌唱,True"` |
+| | `SelectTab_InSelectionMode_Ignored` | `ForIdol()` の選択モードで `InitializeAsync` のあと `SelectTab(SupportCards)` → 記録が増えない |
+| | `SelectRowAsync_BrowseSupport_PushesDetail` | サポートのタブで `SelectRowAsync(1)` → `"PushPage:SupportDetailPresenter"`、`Args[0]` が `SupportDetailArgs` で `SupportCardUid == "01D"`（`SupportRowsRarityDesc` の 2 行目） |
 | | `SelectRowAsync_BrowseIdol_DoesNothing` | `log` に `"PushPage:"`・`"PopPage:"` が無い |
-| | `SelectRowAsync_Selection_SetsResultAndPops` | `"PopPage:OwnedPresenter"`、`await CompleteAsync()` が `ForIdol(行の IdolId)` |
+| | `SelectRowAsync_Selection_SetsResultAndPops` | `ForIdol()` の選択モードで `SelectRowAsync(1)` → `"PopPage:OwnedPresenter"`、`await CompleteAsync()` の結果が `OwnedSelection` で `IsCancelled == false`・`IdolId == 2` |
 | | `SelectRowAsync_Twice_PopsOnce` | 2 回呼ぶ（2 回目は 1 回目の後）→ `"PopPage:"` が 1 回 |
 | | `SelectRowThenBack_PopsOnce` | `SelectRowAsync` の後の `BackAsync` で `"PopPage:"` が増えない。結果は選んだもの |
 | | `SelectRowAsync_DisabledRow_DoesNothing` / `SelectRowAsync_OutOfRange_DoesNothing` | |
 | | `BackAsync_Selection_CompletesCancelled` | `CompleteAsync()` の結果の `IsCancelled == true` |
-| | `InitializeAsync_IdolSelection_HidesTabsAndControls` / `InitializeAsync_Material_HidesFiltersAndSortsByLevelAscending` | `"SetTitle:育成アイドルを選ぶ"`・`"SetTabs:Idols,False"`・`"SetControls:False,…"`／`"SetTitle:素材にするカードを選ぶ"`・`"SetControls:True,並び: Lv,昇順,…,False"` |
+| | `InitializeAsync_IdolSelection_HidesTabsAndControls` | `ForIdol(new[] { 2 })` → `log` が `"SetTitle:育成アイドルを選ぶ"`, `"SetTabs:Idols,False"`, `"SetControls:False,並び: レア度,降順,プラン: 全て,タイプ: 全て,False"`, `"SetRows:アイドルA [SSR]/感性　かけら 3/True|アイドルB [R]/理論　かけら 0　（編成済み）/False"` の順 |
+| | `InitializeAsync_Material_HidesFiltersAndSortsByLevelAscending` | `ForLimitBreakMaterial(10, "01A")` → `log` が `"SetTitle:素材にするカードを選ぶ"`, `"SetTabs:SupportCards,False"`, `"SetControls:True,並び: Lv,昇順,プラン: 全て,タイプ: 全て,False"`, `"SetRows:サポートA [SSR]/歌唱　共通　Lv 1　解放 0/True"` の順（01A 以外の CardId 10 は 01D だけ） |
 | | `Dispose_UnsubscribesEvents` | `Dispose()` のあと `RaiseBackClicked()` しても `"PopPage:"` が無い |
 | | `SelectRowAsync_AfterDispose_DoesNothing` | `Dispose()` のあと `SelectRowAsync(0)` → `"PushPage:"`・`"PopPage:"` が無い |
-| `SupportDetailPresenterTests.cs` | `InitializeAsync_ShowsInfoAbilitiesAndButtons` | `"SetInfo:名前|SSR　歌唱　共通|Lv 3 / 40|上限解放 0 / 4"`、`"SetAbilities:1 初期歌唱 +…"`、ボタンのラベルと有効/無効 |
-| | `InitializeAsync_AtMaxLevel_ButtonsShowCap` / `InitializeAsync_MaxNotAffordable_ShowsShortage` | `"+1（上限）"` 等／`"最大（足りません）"`・無効 |
-| | `LevelUpAsync_Confirmed_ExecutesAndRefreshes` | `"Confirm:Lv 3 → Lv 4 に上げます。\n強化pt …"` の後、ポートに `(uid, 4)`、View の再表示 |
+| `SupportDetailPresenterTests.cs` | `InitializeAsync_ShowsInfoAbilitiesAndButtons` | `log` が共通の前提の「詳細の既定の表示」の 5 つ（`SetInfo`・`SetAbilities`・`SetResources`・`SetLevelButtons`・`SetLimitBreak`）の順 |
+| | `InitializeAsync_AtMaxLevel_ButtonsShowCap` | 01A を `new OwnedSupportCard("01A", 10, 40, 0)` にしたスナップショット → `"SetLevelButtons:+1（上限）,+5（上限）,最大（上限）,False,False,False"` |
+| | `InitializeAsync_MaxNotAffordable_ShowsShortage` | SupportPoints 0 のスナップショット → `"SetLevelButtons:+1 → Lv 4（強化pt 100 / G 50）,+5 → Lv 8（強化pt 500 / G 250）,最大（足りません）,True,True,False"`（+1・+5 は所持が足りなくても押せる。3.3 の `PlanTarget`） |
+| | `LevelUpAsync_Confirmed_ExecutesAndRefreshes` | `LevelUpResult` に `PortResult<SupportLevelUpResult>.Success(new SupportLevelUpResult(4, 900, 950))` → `InitializeAsync` の後の記録が `"Confirm:Lv 3 → Lv 4 に上げます。\n強化pt 100・ゴールド 50 を使います。"` で始まり、そのあと `SetInfo` から `SetLimitBreak` までの 5 つ（再表示）。`Calls` が `"LevelUp:01A,4"` だけ |
 | | `LevelUpAsync_Declined_DoesNotExecute` | `ConfirmResults` に `Negative` → ポートが呼ばれない |
-| | `LevelUpAsync_UsesCacheAtClickTime` | 表示の後にキャッシュの Level を 5 に差し替えて `Plus1` → ポートに `(uid, 6)` |
+| | `LevelUpAsync_UsesCacheAtClickTime` | 表示の後に 01A を `new OwnedSupportCard("01A", 10, 5, 0)` にしたスナップショットを `cache.Set` して `LevelUpAsync(Plus1)` → 確認が `"Confirm:Lv 5 → Lv 6 に上げます。\n強化pt 100・ゴールド 50 を使います。"`、`Calls` が `"LevelUp:01A,6"` |
 | | `LevelUpAsync_NotEnoughPoints_ShowsInfo` | `"Info:強化ptが足りません。"` |
 | | `LimitBreakAsync_NoMaterial_ShowsInfo` | `"Info:素材にできる同じカードがありません。"`、`"PushPage:"` が無い |
-| | `LimitBreakAsync_SelectsMaterialThenConfirms` | `PopResults` に `OwnedSelection.ForSupportCard(素材の uid)`。`log` が `"PushPage:OwnedPresenter"`, `"WaitForPop"`, `"Confirm:Lv … を素材にして上限解放します（0 → 1）。\n素材は無くなります。強化に使った強化pt・ゴールドは戻りません。"` の順、ポートに `(uid, 素材の uid)`、`Args[0]` の `Selection.Kind == LimitBreakMaterial` |
+| | `LimitBreakAsync_SelectsMaterialThenConfirms` | `PopResults` に `OwnedSelection.ForSupportCard("01D")`。`log` が `"PushPage:OwnedPresenter"`, `"WaitForPop"`, `"Confirm:Lv 1 の「サポートA」を素材にして上限解放します（0 → 1）。\n素材は無くなります。強化に使った強化pt・ゴールドは戻りません。"` の順、`Calls` が `"LimitBreak:01A,01D"`、`Args[0]` が `OwnedArgs` で `Selection.Kind == LimitBreakMaterial`・`MaterialCardId == 10`・`MaterialTargetUid == "01A"` |
 | | `LimitBreakAsync_SelectionCancelled_DoesNotExecute` | `PopResults` が空（null）→ `"Confirm:"` が無く、ポートが呼ばれない |
-| | `LimitBreakAsync_AtMax_DoesNothing` | `LimitBreak == 4` → `"PushPage:"` も `"Info:"` も無い |
-| | `Refresh_CardGone_DisablesAll` | キャッシュに所持が無い → `"SetInfo:このカードは所持していません。"`、ボタンが全部無効 |
+| | `LimitBreakAsync_AtMax_DoesNothing` | 01A を `new OwnedSupportCard("01A", 10, 3, 4)` にしたスナップショット → `"SetLimitBreak:上限解放（最大）,False"`。`LimitBreakAsync()` のあと `"PushPage:"` も `"Info:"` も無い |
+| | `Refresh_CardGone_DisablesAll` | `SupportDetailArgs("01Z")`（所持に無い）→ `log` が `"SetInfo:このカードは所持していません。"`, `"SetAbilities:"`, `"SetResources:"`, `"SetLevelButtons:+1,+5,最大,False,False,False"`, `"SetLimitBreak:上限解放,False"` の順 |
 | | `LevelUpAsync_AfterDispose_DoesNothing` | `Dispose()` のあと `LevelUpAsync(Plus1)` → `"Confirm:"` が無く、ポートが呼ばれない |
 | `HomePresenterTests.cs`（変更） | `OwnedClicked_ShowsNotReady` を `OwnedClicked_PushesOwnedBrowse` に差し替える | `InitializeAsync` のあと `RaiseOwnedClicked()` → `InitializeAsync` の後の記録が `"PushPage:OwnedPresenter"` だけ。ほかのボタンのテストは変えない（foundation の決めたこと 16） |
 | | `OpenOwnedAsync_PushesOwnedBrowse`（追加） | `"PushPage:OwnedPresenter"`、`Args[0]` が `OwnedArgs` で `Selection == null` |

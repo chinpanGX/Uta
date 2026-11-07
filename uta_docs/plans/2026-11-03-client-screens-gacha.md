@@ -22,8 +22,11 @@ spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 9. **ホームの「ガチャ」**: foundation の `HomePresenter` のコンストラクター（2 本）の最後に `IScreenNavigator` を足し、`OpenGachaAsync` をガチャのページを積む処理にする。ほかの 3 つのボタンは「準備中です。」のまま
 10. **DI**: ゲートウェイとユースケースを `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足す。Presenter・ページは登録しない（基盤の `ScreenNavigator` が Push のたびに子スコープで解決する）。Addressables への登録は P2 の生成スクリプトが済ませている
 11. テスト用の `FakeGameMaster`（`IGameMaster` の偽）はこの計画で作る（3 本目以降も使う）。所持データの取り直しの偽は foundation の `StubPlayerPort` を使う
+12. **テストのダミー値は共通のヘルパー `GachaFixtures`（`Tests/EditMode/Support/`）に 1 か所で決める**: `IdolInfo`・`SupportCardInfo`・`GachaInfo`・`PlayerSnapshot`・`DrawResultDto` の、名前とレア度（DTO は枠・種別・ID・結果・かけら・強化pt）以外の引数の値はここだけに書く。ガチャのテストはこれを使い、これらの型を直接 `new` しない（5章）
 
 ## ユーザーの確認が要ること
+
+どちらも未回答（ユーザーの確認待ち）。答えが出るまで `status` は `draft` のまま。
 
 1. **叩き台（[screen-wireframes.md](../wiki/overview/screen-wireframes.md) 9）との差を、次の 4 つにしてよいか**（[Uta案]）
    - ガチャ名の行は固定の「ガチャ」（マスタの `Gacha` に名前の列が無い）
@@ -72,6 +75,7 @@ spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 | 変更 | `Scripts/Presentation/Home/HomePresenter.cs` | コンストラクターに `IScreenNavigator` を足し、`OpenGachaAsync` をガチャのページを積む処理にする |
 | 変更 | `Scripts/Bootstrap/BootstrapEntry.cs` | `RegisterUseCases` に 3 行足す |
 | 作成 | `Tests/EditMode/Fakes/FakeGameMaster.cs` | `IGameMaster` のテスト用の実装（3 本目以降も使う） |
+| 作成 | `Tests/EditMode/Support/GachaFixtures.cs` | ガチャのテストのダミー値（5.1） |
 | 作成 | `Tests/EditMode/PortResultTests.cs`・`ServerReasonsTests.cs`・`GachaRateCalculatorTests.cs`・`DrawUseCaseTests.cs`・`GetGachaStatusUseCaseTests.cs`・`GachaGatewayTests.cs`・`GachaPresenterTests.cs`・`GachaRatesPresenterTests.cs`・`GachaResultPresenterTests.cs` | テスト（5章） |
 | 変更 | `Tests/EditMode/HomePresenterTests.cs` | コンストラクターの引数と、ガチャのボタンのテストを直す（5章） |
 | 変更 | `uta_docs/wiki/architecture/screen-design.md`・`unity7-evaluation.md` | 結果の記録（タスク 4） |
@@ -488,7 +492,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 
 前提の確認: 1章の前提 1（foundation の型と偽）。無ければ止まって報告する。
 
-触る: `Application/Common/*`、`Application/Gacha/` の `GachaStatus`・`DrawItem`・`DrawCallResult`・`IGachaPort`・`GachaRateGroup`・`GachaRateRow`・`GachaRates`・`GachaRateCalculator`、`Tests/EditMode/Fakes/FakeGameMaster.cs`、`Tests/EditMode/PortResultTests.cs`・`ServerReasonsTests.cs`・`GachaRateCalculatorTests.cs`。
+触る: `Application/Common/*`、`Application/Gacha/` の `GachaStatus`・`DrawItem`・`DrawCallResult`・`IGachaPort`・`GachaRateGroup`・`GachaRateRow`・`GachaRates`・`GachaRateCalculator`、`Tests/EditMode/Fakes/FakeGameMaster.cs`、`Tests/EditMode/Support/GachaFixtures.cs`、`Tests/EditMode/PortResultTests.cs`・`ServerReasonsTests.cs`・`GachaRateCalculatorTests.cs`。
 
 手順:
 1. 3.1・3.2 のとおり作る
@@ -498,7 +502,8 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
    - `GetSupportAbilities(id)`: `SupportCardList` に無ければ `KeyNotFoundException`。`Abilities` にあればそのリスト、無ければ空のリスト
    - `GetCardText(id)`: `CardTexts` に無ければ `KeyNotFoundException`
    - `GetSupportMaxLevel`・`GetSupportMaxLimitBreak`・`GetSupportLevelUpCost` は対応する `Func` を呼ぶ。null なら `NotImplementedException`
-3. 5章の `PortResultTests`・`ServerReasonsTests`・`GachaRateCalculatorTests` を作る
+3. 5.1 のとおり `GachaFixtures` を作る
+4. 5章の `PortResultTests`・`ServerReasonsTests`・`GachaRateCalculatorTests` を作る
 
 境界: 重み 0 のエントリーも 0 で出す。`entries` が空・合計 0 なら空。マスタに無い ID は `KeyNotFoundException`。
 
@@ -512,34 +517,56 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 
 境界: `count` が 1・10 以外は `ArgumentOutOfRangeException`。キャッシュの通貨が足りなければ通信しない。取り直しの失敗は成功として返す（`RefreshFailed = true`）。
 
-確かめ方: コンパイルエラー 0。上の 3 つのテストと既存のテストが通る。`unity recompile` のあと `unity command console get --tail 50 --level error --format json` でエラーが無いこと（MagicOnion の生成物は Source Generator が作るので、ファイルとしては残らない。`IGachaService` のクライアントが生成されなければ `ServiceClientFactory.Create<IGachaService>` の解決で失敗するので、タスク 3 の Play で「ガチャ」を開いて確かめる）。
+確かめ方: コンパイルエラー 0。上の 3 つのテストと既存のテストが通る。`unity recompile` のあと `unity command console get --tail 50 --level error --format json` でエラーが無いこと（MagicOnion の生成物は Source Generator が作るので、ファイルとしては残らない。`IGachaService` のクライアントが生成されなければ `ServiceClientFactory.Create<IGachaService>` の解決で失敗するので、タスク 3a の Play で「ガチャ」を開いて確かめる）。
 
-### タスク 3: 画面の View・Presenter とホーム
+### タスク 3a: ガチャのページとホームの接続
 
 前提の確認: 1章の前提 2（P2 の骨格と Prefab。フィールドが 3.4 の表と同じ）。違えば止まって報告する。
 
-触る: `Presentation/Gacha/*`（`GachaPage.cs`・`GachaRatesModal.cs`・`GachaResultModal.cs`・`GachaLineRow.cs` は足す、ほかは作成）、`Presentation/Home/HomePresenter.cs`、`Tests/EditMode/GachaPresenterTests.cs`・`GachaRatesPresenterTests.cs`・`GachaResultPresenterTests.cs`・`HomePresenterTests.cs`。
+触る: `Presentation/Gacha/` の `GachaTexts.cs`・`IGachaView.cs`・`GachaPresenter.cs`（作成）、`GachaPage.cs`（P2 の骨格に足す）、`GachaRatesArgs.cs`・`GachaRateLine.cs`・`IGachaRatesView.cs`・`GachaResultArgs.cs`・`IGachaResultView.cs`（作成。3.4 のとおりの完成形）、`GachaRatesPresenter.cs`・`GachaResultPresenter.cs`（作成。**仮**）、`Presentation/Home/HomePresenter.cs`、`Tests/EditMode/GachaPresenterTests.cs`・`HomePresenterTests.cs`。
 
 手順:
-1. 3.4 のとおり、P2 の骨格に実装を足し、残りの型を作る（P2 のフィールドは変えない）
-2. 3.5 のとおり `HomePresenter` を直す
-3. 5章のテストを作り、`HomePresenterTests` を直す。`unity recompile` → `unity test --mode EditMode`（P2 の `GachaPrefabTests`・P1 の `PrefabContractTests` も通り続けること）
-4. Play で確かめる（ローカルのサーバーを起動し、初期付与済みのプレイヤーで。CLAUDE.md「ローカルのサーバー」）。式の中の `Q` は `UnityEngine.Object.FindFirstObjectByType`、`B(name)` は `UnityEngine.GameObject.Find(name).GetComponent<UnityEngine.UI.Button>().onClick.Invoke()` の略で、実際には略さずに書く。遷移・`Destroy` は次のフレーム以降に反映されるので、期待と違えば 1 秒おいてもう一度評価する
+1. 3.4 の `GachaTexts`・`IGachaView`・`GachaRatesArgs`・`GachaRateLine`・`IGachaRatesView`・`GachaResultArgs`・`IGachaResultView` を作る
+2. `GachaPage` に 3.4 の「View」の `GachaPage` の実装を足す（P2 のフィールドは変えない）
+3. `GachaPresenter` が積むモーダルの型を使うので、**3.4 のシグネチャだけを持つ仮の `GachaRatesPresenter`・`GachaResultPresenter`** を作る（`[AssetAddress(nameof(GachaRatesModal))]`／`[AssetAddress(nameof(GachaResultModal))]`、`IScreenWithArgs<GachaRatesArgs>`／`IScreenWithArgs<GachaResultArgs>`、コンストラクター 2 本は引数をフィールドに保存するだけ、`InitializeAsync`・`CloseAsync`・`RetryAsync` は `UniTask.CompletedTask`、`Dispose` は空）。中身はタスク 3b
+4. 3.4 のとおり `GachaPresenter` を作る
+5. 3.5 のとおり `HomePresenter` を直す
+6. 5章の `GachaPresenterTests` を作り、`HomePresenterTests` を直す。`unity recompile` → `unity test --mode EditMode`（P2 の `GachaPrefabTests`・P1 の `PrefabContractTests` も通り続けること）
+7. Play で確かめる（ローカルのサーバーを起動し、初期付与済みのプレイヤーで。CLAUDE.md「ローカルのサーバー」）。式の中の `Q` は `UnityEngine.Object.FindFirstObjectByType`、`B(name)` は `UnityEngine.GameObject.Find(name).GetComponent<UnityEngine.UI.Button>().onClick.Invoke()` の略で、実際には略さずに書く。遷移・`Destroy` は次のフレーム以降に反映されるので、期待と違えば 1 秒おいてもう一度評価する
    1. `unity command editor.playmode start` → foundation のタスク 4 の手順 5 の 2・3 と同じ操作でホームまで進める（`Home:1:True`）
    2. `unity command eval 'B("GachaButton"); return "ok";'` → `unity command eval 'return Q<Uta.Client.Presentation.Common.UiRoot>().Pages.Pages.Count + ":" + (Q<Uta.Client.Presentation.Gacha.GachaPage>() != null);'` が `2:True`。`unity command console get --tail 50 --level error --format json` にエラーが無い（`IGachaService` の `GetGachasAsync` が通った）
-   3. `unity command eval 'B("RatesButton"); return "ok";'` → `unity command eval 'var m = Q<Uta.Client.Presentation.Gacha.GachaRatesModal>(); return (m != null) + ":" + (m == null ? 0 : m.GetComponentsInChildren<Uta.Client.Presentation.Gacha.GachaLineRow>().Length);'` が `True:` のあとに 1 以上の数（見出し 4 行 + 率の行）→ `unity command eval 'B("CloseButton"); return "ok";'` → `unity command eval 'return (Q<Uta.Client.Presentation.Gacha.GachaRatesModal>() == null).ToString();'` が `True`
-   4. `unity command eval 'B("SingleButton"); return (UnityEngine.GameObject.Find("Dialog") != null).ToString();'` が `True`（確認ダイアログ）→ `unity command eval 'B("Button0"); return "ok";'`（「引く」）→ `unity command eval 'var m = Q<Uta.Client.Presentation.Gacha.GachaResultModal>(); return (m != null) + ":" + (m == null ? 0 : m.GetComponentsInChildren<Uta.Client.Presentation.Gacha.GachaLineRow>().Length);'` が `True:1` → `unity command eval 'B("CloseButton"); return "ok";'` → 結果のモーダルが無くなる（3 と同じ式を `GachaResultModal` で `True`）
-   5. `unity command eval 'B("BackButton"); return "ok";'` → 2 の式が `1:False`（ガチャのページが閉じた）。`unity command console get --tail 50 --level error --format json` にエラーが無い
-   6. `unity command editor.playmode stop`。見た目と残りの操作は 5章の手動の確認で見る
+   3. `unity command eval 'B("BackButton"); return "ok";'` → 2 の式が `1:False`（ガチャのページが閉じた）。`unity command console get --tail 50 --level error --format json` にエラーが無い
+   4. `unity command editor.playmode stop`
 
 止まる条件（当たったら、その時点のコンソールの出力を添えて止まって報告する。別の手段へ変えない）:
-- G1: 手順 4 の 3 または 4 でモーダルが積まれない（`ModalContainer`・USN の `DefaultModalBackdrop`・Addressables の読み込みのどれかで例外。モーダルを出すのはこの計画が最初）
-- G2: 子スコープで `GachaPresenter`・`GachaRatesPresenter`・`GachaResultPresenter` が解決できない（VContainer の例外。Args の具象型が子スコープに入らない、など）
+- G2: 子スコープで `GachaPresenter` が解決できない（VContainer の例外）
 - G3: `IGachaService` のクライアントが生成されていない（`ServiceClientFactory.Create<IGachaService>` の例外）
 
-境界: 結果のモーダルの「もう一度」は、モーダルを閉じてから確認ダイアログを出す。ボタンの連打は実行中フラグで止まる。通信中・遷移の後に破棄された Presenter は View に触らない。
+境界: ボタンの連打は実行中フラグで止まる。通信中・遷移の後に破棄された Presenter は View に触らない。
 
-確かめ方: コンパイルエラー 0。上の 4 つのテストと既存のテストが通る。手順 4 の値が期待どおり。
+確かめ方: コンパイルエラー 0。`GachaPresenterTests`・`HomePresenterTests` と既存のテストが通る。手順 7 の値が期待どおり。
+
+### タスク 3b: 排出率・結果のモーダル
+
+触る: `Presentation/Gacha/` の `GachaRatesModal.cs`・`GachaResultModal.cs`・`GachaLineRow.cs`（P2 の骨格に足す）、`GachaRatesPresenter.cs`・`GachaResultPresenter.cs`（仮を置き換える）、`Tests/EditMode/GachaRatesPresenterTests.cs`・`GachaResultPresenterTests.cs`。
+
+手順:
+1. `GachaLineRow`・`GachaRatesModal`・`GachaResultModal` に 3.4 の「View」の実装を足す（P2 のフィールドは変えない）
+2. 3.4 のとおり `GachaRatesPresenter`・`GachaResultPresenter` を書く（タスク 3a の仮を置き換える。シグネチャは変えない）
+3. 5章の `GachaRatesPresenterTests`・`GachaResultPresenterTests` を作る。`unity recompile` → `unity test --mode EditMode`（`GachaPresenterTests`・P2 の `GachaPrefabTests`・P1 の `PrefabContractTests` も通り続けること）
+4. Play で確かめる（式の略し方・待ち方はタスク 3a の手順 7 と同じ）
+   1. タスク 3a の手順 7 の 1・2 でガチャのページまで進める
+   2. `unity command eval 'B("RatesButton"); return "ok";'` → `unity command eval 'var m = Q<Uta.Client.Presentation.Gacha.GachaRatesModal>(); return (m != null) + ":" + (m == null ? 0 : m.GetComponentsInChildren<Uta.Client.Presentation.Gacha.GachaLineRow>().Length);'` が `True:` のあとに 1 以上の数（見出し 4 行 + 率の行）→ `unity command eval 'B("CloseButton"); return "ok";'` → `unity command eval 'return (Q<Uta.Client.Presentation.Gacha.GachaRatesModal>() == null).ToString();'` が `True`
+   3. `unity command eval 'B("SingleButton"); return (UnityEngine.GameObject.Find("Dialog") != null).ToString();'` が `True`（確認ダイアログ）→ `unity command eval 'B("Button0"); return "ok";'`（「引く」）→ `unity command eval 'var m = Q<Uta.Client.Presentation.Gacha.GachaResultModal>(); return (m != null) + ":" + (m == null ? 0 : m.GetComponentsInChildren<Uta.Client.Presentation.Gacha.GachaLineRow>().Length);'` が `True:1` → `unity command eval 'B("CloseButton"); return "ok";'` → 結果のモーダルが無くなる（2 と同じ式を `GachaResultModal` で `True`）
+   4. タスク 3a の手順 7 の 3・4（ページを閉じて Play を止める）。見た目と残りの操作は 5章の手動の確認で見る
+
+止まる条件（当たったら、その時点のコンソールの出力を添えて止まって報告する。別の手段へ変えない）:
+- G1: 手順 4 の 2 または 3 でモーダルが積まれない（`ModalContainer`・USN の `DefaultModalBackdrop`・Addressables の読み込みのどれかで例外。モーダルを出すのはこの計画が最初）
+- G2: 子スコープで `GachaRatesPresenter`・`GachaResultPresenter` が解決できない（VContainer の例外。Args の具象型が子スコープに入らない、など）
+
+境界: 結果のモーダルの「もう一度」は、モーダルを閉じてから確認ダイアログを出す。
+
+確かめ方: コンパイルエラー 0。`GachaRatesPresenterTests`・`GachaResultPresenterTests` と既存のテストが通る。手順 4 の値が期待どおり。
 
 ### タスク 4: 結果の記録
 
@@ -562,7 +589,68 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 - 取り直しの偽は foundation の `StubPlayerPort`（`Fakes/`）を使い、`new RefreshPlayerUseCase(stubPlayerPort, cache)` で作る。取り直しを呼んだかは、`SignInResults` に入れた件数が減ったかで見る（`StubPlayerPort` は数を数えないため）
 - 偽の View: 記録の書式は foundation 3.3.7（`"<メソッド名>:<引数を , でつないだもの>"`）。`int?` の null は `null`、リストは要素を `/` でつなぐ（`SetLineup`・`IGachaResultView.SetLines`）。`IGachaRatesView.SetLines` は `"SetLines:" + 行数` を記録し、渡されたリストを public フィールド `LastLines` に入れる。イベントを起こす `RaiseSingle()`・`RaiseTen()`・`RaiseRates()`・`RaiseBack()`・`RaiseClose()`・`RaiseRetry()` を持つ
 
-マスタ（`FakeGameMaster`）の共通の前提（ガチャのテストで使う）: 育成アイドル 1「アイドルA」SSR、3「アイドルC」R、サポートカード 2「サポートB」SSR、4「サポートD」SR。ガチャ 1: `SingleCost = 250`、`TenCost = 2500`、`CeilingPoints = 200`、通常枠 = (Idol 1, 重み 1)・(SupportCard 2, 1)・(Idol 3, 8)、確定枠 = (SupportCard 4, 3)・(Idol 1, 1)。`PlayerCache` には `GachaCurrency = 3250` の `PlayerSnapshot` を `Set` しておく。
+### 5.1 `GachaFixtures`（テストのダミー値）
+
+`Tests/EditMode/Support/GachaFixtures.cs`（名前空間 `Uta.Client.Infrastructure.Tests`。タスク 1 で作る）。**名前とレア度（DTO は枠・種別・ID・結果・かけら・強化pt）以外の引数の値は、ここだけで決める**。ガチャのテスト（`GachaRateCalculatorTests`・`DrawUseCaseTests`・`GetGachaStatusUseCaseTests`・`GachaGatewayTests`・`GachaPresenterTests`・`GachaRatesPresenterTests`・`GachaResultPresenterTests`。`PortResultTests`・`ServerReasonsTests` はマスタも DTO も使わない）は、`IdolInfo`・`SupportCardInfo`・`GachaEntryInfo`・`GachaInfo`・`PlayerSnapshot`・`DrawResultDto` を直接 `new` せず、これを呼ぶ。
+
+```csharp
+using System.Collections.Generic;
+using Uta.Client.Application.Master;
+using Uta.Client.Application.Player;
+using Uta.Shared.Contracts.Gacha;
+using Uta.Shared.Domain.Lesson;    // Rarity・Plan・ParamKind
+using Uta.Shared.Domain.Produce;   // SupportType
+
+namespace Uta.Client.Infrastructure.Tests
+{
+    internal static class GachaFixtures
+    {
+        public const int GachaId = 1;
+        public const int SingleCost = 250;
+        public const int TenCost = 2500;
+        public const int CeilingPoints = 200;
+        public const int Currency = 3250;   // PlayerCache に入れておく既定の所持
+
+        /// <summary>new IdolInfo(idolId, name, rarity, Plan.Sense, 30, 50, 50, 50, ParamKind.Singing, ParamKind.Rhythm, ParamKind.Expression)。</summary>
+        public static IdolInfo Idol(int idolId, string name, Rarity rarity);
+
+        /// <summary>new SupportCardInfo(supportCardId, name, rarity, SupportType.Singing, Plan.Free)。</summary>
+        public static SupportCardInfo SupportCard(int supportCardId, string name, Rarity rarity);
+
+        /// <summary>new GachaEntryInfo(MasterItemKind.Idol, idolId, weight)。</summary>
+        public static GachaEntryInfo IdolEntry(int idolId, int weight);
+
+        /// <summary>new GachaEntryInfo(MasterItemKind.SupportCard, supportCardId, weight)。</summary>
+        public static GachaEntryInfo SupportCardEntry(int supportCardId, int weight);
+
+        /// <summary>new GachaInfo(GachaId, SingleCost, TenCost, CeilingPoints, normalEntries, guaranteedEntries)。</summary>
+        public static GachaInfo Gacha(IReadOnlyList<GachaEntryInfo> normalEntries, IReadOnlyList<GachaEntryInfo> guaranteedEntries);
+
+        /// <summary>
+        /// 下の「共通の前提」のマスタを入れた新しい FakeGameMaster（呼ぶたびに新しいインスタンス。テストが足してよい）。
+        /// IdolList: Idol(1, "アイドルA", SSR)・Idol(3, "アイドルC", R)。SupportCardList: SupportCard(2, "サポートB", SSR)・SupportCard(4, "サポートD", SR)。
+        /// GachaList: Gacha(通常枠 = IdolEntry(1, 1)・SupportCardEntry(2, 1)・IdolEntry(3, 8)、確定枠 = SupportCardEntry(4, 3)・IdolEntry(1, 1))。
+        /// </summary>
+        public static FakeGameMaster CreateMaster();
+
+        /// <summary>new PlayerSnapshot(1, 0, 0, 0, gachaCurrency, false, false, new OwnedIdol[0], new OwnedSupportCard[0])。</summary>
+        public static PlayerSnapshot Snapshot(int gachaCurrency);
+
+        /// <summary>new DrawResultDto(slot, ItemKind.Idol, idolId, outcome, shards, 0, null)。</summary>
+        public static DrawResultDto IdolResult(int slot, int idolId, GachaOutcome outcome, int shards);
+
+        /// <summary>new DrawResultDto(slot, ItemKind.SupportCard, supportCardId, outcome, 0, supportPoints, "uid" + slot)。</summary>
+        public static DrawResultDto SupportCardResult(int slot, int supportCardId, GachaOutcome outcome, int supportPoints);
+    }
+}
+```
+
+- 本体は 1 行の式（`=>`）で、`<summary>` に書いた `new` のとおり。値（Plan.Sense・30・50 など）はテストの期待に出てこない（ガチャの画面は名前・レア度・種別しか出さない）ので、変えてもテストは変わらない
+- `DrawItem`・`DrawCallResult`・`GachaStatus`（Application の型で、引数がどれも期待に出る値）は、テストが直接 `new` してよい
+
+### 5.2 共通の前提と表
+
+マスタ（`FakeGameMaster`）の共通の前提（ガチャのテストで使う）: `GachaFixtures.CreateMaster()`。中身は育成アイドル 1「アイドルA」SSR、3「アイドルC」R、サポートカード 2「サポートB」SSR、4「サポートD」SR。ガチャ 1: `SingleCost = 250`、`TenCost = 2500`、`CeilingPoints = 200`、通常枠 = (Idol 1, 重み 1)・(SupportCard 2, 1)・(Idol 3, 8)、確定枠 = (SupportCard 4, 3)・(Idol 1, 1)。`PlayerCache` には `GachaFixtures.Snapshot(GachaFixtures.Currency)`（`GachaCurrency = 3250`）を `Set` しておく。**`StubPlayerPort.Snapshot`（取り直しの成功で `PlayerCache` に入る値）の既定は `GachaCurrency = 0`**（foundation 3.3.8）。取り直しのあとにもう一度引くテストは、これを差し替える（`ResultRetry_DrawsAgain`）。
 
 | ファイル | テスト | 内容 |
 |---|---|---|
@@ -572,7 +660,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 | | `Failure_IsNotBusinessError` | `!Succeeded`、`Reason == null`、`!IsBusinessError`。`Failure(null)` の `ErrorText == ""` |
 | `ServerReasonsTests.cs` | `Reasons_MatchContractsErrorCodes` | `ServerReasons.GachaNotEnoughCurrency == GachaErrors.NotEnoughCurrency.Reason`（後続の計画は、足した定数の行をここに足す） |
 | `GachaRateCalculatorTests.cs` | `Calculate_RowsToBasisPoints` | 共通の通常枠 → `Rows` が 1000・1000・8000 |
-| | `Calculate_GroupsSumWeightsBeforeTruncating` | `IdolList` に 5「アイドルE」SSR を足し、エントリー (Idol 1, 1)・(Idol 5, 1)・(Idol 3, 5)（合計 7）→ SSR 育成アイドルの `Groups` が 2857（行ごとの 1428 + 1428 = 2856 ではない） |
+| | `Calculate_GroupsSumWeightsBeforeTruncating` | `IdolList` に `GachaFixtures.Idol(5, "アイドルE", Rarity.SSR)` を足し、エントリー (Idol 1, 1)・(Idol 5, 1)・(Idol 3, 5)（合計 7）→ SSR 育成アイドルの `Groups` が 2857（行ごとの 1428 + 1428 = 2856 ではない） |
 | | `Calculate_SortedByRarityDescThenKindThenId` | 共通の通常枠と確定枠 → `Groups` が SSR 育成アイドル・SSR サポートカード・R 育成アイドル の順、確定枠の `Rows` が Idol 1 → SupportCard 4 の順 |
 | | `Calculate_ZeroWeightRow_Included` | 重み 0 の行が `BasisPoints == 0` で出る |
 | | `Calculate_EmptyOrZeroTotal_ReturnsEmpty` | 空のリストと、重みが全部 0 → `Groups`・`Rows` とも空 |
@@ -589,7 +677,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 | `GetGachaStatusUseCaseTests.cs` | `Execute_Found_ReturnsPoints` | 一覧に (1, 37) → 37 |
 | | `Execute_NotInList_ReturnsZero` | 一覧に (2, 37) だけ → 0 |
 | | `Execute_Failure_ReturnsNull` | `Failure("e")` → null |
-| `GachaGatewayTests.cs` | `ToDrawCallResult_MapsOutcomeAndSortsBySlot` | Slot 2（SupportCard、Duplicate、SupportPoints 10）・Slot 1（Idol、New）の順の配列 → `Items` が Slot 1・2 の順、`IsNew` が true・false、`Kind`・`SupportPoints`・`GachaCurrency`・`ExchangePoints` が写る |
+| `GachaGatewayTests.cs` | `ToDrawCallResult_MapsOutcomeAndSortsBySlot` | `new DrawResponse(new[] { GachaFixtures.SupportCardResult(2, 2, GachaOutcome.Duplicate, 10), GachaFixtures.IdolResult(1, 1, GachaOutcome.New, 0) }, 750, 47)`（Slot 2・Slot 1 の順の配列） → `Items` が Slot 1・2 の順、`IsNew` が true・false、`Kind`・`SupportPoints`・`GachaCurrency`・`ExchangePoints` が写る |
 | | `ToDrawCallResult_NullResults_ReturnsEmpty` | `Items.Count == 0` |
 | | `ToGachaStatuses_MapsAndHandlesNull` | 2 行が同じ順で写る。`Gachas == null` は空 |
 | `GachaPresenterTests.cs` | `InitializeAsync_ShowsCurrencyCostsLineupAndExchange` | `GachasResult` に (1, 37) → `log` が `"SetCurrency:3250"`, `"SetCosts:250,2500"`, `"SetLineup:SSR 育成アイドル: アイドルA/SSR サポートカード: サポートB"`, `"SetExchange:37,200"` |
@@ -598,10 +686,10 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 | | `DrawAsync_RefreshFailed_StillPushesResultModal` | `SignInResults` に `Failure("x")` → 同じく `"SetCurrency:750"`・`"PushModal:GachaResultPresenter"` があり、`"Info:"` で始まる行が無い |
 | | `DrawAsync_Declined_DoesNotDraw` | `ConfirmResults` に `Negative` → `"Draw:"` も `"PushModal:"` も無い |
 | | `DrawAsync_NotEnoughCurrency_ShowsInfo` | `DrawResult` が `BusinessError(ServerReasons.GachaNotEnoughCurrency, "e")` → 最後が `"Info:ガチャ通貨が足りません。"`、`"PushModal:"` が無い |
-| | `DrawAsync_Failed_ShowsNothing` | `DrawResult` が `Failure("e")` → `"Confirm:…"`, `"Draw:10"` のあとに何も無い |
+| | `DrawAsync_Failed_ShowsNothing` | `DrawResult` が `Failure("e")` → `"Confirm:ガチャ通貨 2,500 を使って 10 回引きます。（所持 3,250）"`, `"Draw:10"` のあとに何も無い |
 | | `DrawAsync_WhileRunning_Ignored` | `DrawGate` に未完了の源 → `var first = presenter.DrawAsync(1);` → `await presenter.DrawAsync(1);`（すぐ返る）→ 源を完了 → `await first` → `"Draw:1"` が 1 回 |
 | | `DrawAsync_DisposedDuringDraw_TouchesNothing` | `DrawGate` に未完了の源 → `var first = presenter.DrawAsync(1);` → `presenter.Dispose()` → 源を完了 → `await first` → `"Draw:1"` のあとに記録が無い（`"SetCurrency:"`・`"PushModal:"` が無い） |
-| | `ResultRetry_DrawsAgain` | `DrawAsync_Confirmed` と同じあと、`await ((GachaResultArgs)navigator.Args[0]).Retry();` → `"Confirm:"` で始まる行が 2 回、`"PushModal:GachaResultPresenter"` が 2 回 |
+| | `ResultRetry_DrawsAgain` | 前提: **`stubPlayerPort.Snapshot = GachaFixtures.Snapshot(3250);`**（10 連の費用 2500 以上。既定の 0 のままだと、1 回目の取り直しで `PlayerCache` の通貨が 0 になり、2 回目は `DrawUseCase` が通信せずに `NotEnoughCurrency` を返す）。`DrawAsync_Confirmed` と同じあと、`await ((GachaResultArgs)navigator.Args[0]).Retry();` → `"Confirm:"` で始まる行が 2 回（2 回目は `"Confirm:ガチャ通貨 2,500 を使って 10 回引きます。（所持 750）"`。`currency` は応答の値）、`"Draw:10"` が 2 回、`"PushModal:GachaResultPresenter"` が 2 回、`"Info:"` で始まる行が無い |
 | | `OpenRatesAsync_PushesRatesModal` | `"PushModal:GachaRatesPresenter"`、`navigator.Args[0]` が `GachaRatesArgs` で `GachaId == 1` |
 | | `BackAsync_PopsPage` | `"PopPage:GachaPresenter"` |
 | | `Dispose_UnsubscribesEvents` | `Dispose()` のあと偽の View の `RaiseBack()` → `"PopPage:"` が無い |
@@ -616,7 +704,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 | | `OpenGachaAsync_WhileRunning_Ignored` を `OpenProduceAsync_WhileRunning_Ignored` に直す | 中身は同じで、呼ぶメソッドを `OpenProduceAsync` にする（`OpenGachaAsync` はダイアログを出さなくなったため） |
 | | `OpenGachaAsync_PushesGachaPage`（足す） | `await presenter.OpenGachaAsync();` → `log` が `"PushPage:GachaPresenter"` だけ |
 
-Play・手動（Editor、サーバー起動済み・初期付与済みのプレイヤー。タスク 3 の手順 4 の自動の確認のあと、ユーザーに見てもらう）:
+Play・手動（Editor、サーバー起動済み・初期付与済みのプレイヤー。タスク 3a の手順 7・タスク 3b の手順 4 の自動の確認のあと、ユーザーに見てもらう）:
 - ホーム →「ガチャ」でガチャのページ。ヘッダーの「ガチャ」、「ガチャ通貨 N」、ラインナップ（SSR）、「交換pt N / 200」、「単発 250」「10連 2,500」（値はマスタのまま）が日本語で出る。ヘッダーの「戻る」でホームに戻る
 - 「排出率」で通常枠・確定枠の、レア別・種別の合計とカードごとの率が出る（見出しの行は強調の色）。スクロールできる。「閉じる」で閉じる
 - 「単発」→ 確認 →「引く」→ 結果のモーダル（1 行）。通貨が減る。「閉じる」→ ホームに戻ると減った通貨が出ている

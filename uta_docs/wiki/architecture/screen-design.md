@@ -151,7 +151,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 | View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
 | Presenter | 同上 | View と `Application` のユースケースをつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
 | ユースケース | `Application/<機能>/` | 通信は `I<機能>Port` 越し。`Presentation` は `Infrastructure` に触れない |
-| 組み立て | 各シーンの `LifetimeScope`（8章） | Presenter とシーンの `UiRoot` を登録する。ユースケース・ゲートウェイは Bootstrap のルートのスコープ |
+| 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。ユースケース・ゲートウェイは Bootstrap のルートのスコープ |
 
 - **遷移**: ホーム（またはシーンの最初のページ）を底にする。局面ごとの切り替えは、いまのページを `Pop` してから次を `Push`（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではない）。ホームへ戻るときは上のページ・モーダルを全部 `Pop`
 - **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
@@ -189,7 +189,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 | `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ | → `Produce` |
 | `Produce` | プロデュース。この章の時点では空（文字と `Home` へ戻るボタンだけ） | → `Home` |
 
-- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの View・Presenter（と、そのシーンだけの診断の補助）だけを登録する。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
+- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
 - **シーンの遷移は `ISceneNavigator`**（Application のポート: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
 - **通信エラーの後の遷移**: `ApiCore` に `IErrorNavigator`（VolTech-MagicOnion）を渡す。`GoToTitleAsync` は `Title` の読み込み、`GoToHomeAsync` は `Home` の読み込み、`OpenStoreAsync` は未実装（ログだけ。強制アップデートは実装しないため。[repository-layout.md](repository-layout.md) 10.5）。実装は `ISceneNavigator` を呼ぶだけの小さなクラスで、`Bootstrap` に置く。`ReturnToTitle` で `Title` が読み込み直されると、通信中だった古い Presenter の続きが破棄された View に触らないよう、Presenter は View が破棄済みなら何もしない。診断（下記）のときはナビゲーターを渡さない
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる

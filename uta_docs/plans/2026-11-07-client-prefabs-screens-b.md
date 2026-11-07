@@ -38,7 +38,7 @@ spec: ../wiki/architecture/screen-design.md
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1（[common](2026-11-07-client-prefabs-common.md)）→ P2（[screens-a](2026-11-07-client-prefabs-screens-a.md)）→ foundation → gacha → owned → **P3（この計画）** → formation → week → lesson
 - **前提 1**: P1 が done（`PrefabBuildUtil`・`IPrefabBuilder`・`RectSpec`・`LayoutSpec`・`TextSpec`・`UtaButtonStyle`・`PrefabBuildCommands`・`PrefabContract`／`PrefabContractTests`・部品の Prefab 10 個・`PageBase`／`ModalBase`・部品の View・`UiTheme`）。加えて P2 が done（Editor の補助 `ScreenLayout`。3.3）。P3 の View の型が使うのは P1 の型だけ、生成が使うのは P1 と P2 の `ScreenLayout` だけ（foundation・C# の計画の型には依存しない）。無ければ止まって報告する
 - **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
-- **前提 3**: `unity test --mode EditMode` が使えるかは P1 タスク 5 の結果（CLAUDE.md「ビルド・テスト・実行」に行があれば使える）。無ければ Editor の Test Runner の EditMode を全部実行してもらう（手動）
+- **前提 3**: テストの回し方は [P1](2026-11-07-client-prefabs-common.md) のタスク 5 の手順 2（`unity test` は同じプロジェクトを開いた Editor があると使えないので、`unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'` → `client/uta` で `unity close .` → `unity test --mode EditMode` → `unity open .` → `unity status --until-ready`）。P1 の実施後に CLAUDE.md「ビルド・テスト・実行」に EditMode のテストの行があれば、その行の方法が正。行が無い（`unity test` が使えないと分かった）ときは、Editor の Test Runner の EditMode を全部実行してもらう（手動）
 - **この計画で決めないこと**: View のメソッド・`IXxxView` の実装・Presenter・`ProduceFlow`（C# の計画）。どのシーンにどの画面を積むか（formation の計画が正。決めたこと 9）。`UtaHeaderView`・`UtaButtonView` の表示のメソッド（foundation 3.2 が足す: `UtaHeaderView.SetTitle`、`UtaButtonView.SetLabel`・`SetInteractable`）
 
 ## 2. 触るファイル
@@ -311,7 +311,7 @@ public static class ProduceLayout
 - **モーダル**: `var modal = PrefabBuildUtil.CreateModal<XxxModal>("XxxModal", out var panel);` → 表のとおりに `panel` の下へ組む（`SetupBody` は呼ばない。`Panel` は P1 の雛形のとおり VLG + ContentSizeFitter）→ `SetRef` → `SavePrefab` → `RegisterScreen`
 - 子は表の上から順に作る（兄弟の順 = 表の順）。`SetRef` のフィールド名は 3.1 の名前そのまま
 
-例（`FormationPageBuilder.Build`。ほかの画面も同じ書き方）:
+例（`FormationPageBuilder.Build`。ほかの画面も同じ書き方。ファイルの `using` は `System`・`TMPro`・`UnityEngine`・`Uta.Client.Presentation.Common`・`Uta.Client.Presentation.Common.Parts`・`Uta.Client.Presentation.Formation` のうち使うもの）:
 
 ```csharp
 public void Build()
@@ -330,7 +330,15 @@ public void Build()
     for (var i = 0; i < FormationSlotCount; i++)
     {
         slotViews[i] = PrefabBuildUtil.InstantiatePart<FormationSlotRowView>(slotList, "FormationSlotRow", "Slot" + i);
-        // 枠ごとのラベルの初期値: LabelText の text = "枠" + (i + 1) + ": （空）"（TMP の text のオーバーライド。MarkModified）
+        // 枠ごとのラベルの初期値（ネストした FormationSlotRow の中の LabelText の TMP の text をオーバーライドする）
+        var labelTransform = slotViews[i].transform.Find("LabelText");
+        if (labelTransform == null)
+        {
+            throw new InvalidOperationException("FormationSlotRow child not found: LabelText");
+        }
+        var label = labelTransform.GetComponent<TextMeshProUGUI>();
+        label.text = "枠" + (i + 1) + ": （空）";
+        PrefabBuildUtil.MarkModified(label);
     }
     // …
     PrefabBuildUtil.SetRef(page, "header", header);
@@ -478,8 +486,9 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 |---|---|
 | `LessonPage` | 雛形 |
 | └ `Body` | 雛形 + `SetupBody` |
-| 　├ `Header` | `ProduceLayout.AddHeaderWithoutBack(body, "レッスン")`。`RightSlot/MenuButton`（`ProduceLayout.AddMenuButton`）。**`TurnText` を足す**: `AddLabel(header.transform, "TurnText", "残り 0 / 0", TMP 40/`Text`/`MidlineRight`/NoWrap/Ellipsis)` + LE w 260 → `SetSiblingIndex(2)`（子の順が `BackButton`・`TitleText`・`TurnText`・`RightSlot` になる） |
+| 　├ `Header` | `ProduceLayout.AddHeaderWithoutBack(body, "レッスン")`。`RightSlot/MenuButton`（`ProduceLayout.AddMenuButton`）。ヘッダーの子は足さない（`UtaHeader` のまま `BackButton`・`TitleText`・`RightSlot`） |
 | 　└ `Main` | `ScreenLayout.AddMain` |
+| 　　├ `TurnText` | **`Main` の先頭の子**（ヘッダーの外）。`ScreenLayout.AddLabel` TMP 40/`Text`/`MidlineRight`/NoWrap/Ellipsis、text "残り 0 / 0"、高さ 60 |
 | 　　├ `ProgressText` | `ScreenLayout.AddLabel` TMP 40/`Text`/`TopLeft`/Normal/Overflow、text ""、高さ 170（3 行） |
 | 　　├ `StatusText` | `ScreenLayout.AddLabel` TMP 32/`Text`/`TopLeft`/Normal/Overflow、text ""、高さ 220（5 行） |
 | 　　├ `LastResultText` | `ScreenLayout.AddLabel` TMP 32/`Accent`/`MidlineLeft`/NoWrap/Ellipsis、text ""、高さ 50 |
@@ -487,9 +496,9 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　　├ `HandScroll` | `PrefabBuildUtil.AddScrollList(main, "HandScroll", out _)`（LE 伸び。戻り値の `Content` を `handContent` に） |
 | 　　└ `SkipButton` | → `UtaButton` Primary "スキップ" |
 
-参照: `handRowPrefab` = `ScreenLayout.LoadPart<SkillCardRowView>("SkillCardRow")`、`turnText` = `Header/TurnText` の TMP、`menuButton` = `Header/RightSlot/MenuButton`。
+参照: `handRowPrefab` = `ScreenLayout.LoadPart<SkillCardRowView>("SkillCardRow")`、`turnText` = `Main/TurnText` の TMP（`ScreenLayout.AddLabel` の戻り値）、`menuButton` = `Header/RightSlot/MenuButton`。
 
-（高さの見積り: Main の内側 1920 − 150 − 64 = 1706。固定 170 + 220 + 50 + 130 + 130 = 700、spacing 120 → 手札は 886（`SkillCardRow` 220 が 3 枚 708 で収まる。4 枚目からスクロール））
+（高さの見積り: Main の内側 1920 − 150 − 64 = 1706。固定 60 + 170 + 220 + 50 + 130 + 130 = 760、spacing 24 × 6 = 144 → 手札は 802（`SkillCardRow` 220 が 3 枚と間隔 2 つで 708 なので収まる。4 枚目からスクロール））
 
 ### 3.13 DeckListModal（出どころ: W3 の「山札などはタップで中身を表示」、LS 1.2・3.6。PRD-08）
 
@@ -498,10 +507,10 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | `DeckListModal` | モーダルの雛形 |
 | └ `Panel` | 雛形 |
 | 　├ `TitleText` | `ScreenLayout.AddLabel` TMP 56/`Text`/`Center`/NoWrap/Ellipsis、text "山札・捨札・除外"、高さ 80（固定。フィールドにしない） |
-| 　├ `ListScroll` | `AddScrollList(panel, "ListScroll", out _)` のあと、`ListScroll` に `SetLayout(minHeight: 1200, preferredHeight: 1200)`、`ListScroll/Viewport/Content` に `AddVertical(new LayoutSpec(8, 0, 0, 0, 0, UpperCenter, true, true, true, false))`（spacing を 24 から 8 に） |
+| 　├ `ListScroll` | `var content = PrefabBuildUtil.AddScrollList(panel, "ListScroll", out var scroll);` のあと、`PrefabBuildUtil.SetLayout(scroll.gameObject, minHeight: 1200f, preferredHeight: 1200f)`、`PrefabBuildUtil.AddVertical(content.gameObject, new LayoutSpec(8f, 0, 0, 0, 0, TextAnchor.UpperCenter, true, true, true, false))`（`Content` に付いている VLG をそのまま使って spacing を 24 から 8 に変える。`AddVertical` は既にあれば使う） |
 | 　└ `CloseButton` | → `UtaButton` Secondary "閉じる" |
 
-参照: `listContent` = `ListScroll/Viewport/Content`、`sectionHeaderPrefab` = `ScreenLayout.LoadPart<DeckSectionHeaderRowView>("DeckSectionHeaderRow")`、`cardRowPrefab` = `ScreenLayout.LoadPart<DeckCardRowView>("DeckCardRow")`。
+参照: `listContent` = `ListScroll/Viewport/Content`（上の `content`）、`sectionHeaderPrefab` = `ScreenLayout.LoadPart<DeckSectionHeaderRowView>("DeckSectionHeaderRow")`、`cardRowPrefab` = `ScreenLayout.LoadPart<DeckCardRowView>("DeckCardRow")`。
 
 ### 3.14 ExamResultPage（出どころ: W7、LS 3.6）
 
@@ -556,7 +565,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 | | デッキ 14枚（W4） | `Panel/DeckCountText` | `deckCountText` |
 | | 受け取らない（W4） | `Panel/DeclineButton` | `declineButton` |
 | LessonPage | 律動レッスン（特別）（W3） | `Body/Header`（`TitleText`） | `header` |
-| | 残り 4/6（W3） | `Body/Header/TurnText` | `turnText` |
+| | 残り 4/6（W3） | `Body/Main/TurnText` | `turnText` |
 | | [≡]（W3） | `Body/Header/RightSlot/MenuButton` | `menuButton` |
 | | 目標・獲得／スコア・順位・審査（W3） | `Body/Main/ProgressText` | `progressText` |
 | | 体力・元気・ステータス（W3） | `Body/Main/StatusText` | `statusText` |
@@ -599,22 +608,24 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 触る: `Scripts/Editor/Prefabs/Screens/Produce/ProduceLayout.cs`、行の生成クラス 5 つ（3.4）、生成物 `Prefabs/Parts/` の 5 個。
 
 手順:
-1. 3.3・3.4・3.5 のとおりに作る
-2. `BuildAll()` を実行し、戻り値の件数がタスクの前より 5 増えている。`unity command console get --tail 50 --level error --format json` にエラーが無い
-3. `git status` で、`Prefabs/Parts/` に増えたのが 5 個（と `.meta`）だけで、`AddressableAssetsData/` に差分が無い（行は登録しない）
+1. 基準値を取る（ファイルを足す前）: `BuildAll()` を実行し、戻り値の件数 `built N` の N を記録する（P1・P2 が done なら 20 のはず。違っても止まらず、記録した N を基準にする）。続けて `unity command eval 'return UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings.FindGroup("Screens").entries.Count;'` の値 E を記録する（P2 が done なら 7）。`git status` で差分が無いこと（あれば、何が変わったかを報告に書く）
+2. 3.3・3.4・3.5 のとおりに作る
+3. `BuildAll()` を実行し、戻り値が `built (N + 5)`。`unity command console get --tail 50 --level error --format json` にエラーが無い
+4. `git status` で、`Prefabs/Parts/` に増えたのが 5 個（と `.meta`）だけで、`AddressableAssetsData/` に差分が無い（行は登録しない）。`Screens` のエントリ数が E のまま
 
 境界: 行の生成クラスは画面の生成クラスより先（Order 1000 台）。部品の Prefab（P1）が無ければ `InstantiatePart` が例外を投げる（止まって報告する）。
 
-終わったことの確かめ方: 件数が 5 増えた、エラー無し。
+終わったことの確かめ方: 件数が 5 増えた（N + 5）、エラー無し。N・E と N + 5 を報告に書く（タスク 3・4 の基準になる）。
 
 ### タスク 3: 編成・背景・週・授業・支給・獲得の画面
 
 触る: `FormationPageBuilder`・`ProduceBackdropPageBuilder`・`WeekPageBuilder`・`ClassPageBuilder`・`SupplyPageBuilder`・`CardOfferModalBuilder`、生成物 6 個、`Screens.asset`。
 
 手順:
-1. 3.6〜3.11 のとおりに作る
-2. `BuildAll()` の件数がタスク 2 より 6 増える。エラーが無い
-3. `unity command eval 'return UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings.FindGroup("Screens").entries.Count;'` がタスク 2 より 6 多い
+1. 基準値: タスク 2 の終わりの件数（N + 5）と `Screens` のエントリ数 E を使う。別のセッションで続けるなどで分からなければ、ファイルを足す前に `BuildAll()` とエントリ数の eval（タスク 2 の手順 1 と同じ）を実行して取り直す
+2. 3.6〜3.11 のとおりに作る
+3. `BuildAll()` の件数が基準より 6 多い（N + 11）。エラーが無い
+4. `unity command eval 'return UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings.FindGroup("Screens").entries.Count;'` が基準より 6 多い（E + 6）
 
 終わったことの確かめ方: 件数、エラー無し、`Screens` のエントリが 6 増えた。
 
@@ -622,7 +633,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 
 触る: `LessonPageBuilder`・`DeckListModalBuilder`・`ExamResultPageBuilder`・`ProduceResultPageBuilder`、生成物 4 個、`Screens.asset`。
 
-手順: タスク 3 と同じ（3.12〜3.15。件数とエントリが 4 増える）。
+手順: タスク 3 と同じ（3.12〜3.15）。基準はタスク 3 の終わりの値（N + 11・E + 6。分からなければ足す前に取り直す）で、件数とエントリがそれぞれ 4 増える（N + 15・E + 10）。
 
 ### タスク 5: テストと見た目の確認
 
@@ -630,7 +641,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 
 手順:
 1. 6章のテストを作る
-2. `unity test --mode EditMode`（前提 3）で、P1 の `PrefabContractTests`（全部の Prefab の参照・画面の名前と登録）と `ProducePrefabTests` が全部通る
+2. テストを回す（前提 3。保存 → `unity close .` → `unity test --mode EditMode` → `unity open .`）。P1 の `PrefabContractTests`（全部の Prefab の参照・画面の名前と登録）と `ProducePrefabTests` が全部通る。手順 3・4 は Editor を開き直してから行う
 3. 冪等の確かめ: もう一度 `BuildAll()` を実行し、`git diff --stat` で `Prefabs/Parts/`・`Prefabs/Screens/`・`AddressableAssetsData/` に差分が出るかを見る。**出ても止まらない**（P1 タスク 4 と同じ扱い）。差分の有無と、出たならどの値かを報告に書く。`Fonts/NotoSansJP-Regular SDF.asset` に差分が無いこと
 4. ユーザーに、Editor で 10 個の画面と 5 個の行の Prefab を Prefab モードで開き、表の配置になっていること、日本語と `≡`（`MenuButton`）が豆腐でないことを見てもらう。`◀`・`＜` は仮の文字に無いので、`ExamRankingRow` を Prefab モードで開き、`Text` の TMP の text 欄に `◀＜` を入れて見るだけにし、保存せずに閉じる（手動。確認 2）
 
@@ -648,18 +659,130 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 
 ## 6. テスト
 
-`Tests/EditMode/ProducePrefabTests.cs`（`public sealed class ProducePrefabTests`。NUnit。`AssetDatabase.LoadAssetAtPath<GameObject>` で読む。パスは文字列の定数で持つ: テストのアセンブリは Editor のアセンブリを参照しないため）。P1 の `PrefabContractTests` は書き換えない。
+`Tests/EditMode/ProducePrefabTests.cs`（`public sealed class ProducePrefabTests`。NUnit。`AssetDatabase.LoadAssetAtPath<GameObject>` で読む。パスは文字列の定数で持つ: テストのアセンブリは `Uta.Client.Editor` を参照している（P1 の 3.1）が、`PrefabBuildUtil.ScreenPath`・`PartPath` は使わず、期待値をテストの側で固定して生成クラスのパスの書き間違いを見つけるため）。P1 の `PrefabContractTests` は書き換えない。
 
 | テスト | 確かめること |
 |---|---|
 | `ProduceScreens_ExistWithRootView` | 10 個の画面のパス（2章）が読めて、ルートに同名の型（`FormationPage` など）がある |
 | `ProduceRows_ExistWithRowView` | 5 個の行のパスが読めて、ルートに行の View（`FormationSlotRowView`・`SkillCardRowView`・`DeckSectionHeaderRowView`・`DeckCardRowView`・`ExamRankingRowView`）がある |
-| `ProduceScreens_HaveNamedChildren` | 4章の表の「子のパス」（`（子は実行時）` などの注記を除いた部分）が、各画面で `transform.Find` で見つかる（1 本のテストで全部回し、見つからないものを一覧にして `Assert.That(missing, Is.Empty)`） |
+| `ProduceScreens_HaveNamedChildren` | 下の「`Find` するパスの一覧」の各パスが、その Prefab のルートの `transform.Find` で見つかる（1 本のテストで全部回し、見つからないものを `"<Prefab のパス>: <子のパス>"` の一覧にして `Assert.That(missing, Is.Empty)`） |
 | `HeaderBackButton_ActiveOnlyWhereBackExists` | `Body/Header/BackButton` の `activeSelf` が、`WeekPage`・`LessonPage` で false、`FormationPage`・`ClassPage`・`SupplyPage` で true |
-| `LessonHeader_ChildrenInOrder` | `LessonPage` の `Body/Header` の子の名前が順に `BackButton`・`TitleText`・`TurnText`・`RightSlot` |
+| `LessonPage_TurnTextIsFirstInMain` | `LessonPage` の `Body/Header` の子の名前が順に `BackButton`・`TitleText`・`RightSlot`（ヘッダーに子を足していない）。`Body/Main` の子の名前が順に `TurnText`・`ProgressText`・`StatusText`・`LastResultText`・`PilesButton`・`HandScroll`・`SkipButton` |
 | `FormationPage_HasFiveSlotsInOrder` | `FormationPage` の `SerializedObject` の `slots` の `arraySize` が 5、要素 `i` の GameObject の名前が `"Slot" + i` |
 | `RowPrefabFields_ReferencePartAssets` | 次のフィールドの `objectReferenceValue` がアセット（`AssetDatabase.GetAssetPath` が次のパス）: `WeekPage.actionButtonPrefab`・`ClassPage.optionButtonPrefab` → `Assets/Prefabs/Parts/UtaButton.prefab`、`CardOfferModal.cardRowPrefab`・`LessonPage.handRowPrefab` → `SkillCardRow.prefab`、`DeckListModal.sectionHeaderPrefab` → `DeckSectionHeaderRow.prefab`、`DeckListModal.cardRowPrefab` → `DeckCardRow.prefab`、`ExamResultPage.rankingRowPrefab` → `ExamRankingRow.prefab`（ネストしたインスタンスを指していないこと） |
 | `RuntimeLists_AreEmpty` | `WeekPage` の `ActionList`、`ClassPage` の `OptionList`、`CardOfferModal` の `CardList`、`LessonPage`・`DeckListModal`・`ExamResultPage` のスクロールの `Content` の子が 0 個 |
+
+**`Find` するパスの一覧**（`ProduceScreens_HaveNamedChildren` にこのまま書く。4章の表から取った。範囲は展開し、1 セルに 2 本あるものは分けた。行の Prefab の子も同じテストで確かめる）:
+
+```csharp
+private static readonly (string Prefab, string[] Children)[] NamedChildren =
+{
+    ("Assets/Prefabs/Screens/Formation/FormationPage.prefab", new[]
+    {
+        "Body/Header",
+        "Body/Header/BackButton",
+        "Body/Main/IdolPanel/IdolText",
+        "Body/Main/IdolPanel/SelectIdolButton",
+        "Body/Main/SlotList/Slot0",
+        "Body/Main/SlotList/Slot0/LabelText",
+        "Body/Main/SlotList/Slot0/SelectButton",
+        "Body/Main/SlotList/Slot0/ClearButton",
+        "Body/Main/SlotList/Slot1",
+        "Body/Main/SlotList/Slot1/LabelText",
+        "Body/Main/SlotList/Slot1/SelectButton",
+        "Body/Main/SlotList/Slot1/ClearButton",
+        "Body/Main/SlotList/Slot2",
+        "Body/Main/SlotList/Slot2/LabelText",
+        "Body/Main/SlotList/Slot2/SelectButton",
+        "Body/Main/SlotList/Slot2/ClearButton",
+        "Body/Main/SlotList/Slot3",
+        "Body/Main/SlotList/Slot3/LabelText",
+        "Body/Main/SlotList/Slot3/SelectButton",
+        "Body/Main/SlotList/Slot3/ClearButton",
+        "Body/Main/SlotList/Slot4",
+        "Body/Main/SlotList/Slot4/LabelText",
+        "Body/Main/SlotList/Slot4/SelectButton",
+        "Body/Main/SlotList/Slot4/ClearButton",
+        "Body/Main/ScenarioRow/ScenarioText",
+        "Body/Main/ScenarioRow/ChangeScenarioButton",
+        "Body/Main/StartButton",
+    }),
+    ("Assets/Prefabs/Screens/Produce/ProduceBackdropPage.prefab", new[]
+    {
+        "Body/Main/HeaderText",
+    }),
+    ("Assets/Prefabs/Screens/Produce/WeekPage.prefab", new[]
+    {
+        "Body/Header",
+        "Body/Header/TitleText",
+        "Body/Header/RightSlot/MenuButton",
+        "Body/Main/NextExamText",
+        "Body/Main/StatusPanel/StatusText",
+        "Body/Main/ActionList",
+    }),
+    ("Assets/Prefabs/Screens/Produce/ClassPage.prefab", new[]
+    {
+        "Body/Header",
+        "Body/Main/OptionList",
+    }),
+    ("Assets/Prefabs/Screens/Produce/SupplyPage.prefab", new[]
+    {
+        "Body/Header",
+        "Body/Main/ReceiveButton",
+    }),
+    ("Assets/Prefabs/Screens/Produce/CardOfferModal.prefab", new[]
+    {
+        "Panel/CardList",
+        "Panel/DeckCountText",
+        "Panel/DeclineButton",
+    }),
+    ("Assets/Prefabs/Screens/Produce/LessonPage.prefab", new[]
+    {
+        "Body/Header",
+        "Body/Header/TitleText",
+        "Body/Header/RightSlot/MenuButton",
+        "Body/Main/TurnText",
+        "Body/Main/ProgressText",
+        "Body/Main/StatusText",
+        "Body/Main/LastResultText",
+        "Body/Main/PilesButton",
+        "Body/Main/HandScroll/Viewport/Content",
+        "Body/Main/SkipButton",
+    }),
+    ("Assets/Prefabs/Screens/Produce/DeckListModal.prefab", new[]
+    {
+        "Panel/ListScroll/Viewport/Content",
+        "Panel/CloseButton",
+    }),
+    ("Assets/Prefabs/Screens/Produce/ExamResultPage.prefab", new[]
+    {
+        "Body/Main/TitleText",
+        "Body/Main/RankingScroll/Viewport/Content",
+        "Body/Main/OutcomeText",
+        "Body/Main/RetryButton",
+        "Body/Main/NextButton",
+    }),
+    ("Assets/Prefabs/Screens/Produce/ProduceResultPage.prefab", new[]
+    {
+        "Body/Main/RankText",
+        "Body/Main/LinesText",
+        "Body/Main/HomeButton",
+    }),
+    ("Assets/Prefabs/Parts/SkillCardRow.prefab", new[]
+    {
+        "TitleText",
+        "CostsText",
+        "DescriptionText",
+    }),
+    ("Assets/Prefabs/Parts/ExamRankingRow.prefab", new[]
+    {
+        "Text",
+    }),
+};
+```
+
+- `DeckSectionHeaderRow`・`DeckCardRow` は子が無い（ルート自身が TMP）ので一覧に入れない。ルートの View は `ProduceRows_ExistWithRowView` が確かめる
+- 4章の表を変えたときは、この一覧も同じ変更で直す
 
 共通の確かめ（P1 の `PrefabContractTests` が自動で対象にする）: 全フィールドの参照が `null` でない、画面のルートの型名 = ファイル名、`Screens` グループにアドレス = ファイル名で登録・ラベル無し、`Screens` に画面以外が無い。
 

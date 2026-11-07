@@ -97,6 +97,34 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 
 C# は C# 9 の範囲（`client/`・`shared/`。コレクション式 `[...]`・record・ファイルスコープ namespace は使わない。配列は `new[] { ... }`、空は `new bool[0]` か `Array.Empty<T>()`）。`server/` は C# 14。名前空間はフォルダに合わせる: `Scripts/Application/Produce` → `Uta.Client.Application.Produce`、`Scripts/Infrastructure/Api` → `Uta.Client.Infrastructure.Api`、`Scripts/Infrastructure/Produce` → `Uta.Client.Infrastructure.Produce`、`Scripts/Presentation/Produce` → `Uta.Client.Presentation.Produce`、`Scripts/Presentation/Formation` → `Uta.Client.Presentation.Formation`、テストは `Uta.Client.Infrastructure.Tests`。`using UnityScreenNavigator;` と `using Uta.Client.Application.Navigation;` の両方を書くファイル（`ProduceFlow`・`ProduceEntry`・`FormationPresenter`・`HomePresenter`）は `using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;` を足す（foundation 3.3.10）。
 
+### 3.0 名前空間と `using`
+
+**新しいファイルの名前空間は、上流の各計画の 2 章（触るファイル）のフォルダに合わせる**（上の段落の対応のとおり。P3 の骨格のファイル `FormationPage.cs`・`FormationSlotRowView.cs`・`ProduceBackdropPage.cs` は P3 の名前空間のまま）。各ファイルの `using` は、下の表から**そのファイルが使う型の行だけ**を書く（使わない `using` は書かない。`unity recompile` の警告を増やさない）。
+
+| 使う型 | 名前空間（`using`） | 正（作る計画） |
+|---|---|---|
+| `DisplayText` | `Uta.Client.Presentation.Common` | owned 3.2 |
+| `PageStack`・`DialogService`・`DialogResult`・`PageBase`・`UiRoot`・`SceneUiInstaller` | `Uta.Client.Presentation.Common` | foundation 3.2、P1 3.3 |
+| `UtaButtonView`・`UtaHeaderView` | `Uta.Client.Presentation.Common.Parts` | foundation 3.2、P1 |
+| `OwnedSelectionRequest`・`OwnedSelection`・`OwnedSelectionKind` | `Uta.Client.Application.Owned` | owned 3.4 |
+| `OwnedArgs`・`OwnedPresenter` | `Uta.Client.Presentation.Owned` | owned 3.6 |
+| `IGameMaster`・`IdolInfo`・`SupportCardInfo`・`ScenarioInfo` | `Uta.Client.Application.Master` | foundation 3.4 |
+| `PlayerCache`・`RefreshPlayerUseCase`・`IPlayerPort`・`PlayerSnapshot`・`PlayerSignInResult`・`OwnedIdol`・`OwnedSupportCard` | `Uta.Client.Application.Player` | 既存のコード・foundation 3.5 |
+| `PortResult<T>`・`ServerReasons` | `Uta.Client.Application.Common` | gacha 3.1 |
+| `ISceneNavigator`（Uta の） | `Uta.Client.Application.Navigation`（`using UnityScreenNavigator;` と並べるファイルは別名 `using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;`） | 既存のコード・foundation 3.3.10 |
+| `IScreenNavigator`・`IPresenter`・`IScreenWithArgs<TArgs>`・`AssetAddressAttribute` | `UnityScreenNavigator` | foundation 3.3（基盤） |
+| `ApiCore`・`ApiResult<T>`・`ApiServiceBase<T>` | `VolTech.Client` | 既存の `PlayerApi.cs` |
+| `ErrorCode` | `VolTech.Server.Abstractions` | 既存の `PlayerApi.cs` |
+| `IProduceService`・`ProduceStateResponse` ほかの DTO・`ProduceErrors`・`ProduceEnding`・`CardOfferActionKind`・`LessonActionKind` | `Uta.Shared.Contracts.Produce` | shared/ |
+| `ProducePhase`・`WeekChoiceKind`・`ExamKind`・`ExamOutcome`・`ProduceRank`・`FormationValidator` | `Uta.Shared.Domain.Produce`（`FormationValidator` は `shared/Uta.Shared.Domain/Produce/FormationValidator.cs`。2026-11-07 に確かめた） | shared/、owned |
+| `LessonKind`・`ParamKind`・`PersistentTrigger`・`Plan`・`Rarity` | `Uta.Shared.Domain.Lesson`（マスタの生成の名前空間 `…MasterData.Generated` には同名の `Rarity` があるので `using` しない: owned 3.2） | shared/ |
+| `TMP_Text` | `TMPro` | P1 |
+| `UniTask`・`UniTaskCompletionSource` | `Cysharp.Threading.Tasks` | — |
+| `IContainerBuilder`・`Lifetime`・`[Inject]`／`LifetimeScope`・`IStartable` | `VContainer`／`VContainer.Unity` | — |
+| テストの偽（`CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`・`FakeGameMaster`・この計画の偽） | `Uta.Client.Infrastructure.Tests`（テストと同じ名前空間なので `using` は要らない） | foundation 3.3.8、gacha タスク 1 |
+
+- 表と実在のコード（上流の計画の実装）の名前空間が違ったら、実在のほうを書く（型の名前が無い・違うときは止まって報告する）
+
 ### 3.1 サーバー・shared の直し（`UsableHand`）
 
 - `LessonDto`: コンストラクターの末尾（`int[] npcScores` の後ろ）に `bool[] usableHand` を足し、`[Key(19)] public bool[] UsableHand { get; }`。既存のキー 0〜18 は変えない
@@ -672,7 +700,7 @@ public static class TestProduce
    builder.Register<ProduceActions>(Lifetime.Singleton);
    ```
    `ProduceFlow`・`ProduceMenu` はルートに登録しない（1 の `ProduceLifetimeScope`）。Presenter はどこにも登録しない（foundation 3.3.2）
-4. `HomePresenterTests` の既存のテストの `HomePresenter` の生成に、新しい引数（`new ProduceSession()`、`resume`・`abandon` は `null`、`scenes` は同じ `CallLog` の `FakeSceneNavigator`）を足す。5 章の追記のテストと `ProduceEntryTests` を作る
+4. `HomePresenterTests` の既存のテストの `HomePresenter` の生成に、新しい引数（`new ProduceSession()`、`resume`・`abandon` は `null`、`scenes` は同じ `CallLog` の `FakeSceneNavigator`）を足す。5 章の追記のテストと `ProduceEntryTests` を作る。**追記のテスト（と差し替えの 3 本）では、本物の `AbandonProduceUseCase`・`ResumeProduceUseCase` を、同じ `CallLog` の `FakeProducePort` と `new RefreshPlayerUseCase(new FakePlayerPort(log), cache)` で作る**（既存のテストでは `null` のまま）
 5. `unity recompile --format json` のエラーが 0 になってから、`Uta/Create Scenes`（`unity command eval` で `Uta.Client.Editor.SceneBuilder.CreateScenes()`、または メニュー）でシーンを作り直す。`Produce.unity` に `UiRoot` と `ProduceScope`（`uiRoot` が入っている）があることを確かめる。`Bootstrap`・`Title`・`Home` の `.unity` に差分が出たら、中身が foundation の形のままであることを確かめてからコミットする
 
 確かめ方: `HomePresenterTests`（既存と追記）、`ProduceEntryTests`。
@@ -693,6 +721,20 @@ public static class TestProduce
 ## 5. テスト
 
 EditMode のテストは foundation 3.3.7 の書き方（偽の View・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`・`FakeProducePort`・`FakePlayerPort` を同じ `CallLog` で作り、`log.Entries` の並びで確かめる。非同期は `[UnityTest]` + `UniTask.ToCoroutine`）。`RefreshPlayerUseCase` は本物を `new RefreshPlayerUseCase(fakePlayerPort, cache)` で作る。`ProduceFlow` は本物を `new ProduceFlow(session, navigator, pageStack, dialogs, scenes)`（`pageStack` は `new PageStack(() => ページ数, () => モーダル数)`）で作る。View（`FormationPage`・`ProduceBackdropPage`）のテストは書かない（foundation 3.3.7。参照の欠けは `PrefabContractTests`）。
+
+**偽の View の記録の形式**（各テストのファイルの中の `private sealed class`。`log.Add` の文字列。数値は `ToString()`、bool は `True`／`False`）:
+
+| 偽 | メソッド | 記録 |
+|---|---|---|
+| `FakeFormationView : IFormationView`（`FormationPresenterTests.cs`） | `SetIdol(label)` | `"SetIdol:" + label` |
+| | `SetSlots(slots)` | `"SetSlots:" + string.Join("/", slots.Select(s => s.Label))`（例 `"SetSlots:枠1: （空）/枠2: （空）/枠3: （空）/枠4: （空）/枠5: （空）"`）。`Filled` は記録しない。最後に渡された `slots` を `LastSlots` プロパティに持つ（`Filled` を確かめるテスト用） |
+| | `SetScenario(label, canChange)` | `"SetScenario:" + label + "," + canChange` |
+| | `SetStartEnabled(enabled)` | `"SetStartEnabled:" + enabled` |
+| | イベント | `RaiseIdolClicked()`・`RaiseSlotClicked(int)`・`RaiseSlotClearClicked(int)`・`RaiseScenarioClicked()`・`RaiseStartClicked()`・`RaiseBackClicked()` で起こす（記録しない） |
+| `FakeBackdropView : IProduceBackdropView`（`ProduceBackdropPresenterTests.cs`） | `SetHeader(text)` | `"SetHeader:" + text` |
+| `FakeHomeView : IHomeView`（`HomePresenterTests.cs`。foundation の既存の偽をそのまま使う） | `SetProfile`・`SetResumeVisible` | foundation の形のまま（`"SetProfile:12,3250"`・`"SetResumeVisible:True"`）。`RaiseProduceClicked()`・`RaiseResumeClicked()` も foundation のまま |
+
+- 「`SetIdol` が増えない」は、`log.Entries` の中の `"SetIdol:"` で始まる行の数を、操作の前後で比べる
 
 | ファイル | テスト | 内容 |
 |---|---|---|
@@ -723,7 +765,7 @@ EditMode のテストは foundation 3.3.7 の書き方（偽の View・`FakeScre
 | | `Operation_SessionDiscarded_ClearsAndSessionEnded` / `Operation_NotInProgress_ClearsAndSessionEnded` | |
 | | `Operation_InvalidArgument_Rejected` / `Operation_OtherFailure_Failed` | |
 | | `Operation_NoSession_Throws` | `InvalidOperationException` |
-| `ProduceGatewayTests.cs`（タスク 3） | `ToProgress_MapsAllFields` | 入れ子の `LessonDto`（`UsableHand` 含む）・`ExamResultDto`・`ProduceResultResponse` を写す |
+| `ProduceGatewayTests.cs`（タスク 3） | `ToProgress_MapsAllFields` | 入れ子の `LessonDto`（`UsableHand` 含む）・`ExamResultDto`・`ProduceResultResponse` を写す。入力と期待（代表値。ほかの値は 0・空の配列でよい）: **①** `ProduceStateResponse(operationNumber: 7, phase: ProducePhase.Exam, scenarioId: 2, idolId: 3, week: 9, singing: 120, rhythm: 130, expression: 140, hp: 25, maxHp: 30, examRetryLeft: 1, deck: { new DeckCardDto(1, 101, true) }, …)` → `OperationNumber == 7`・`Phase == Exam`・`GetParam(ParamKind.Rhythm) == 130`・`Deck[0]` が `(1, 101, true)`。**②** `LessonDto(kind: LessonKind.MidExam, targetParam: ParamKind.Singing, maxTurns: 6, clearTarget: 0, perfectTarget: 0, examTurns: { new ExamTurnDto(ParamKind.Rhythm, 150) }, turn: 2, shield: 3, usesLeft: 1, paramGained: 0, hand: { 11, 12 }, …, npcScores: { 900, 800, 700 }, usableHand: { true, false })` → `Lesson.IsExam == true`・`Lesson.Hand` が `{ 11, 12 }`・`Lesson.UsableHand` が `{ true, false }`・`Lesson.ExamTurns[0].Param == Rhythm`・`ScoreBonusPercent == 150`・`Lesson.NpcScores` が `{ 900, 800, 700 }`。**③** `ExamResultDto(ExamKind.Mid, 2, 1234, 1, { 1000, 900, 800 }, true)` → `ExamResult` の `Kind == Mid`・`Attempt == 2`・`Score == 1234`・`Rank == 1`・`Passed == true`。`ProduceResultResponse(ProduceEnding.Completed, ExamOutcome.FinalPassed, 5000, ProduceRank.B, 4321, 2, 300, 1500, 40, 120, 5, 30)` → `Result.Ending == ProduceEndingKind.Completed`・`Rank == ProduceRank.B`・`Gold == 1500`・`PlayerLevel == 5`（DTO の引数の並びは `shared/Uta.Shared.Contracts/Produce/` の各コンストラクターのとおり。`usableHand` はタスク 1 で末尾に足したもの） |
 | | `ToProgress_PhaseNothing_ReturnsEmpty` | 配列は空、`Lesson`・`ExamResult`・`Result` は `null` |
 | | `ToProgress_NullArrays_BecomeEmpty` | `UsableHand == null` も空 |
 | | `ToOutcome_MapsEnding` | `ProduceEnding.Abandoned` → `ProduceEndingKind.Abandoned` |
@@ -753,7 +795,7 @@ EditMode のテストは foundation 3.3.7 の書き方（偽の View・`FakeScre
 | | `Start_InvalidFormation_ShowsInfo` | |
 | | `Start_AlreadyInProgress_ShowsInfoAndPops` | `"SignIn"`, `"Info:進行中のプロデュースがあります。ホームから再開してください。"`, `"PopPage:FormationPresenter"` |
 | | `Start_WhileRunning_Ignored` | `FakeDialogService.InfoGate` で 1 回目を止め（`InvalidFormation`）、2 回目の `StartAsync` は `"Start:"` を増やさない |
-| | `Start_Exception_ShowsError` | `StateResults` を空にする → `"Info:エラーが発生しました: FakeProducePort: no state result"` |
+| | `Start_Exception_ShowsError` | `StateResults` を空にする。`StartAsync` を `await` する前に `LogAssert.Expect(LogType.Exception, new Regex("FakeProducePort: no state result"));`（`catch` の `Debug.LogException` は Test Runner では予期しないログとしてテストを失敗にするため。`using System.Text.RegularExpressions; using UnityEngine; using UnityEngine.TestTools;`。`LogAssert.ignoreFailingMessages` は使わない。5・6 本目の例外のテストも同じ書き方）→ `"Info:エラーが発生しました: FakeProducePort: no state result"` |
 | | `Back_PopsSelf` | `"PopPage:FormationPresenter"` |
 | `ProduceEntryTests.cs`（タスク 5） | `Start_Active_PushesBackdropThenShowsCurrent` | `session.Set(TestProduce.Progress(WeekSelect))`、`PageStack(() => 1, () => 0)` → `"PushPage:ProduceBackdropPresenter"`, `"Info:この局面の画面は準備中です: WeekSelect"`, `"GoToHome"` |
 | | `Start_NoSession_GoesHome` | `session.Current == null` → `log` が `"GoToHome"` だけ |

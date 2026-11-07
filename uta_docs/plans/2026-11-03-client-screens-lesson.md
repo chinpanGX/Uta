@@ -66,7 +66,7 @@ spec: ../wiki/systems/produce.md
 
 - カードをタップ → 確認ダイアログ（名前・消費・説明文。ボタン「使用」「やめる」）→ 使用。叩き台の「詳細 → 使用」と同じ結果。使えないカード（`enabled == false`）の行は押せない
 - スキップは確認なし（叩き台の決定。2026-11-01）
-- **操作の前後の差**: カードの使用・スキップのあと、その操作で変わった `獲得`（試験は `スコア`）・`体力`・`元気` を、ページの「直前の結果」の行（`lastResultText`）に出す（3.4.1 の `SetLastResult`）。**レッスン（試験でない）が終わったら**、情報ダイアログ「レッスン終了」で、パラメータと体力の差（week の `ProduceChange`・`DisplayText.Change`）を出してから次の画面に進む。試験の終わりは試験結果の画面が出るので、ダイアログを出さない
+- **操作の前後の差**: カードの使用・スキップのあと、その操作で変わった `獲得`（試験は `スコア`）・`体力`・`元気` を、ページの「直前の結果」の行（`lastResultText`）に出す（3.4.1 の `SetLastResult`）。**レッスン（試験でない）が終わったら**、情報ダイアログ「レッスン終了」で、**レッスン全体の**パラメータと体力の差（week の `ProduceChange`・`DisplayText.Change`。体力はレッスン開始時の値との差: 3.4.1 の `LessonEndText`）を出してから次の画面に進む。試験の終わりは試験結果の画面が出るので、ダイアログを出さない
 - **山札・捨札・除外の一覧（PRD-08）**: レッスンのページのボタン（`pilesButton`。ラベルは `"山札 8　捨札 5　除外 2"`）を押すと、モーダル `DeckListModal` を出す。中身は手札・山札・捨札・除外の 4 つの区分で、カードごとに名前・レア度・種類・消費・説明文。山札は並びを返さない（produce-server.md 6章）ので、どの区分もインスタンス ID の昇順（手札だけは手札の並び）。[≡]（`ProduceMenu`）には足さない（`ProduceMenu` は週の画面と共有で、formation の持ち物のため）
 - ターンの表示は叩き台どおり残りのターン（`"残り 4 / 6"`）
 - 試験結果の順位表のライバルの名前は仮に「ライバル 1・2…」（上から順に振る）。自分の行は `"あなた"` で、末尾に `" ◀"` を付け、文字の色を `UiTheme.Accent` にする（叩き台の `◀`）
@@ -74,6 +74,9 @@ spec: ../wiki/systems/produce.md
 ### 1.3 完了条件
 
 - 順 7 は完了条件 **6 だけ**を受け持つ。この計画のタスク 5 で、Windows の IL2CPP のビルドで 6 を手で確かめる
+- **完了条件 6**（[game-spec.md](../wiki/overview/game-spec.md)「完了条件」の表の 6 の文のまま）: 「Windows のクライアントで、起動（`SignUpAsync` → `SignInAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回」。この計画では次の 2 つがそろったときに 6 を満たしたとする（5.3 の通し A・通し B を Windows の IL2CPP で行う）:
+  - **通し A**: 起動 → ガチャ → 強化 → 編成 → 最短シナリオ（`ScenarioId` 1「最短シナリオ（仮）」）を放棄せずに局面 `Finished` まで進め、プロデュース結果の画面 →「ホームへ」で `Home` に戻る
+  - **通し B**: 初級（`ScenarioId` 2「初級（仮）」）を 1 回、放棄せずに局面 `Finished` まで進め、プロデュース結果の画面 →「ホームへ」で `Home` に戻る（**途中で放棄しない。中間試験で止めない**）。中間試験で再挑戦と不合格を 1 回ずつ出す（5.3 の落とし方）
 - 完了条件 7（Android の実機・IL2CPP との計算の一致）は順 7 の範囲外（game-spec.md の別の項目）。この計画では確かめない
 
 ## 2. 触るファイル
@@ -155,6 +158,8 @@ public static string Signed(int value);                 // 0 以上は "+" + val
 | `FocusBoost` | 集中強化 | `CostReduce` | 消費体力削減 |
 | `Impression` | 好印象 | `ShieldGainBlock` | 元気増加無効 |
 | `ImpressionBoost` | 好印象強化 | `DebuffGuard` | 低下状態無効 |
+
+**`DisplayText.cs` の `using`**: owned が書いた `using Uta.Shared.Domain.Lesson;`・`using Uta.Shared.Domain.Produce;` と、week が足したもの（`System.Collections.Generic`・`Uta.Client.Application.Produce`）はそのまま使う。この計画は `using System.Globalization;`（`Thousands` の `CultureInfo`）を、無ければ足す。ほかの `using` は足さない（`LessonKind`・`StatusKind` は `Uta.Shared.Domain.Lesson`、`ProduceRank`・`ExamOutcome`・`ExamKind` は `Uta.Shared.Domain.Produce` で、どちらも owned の時点である）。
 
 （`LessonKind`・`StatusKind` は `Uta.Shared.Domain.Lesson`、`ProduceRank`・`ExamOutcome`・`ExamKind` は `Uta.Shared.Domain.Produce`。`client/uta/Assets/Scripts/Infrastructure/MasterData/Generated` に同名の enum があるので、`DisplayText.cs` は Domain の名前空間を `using` し、マスタの名前空間は `using` しない。）
 
@@ -302,8 +307,13 @@ public sealed class ProduceResultPresenter : IPresenter
 
 #### 3.4.1 `LessonPresenter` の動き
 
+フィールド（3.4 の共通の決まりの `running`・`disposed`・`leaving` のほかに）:
+- `private List<HandCardViewData> hand = new List<HandCardViewData>();`（**初期値は空のリスト**。`Refresh` の前・`Refresh` が何もしなかったときに `UseCardAsync` が来ても、カードが見つからず何もしない）
+- `private int? lessonStartHp;`（**レッスン開始時の体力**。初期値 `null`。`LessonEndText` が使う）
+
 `Refresh()`（`InitializeAsync` と、同じページのまま更新するときに呼ぶ。`private`）:
 - `state = session.Current`、`lesson = state?.Lesson`。どちらかが `null` なら何もしない
+- `lessonStartHp == null && lesson.Turn <= 1` なら `lessonStartHp = state.Hp`（**そのレッスンで最初に `Turn` が 1 以下の状態を見た `Refresh` でだけ**保持する。1 ターンに複数枚使えるカードで `Turn` が 1 のまま体力が減っても上書きしない。レッスン・試験の間の `state.Hp` は `LessonState` の体力: produce.md 4.3。再開で `Turn` が 2 以上から始まったら `null` のまま）
 - `SetHeader(title, turnText)`:
   - `title` = `DisplayText.LessonKindName(lesson.Kind)`。`!lesson.IsExam` のときは末尾に `"（" + DisplayText.ParamName(lesson.TargetParam) + "）"`（例 `"特別レッスン（律動）"`。試験は `"中間試験"`）
   - `remaining` = `lesson.Turn <= 0 ? lesson.MaxTurns : Math.Max(0, lesson.MaxTurns - lesson.Turn + 1)`（今のターンを含む残り。試験の `MaxTurns` は審査ターンの数）。`turnText` = `$"残り {remaining} / {lesson.MaxTurns}"`
@@ -338,7 +348,7 @@ public sealed class ProduceResultPresenter : IPresenter
 4. 分岐（上から最初に当たったもの）:
    - `Rejected`: `await dialogs.ShowInfoAsync("そのカードは使えません。")` → `Refresh()`（`SetLastResult` は変えない）。`flow` を呼ばない（`HandleStepAsync(Rejected)` の「その操作はできません。」を重ねて出さないため）
    - `Failed`: 何もしない（共通のダイアログは `ApiCore` が出している）
-   - `Succeeded` で `!wasExam` で、`after.Lesson == null` または `after.Lesson.IsExam`（**レッスンが終わった**）: `await dialogs.ShowInfoAsync(LessonEndText(before, after))` のあと、`stillHere` なら（仕上げレッスンから続けて試験に入った）`Refresh()`・`SetLastResult("")`、そうでなければ `leaving = true`・`await flow.HandleStepAsync(status)`
+   - `Succeeded` で `!wasExam` で、`after.Lesson == null` または `after.Lesson.IsExam`（**レッスンが終わった**）: `var text = LessonEndText(before, after, lessonStartHp); lessonStartHp = null;`（次のレッスン・試験の開始時の体力を取り直すため）→ `await dialogs.ShowInfoAsync(text)` のあと、`stillHere` なら（仕上げレッスンから続けて試験に入った）`Refresh()`・`SetLastResult("")`、そうでなければ `leaving = true`・`await flow.HandleStepAsync(status)`
    - `Succeeded` で `stillHere`: `Refresh()` → `SetLastResult(DiffText(before, after))`
    - `Recovered` で `stillHere`: `Refresh()` → `SetLastResult("")`（取り直した状態は、直前の操作の結果とは限らないため差を出さない）
    - それ以外（局面が変わった・試験が終わった・`SessionEnded`）: `leaving = true` → `await flow.HandleStepAsync(status)`（`Succeeded`・`Recovered` は `ShowCurrentAsync` がこのページを閉じて次の局面の画面を積む。`SessionEnded` はダイアログのあと `GoToHomeAsync`）
@@ -348,7 +358,12 @@ public sealed class ProduceResultPresenter : IPresenter
 - `dHp = after.Hp - before.Hp` → `"体力 " + DisplayText.Signed(dHp)`
 - `dShield = after.Lesson.Shield - before.Lesson.Shield` → `"元気 " + DisplayText.Signed(dShield)`
 
-`LessonEndText(before, after)`（`private static string`）: `lines = DisplayText.Change(ProduceChange.Create(before, after))`（week。歌唱・律動・表現・体力の差のうち 0 でないもの）。`lines` が空なら `"レッスン終了"`、そうでなければ `"レッスン終了\n" + string.Join("\n", lines)`。
+`LessonEndText(ProduceProgress before, ProduceProgress after, int? startHp)`（`private static string`。**レッスン全体の差**を出す）:
+- `before` は最後の 1 操作の前の状態なので、体力の差 `after.Hp - before.Hp` は最後の操作の分しか無い。そこで体力だけはレッスン開始時の値 `startHp` と比べる。パラメータはレッスンの終わりにまとめて足される（produce.md 4.3）ので、`before` のパラメータはレッスン開始時の値と同じで、`before` との差がレッスン全体の差になる
+- `var c = ProduceChange.Create(before, after);` → `var change = new ProduceChange(c.Singing, c.Rhythm, c.Expression, startHp.HasValue ? after.Hp - startHp.Value : 0);`（`startHp` が `null`（再開でレッスンの途中から入った）なら体力の行を出さない。最後の操作の分だけの差を全体の差に見せないため）
+- `lines = DisplayText.Change(change)`（week。0 でないものだけ）。`lines` が空なら `"レッスン終了"`、そうでなければ `"レッスン終了
+" + string.Join("
+", lines)`
 
 `OpenMenuAsync()`（同じ決まりの中）: `await menu.ShowAsync();`（ホームへ戻る・放棄は `ProduceMenu` が `flow.ExitToHomeAsync` を呼ぶ。ここでは `leaving` を立てない。メニューが「閉じる」で終わったときに操作を続けられるようにするため。ホームへ戻ったときはシーンごと破棄され、`disposed` が立つ）
 
@@ -417,6 +432,8 @@ public sealed class ProduceResultPresenter : IPresenter
 - 連打は `running`・`leaving` で 1 回だけにする（`ExitToHomeAsync` を 2 回呼ばない）
 
 ### 3.5 `ProduceFlow` に足すもの
+
+**先に formation の `ProduceFlow.cs` を読み、この節で使うフィールドの名前が `session`（`ProduceSession`）・`navigator`（`IScreenNavigator`）・`dialogs`（`DialogService`）であることを確かめる。違えば止まって報告する**（名前を読み替えて進めない。week が足した `case` も同じフィールドを使っているはず）。
 
 formation 3.4 の `ProduceFlow.PushForPhaseAsync(ProducePhase phase)`（`ShowCurrentAsync` が背景より上を全部閉じてから呼ぶ。`switch (phase)` で、各 `case` は `await navigator.Push…Async<…>(playAnimation: false); return;`）に、week が足した `case`（`WeekSelect`・`CardOffer`）のほかに次を足す。`ShowCurrentAsync`・`HandleStepAsync`・`ExitToHomeAsync` と `default`（「この局面の画面は準備中です」）は変えない。
 
@@ -499,14 +516,14 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 
 ### タスク 5: Windows の通し（完了条件 6）と記録
 
-1. Windows の IL2CPP のビルド（CLAUDE.md の「ビルド・テスト・実行」。Editor を閉じてから。Addressables の `BuildPlayerContent` は P1 が `BuildCommands` に入れたもの）を `-batchmode` なしで起動し、起動 → ガチャ → 強化 → 編成 → **最短シナリオを最後まで** → 結果 → ホーム、を手で通す（**完了条件 6**）。続けて初級を 1 回、中間試験の結果の画面まで通す（その先は「≡」→ 放棄でよい）。結果を [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章の表に 1 行足す（項目: 「プロデュースの画面（レッスン・試験・試験結果・結果）を Windows の IL2CPP で最後まで通した。`LessonDto`（`bool[]` の `UsableHand` を含む入れ子）・`ExamResultDto`・`ProduceResultResponse` の MessagePack の送受信を含む」、方法: 「手動」、日付）。通らなかった所は、その表の結果の列にそのまま事実を書く。**完了条件 7（Android）は確かめない**
+1. Windows の IL2CPP のビルド（CLAUDE.md の「ビルド・テスト・実行」。Editor を閉じてから。Addressables の `BuildPlayerContent` は P1 が `BuildCommands` に入れたもの）を `-batchmode` なしで起動し、**5.3 の通し A（起動 → ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果 → ホーム）と通し B（初級を放棄せずに最後まで → 結果 → ホーム。中間試験の 1 回目はスキップだけで不合格にして再挑戦する）**を手で行う（**完了条件 6**。1.3 の 2 つがそろったら満たす）。結果を [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章の表に 1 行足す（項目: 「プロデュースの画面（レッスン・試験・試験結果・結果）を Windows の IL2CPP で最後まで通した。`LessonDto`（`bool[]` の `UsableHand` を含む入れ子）・`ExamResultDto`・`ProduceResultResponse` の MessagePack の送受信を含む」、方法: 「手動」、日付）。通らなかった所は、その表の結果の列にそのまま事実を書く（通し B が中間試験の不合格で終わったときは「初級は中間試験の不合格で終了（最終試験は未到達）」と書く）。**完了条件 7（Android）は確かめない**
 2. [produce-server.md](../wiki/architecture/server/produce-server.md) 6章: `ExamResultDto` の行の `Attempt` を `Attempt`（挑戦回数。0 始まり）に、`LessonDto` の行の `ExamTurns`(`ExamTurnDto[]`。試験のときだけ) を `ExamTurns`(`ExamTurnDto[]`。試験のときだけ。今のターンは添字 `Turn - 1`) に直す
 3. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）:
    - 2章の表の下の「山札・捨札の確認（PRD-08）は、レッスン中に開くモーダルとして持つ案」を「山札・捨札・除外の確認（PRD-08）は、レッスンのページのボタンから開くモーダル（`DeckListModal`）[2026-11-03]」に直す
    - 6章の 1 つ目の項目（「効果エンジンで使用可否の判定と予測値の表示をする」）の末尾に「（MVP は下の項目のとおり、使用可否はサーバーの `UsableHand`、予測値は出さない）」を足す
    - 「実装メモ」に、この計画で設計と違ったところを書く（無ければ「順 7 の C# の 6 本目: なし」）
-4. 順 7 の完了の記録（**[索引](2026-11-07-client-screens-index.md) に載っている、この計画以外の全部の計画（計画 0・P1〜P3・C# の 1〜5 本目）が `done` のときだけ**。1 つでも `done` でなければ 4 を飛ばし、どれが残っているかを報告する）:
-   - [game-spec.md](../wiki/overview/game-spec.md)（frontmatter の `updated` を実施日に）の「実装計画の単位と順」の表の順 7 の行の 2 列目（実装計画）の先頭に `**done**（<1 の日付>。完了条件 6 を Windows の IL2CPP で確かめた）` を足す（ほかの文とリンクはそのまま。日付は `YYYY-MM-DD`）
+4. 順 7 の完了の記録（**1 で通し A・通し B の両方が通り（1.3。game-spec の完了条件 6 の文と同じ範囲）、かつ [索引](2026-11-07-client-screens-index.md) に載っている、この計画以外の全部の計画（計画 0・P1〜P3・C# の 1〜5 本目）が `done` のときだけ**。どれかが欠ければ 4 を飛ばし、何が残っているかを報告する）:
+   - [game-spec.md](../wiki/overview/game-spec.md)（frontmatter の `updated` を実施日に）の「実装計画の単位と順」の表の順 7 の行の 2 列目（実装計画）の先頭に `**done**（<1 の日付>。完了条件 6（最短シナリオと初級の通し）を Windows の IL2CPP で確かめた）` を足す（ほかの文とリンクはそのまま。日付は `YYYY-MM-DD`）
    - 同じ行の 3 列目（受け持つ完了条件）が `6` だけになっていることを確かめる（7 を別の項目に移すのは進行役が行う）。`6・7…` のままなら、done にせずに止まって報告する
    - 索引のこの計画の行に状態の列があれば `done` にする（無ければ索引は触らない）
 5. `python -I .claude/skills/linting-wiki/lint_wiki.py` を回し、エラーが 0 であること
@@ -514,7 +531,7 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 
 ## 5. テスト
 
-すべて EditMode（`Tests/EditMode/`。名前空間 `Uta.Client.Infrastructure.Tests`）。書き方は foundation 3.3.7（偽の View はテストのファイルの中に `private sealed class FakeXxxView`。`CallLog` を共有し、記録は `"<メソッド名>:<引数を , でつないだもの>"`。リストの引数は要素を `"|"` でつなぐ。非同期は `[UnityTest]` + `UniTask.ToCoroutine` で Presenter の公開の `UniTask` メソッドを `await`）。
+すべて EditMode（`Tests/EditMode/`。名前空間 `Uta.Client.Infrastructure.Tests`）。書き方は foundation 3.3.7（偽の View はテストのファイルの中に `private sealed class FakeXxxView`。`CallLog` を共有し、記録は `"<メソッド名>:<引数を , でつないだもの>"`。リストの引数は要素を `"|"` でつなぐ。要素が型のリストは、要素ごとに下の形にしてから `"|"` でつなぐ: `SetHand` は `"<InstanceId>/<Title>/<Costs>/<Description>/<Enabled>"`（例 `"SetHand:1/まっすぐ一声 [N] アクティブ/消費 4/パラメータ+9/True|2/はずむ足取り [N] アクティブ/消費 3/パラメータ+2、元気+2/False"`。偽は最後に渡されたリストを `LastHand` に持つ）、`SetSections` は `"<Header>:<Rows を ; でつなぐ>"`、`SetRanking` は `"<Text>/<IsPlayer>"`。`string` の `null` は空文字で記録する。非同期は `[UnityTest]` + `UniTask.ToCoroutine` で Presenter の公開の `UniTask` メソッドを `await`）。
 
 ### 5.1 テスト用の部品
 
@@ -522,7 +539,11 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
   - `MemoryDatabase Db()`: `MasterDataLoader.Load(File.ReadAllBytes(UnityEngine.Application.streamingAssetsPath + "/" + MasterDataLoader.RelativePath))`（`MasterCardCatalogTests.ReadBundled` と同じ読み方。同梱のマスタを使う）
   - `ICardCatalog Catalog()`: `MasterCardCatalog.Create(Db())`。`IGameMaster Master()`: `new MasterGameData(Db())`
   - `ProduceLesson Lesson(LessonKind kind = LessonKind.Normal, ParamKind target = ParamKind.Rhythm, int maxTurns = 6, int turn = 1, int paramGained = 0, int shield = 0, int[] hand = null, bool[] usableHand = null, int[] drawPile = null, int[] discard = null, int[] exiled = null, int[] statusValues = null, int[] lessonEnhanced = null, ProduceExamTurn[] examTurns = null, int[] npcScores = null, int usesLeft = 1)`: 渡さなかった配列は空。`clearTarget = 85`、`perfectTarget = 170`、`paramBonuses`・`persistents` は空。`new ProduceLesson(...)` に formation 3.2 の引数の順で渡す
-  - `ProduceProgress State(ProducePhase phase, ProduceLesson lesson = null, ProduceExamResult examResult = null, ProduceOutcome result = null, int hp = 18, int maxHp = 30, int examRetryLeft = 3, ProduceDeckCard[] deck = null, int operationNumber = 1)`: `new ProduceProgress(operationNumber, phase, 1, 1, 1, 100, 200, 300, hp, maxHp, examRetryLeft, deck ?? 既定, Array.Empty<ProduceWeekAction>(), Array.Empty<ProduceClassOption>(), Array.Empty<int>(), lesson, examResult, result)`（formation 3.2 の引数の順: scenarioId・idolId・week はどれも 1、歌唱 100・律動 200・表現 300。`TestProduce.Progress` は `examRetryLeft` を変えられないので使わない）。既定の `deck` は `new[] { new ProduceDeckCard(1, 1, false), new ProduceDeckCard(2, 2, false), new ProduceDeckCard(3, 1, true) }`（インスタンス 1 = カード 1、2 = カード 2、3 = カード 1 の強化済み）
+  - `ProduceProgress State(ProducePhase phase, ProduceLesson lesson = null, ProduceExamResult examResult = null, ProduceOutcome result = null, int hp = 18, int maxHp = 30, int examRetryLeft = 3, ProduceDeckCard[] deck = null, int operationNumber = 1, int singing = 100, int rhythm = 200, int expression = 300, int week = 1)`: `new ProduceProgress(operationNumber, phase, 1, 1, week, singing, rhythm, expression, hp, maxHp, examRetryLeft, deck ?? 既定, Array.Empty<ProduceWeekAction>(), Array.Empty<ProduceClassOption>(), Array.Empty<int>(), lesson, examResult, result)`（formation 3.2 の引数の順: scenarioId・idolId は 1。**パラメータ（歌唱・律動・表現）と週は引数で渡せる**。既定は歌唱 100・律動 200・表現 300・週 1。`TestProduce.Progress` は `examRetryLeft` を変えられないので使わない）。既定の `deck` は `new[] { new ProduceDeckCard(1, 1, false), new ProduceDeckCard(2, 2, false), new ProduceDeckCard(3, 1, true) }`（インスタンス 1 = カード 1、2 = カード 2、3 = カード 1 の強化済み）
+  - 応答の写しは formation 3.2 のコンストラクターで直接作る（補助を作らない）。この計画のテストで使う値:
+    - 試験結果 `new ProduceExamResult(ExamKind.Mid, 0, 1388, 2, new[] { 1440, 1170, 900 }, true)`（`ExamResultPresenterTests` の既定。テストごとに `attempt`・`passed` だけを変える）
+    - プロデュースの結果（完了）`new ProduceOutcome(ProduceEndingKind.Completed, ExamOutcome.FinalPassed, 12345, ProduceRank.APlus, 3456, 1, 300, 1500, 40, 120, 5, 30)`（引数の順は `ending, examOutcome, evaluationValue, rank, finalScore, finalRank, gachaCurrency, gold, supportPoints, exp, playerLevel, playerExp`）と、`State(ProducePhase.Finished, result: それ, singing: 1000, rhythm: 862, expression: 745)`
+    - プロデュースの結果（中間不合格）`new ProduceOutcome(ProduceEndingKind.Completed, ExamOutcome.MidFailed, 2100, ProduceRank.C, 0, 0, 100, 500, 10, 60, 3, 10)` と、`State(ProducePhase.Finished, result: それ)`
 - 使うカード（同梱のマスタ。計画 0 の 3.4 と lesson-card.md 14.1）: カード 1 = 「まっすぐ一声」N・アクティブ、通常は消費 4・"パラメータ+9"、強化は消費 3・"パラメータ+14"。カード 2 = 「はずむ足取り」N・アクティブ、消費 3・"パラメータ+2、元気+2"。期待値の文字は week の `DisplayText.Card`・`Costs` の書式（"まっすぐ一声 [N] アクティブ"・"消費 4"）で書く
 - formation の `FakeProducePort`（記録 `"ExecuteLessonAction:<op>,<kind>,<id>,<drink>"`・`"DecideExamRetry:<op>,<retry>"`・`"GetState"`）、week の `FakeProduceFlow`、foundation の `FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`・`CallLog` を使う。`ProduceActions` は本物を `new ProduceActions(fakePort, session, new RefreshPlayerUseCase(new FakePlayerPort(log), new PlayerCache()))` で作る（`RefreshPlayerUseCase` は局面 `Finished`・`SessionEnded` のときだけ呼ばれる。この計画の Presenter のテストでは応答をその局面にしない）
 - `FakeProduceFlow`（week。`ProduceFlow` の派生で base を呼ばない）の記録は `"Flow.HandleStep:<status>"`・`"Flow.ShowCurrent"`・`"Flow.ExitToHome"` と書く。week 5.1 の版は `ShowCurrentAsync`・`ExitToHomeAsync`・`HandleStepAsync` を上書きし、この書式で記録する（2026-11-07 に照合済み。この計画は `FakeProduceFlow` を変えない）
@@ -543,7 +564,7 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 | | `Create_LessonEnhanced_UsesEnhancedFace` | インスタンス 1 で `lessonEnhanced = {1}` → `"まっすぐ一声+ …"` |
 | | `Create_NotInDeck_Placeholder` | インスタンス 99 → Title `"カード？"`、Costs・Description が `""` |
 | `LessonPresenterTests.cs` | `Initialize_Lesson_ShowsHeaderProgressStatus` | `Lesson(Special, Rhythm, maxTurns 6, turn 3, paramGained 62, shield 7, statusValues 長さ 13 で [1] = 3・[4] = 50)`、`hp 18 / 30` → `"SetHeader:特別レッスン（律動）,残り 4 / 6"`、`"SetProgress:獲得 62　クリア目標 85　パーフェクト 170"`、`"SetStatus:体力 18 / 30　元気 7|好調 3　集中強化 50%|スキルカード使用 残り 1"`、`"SetLastResult:"` |
-| | `Initialize_Hand_EnabledFollowsUsableHand` | `hand {1, 2}`、`usableHand {true, false}` → `SetHand` の 2 枚目が `Enabled == false` |
+| | `Initialize_Hand_EnabledFollowsUsableHand` | `hand {1, 2}`、`usableHand {true, false}` → `"SetHand:1/まっすぐ一声 [N] アクティブ/消費 4/パラメータ+9/True|2/はずむ足取り [N] アクティブ/消費 3/パラメータ+2、元気+2/False"` |
 | | `Initialize_UsableHandEmpty_AllEnabled` | `usableHand` 空 → 全部 `Enabled` |
 | | `Initialize_UsableHandShorter_OutOfRangeEnabled` | `hand {1, 2, 3}`、`usableHand {false}` → `false, true, true` |
 | | `Initialize_Exam_ShowsScoreRankAndTurns` | `Lesson(MidExam, turn 2, maxTurns 4, paramGained 1240, examTurns {歌唱 100%, 律動 285%, 表現 150%, 歌唱 200%}, npcScores {1500, 1000, 900})` → `"SetHeader:中間試験,残り 3 / 4"`、`SetProgress` が `"スコア 1,240　順位 2 位"`・`"このターン: 律動（ボーナス 285%）"`（添字 1 = `Turn - 1`）・`"次: 表現→歌唱"` の 3 行 |
@@ -557,11 +578,15 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 | | `Skip_NoConfirm_CallsSkip` | `log` に `"Confirm:"` が無く、`"ExecuteLessonAction:1,Skip,0,0"` がある |
 | | `Step_Rejected_ShowsInfoAndRefreshes` | 業務エラー `PRODUCE_INVALID_ARGUMENT` → `"Info:そのカードは使えません。"` のあと `SetHand` がもう一度記録され、`Flow.` の記録が無い |
 | | `Step_Recovered_RefreshesWithoutDiff` | `PRODUCE_STALE_OPERATION` → `GetState` が局面 `Lesson` → `"SetLastResult:"`、`Flow.` の記録が無い |
-| | `Step_LessonEnded_ShowsChangeThenHandlesStep` | 応答が局面 `WeekSelect`（`Lesson == null`、`rhythm` +62、`hp` +8）→ `log` の並びが `"Info:レッスン終了\n律動 +62\n体力 +8"`、`"Flow.HandleStep:Succeeded"` |
+| | `Step_LessonEnded_ShowsChangeThenHandlesStep` | **体力はレッスン開始時との差**。最初の状態 `State(Lesson, Lesson(Normal, Rhythm, turn: 1, hand: {1}), hp: 18, rhythm: 200)` で `InitializeAsync`（開始時の体力 18 を保持）。応答 1: `State(Lesson, Lesson(Normal, Rhythm, turn: 2, hand: {1}), hp: 14, rhythm: 200, operationNumber: 2)` → `SkipAsync()`（その場で描き直す）。応答 2: `State(WeekSelect, lesson: null, hp: 20, rhythm: 262, operationNumber: 3)` → `SkipAsync()`。`log` の後ろの並び（2 回目の操作から）が `"ExecuteLessonAction:2,Skip,0,0"`, `"Info:レッスン終了
+律動 +62
+体力 +2"`（20 − 18。最後の操作の前の 14 との差 +6 ではない）, `"Flow.HandleStep:Succeeded"` |
+| | `Step_LessonEnded_ResumedMidLesson_OmitsHp` | 最初の状態が `turn: 3`（再開で途中から。開始時の体力を持たない）、`hp: 14`。応答 `State(WeekSelect, lesson: null, hp: 20, rhythm: 262, operationNumber: 2)` → `SkipAsync()` → `"Info:レッスン終了
+律動 +62"`（体力の行が無い）, `"Flow.HandleStep:Succeeded"` |
 | | `Step_LessonToExam_ShowsChangeAndRefreshesInPlace` | 仕上げレッスン → 応答が局面 `Exam`（`Lesson.IsExam`、`ExamResult == null`）→ `"Info:レッスン終了…"` のあと `SetHeader` が `"最終試験"` で記録され、`Flow.` の記録が無い |
 | | `Step_ExamResultPresent_HandlesStepWithoutInfo` | 試験中、応答が局面 `Exam` でも `ExamResult != null` → `"Info:"` が無く `"Flow.HandleStep:Succeeded"` |
 | | `Step_AfterLeaving_IgnoresClicks` | `HandleStep` のあと `SkipAsync` をもう一度呼んでも `"ExecuteLessonAction:"` は 1 回だけ |
-| | `Step_Exception_ShowsError` | `FakeProducePort.StateResults` を空にする → `"Info:エラーが発生しました: FakeProducePort: no state result"`、`Flow.` の記録が無い。続けて応答を入れて `SkipAsync` を呼ぶと操作が呼ばれる（`running`・`leaving` が戻っている） |
+| | `Step_Exception_ShowsError` | `FakeProducePort.StateResults` を空にし、`SkipAsync` を `await` する前に `LogAssert.Expect(LogType.Exception, new Regex("FakeProducePort: no state result"));`（formation 5章の `Start_Exception_ShowsError`・week 5.2 と同じ書き方。`LogAssert.ignoreFailingMessages` は使わない）→ `"Info:エラーが発生しました: FakeProducePort: no state result"`、`Flow.` の記録が無い。続けて応答を入れて `SkipAsync` を呼ぶと操作が呼ばれる（`running`・`leaving` が戻っている） |
 | | `Menu_ShowsMenu` | `"Menu.Show"` |
 | | `Piles_PushesDeckList` | `"PushModal:DeckListPresenter"` |
 | | `Dispose_Unsubscribes` | `Dispose` のあと偽の View でイベントを起こしても何も記録されない |
@@ -579,8 +604,8 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 | | `Next_RetryAvailableFailed_ConfirmsThenDecideFalse` | `"Confirm:プロデュースを終了します。…"` のあと `"DecideExamRetry:1,False"` |
 | | `Next_NoRetry_MarksShownAndShowsCurrent` | `session.ExamResultShown == true`、`"Flow.ShowCurrent"` が 1 回（`"DecideExamRetry:"` が無い） |
 | | `Next_Twice_ShowsCurrentOnce` | `NextAsync` を 2 回 → `"Flow.ShowCurrent"` が 1 回 |
-| `ProduceResultPresenterTests.cs` | `Initialize_Completed_ShowsRankAndRewards` | `Rank == APlus`、`FinalRank 1`、`ExamOutcome FinalPassed` → `"SetRank:ランク A+"`、`SetLines` が 3.4.4 の 10 行の順 |
-| | `Initialize_MidFailed_NoFinalLine` | `FinalRank == 0` → 「最終試験」の行が無く、`"中間試験で不合格"` がある |
+| `ProduceResultPresenterTests.cs` | `Initialize_Completed_ShowsRankAndRewards` | 5.1 の「完了」の `ProduceOutcome` と状態 → `"SetRank:ランク A+"`、`"SetLines:プロデュース完了|評価値 12,345|最終試験 1位　スコア 3,456|最終試験に合格|歌唱 1,000 / 律動 862 / 表現 745|報酬|ガチャ通貨 +300|ゴールド +1,500|サポート強化pt +40|経験値 +120　（プレイヤーLv 5）"`（10 行。`　` は全角の空白） |
+| | `Initialize_MidFailed_NoFinalLine` | 5.1 の「中間不合格」の `ProduceOutcome` と状態 → `"SetRank:ランク C"`、`"SetLines:プロデュース完了|評価値 2,100|中間試験で不合格|歌唱 100 / 律動 200 / 表現 300|報酬|ガチャ通貨 +100|ゴールド +500|サポート強化pt +10|経験値 +60　（プレイヤーLv 3）"`（`FinalRank == 0` なので「最終試験」の行が無い） |
 | | `Initialize_NoResult_ShowsPlaceholder` | `"SetRank:-"`、`"SetLines:結果はありません。"` |
 | | `Home_ClearsSessionAndExitsOnce` | `GoHomeAsync` を 2 回 → `session.Current == null`、`"Flow.ExitToHome"` が 1 回 |
 | `ProduceFlowTests.cs`（追記） | `ShowCurrent_Lesson_PushesLessonPage` / `ShowCurrent_Exam_PushesLessonPage` | `log` が `"PopPage:1"`, `"PushPage:LessonPresenter"` |
@@ -591,8 +616,21 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 
 ### 5.3 Play モード・手動（タスク 4。Editor。サーバー起動済み・初期付与済み）
 
-- 最短シナリオ（3 週）: ホーム → 編成で最短シナリオを選ぶ → 開始（`Produce` シーンへ移り、背景のページの上に週の画面）→ 週 1 のレッスン → 手札が名前・レア度・種類・消費・説明文つきの行で出る。使えないカードの行が灰色で押せない。カードをタップ → 確認（説明文つき）→ 使用 → 獲得・体力・手札が変わり、「直前の結果」の行に差が出る（ページは作り直されない）。スキップできる。「山札 …」のボタン → 一覧のモーダル（4 つの区分。見出しの行とカードの行）→ 閉じる。レッスンが終わると「レッスン終了」と上がった値のダイアログ →（クリアの報酬があれば）スキルカードの獲得 → 週 2（仕上げ）→ 週 3 の最終試験 → スコア・順位・このターン・次 が出る → 試験結果（「1 回目」、自分の行が `Accent` の色で ◀ つき）→ 次へ（または再挑戦）→ プロデュース結果（戻るボタンが無い）→ ホームへ。`Home` シーンに戻り、ガチャ通貨・プレイヤーLv が増えていて、「再開」が無い
-- 中間試験があるシナリオ（初級）: 中間試験の結果で「再挑戦（残り n）」が出る。再挑戦で最初からやり直し、結果の題が「2 回目」になる。不合格で「プロデュース終了」を選ぶと結果に進む
+**通し A（最短シナリオ。マスタ `scenario.csv` の `ScenarioId` 1、`scenarioWeek.csv` の週 1 `Action`（クリア目標 25・パーフェクト 50）→ 週 2 `Finishing`（クリア目標 75・パーフェクト 300）→ 週 3 `FinalExam`（NPC の基準 2250。`RetryCount` 3））**:
+- 起動 → ガチャ（単発 1 回）→ 所持一覧からサポートカードを 1 枚強化 → ホーム →「プロデュース」→ 編成で「最短シナリオ（仮）」を選んで開始（`Produce` シーンへ移り、背景のページの上に週の画面）
+- 週 1 のレッスン → 手札が名前・レア度・種類・消費・説明文つきの行で出る。使えないカードの行が灰色で押せない。カードをタップ → 確認（説明文つき）→ 使用 → 獲得・体力・手札が変わり、「直前の結果」の行に差が出る（ページは作り直されない）。スキップできる。「山札 …」のボタン → 一覧のモーダル（4 つの区分。見出しの行とカードの行）→ 閉じる
+- レッスンが終わると「レッスン終了」と、レッスン全体で上がった値・体力の差（開始時との差）のダイアログ → **獲得（`獲得` の行の値）がクリア目標（週 1 は 25）以上で終わったときだけ**、背景のページの上にスキルカードの獲得のモーダル（week。MVP のクリア報酬はスキルカードの選択肢だけ: produce.md 4.1。候補が 0 枚なら出ない: 3.5）。未満なら出ずに週 2 の行動選択へ
+- 週 2（仕上げ）→ 終わると「レッスン終了」のダイアログのあと週 3 の最終試験に入る（クリア目標 75 未満なら同じページのまま見出しが「最終試験」になる。75 以上ならスキルカードの獲得のモーダルを挟んでから、試験のページが積まれる）→ スコア・順位・このターン・次 が出る。カードを使って進める → 試験結果（「最終試験 結果（1 回目）」、自分の行が `Accent` の色で ◀ つき、ライバル 1〜5）
+- 試験結果で、合格なら「次へ」（確認なし）、不合格なら「プロデュース終了」→ 確認（どちらも `DecideExamRetry(false)`）→ プロデュース結果（戻るボタンが無い。ランク・評価値・報酬）→「ホームへ」→ `Home` シーンに戻り、ガチャ通貨・プレイヤーLv が増えていて、「再開」が無い
+
+**通し B（初級。`ScenarioId` 2、13 週。週 6 が中間試験（早期終了スコア 900、NPC 720・585・450・315・180）、週 13 が最終試験（NPC 1800・1462・1125・787・450）、`RetryCount` 3）**:
+- ホーム →「プロデュース」→ 編成で「初級（仮）」を選んで開始。週 1〜5 は、レッスン・授業・支給・休むのうち選べるものを選んで進める（週 1・3 はレッスン、週 5 は仕上げ）
+- **再挑戦と不合格の出し方（中間試験の 1 回目）**: 週 6 の中間試験に入ったら、**カードを使わずに「スキップ」だけを 9 ターン続ける**。スキップは体力を 2 回復するだけでスコアを足さない（[lesson-card.md](../wiki/systems/lesson-card.md) の「スキップ時の体力回復 2」。試験の開始時はステータス・持続効果が無いので、スキップで発動する効果も無い）ので、スコア 0 で NPC 5 人の全員より下の 6 位 → 不合格（4 位以下: produce.md 5.1）。試験結果の題が「中間試験 結果（1 回目）」、「不合格」、ボタンが「再挑戦（残り 3）」と「プロデュース終了」
+- 「再挑戦」→ 確認 → 同じレッスンのページに中間試験の 1 ターン目が出る（体力・デッキは試験の開始前に戻る）。**2 回目はカードを使って進める**。試験結果の題が「中間試験 結果（2 回目）」になる
+  - 合格（スコア 450 以上で 3 位以内。同点は自分が上: produce.md 5.3）なら「次へ」（確認なし。再挑戦が残っていれば `DecideExamRetry(false)`）→ 週 7 の行動選択へ
+  - 2 回目も不合格なら、もう一度「再挑戦」してカードを使って進める（残りが 0 になるまで）。残りが 0 で不合格なら、局面「試験の結果」を飛ばして結果を見せるだけになり（「次へ」だけ）、プロデュース結果に「中間試験で不合格」が出る。**このときも通し B は満たす**（局面 `Finished` まで放棄せずに進めたため。produce.md 5.1.1: 不合格で終わるのも「完了」）が、最終試験まで届かなかったことを unity7-evaluation.md の行に書く
+- 週 7〜12 を進め（週 12 は仕上げ）、週 13 の最終試験 → 試験結果 →「次へ」または「プロデュース終了」→ プロデュース結果 →「ホームへ」→ `Home`（「再開」が無い）
+**通し A・B のほかに Editor で確かめること**:
 - レッスンの途中でアプリを終了 → 再起動 → ホームの「再開」で `Produce` シーンのレッスンに戻る（同じ手札・ターン。「直前の結果」は空）
 - 「≡」→ 閉じる → そのままカードを使える。「≡」→ ホームへ戻る → `Home` シーン（「再開」がある）。「≡」→ 放棄 → 確認 → `Home` シーン
 - 日本語と記号（`≡`・`◀`）が豆腐でない（P3 の確認 2）。コンソールにエラーが無い

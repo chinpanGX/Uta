@@ -13,15 +13,15 @@ spec: ../wiki/architecture/screen-design.md
 
 1. **PR #24 のシーン構成（`Bootstrap`／`Title`／`Home`／`Produce`、`ISceneNavigator`、ルートのスコープにユースケース、各シーンの `LifetimeScope`）の上に作る**。旧版の `StartupFlow`・`StartupPage`・`UtaBootstrap`（1 つのスコープで起動からホームまでを積む流れ）はやめる。起動の流れ（タップ → 端末の認証 → サインアップ・サインイン → `Home` へ）は `Title` シーンの `TitlePresenter`、ホームは `Home` シーンの `HomePresenter` が持つ。シーンをまたぐ移動は今までどおり `ISceneNavigator`（`SceneManager.LoadSceneAsync`）
 2. **C# で UI を組まない**。旧版の `UiTheme`・`UiFonts`・`UiFactory`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`／`ModalBase`（`EnsureBuilt`・`BuildUi`）・`UiRoot.Create`・`RegisterPage` と `UiFactoryTests` は消す（`UiTheme`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`・`ModalBase`・`UiRoot` は P1 が作る）。View は P1／P2 が作る骨格（`[SerializeField]` のフィールドだけ）に、この計画（と後続の C# の計画）が `IXxxView` の実装を足す。Prefab の子の参照は生成時に入っているので、旧版の `EnsureBuilt`（UI を組む順番の問題）は要らない
-3. **`UiRoot` は `Bootstrap`・`Title`・`Home` の 3 シーンに 1 つずつ置く**（`SceneBuilder` が P1 の `UiRoot.prefab` を置く。`DontDestroyOnLoad` にしない。`Produce` は 4 本目（formation）が置く: 決めたこと 12）。`IScreenNavigator`（基盤の `ScreenNavigator`）・`PageStack`・`DialogService` は、**各シーンの `LifetimeScope` がそのシーンの `UiRoot` のコンテナーで登録する**（`SceneUiInstaller.Install`）。**`Bootstrap` の `UiRoot` は、マスタを読めなかったとき（と起動の失敗）のダイアログにだけ使う**。これで IMGUI の `StartupView` を消せる（P1 は `UiRoot` を置くシーンを `Title`・`Home`・`Produce` と書いているが、置くシーンを決めるのはこの計画）
+3. **`UiRoot` は `Bootstrap`・`Title`・`Home` の 3 シーンに 1 つずつ置く**（`SceneBuilder` が P1 の `UiRoot.prefab` を置く。`DontDestroyOnLoad` にしない。`Produce` は 4 本目（formation）が置く: 決めたこと 12）。`IScreenNavigator`（基盤の `ScreenNavigator`）・`PageStack`・`DialogService` は、**各シーンの `LifetimeScope` がそのシーンの `UiRoot` のコンテナーで登録する**（`SceneUiInstaller.Install`）。**`Bootstrap` の `UiRoot` は、マスタを読めなかったとき（と起動の失敗）のダイアログにだけ使う**。これで IMGUI の `StartupView` を消せる（P1 の決めたこと 10 と同じ。`Produce` は 4 本目）
 4. **ルートのスコープ（Bootstrap）にある `ApiActivityBridge`（ブロッカー）と `ErrorDialogView`（共通エラーのダイアログ）が「いまのシーン」の `BusyIndicator`・`DialogService` を見つける方法**: ルートに `ActiveSceneUi`（入れ物。1 つ）を登録し、各シーンのスコープの `SceneUiActivation`（エントリーポイント）が `Start` で自分のシーンの `UiRoot` と `DialogService` を入れ、`Dispose`（シーンを閉じたとき）で自分のものだけを外す。シーンの切り替えの間（入れ物が空）にエラーが出たら、ダイアログを出さずに既定のボタン（診断の自動応答と同じ対応）を返す。ブロッカーは、通信の開始のときのシーンの `BusyIndicator` に `Begin` し、同じものに `End` する
 5. **基盤の `IScreenNavigator` をそのまま使う**（自前の Navigator・Presenter の基底を作らない）。`Replace` は作らない。局面の切り替えは「Pop してから Push」、シーンの中でホームへ戻るのは `PageStack.PopToRootAsync`、**シーンをまたいでホームへ戻るのは `ISceneNavigator.GoToHomeAsync`**（プロデュースからホームへ戻る、など）
 6. **この計画は P2 の後に 1 つの計画として実行する**（段に分けない）。全体の順は「計画 0 → P1 → P2 → **この計画** → gacha → owned → P3 → formation → week → lesson」。P2 はこの計画の型を使わない。`TitlePage`・`HomePage` の View は、P2 が作った骨格（フィールドだけ）にこの計画が `ITitleView`・`IHomeView` の実装を足す
 7. **`TitlePage`・`HomePage` のフィールド**（3.9）は P2 の 3.1・3.3 と一致している（`HomePage.resumePanel` は `GameObject`）。食い違いが見つかったら P2 が正で、この計画の 3.9 と View の実装を直す
-8. **診断（`-uta-quit-after-check`）は `TitleDiagnostics` に分ける**（screen-design 8章「画面の計画で、診断を別の入口に分ける」）。`Title` シーンの `TitleEntry` が、診断なら画面を出さずに `TitleDiagnostics` を走らせ、そうでなければ `TitlePage` を積む。ログの行（`sign-in: ok`・`connectivity check: OK`・`start: FAILED`）は今までと同じ文字列
+8. **診断（`-uta-quit-after-check`）は `TitleDiagnostics` に分ける**（screen-design 8章「画面の計画で、診断を別の入口に分ける」）。`Title` シーンの `TitleEntry` が、診断なら画面を出さずに `TitleDiagnostics` を走らせ、そうでなければ `TitlePage` を積む。ログの行（`sign-in: ok`・`connectivity check: OK`・`start: FAILED`）は今までと同じ文字列。`TitleDiagnostics` は終了を直接呼ばず、コンストラクターで `Action<int> quit`（既定 `UnityEngine.Application.Quit`）を受ける（テストで終了コードを確かめるため）
 9. **タイトルでの失敗は、状態の文を出して、もう一度タップできる**（screen-design 8章）。旧版の「起動に失敗しました（再試行／終了）」のダイアログと実行番号（`currentRun`）は作らない（`ReturnToTitle` で `Title` シーンが読み込み直されると、古い Presenter はスコープごと破棄されるので、Presenter の `disposed` の印で止める）
 10. **プロデュースを破棄した知らせは `Home` で 1 回だけ出す**（screen-design 4章）: `PlayerCache` に「知らせ済み」の印を足し（`Set` で戻る）、`HomePresenter.DidPushEnter` で出す
-11. **エラーの「ホームへ」は、所持データを取り直してから `Home` を読み込み直す**（`ErrorNavigator` に `RefreshPlayerUseCase` を足す。取り直しの失敗はログだけで、ホームへは行く。取り直しの中で再び「ホームへ」が来たら、取り直しを飛ばす）。`ApiCore` は順番待ちを解いてから遷移を呼ぶので、遷移の中で通信してよい
+11. **エラーの「ホームへ」は、所持データを取り直してから `Home` を読み込み直す**（`ErrorNavigator` が `IObjectResolver` を受け、`GoToHomeAsync` の中で `RefreshPlayerUseCase` を遅延解決して呼ぶ。コンストラクターで受けると `UtaApiClient` → `IErrorNavigator` → `RefreshPlayerUseCase` → `IPlayerPort` → `UtaApiClient` の DI の循環になるため。取り直しの失敗はログだけで、ホームへは行く。取り直しの中で再び「ホームへ」が来たら、取り直しを飛ばす）。`ApiCore` は順番待ちを解いてから遷移を呼ぶので、遷移の中で通信してよい
 12. **ホームの 4 つのボタン（プロデュース・再開・ガチャ・アイドル）は「準備中です。」のダイアログ**（2〜4 本目が自分のボタンを差し替える）。#24 の「PRODUCE → `Produce` シーン」はやめる。**`Produce` シーンはこの計画では変えない**（#24 の仮の画面のまま: `ProduceLifetimeScope`・`ProduceView`・`ProducePresenter`・`SceneBuilder` の `BuildProduce` を消さない・直さない）。ホームから `Produce` へ移る道が無くなるので、4 本目（formation）までは使われない。4 本目が `Produce` シーンを作り直す（`UiRoot` を置き、`ProduceLifetimeScope` を `SceneUiInstaller` と入口の形にし、#24 の仮の画面を消す。底のページはいつも `ProduceBackdropPage`）
 13. 業務エラー 18 個を `UtaErrors` に `ErrorAction.Stay` で登録する（旧版と同じ）。`IGameMaster`（`GetCardText`・`GetSupportAbilities` を含む）・`MasterGameData`・`RefreshPlayerUseCase` も旧版と同じ
 14. 部品の View（P1 の骨格）に表示のメソッドを足す（3.2）。見出しを変える `UtaHeaderView.SetTitle`、ラベルと押せるかを変える `UtaButtonView.SetLabel`・`SetInteractable` を含む（P3 の画面と formation・week・lesson が使う）。後続の計画はこれを使い、部品の View を書き換えない
@@ -75,6 +75,7 @@ spec: ../wiki/architecture/screen-design.md
 | 3 | 変更 | `Scripts/Presentation/Title/TitlePresenter.cs` | 中身を全部置き換える（`IPresenter`。3.7） |
 | 3 | 変更 | `Scripts/Presentation/Title/TitleLifetimeScope.cs` | `SceneUiInstaller`・`TitleDiagnostics`・`TitleEntry`（3.7） |
 | 3 | 削除 | `Scripts/Presentation/Title/TitleView.cs` | legacy `Text` の仮の View |
+| 3 | 変更 | `Scripts/Presentation/Title/ConnectivityCheck.cs`・`Scripts/Application/Auth/SignInUseCase.cs` | コメントだけ直す（「画面の計画で消す」→ 診断の `TitleDiagnostics` が使う。3.7） |
 | 3 | 作成 | `Scripts/Presentation/Home/IHomeView.cs`・`HomeEntry.cs` | ホームの View の IF・入口（3.7） |
 | 3 | 変更 | `Scripts/Presentation/Home/HomePresenter.cs`・`HomeLifetimeScope.cs` | 中身を全部置き換える（3.7） |
 | 3 | 削除 | `Scripts/Presentation/Home/HomeView.cs` | legacy `Text` の仮の View |
@@ -82,7 +83,7 @@ spec: ../wiki/architecture/screen-design.md
 | 4 | 変更 | `Scripts/Bootstrap/Uta.Client.Bootstrap.asmdef` | 参照に `UnityScreenNavigator` を足す（3.1） |
 | 4 | 作成 | `Scripts/Bootstrap/ApiActivityBridge.cs` | 通信中のブロッカー（3.8） |
 | 4 | 変更 | `Scripts/Bootstrap/ErrorDialogView.cs` | IMGUI をやめ、`ActiveSceneUi` の `DialogService` を使う普通のクラスにする（3.8） |
-| 4 | 変更 | `Scripts/Bootstrap/ErrorNavigator.cs` | 「ホームへ」の前に取り直す（3.8） |
+| 4 | 変更 | `Scripts/Bootstrap/ErrorNavigator.cs` | 「ホームへ」の前に取り直す（`IObjectResolver` で遅延解決。3.8） |
 | 4 | 変更 | `Scripts/Bootstrap/BootstrapEntry.cs` | `UiRoot` の参照、マスタの失敗のダイアログ、`IGameMaster`・`ActiveSceneUi` などの登録（3.8） |
 | 4 | 変更 | `Scripts/Infrastructure/Api/UtaApiClient.cs` | `Create` に `IApiActivityHandler` を足す（3.8） |
 | 3 | 変更 | `Scripts/Editor/SceneBuilder.cs` | `Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を置く。`BuildProduce` と、それが使う legacy `Text` の補助は残す（3.10） |
@@ -93,7 +94,7 @@ spec: ../wiki/architecture/screen-design.md
 | 6 | 変更 | `uta_docs/wiki/architecture/repository-layout.md` | 126 行の `ErrorDialogView`、277 行付近の USN の確認範囲（タスク 6） |
 | 6 | 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md` | 2章の表、3.3、4章（タスク 6） |
 
-`Presentation/Startup/StartupOptions.cs`（診断の印）・`Presentation/Title/ConnectivityCheck.cs`・`Bootstrap/SceneNavigator.cs`・`Application/Navigation/ISceneNavigator.cs` は変えずに使う。`Presentation/Produce/`（`ProduceLifetimeScope.cs`・`ProduceView.cs`・`ProducePresenter.cs`）は変えない（決めたこと 12。4 本目が作り直す）。
+`Presentation/Startup/StartupOptions.cs`（診断の印）・`Presentation/Title/ConnectivityCheck.cs`（コメントだけ直す）・`Bootstrap/SceneNavigator.cs`・`Application/Navigation/ISceneNavigator.cs` は変えずに使う。`Presentation/Produce/`（`ProduceLifetimeScope.cs`・`ProduceView.cs`・`ProducePresenter.cs`）は変えない（決めたこと 12。4 本目が作り直す）。
 
 ## 3. 型とシグネチャ
 
@@ -125,7 +126,7 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 P1 が `Uta.Client.Presentation`（`UnityScreenNavigator`・`Unity.TextMeshPro` など）・`Uta.Client.Editor`・テストの asmdef（`Uta.Client.Presentation`・`UnityScreenNavigator`・`UnityEngine.UI`・`Unity.TextMeshPro`・Addressables）の参照を足してある。この計画で足すのは次だけ:
 
 - `Uta.Client.Infrastructure.Tests.EditMode.asmdef` の `references` の最後に `"Uta.Client.Bootstrap"`, `"VContainer"` を足す（タスク 1。`ApiActivityBridge`・`ErrorDialogView` のテストのため。`Uta.Client.Bootstrap` は `autoReferenced: false` なので名前で足す）
-- `Uta.Client.Bootstrap.asmdef` の `references` の最後に `"UnityScreenNavigator"` を足す（タスク 4。`UiRoot` のメンバーの型が USN のため）。`unity recompile` が `Unity.TextMeshPro`・`UnityEngine.UI` について CS0012（参照していないアセンブリの型）を出したときだけ、それを足す
+- `Uta.Client.Bootstrap.asmdef` の `references` の最後に `"UnityScreenNavigator"`, `"Unity.TextMeshPro"`, `"UnityEngine.UI"` の 3 つを、この順で足す（タスク 4。3 つとも必ず足す）。`Bootstrap` が使う `UiRoot`（`PageContainer` などの USN の型）・`UtaDialogView`（`TMP_Text`）・`UtaButtonView`（`UnityEngine.UI.Button`）・`BusyIndicator`（`Image`）のメンバーの型が、この 3 つのアセンブリにあるため。asmdef の名前は `com.unity.ugui` 7.0.0 のパッケージ（`Library/PackageCache/com.unity.ugui@<ハッシュ>/Runtime/TMP/Unity.TextMeshPro.asmdef`・`Runtime/UGUI/UnityEngine.UI.asmdef`）で確かめた（2026-11-07）。`UnityScreenNavigator` は P1 が `Uta.Client.Presentation` に足したものと同じ名前
 - `Uta.Client.Presentation.asmdef` は変えない（Input System は `UiRoot.prefab` の `EventSystem` が持つので、C# から参照しない）
 
 ### 3.2 共通部品（`Uta.Client.Presentation.Common`）
@@ -207,10 +208,31 @@ public class DialogService
 ```
 
 `DialogService` の動き:
-- 待ち行列: 内部に `UniTask` の末尾を 1 つ持ち、基盤の `TransitionQueue`（`Runtime/ChinpanGX/Internal/TransitionQueue.cs`）と同じ作り（`UniTaskCompletionSource` で前のダイアログが閉じるのを待ってから次を出す。前が例外で終わっても次へ進む）にする。同時に出るのは 1 つだけ
+- 待ち行列: ダイアログの要求を FIFO で 1 つずつ処理する。先頭のダイアログが閉じて（結果が決まって）から、次のダイアログを出す。同時に出るのは 1 つだけ。前のダイアログが例外で終わっても次へ進む。基盤の `TransitionQueue`（internal なので使えない。作りの参考だけ）と同じ考え方で、次の骨子のとおりに書く:
+  ```csharp
+  private UniTask tail = UniTask.CompletedTask;   // 最後に積んだ要求が終わったら完了する
+
+  // ShowInfoAsync・ConfirmAsync・ChooseAsync は、引数の検証（ChooseAsync のラベル）のあと、これを呼んで添字を読み替える
+  private async UniTask<int> EnqueueAsync(string message, string[] labels, Color[] colors)
+  {
+      var previous = tail;
+      var done = new UniTaskCompletionSource();
+      tail = done.Task;                            // 次の要求は、この要求の done を待つ
+      try
+      {
+          await previous;                          // 前の要求が終わるまで待つ（previous は done.Task なので例外にならない）
+          return await ShowOneAsync(message, labels, colors);   // 下の「順番が来たら」。ボタンが押されるかダイアログが消えるまで待つ
+      }
+      finally
+      {
+          done.TrySetResult();                     // 成功・例外を問わず、次の要求へ進める
+      }
+  }
+  ```
+  `ShowOneAsync` は `UniTaskCompletionSource<int>` を 1 つ作り、下の「順番が来たら」でダイアログを出し、`Complete(i)`／`Destroyed` でその源に結果を入れ、`source.Task` を返す。待ち行列が空のとき（`previous` が完了済み）は、`await previous` が同期で抜けるので、ダイアログは呼んだその場で（同じフレーム・同期で）出る。`done.TrySetResult()` は待っている次の要求の続きを同期で走らせるので、前のダイアログのボタンを押したその場で次のダイアログが出る（5章の `DialogServiceTests` はこれを前提にする）
 - 順番が来たら、同じフレームのうちに（`UniTask.Yield` を挟まず）: `layer` か `prefab` が null なら `InvalidOperationException("dialog layer is not set")`。`var view = UnityEngine.Object.Instantiate(prefab, layer, false); view.gameObject.name = "Dialog"; view.SetMessage(message);` → ボタンを `view.AddButton("Button" + i, label, 色)` で上から順に作り、`button.Button.onClick.AddListener(() => Complete(i))`
 - `Complete(i)`: 済みなら何もしない。済みにして `UiObjects.Destroy(view.gameObject)` し、i を結果にする。`view.Destroyed` では、済みでなければ済みにして −1 を結果にする（シーンを閉じてダイアログが消えた）
-- 結果の読み替え: `ShowInfoAsync` は添字を捨てる。`ConfirmAsync` は 0 → `Positive`、それ以外（1・−1）→ `Negative`。`ChooseAsync` は添字をそのまま返す
+- 結果の読み替え: `ShowInfoAsync` は添字を捨てる。`ConfirmAsync` は 0 → `Positive`、それ以外（1・−1）→ `Negative`。`ChooseAsync` は添字をそのまま返す。`ShowInfoAsync`・`ConfirmAsync` は `async` で `await EnqueueAsync(...)` して読み替える。**`ChooseAsync` は `async` にしない**: ラベルを検証して（違反なら同期に `ArgumentException` を投げる）から、`EnqueueAsync(...)` の `UniTask<int>` をそのまま返す（`async` にすると例外が `UniTask` の中に入り、呼んだその場で投げられないため）
 - ボタンの色は `UiTheme.ButtonPrimary`／`UiTheme.ButtonSecondary`（P1）。文字の大きさ・並びは `UtaDialog.prefab`（P1）が決める
 
 #### `PageStack`
@@ -313,7 +335,7 @@ public static class SceneUiInstaller
 - **戻る**: `await navigator.PopPageAsync(this, playAnimation: false);`
 - **プロデュースの局面の切り替え**（`Replace` は作らない）: 今の局面のページを閉じてから次を積む。`await navigator.PopPageAsync(current, playAnimation: false); await navigator.PushPageAsync<NextPresenter>(playAnimation: false);`（`current` は今の局面の Presenter。間に一瞬下のページが見えるのは受け入れる）
 - **同じシーンの底へ戻る**（ホームの上のガチャからホームへ、など）: `await pageStack.PopToRootAsync(navigator);`（上のモーダルとページを全部閉じる。底の Presenter は `DidPopEnter` で表示をやり直す）
-- **シーンをまたぐ**: `ISceneNavigator`（ルート）の `GoToHomeAsync`（`Produce` → `Home` など）・`GoToProduceAsync`（`Home` → `Produce`）。いまのシーンのページ・モーダルはシーンごと破棄される（Pop しない）。所持データが変わったあとにホームへ行くときは、先に `RefreshPlayerUseCase` を呼ぶ（3.3.5）。`GoToTitleAsync` は `ErrorNavigator` だけが呼ぶ
+- **シーンをまたぐ**: `ISceneNavigator`（ルート）の `GoToHomeAsync`（`Produce` → `Home` など）・`GoToProduceAsync`（`Home` → `Produce`）。いまのシーンのページ・モーダルはシーンごと破棄される（Pop しない）。所持データが変わったあとにホームへ行くときは、先に `RefreshPlayerUseCase` を呼ぶ（3.3.5）。`GoToTitleAsync` は `ErrorNavigator` と、例外として `HomeEntry`（`Home` に入ったときサインインしていなければ `Title` へ戻す。3.7・screen-design 8章）だけが呼ぶ。Presenter は呼ばない
 
 #### 3.3.2 Presenter の形
 
@@ -546,7 +568,8 @@ public sealed class StubDeviceAuthPort : IDeviceAuthPort
     public AccountState State { get; set; }
     /// <summary>EnsureSignedInAsync の 1 回ごとの振る舞い。空なら完了済みの UniTask。Dequeue した Func を呼んでその UniTask を返す（例外を投げる・未完了の源を返す）。</summary>
     public Queue<Func<UniTask>> EnsureSignedIn { get; }
-    // ReissueTokenAsync・InvalidateServerSideTokenAsync は完了済み、CanReceiveServerErrorAsync は true、TokenInvalidationCount は 0
+    // ReissueTokenAsync は完了済み。InvalidateServerSideTokenAsync は TokenInvalidationCount を 1 増やして完了済み（ConnectivityCheck の再認証の確認が通るように）。
+    // CanReceiveServerErrorAsync は true。TokenInvalidationCount の初期値は 0
 }
 
 /// <summary>IPlayerPort の偽。</summary>
@@ -693,9 +716,10 @@ public sealed class MasterGameData : IGameMaster
 }
 ```
 
+- `using` は既存の `MasterCardCatalog.cs` と同じ書き方にする: `using Uta.MasterData;`（マスタの型は修飾なしで書く: `MemoryDatabase`・`CardFaceKind` など）、`using DomainLesson = Uta.Shared.Domain.Lesson;`、`using DomainProduce = Uta.Shared.Domain.Produce;`、`using Uta.Client.Application.Master;`。`Uta.Shared.Domain.Lesson`・`Uta.Shared.Domain.Produce` を別名なしで `using` しない（マスタと同名の enum `Rarity`・`Plan`・`ParamKind`・`SupportType`・`SupportAbilityKind`・`Difficulty`・`WeekKind` などが CS0104 になる）。Domain の enum は `DomainLesson.Rarity`・`DomainLesson.Plan`・`DomainLesson.ParamKind`・`DomainProduce.SupportType`・`DomainProduce.SupportAbilityKind`・`DomainProduce.Difficulty`・`DomainProduce.WeekKind` と書く。`MasterGameDataTests.cs` も同じ `using` にする
 - 読み方はサーバーの `MasterGachaCatalog`・`MasterSupportCatalog`（`server/Uta.Server/Infrastructure/MasterData/`）と同じ。使うテーブル: `db.IdolTable.All`・`db.SupportCardTable.All`・`db.SupportAbilityTable.All`・`db.GachaTable.All`・`db.GachaTableEntryTable.All`（`GachaTableId` で絞り、`Order` の昇順）・`db.ScenarioTable.All`・`db.ScenarioWeekTable.All`・`db.SupportLevelCostTable.All`・`db.SupportLevelCapTable.All`・`db.CardTable.All`・`db.CardFaceTable.All`
 - ガチャの通常枠は `Gacha.NormalTableId`、確定枠は `Gacha.GuaranteedTableId` のエントリー。`ItemKind`（マスタ）→ `MasterItemKind` は `(MasterItemKind)(int)`
-- `GetSupportAbilities`: `SupportAbilityTable` を `SupportCardId` で絞り `Order` の昇順。`Kind` は `(Uta.Shared.Domain.Produce.SupportAbilityKind)(int)`、`Param` は `(Uta.Shared.Domain.Lesson.ParamKind)(int)`
+- `GetSupportAbilities`: `SupportAbilityTable` を `SupportCardId` で絞り `Order` の昇順。`Kind` は `(DomainProduce.SupportAbilityKind)(int)`、`Param` は `(DomainLesson.ParamKind)(int)`
 - `GetCardText`: `CardTable` の `Name`、`CardFaceTable` の `Face == CardFaceKind.Normal` の行の `Description`、`Face == CardFaceKind.Enhanced` の行の `Description`（無ければ Normal と同じ）。Normal の行が無いカードがあれば、構築時に `InvalidOperationException("card face missing: " + cardId)`
 
 ### 3.7 タイトル・ホーム・プロデュースのシーン（`Uta.Client.Presentation.*`）
@@ -755,10 +779,14 @@ public sealed class TitlePresenter : IPresenter
 /// <summary>診断（-uta-quit-after-check）。#24 の TitlePresenter の診断の手順をそのまま移す。画面に出さない。</summary>
 public sealed class TitleDiagnostics
 {
+    /// <summary>VContainer が使う。: this(signIn, enterPlayer, connectivityCheck, code => UnityEngine.Application.Quit(code))</summary>
+    [Inject]
     public TitleDiagnostics(SignInUseCase signIn, EnterPlayerUseCase enterPlayer, ConnectivityCheck connectivityCheck);
+    /// <summary>テスト用。quit は終了の代わり（終了コードを受ける）。quit が null なら ArgumentNullException。</summary>
+    public TitleDiagnostics(SignInUseCase signIn, EnterPlayerUseCase enterPlayer, ConnectivityCheck connectivityCheck, Action<int> quit);
     /// <summary>
     /// "startup: start" → signIn → StartupLogs.Device → enterPlayer → StartupLogs.SignUp・SignIn → succeeded = await connectivityCheck.RunAsync(Log)。
-    /// 例外は StartupLogs.Failed を Log して succeeded = false。最後に UnityEngine.Application.Quit(succeeded ? 0 : 1)。Log は Debug.Log("[Uta] " + line)。
+    /// 例外は StartupLogs.Failed を Log して succeeded = false。最後に quit(succeeded ? 0 : 1)（UnityEngine.Application.Quit を直接呼ばない）。Log は Debug.Log("[Uta] " + line)。
     /// </summary>
     public UniTask RunAsync();
 }
@@ -787,6 +815,10 @@ public sealed class TitleLifetimeScope : LifetimeScope
     }
 }
 ```
+
+コメントだけ直す（タスク 3。コードは変えない）:
+- `Presentation/Title/ConnectivityCheck.cs` の `<summary>` の 2 行目「診断用（-uta-quit-after-check）。画面の計画で消す。」を「診断用（-uta-quit-after-check）。`TitleDiagnostics` が使う。」に
+- `Application/Auth/SignInUseCase.cs` の 42 行「// 以下の 2 つは診断用。画面の計画で消す。」を「// 以下の 2 つは診断用（ConnectivityCheck。-uta-quit-after-check）。」に
 
 #### ホーム（`Uta.Client.Presentation.Home`）
 
@@ -821,7 +853,7 @@ public sealed class HomePresenter : IPresenter
     /// cache.MarkDiscardNoticeShown() してから await dialogs.ShowInfoAsync("バージョンが変わったため、進行中のプロデュースは破棄されました。")。</summary>
     public UniTask ShowDiscardNoticeIfNeededAsync();
     public UniTask OpenProduceAsync();  // この計画: 実行中フラグ（3.3.2 の 5）の中で dialogs.ShowInfoAsync("準備中です。")。4 本目が書き換える
-    public UniTask ResumeProduceAsync();// 同上。4 本目（または 5 本目）が書き換える
+    public UniTask ResumeProduceAsync();// 同上。4 本目（formation）が書き換える
     public UniTask OpenGachaAsync();    // 同上。2 本目が書き換える
     public UniTask OpenOwnedAsync();    // 同上。3 本目が書き換える
     // Refresh(): var s = cache.Current; s が null なら何もしない。view.SetProfile(s.Level, s.GachaCurrency); view.SetResumeVisible(s.HasActiveProduce);
@@ -838,7 +870,7 @@ public sealed class HomeEntry : IStartable
 }
 ```
 
-- 2〜4 本目は、`HomePresenter` のコンストラクター（2 本）の最後に依存を足し、対応するメソッドの中身を書き換える。`IScreenNavigator` を足すのは 2 本目（ガチャ）。3・4 本目は足された前提で、自分のユースケースだけを足す（3 本目と 2 本目を並行して進めるときは、3 本目が `IScreenNavigator` を足す差分を 2 本目に合わせて取り込む）
+- 2〜4 本目は、`HomePresenter` のコンストラクター（2 本）の最後に依存を足し、対応するメソッドの中身を書き換える。`IScreenNavigator` を足すのは 2 本目（ガチャ）。3・4 本目は足された前提で、自分のユースケースだけを足す（計画は並行しない。[索引](2026-11-07-client-screens-index.md) 1章）
 - 叩き台の「プロデュース中: 週 7 / 16」は、`PlayerSnapshot` に週の情報が無いので出さない（[Uta案]。叩き台との差。文字は P2 の Prefab の固定の「プロデュース中」）
 - `HomeLifetimeScope`（`Uta.Client.Presentation`）: `[SerializeField] private UiRoot uiRoot;`、`Configure` は `SceneUiInstaller.Install(builder, uiRoot); builder.RegisterEntryPoint<HomeEntry>();`
 
@@ -868,9 +900,9 @@ public sealed class HomeEntry : IStartable
   3. `var dialogs = sceneUi.Dialogs;` が null なら `Debug.LogWarning("[Uta] error dialog: no scene ui")` して `Fallback(buttons)`
   4. ラベルと読み替え: `Ok` → `new[] { "OK" }` → 0: `Ok`、`RetryOrTitle` → `new[] { "再試行", "タイトルへ" }` → 0: `Retry`／1: `Title`、`Home` → `new[] { "ホームへ" }` → 0: `Home`、`Title` → `new[] { "タイトルへ" }` → 0: `Title`、それ以外 → `new[] { "ストアへ" }` → 0: `Store`。`var index = await dialogs.ChooseAsync("エラーが発生しました。\n" + error, labels);` が −1（シーンを閉じてダイアログが消えた）なら `Fallback(buttons)`
   - 旧 `Initialize`・`OnGUI`・`OnDestroy`・`ButtonAt`・`ButtonText` は削除する。置き場は `Bootstrap` のまま（`Presentation` は VolTech-MagicOnion のクライアントを参照しないため）
-- `ErrorNavigator : IErrorNavigator`（既存に足す）: コンストラクターを `ErrorNavigator(ISceneNavigator scenes, RefreshPlayerUseCase refresh)` にする。`private bool refreshing;`
+- `ErrorNavigator : IErrorNavigator`（既存に足す）: コンストラクターを `ErrorNavigator(ISceneNavigator scenes, IObjectResolver resolver)` にする（`IObjectResolver` は VContainer がどのスコープにも自動で登録する。ルートのスコープのものが入る）。`private bool refreshing;`。**`RefreshPlayerUseCase` をコンストラクターで受けない**: `UtaApiClient` のファクトリー → `IErrorNavigator` → `RefreshPlayerUseCase` → `IPlayerPort`（`PlayerGateway`）→ `UtaApiClient` の循環になり、VContainer が解決で例外を投げるため
   - `GoToTitleAsync()`: 今までどおり `scenes.GoToTitleAsync()`
-  - `GoToHomeAsync()`（`async`）: `refreshing` が false なら `refreshing = true;` → `try { await refresh.ExecuteAsync(); } catch (Exception e) { Debug.LogWarning("[Uta] refresh on go-to-home failed: " + e.Message); } finally { refreshing = false; }`。そのあと `await scenes.GoToHomeAsync();`（取り直しの中で再び「ホームへ」が来たら、取り直しを飛ばして読み込むだけ。`ApiCore` は順番待ちを解いてから遷移を呼ぶので、ここで通信してよい）
+  - `GoToHomeAsync()`（`async`）: `refreshing` が false なら `refreshing = true;` → `try { await resolver.Resolve<RefreshPlayerUseCase>().ExecuteAsync(); } catch (Exception e) { Debug.LogWarning("[Uta] refresh on go-to-home failed: " + e.Message); } finally { refreshing = false; }`（`Resolve` は呼ぶたびに行う。`Singleton` なので同じものが返る。解決の例外も同じ `catch` に入る）。そのあと `await scenes.GoToHomeAsync();`（取り直しの中で再び「ホームへ」が来たら、取り直しを飛ばして読み込むだけ。`ApiCore` は順番待ちを解いてから遷移を呼ぶので、ここで通信してよい）
   - `OpenStoreAsync()`: 今までどおり（ログだけ）
 - `BootstrapEntry`（`MonoBehaviour`。`Bootstrap` シーンに置く）:
   - `[SerializeField] private UiRoot uiRoot;` を足す（`SceneBuilder` が入れる）。`Start` → `RunAsync().Forget()`（`RunAsync` はインスタンスメソッドにする。`uiRoot` を使うため）
@@ -960,6 +992,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 - VContainer 1.19.0 に `RegisterComponent`・`RegisterEntryPoint`・`Register<T>().As<TInterface>()` が 3.2 の使い方で無い
 - 基盤の `ScreenNavigator` のコンストラクターが `(PageContainer, ModalContainer, OverlayContainer, IObjectResolver)` でない
 - P1 の部品の View のフィールドの名前・型が P1 の 3.3 の表と違う
+- `DialogServiceTests` で、待ち行列が空のときにダイアログが同期で出ない、または前のダイアログのボタンを押した直後に次のダイアログが同期で出ない（3.2 の待ち行列の前提。`UniTask.Yield` などで直さない）
 
 終わったことの確かめ方: コンパイルエラー 0。`BusyIndicatorTests`・`DialogServiceTests`・`PageStackTests`・`ActiveSceneUiTests` と既存のテスト（P1 の `PrefabContractTests` を含む）が通る。
 
@@ -977,10 +1010,10 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 
 #### タスク 3: タイトル・ホームの Presentation
 
-触る: `Presentation/Title/*`（`TitlePage.cs` は足す、`TitlePresenter.cs`・`TitleLifetimeScope.cs` は置き換え、`ITitleView.cs`・`TitleEntry.cs`・`TitleDiagnostics.cs`・`StartupLogs.cs` は作成、`TitleView.cs` は削除）、`Presentation/Home/*`（`HomePage.cs` は足す、`HomePresenter.cs`・`HomeLifetimeScope.cs` は置き換え、`IHomeView.cs`・`HomeEntry.cs` は作成、`HomeView.cs` は削除）、`Editor/SceneBuilder.cs`（3.10）、`Tests/EditMode/TitlePresenterTests.cs`・`TitleEntryTests.cs`・`HomePresenterTests.cs`・`HomeEntryTests.cs`。
+触る: `Presentation/Title/*`（`TitlePage.cs` は足す、`TitlePresenter.cs`・`TitleLifetimeScope.cs` は置き換え、`ITitleView.cs`・`TitleEntry.cs`・`TitleDiagnostics.cs`・`StartupLogs.cs` は作成、`TitleView.cs` は削除）、`Presentation/Home/*`（`HomePage.cs` は足す、`HomePresenter.cs`・`HomeLifetimeScope.cs` は置き換え、`IHomeView.cs`・`HomeEntry.cs` は作成、`HomeView.cs` は削除）、`Editor/SceneBuilder.cs`（3.10）、`Presentation/Title/ConnectivityCheck.cs`・`Application/Auth/SignInUseCase.cs`（コメントだけ）、`Tests/EditMode/TitlePresenterTests.cs`・`TitleEntryTests.cs`・`HomePresenterTests.cs`・`HomeEntryTests.cs`。
 
 手順:
-1. 3.7 のとおりに作る・置き換える・削除する（削除は `.cs` と `.meta` の両方）
+1. 3.7 のとおりに作る・置き換える・削除する（削除は `.cs` と `.meta` の両方）。3.7 のコメントの直しもする
 2. `Editor/SceneBuilder.cs` が消した型（`TitleView`・`HomeView`）を参照してコンパイルが通らなくなるので、このタスクで 3.10 のとおりに `SceneBuilder.cs` も直す（シーンの作り直しはタスク 4）
 3. 5章のテストを作り、`unity recompile` → `unity test --mode EditMode`
 
@@ -1011,6 +1044,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 - B2: 子スコープで `TitlePresenter` が解決できない（VContainer の例外。`[Inject]` のコンストラクターが選ばれない、など）
 - B3: シーンの `LifetimeScope` の `uiRoot` が null で `SceneUiInstaller` が例外を投げる（`SceneBuilder` の `SetRef` が効いていない）
 - B4: `VContainer` の `RegisterComponent` で登録した `PageContainer` などが、基盤の `ScreenNavigator` のコンストラクターに渡らない
+- B5: DI の循環が起きる（VContainer の循環参照の例外。`ErrorNavigator` の遅延解決（3.8）でも残る、別の経路で循環する、など）。登録やコンストラクターの形を自分で変えない
 
 終わったことの確かめ方: コンパイルエラー 0。全部のテストが通る。手順 5 の 2〜4 の値が期待どおり。
 
@@ -1033,9 +1067,9 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 2. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）:
    - 4章 手順 4 の最後「`Title` の最小の uGUI に状態を出し、成功したら `Home` へ進む（7章）。診断用の IMGUI（`ErrorDialogView`、マスタの失敗の `StartupView`）が残る。画面の作り込みは順 7 [2026-11-03]」を「`Title` の `TitlePresenter` が状態を出し、成功したら `Home` へ進む。プロデュースの破棄の知らせは `HomePresenter` が 1 回だけ出す。マスタの失敗と共通エラーは、いまのシーンの `DialogService` のダイアログ（8章）[実施日]」に直す
    - 5章 1 つ目の括弧「ナビゲーターは `ErrorNavigator`（7章）、進行中通知は未接続で、エラーハンドラーは `DefaultCommonErrorHandler` と診断用の `ErrorDialogView`。画面の計画で作り直す。2026-11-03」を「ナビゲーターは `ErrorNavigator`（8章。「ホームへ」の前に所持データを取り直す）、進行中通知は `ApiActivityBridge` → いまのシーンの `BusyIndicator`、エラーハンドラーは `DefaultCommonErrorHandler` と `ErrorDialogView`（いまのシーンの `DialogService`）。業務エラーは `UtaErrors` に `Stay` で登録する。[実施日]」に直す
-   - 7.4 の表の「組み立て」の行に「シーンの `LifetimeScope` は `SceneUiInstaller.Install` で `UiRoot` のコンテナー・`IScreenNavigator`・`PageStack`・`DialogService` を登録する」を足す。表の下に「**Presenter の書き方の正**は `uta_docs/plans/2026-11-03-client-screens-foundation.md` 3.3」を 1 行足す
+   - 7.4 の表の「組み立て」の行に「シーンの `LifetimeScope` は `SceneUiInstaller.Install` で `UiRoot` のコンテナー・`IScreenNavigator`・`PageStack`・`DialogService` を登録する」を足す。同じ行の「Presenter はどのスコープにも登録しない（`[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）」は計画の段階（2026-11-07）で直してある。実装と違えば実装に合わせて直す。表の下に「**Presenter の書き方の正**は `uta_docs/plans/2026-11-03-client-screens-foundation.md` 3.3」を 1 行足す
    - 7.5 の「エラー」の項の「（8章の `ISceneNavigator` を呼ぶ）」のあとに「。ルートの `ErrorDialogView`・`ApiActivityBridge` は `ActiveSceneUi`（各シーンのスコープが `Start` で入れる）から、いまのシーンのダイアログ・ブロッカーを取る」を足す
-   - 8章の冒頭「（順 7 の画面の計画で使う。この章の時点では各シーンに最小の uGUI を置くだけ）」を「（`Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う。`Produce` は順 7 の 4 本目が作り直す）」に、「最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、…置き換える（…）」の項を「シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` はまだ最小の uGUI（4 本目が同じ形にする）」に、「画面の計画で、診断を別の入口に分ける [Uta案]」を「診断は `TitleDiagnostics`（`TitleEntry` が分ける）[実施日]」に直す。`Produce` の行は変えない（ホームから `Produce` へ移る道は 4 本目までは無い、と括弧で足すだけ）
+   - 8章の冒頭「（順 7 の画面の計画で使う。この章の時点では各シーンに最小の uGUI を置くだけ）」を「（`Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う。`Produce` は順 7 の 4 本目が作り直す）」に、「最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、…置き換える（…）」の項を「シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` はまだ最小の uGUI（4 本目が同じ形にする）」に、「画面の計画で、診断を別の入口に分ける [Uta案]」を「診断は `TitleDiagnostics`（`TitleEntry` が分ける）[実施日]」に直す。8章の 1 つ目の項（ルートの DI スコープ）の「シーンの `LifetimeScope` は `UiRoot`・入口と補助だけを登録し、Presenter と View は登録しない」は計画の段階（2026-11-07）で直してある。実装と違えば実装に合わせて直す。表の `Home` の行の遷移「→ `Produce`」を「→ `Produce`（順 7 の 4 本目（formation）から。1 本目の時点ではホームのボタンは「準備中です。」で、移る道が無い）」に、役割の「ここから `Produce` へ」を「ここから `Produce` へ（4 本目から）」に直す。`Produce` の行は変えない（4 本目が直す）
    - 「実装メモ」に、設計とのズレを書く（なければ「順 7 の 1 本目: なし」）
 3. [repository-layout.md](../wiki/architecture/repository-layout.md):
    - 126 行「診断用の `ErrorDialogView`（`IErrorDialogView` の IMGUI 実装）は `Bootstrap` に置く [2026-11-03]: …」を「`ErrorDialogView`（`IErrorDialogView` の実装。表示は `Presentation` の `DialogService` に任せる）・`ApiActivityBridge`（`IApiActivityHandler` の実装）は `Bootstrap` に置く [実施日]: `Presentation` の参照先に VolTech-MagicOnion のクライアントが無いため」に直す
@@ -1054,21 +1088,21 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 | | | `Begin_Nested_StaysBusyUntilAllEnded` | `Begin()` 2 回、`End()` 1 回ではまだ true、もう 1 回で false |
 | | | `End_WithoutBegin_DoesNothing` | `IsBusy == false` のまま、例外なし。そのあと `Begin()` 1 回で true |
 | | | `Begin_WithBlocker_EnablesImage` | `Image`（enabled = false）を `new SerializedObject(busy)` の `"blocker"` に入れて `ApplyModifiedPropertiesWithoutUndo` → `Begin()` で `image.enabled == true`、`End()` で false |
-| 1 | `DialogServiceTests.cs` | `ConfirmAsync_PositiveClicked_ReturnsPositive` | 層 = `new GameObject("Layer", typeof(RectTransform))`、prefab = `AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Parts/UtaDialog.prefab").GetComponent<UtaDialogView>()`。`ConfirmAsync("m")` のあと、層の下の `Button` を `GetComponentsInChildren<Button>()` で取り、[0] の `onClick.Invoke()` → 結果が `Positive`、層の子が 0 |
-| | | `ConfirmAsync_NegativeClicked_ReturnsNegative` | [1] を押すと `Negative` |
-| | | `ChooseAsync_SecondClicked_ReturnsOne` | ラベル 3 つ。ボタンが 3 つで、[1] を押すと 1 |
-| | | `ChooseAsync_FiveLabels_Throws` | `ArgumentException`。層の子は 0 のまま |
-| | | `ShowInfoAsync_Twice_ShowsOneAtATime` | 2 回続けて呼ぶと層の子は 1 つ。OK を押すと 2 つ目が出る（子が 1 つで、名前 `MessageText` の `TMP_Text` の text が 2 つ目の文言） |
-| | | `ButtonColors_PrimaryThenSecondary` | `ConfirmAsync` のボタン [0] の `UtaButtonView` の `Image.color == UiTheme.ButtonPrimary`、[1] が `ButtonSecondary` |
+| 1 | `DialogServiceTests.cs` | `ConfirmAsync_PositiveClicked_ReturnsPositive` | 下の「`DialogServiceTests` の書き方」のとおり。`var task = service.ConfirmAsync("m");`（await しない）→ 層の子が 1 → ボタン [0] の `onClick.Invoke()` → `task.Status == UniTaskStatus.Succeeded`、`task.GetAwaiter().GetResult() == DialogResult.Positive`、層の子が 0 |
+| | | `ConfirmAsync_NegativeClicked_ReturnsNegative` | 同じく [1] を押すと `Negative` |
+| | | `ChooseAsync_SecondClicked_ReturnsOne` | ラベル 3 つ。ボタンが 3 つで、[1] を押すと結果が 1 |
+| | | `ChooseAsync_FiveLabels_Throws` | `Assert.Throws<ArgumentException>(() => service.ChooseAsync("m", new[] { "a", "b", "c", "d", "e" }))`（検証は待ち行列の前で同期に投げる）。層の子は 0 のまま |
+| | | `ShowInfoAsync_Twice_ShowsOneAtATime` | `var first = service.ShowInfoAsync("a"); var second = service.ShowInfoAsync("b");`（どちらも await しない）→ 層の子が 1 で、その `MessageText`（名前で探した `TMP_Text`）の text が `"a"`、`second.Status == Pending` → ボタン [0] を押す → `first` が `Succeeded`、層の子が 1 で text が `"b"`（次のダイアログは同期で出る。3.2）→ もう一度 [0] を押す → `second` が `Succeeded`、層の子が 0 |
+| | | `ButtonColors_PrimaryThenSecondary` | `ConfirmAsync("m")`（await しない）のボタン [0] の `UtaButtonView` の `Image.color == UiTheme.ButtonPrimary`、[1] が `ButtonSecondary`。最後に [0] を押して閉じる |
 | 1 | `PageStackTests.cs` | `PopToRoot_ThreePages_PopsTwo` | `new PageStack(() => 3, () => 0)` → `log` が `"PopPage:2"` だけ |
 | | | `PopToRoot_WithModals_PopsModalsFirst` | 2・1 → `"PopModal:1"`, `"PopPage:1"` |
 | | | `PopToRoot_OnePage_DoesNothing` | 1・0 → 記録なし |
 | | | `PopToRoot_Empty_DoesNothing` | 0・0 → 記録なし |
-| 1 | `ActiveSceneUiTests.cs` | `Attach_SetsRootDialogsAndBusy` | `new GameObject().AddComponent<UiRoot>()`（EditMode では `Awake` が走らない）と `new DialogService(null, null)` を `Attach` → `Root`・`Dialogs` が同じもの |
-| | | `Detach_SameRoot_Clears` | `Detach(同じ root)` で `Root`・`Dialogs`・`Busy` が null |
+| 1 | `ActiveSceneUiTests.cs` | `Attach_SetsRootDialogsAndBusy` | `var root = new GameObject("Root").AddComponent<UiRoot>();`（EditMode では `Awake` が走らないので、`EnsureConfigured` も走らない）、`var busy = new GameObject("Busy").AddComponent<BusyIndicator>();`。`var so = new SerializedObject(root); so.FindProperty("busyIndicator").objectReferenceValue = busy; so.ApplyModifiedPropertiesWithoutUndo();`（`ApiActivityBridgeTests` と同じ入れ方。ほかの参照は null のまま）。`new DialogService(null, null)` と一緒に `Attach` → `Root` が root、`Dialogs` が同じ `DialogService`、`Busy` が busy |
+| | | `Detach_SameRoot_Clears` | 上と同じ組み立て → `Detach(同じ root)` で `Root`・`Dialogs`・`Busy` が null |
 | | | `Detach_OtherRoot_KeepsCurrent` | A を Attach → B を Attach → `Detach(A)` で `Root` は B のまま |
 | | | `Attach_Null_Throws` | `ArgumentNullException` |
-| | | `Busy_DestroyedRoot_ReturnsNull` | Attach したあと root の GameObject を `DestroyImmediate` → `Busy` が null（例外なし） |
+| | | `Busy_DestroyedRoot_ReturnsNull` | 上と同じ組み立てで Attach したあと root の GameObject を `DestroyImmediate` → `Busy` が null（例外なし） |
 | 2 | `MasterGameDataTests.cs` | `Constructor_FromStreamingAssets_ReadsAllTables` | `MasterDataLoader.Load(File.ReadAllBytes(UnityEngine.Application.streamingAssetsPath + "/" + MasterDataLoader.RelativePath))` で作る（`MasterDataLoaderTests` と同じ読み方）。`Idols.Count == 4`、`SupportCards.Count == 10`、`Gachas.Count == 1`、`Scenarios.Count == 2` |
 | | | `GetSupportLevelUpCost_SumsRows` | R の Lv1→Lv3 が `SupportLevelCostTable` の (R, 1) と (R, 2) の行の合計 |
 | | | `GetSupportLevelUpCost_SameLevel_ReturnsZero` | `fromLevel == toLevel` で (0, 0) |
@@ -1092,6 +1126,8 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 | | | `StartAsync_DisposedDuringSignIn_TouchesNothing` | 上と同じ未完了の源 → `var first = presenter.StartAsync();` → `presenter.Dispose()` → 源に `TrySetException(new InvalidOperationException("x"))` → `await first` → `Dispose` のあとの記録が無い（`"SetStatus:接続に失敗しました…"`・`"GoToHome"` が無い） |
 | | | `StartClicked_AfterDispose_DoesNothing` | `Dispose()` のあと偽の View の `RaiseStartClicked()` → `"SetStatus:接続中…"` が無い |
 | 3 | `TitleEntryTests.cs` | `StartAsync_Normal_PushesTitle` | `new TitleEntry(navigator, new StartupOptions(false), null)` → `log` が `"PushPage:TitlePresenter"` |
+| | | `StartAsync_QuitAfterCheck_Success_QuitsWithZero` | `var codes = new List<int>();`。`StubDeviceAuthPort`（既定）・`StubPlayerPort`（既定）で `SignInUseCase`・`EnterPlayerUseCase`（`PlayerCache` は新しいもの）を作り、`new TitleDiagnostics(signIn, enterPlayer, new ConnectivityCheck(signIn, enterPlayer), code => codes.Add(code))`。`new TitleEntry(navigator, new StartupOptions(true), diagnostics)` の `StartAsync()` を await → `codes` が `{ 0 }`、`log` に `"PushPage:"` で始まる記録が無い |
+| | | `StartAsync_QuitAfterCheck_SignInFails_QuitsWithOne` | 上と同じで、`EnsureSignedIn` に `() => throw new InvalidOperationException("x")` を 1 つ → `codes` が `{ 1 }`、`"PushPage:"` の記録が無い |
 | 3 | `HomePresenterTests.cs` | `InitializeAsync_ShowsProfileAndResume` | 偽の `IHomeView`。`PlayerCache` に Lv 12・ガチャ通貨 3250・`HasActiveProduce = true` → `log` が `"SetProfile:12,3250"`, `"SetResumeVisible:True"` |
 | | | `ProduceClicked_ShowsNotReady` | `InitializeAsync` のあと `RaiseProduceClicked()` → `InitializeAsync` の後の記録が `"Info:準備中です。"` だけ（4 本目が差し替える） |
 | | | `ResumeClicked_ShowsNotReady` | 同じく `RaiseResumeClicked()` → `"Info:準備中です。"` だけ（4 本目が差し替える） |
@@ -1111,6 +1147,8 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 | | | `NoSceneUi_ReturnsFallback` | `autoDismiss: false`、何も Attach しない → `RetryOrTitle` で `Title` |
 | | | `RetryOrTitle_SecondClicked_ReturnsTitle` | `FakeDialogService`（`ChooseResults` に 1）を Attach → `Title`。`log` が `"Choose:エラーが発生しました。\n:再試行/タイトルへ"`（`error` は null。下の注） |
 | | | `Dismissed_ReturnsFallback` | `ChooseResults` に −1 → `RetryOrTitle` で `Title` |
+
+**`DialogServiceTests` の書き方**: どれも同期の `[Test]`（`[UnityTest]` にしない）。`[SetUp]` で層 `layer = new GameObject("Layer", typeof(RectTransform)).GetComponent<RectTransform>()`、prefab = `AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Parts/UtaDialog.prefab").GetComponent<UtaDialogView>()`、`service = new DialogService(layer, prefab)`。`[TearDown]` で `Object.DestroyImmediate(layer.gameObject)`。`ConfirmAsync` などを呼んだ戻り値の `UniTask` は **await せずに変数に受け**、そのまま同期で層の子（`layer.childCount`）とボタン（`layer.GetComponentsInChildren<Button>()`。並びは上から）を確かめる（待ち行列が空なら、ダイアログは呼んだその場で出る。3.2）。ボタンは `onClick.Invoke()` で押す（EditMode では `UiObjects.Destroy` が `DestroyImmediate` なので、押した直後に子が減る）。完了は、押したあとに `task.Status == UniTaskStatus.Succeeded` を確かめ、結果は `task.GetAwaiter().GetResult()` で読む（1 つの `UniTask` で 1 回だけ）。押す前に `Status` が `Pending` でなければ、または押したあとに次のダイアログが同期で出なければ、`UniTask.Yield` などを足して直さず、止まって報告する（3.2 の待ち行列の前提が崩れている）
 
 **ホームのボタンのテストの差し替え**（決めたこと 16）: 2〜4 本目は、自分が行き先を変えたボタンのテスト（上の表の「差し替える」と書いた行）だけを、自分の処理を確かめるテストに置き換える。ほかのボタンのテストは触らない（「準備中です。」が全部で何回出るかを数えるテストは作らない）。
 
