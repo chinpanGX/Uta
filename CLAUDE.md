@@ -25,6 +25,7 @@
 | 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
 | wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・目次（README）への登録・frontmatter・ADR の番号をスクリプトで点検） |
+| クラウド（Claude Code on the web）で作業する | 下の「クラウドでの作業」 |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
@@ -179,6 +180,27 @@ uta/
 - Unity 7 の Editor が開いているときのコンパイル確認: `unity recompile --format json`（`client/uta` で実行）。パッケージの再解決: `unity command package resolve`。コンソールの読み出し・Play モードの開始と停止は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章。Windows の IL2CPP のプレイヤー（バッチモード。Editor を閉じてから）: `Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 -executeMethod Uta.Client.Editor.BuildCommands.BuildWindowsIl2Cpp -logFile <ログ>` → `client/uta/Build/Windows/Uta.exe`。起動して通信を確かめる: `Uta.exe -batchmode -nographics -uta-quit-after-check`（終了コード 0 が成功。接続先は `-uta-server-url <URL>`。[unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 3.1）
 - マスタの生成（`masterdata/`。生成物は手で直さない。CSV か定義を変えたときだけ実行する）: `powershell -NoProfile -File masterdata/gen.ps1 code-gen`（定義から生成ソース）、`... master-gen`（CSV の検証とバイナリの生成。省略時）、`... check`（検証だけ。何も書かない）。実行ポリシーで読めないときは `-ExecutionPolicy Bypass` を足す
 - wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
+
+## クラウドでの作業（Claude Code on the web）
+
+クラウドのセッションは、**実装計画を書き、レビューを通して `status: ready` にし、PR に出すまで**を担う（「実装前のルール」の 1〜5）。Unity を開かないレイヤーは、続けて実装してもよい。
+
+| 作業 | クラウド |
+|---|---|
+| 仕様・実装設計書・ADR・実装計画を書く、wiki の Lint | できる |
+| `requesting-design-review`（Goldfish）、`requesting-code-review` | できる（`.claude/agents/`・`.claude/skills/` はリポジトリから読まれる） |
+| `server/`・`shared/` の実装、ビルド、単体テスト | できる |
+| 結合テスト、`masterdata/gen.ps1` | 環境しだい（セッション開始時の `[cloud-setup]` の報告で docker・pwsh を見る） |
+| `client/` の計画とレビュー | コードは読める。`client/uta/Library/` が無いので、Unity のパッケージのソースは読めない |
+| `client/` の実装の確認（コンパイル・Play・実機） | できない。ローカルで行う |
+| `/egm:*` | 使えない（`~/.claude` のプラグインは読まれない）。設計書のレビューは egm に頼らない |
+
+- 環境は `.claude/hooks/cloud-setup.sh` が整える（SessionStart。`CLAUDE_CODE_REMOTE=true` のときだけ動く）。入れるものは .NET 10 SDK・PowerShell、取り込むものはサブモジュール 4 つ。結果は `[cloud-setup]` の行で報告される。足りないものがあれば、確かめられなかったと明記して進める
+- セッションは新しい clone から始まる。ローカルの未コミット・未 push の変更は届かない。前の作業の続きは、そのブランチを選んで始める
+- 固定の worktree（`tools/worktree-pool.sh`）は使わない
+- **PR は `gh pr create` で作れない**（GraphQL が拒否される）。Web の画面の Create PR を使うか、`gh api repos/chinpanGX/Uta/pulls -f title=... -f body=... -f head=<ブランチ> -f base=<base>` を使う。`gh pr` のほかのコマンドも同じなので、`gh api` の REST に読み替える。積み PR のルールは同じ
+- タグの push とブランチの削除はできない。リリース（`release` スキル）はローカルで行う
+- 計画を `ready` にしたら、push して PR を出す。計画に、Unity でしか確かめられない手順をその旨書く（`uta_docs/plans/README.md`）
 
 ## 用語集
 
