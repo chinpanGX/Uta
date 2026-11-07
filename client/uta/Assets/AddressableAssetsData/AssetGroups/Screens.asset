@@ -14,7 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Screens
   m_GUID: f34a6316fe9b11143a913f232f4e7aff
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: aae437b14e1cee14aa5362c51a5a13e9
+    m_Address: HomePage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: adfab18dc2648d54db5010cd3ef4c9f0
+    m_Address: TitlePage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: c170c88d72bab5d419ad9b9d9ab91d13, type: 2}
   m_SchemaSet:
