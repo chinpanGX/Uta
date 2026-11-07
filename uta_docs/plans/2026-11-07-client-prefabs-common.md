@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 1/3 共通部品・Addressables・TextMeshPro
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---

@@ -67,7 +67,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - **Android / iOS** の実機ビルド
 - **Managed Stripping を上げたとき・iOS / Android での VContainer のコンストラクター注入**（リフレクション。既定の Stripping の Windows IL2CPP では通った）。`[Preserve]`・`link.xml`・VContainer の Source Generator のどれかが要りうる
 - **MasterMemory・MasterMemoryAddons**（2026-11-01 に[別の計画](../../plans/2026-11-01-masterdata-unity.md)で入れた。Windows の Editor で読み込みを確認。IL2CPP・実機は未確認）
-- UnityScreenNavigator・Supplement は取り込みだけで、使っていない
+- UnityScreenNavigator の `PageContainer` + `AddressableAssetLoader` は、使い捨てのスパイクで `Push` まで確かめた（上の表。2026-11-08）。Presenter 駆動の基盤の `ScreenNavigator` は foundation の計画で確かめる。Supplement は取り込みだけで、使っていない
 
 ## 4. 警告・注意
 
@@ -88,6 +88,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
   ```
   結果は `Temp/uta-test-results.xml` の `<test-run … total= passed= failed=>` と、`result="Failed"` の `<test-case>` の `<message>` で見る
 - `unity test --mode EditMode`（2026-11-08 に 1 回だけ試した。以後は使わない）: 同じプロジェクトを開いた Editor があると、`プロジェクトは実行中のエディター（PID …）で既に開かれています` で終了コード 6。`unity close .`（保存せずに閉じる。終了コード 0、`graceful`）のあとは終了コード 0 で、プロジェクトの直下に `test-results.xml` を書いた（約 2 分。Editor の起動を含む）。`unity close` の前の `eval` の `AssetDatabase.SaveAssets` は 30 秒でタイムアウトした（閉じるのは通った）。`unity open .` は終了コード 0 で、直後の `unity status --until-ready` には出ず、もう一度 `unity open .` を実行したあと ready になった（1 回目で起動が間に合わなかっただけかは未確認）。`--filter` は試していない
+- **Prefab の生成**（2026-11-08。[計画](../../plans/2026-11-07-client-prefabs-common.md)）: Editor を開いたまま `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'` で Editor のスクリプトの静的メソッドを呼び、Prefab を作れた（`built 10`）。Editor が閉じているとき用のバッチの入口 `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` は、終了コード 0 を 1 回確かめた。`BuildAll` のたびに `NotoSansJP-Regular SDF.asset` のマテリアルの `_ScaleRatioA`・`_ScaleRatioC` が変わり、`FontAssets.ClearDynamicData()` では戻らないので、差分は `git restore` で戻す
 - Unity のバッチモードでビルドするときは、Editor が同じプロジェクトを開いていると競合する。別のワークスペース（`../Uta-wt/<名前>`）に worktree を作り、`Assets/Packages/` のコピーをしてから回す
 
 ## 5. 次にやること

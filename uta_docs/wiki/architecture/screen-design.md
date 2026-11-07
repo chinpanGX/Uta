@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -129,25 +129,28 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 - 画面の Prefab は Addressables のグループ `Screens` に入れる。アドレスは Prefab の名前（例 `HomePage`）。登録は Editor のスクリプト（`AddressableAssetSettings` の API）が行う。`PageContainer`／`ModalContainer` の `AssetLoader` は USN の `AddressableAssetLoader`
 - **アドレス・グループ・ラベル・ロードと解放** [Uta案]: グループは `Screens` の 1 つ（MVP。画面数が増えたら機能ごとに分ける）。アドレスは Prefab の名前そのまま（`HomePage`、`GachaRatesModal`）で、Presenter の `[AssetAddress(nameof(HomePage))]` と同じ文字列。ラベルは付けない。ロードと解放は USN のコンテナー（`AddressableAssetLoader`）が Push／Pop で行い、Presenter・View は `Addressables` の API を呼ばない。リスト行などの共通部品の Prefab は Addressables に入れず、View の `[SerializeField]` で直接参照する（画面の Prefab と一緒にビルドされる）。Editor のスクリプトが、`Assets/Prefabs/Screens/` の Prefab を `Screens` グループにアドレス付きで登録する
 - 基盤の `IScreenNavigator`（Presenter 駆動。`[AssetAddress("HomePage")]` のキーがアドレスになる）をそのまま使う
-- プレイヤーのビルドの前に `AddressableAssetSettings.BuildPlayerContent()` を実行する（`BuildCommands` に足す）
-- **未確認**: Addressables 4.1.2 の Unity 7（`7000.0.0a12`）での動作（Editor の Play、Windows の IL2CPP、`BuildPlayerContent`）。計画の最初のタスクで確かめ、動かなければ止まって報告する（別の読み込み方法に勝手に変えない）
+- プレイヤーのビルドの前に `AddressableAssetSettings.BuildPlayerContent()` を実行する（`BuildCommands.BuildWindowsIl2Cpp` の先頭に足した。ビルドターゲットが `StandaloneWindows64` でなければ止める。Addressables の設定の `BuildAddressablesWithPlayerBuild` は `DoNotBuildWithPlayer`）
+- **確かめたこと**（2026-11-08。[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) のタスク 1・6。[unity7-evaluation.md](unity7-evaluation.md) 2章）: Addressables 4.1.2 で、`Screens` グループの作成と Prefab の登録（`AddressablesSetup`）、Editor の Play での `AddressableAssetLoader` 経由の `PageContainer.Push`、`BuildPlayerContent`（`result.Error` が空）、Windows の IL2CPP のプレイヤーでの `Push` が通った。Play とプレイヤーは使い捨てのスパイク（専用シーン。プレイヤーは `-batchmode -nographics` で終了コード 0、コンソールのログで判定）。`BuildCommands` に足した `BuildPlayerContent` は、Editor の `eval` で単体を実行して `result.Error` が空だった
+- **未確認**: `BuildPlayerContent` を足したあとの `Uta.exe` の IL2CPP のビルドと `-uta-quit-after-check`（Prefab を足すだけの計画ではビルドを確かめない。ユーザーの判断。2026-11-08）。画面の Prefab を基盤の `IScreenNavigator` から読む本番の経路（C# の計画で確かめる）
 
 ### 7.3 文字は TextMeshPro + 日本語のフォントアセット [決定。2026-11-07。ユーザーの判断]
 
-- 文字は TextMeshPro。フォントは **Noto Sans JP（SIL Open Font License 1.1）**。フォントのアセットは**作成済み**（ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。2026-11-07 時点で main には未マージ。画面の Prefab の計画は積み PR で前提にする）: `client/uta/Assets/Fonts/NotoSansJP/` に静的な ttf（Regular・Bold）、`OFL.txt`（ライセンス文）、TMP の動的 SDF のフォントアセット `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic で全部の漢字を事前に焼かない。Multi Atlas、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効）。可変フォントは TMP の Dynamic が wght 軸を扱わないので使わない
+- 文字は TextMeshPro。フォントは **Noto Sans JP（SIL Open Font License 1.1）**。フォントのアセットは**作成済み**（ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。PR #29 で main に入った）: `client/uta/Assets/Fonts/NotoSansJP/` に静的な ttf（Regular・Bold）、`OFL.txt`（ライセンス文）、TMP の動的 SDF のフォントアセット `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic で全部の漢字を事前に焼かない。Multi Atlas、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効）。可変フォントは TMP の Dynamic が wght 軸を扱わないので使わない
 - 文字は Regular のアセット、**太字は Bold のアセット**を使う（TMP の疑似太字 `FontStyles.Bold` は使わない）
 - **フォントの読み込みはシリアライズ参照**: `TMP_Text.font` は生成スクリプトが Prefab に入れる参照で持つ。TMP の既定のフォントも Regular のアセット。フォントは Addressables に入れない（Addressables に入れるのは画面の Prefab だけ。フォントは Prefab・シーンから参照されてビルドに入る）
 - Editor で文字を描くと動的アセットのアトラスに字が足され `.asset` が変わる。Prefab の生成の最後に動的データを空に戻し、残った差分はコミットしない（コミットするアセットはアトラスが空）
-- [Uta案。確認待ち] Unity 7（uGUI 7.0.0）は TMP の Essential Resources の取り込みが無い（既定の設定・シェーダーがパッケージに同梱）。そのため取り込みはせず、プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り（無ければ）、既定のフォントを Regular のアセットにする
-- 確かめてあること（フォントの作業。Editor）: `com.unity.ugui` 7.0.0 に TMPro の型がある、`Assets/` に `TextMesh Pro` フォルダが無くても `Shader.Find("TextMeshPro/Distance Field")` が見つかる、アセットのシェーダーは `TextMeshPro/Mobile/Distance Field`、日本語 15 文字がアトラスに載る。**未確認**: 実際の `TMP_Text` の表示、TMP Settings の既定のフォントの設定状況、プレイヤーのビルド・実機。Prefab の計画（P1）の最初のタスクのスパイクで確かめる
+- Unity 7（uGUI 7.0.0）は TMP の Essential Resources の取り込みが無い（既定の設定・シェーダーがパッケージに同梱）。そのため取り込みはせず、プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り（無ければ）、既定のフォントを Regular のアセットにする
+- 確かめてあること（フォントの作業。Editor）: `com.unity.ugui` 7.0.0 に TMPro の型がある、`Assets/` に `TextMesh Pro` フォルダが無くても `Shader.Find("TextMeshPro/Distance Field")` が見つかる、アセットのシェーダーは `TextMeshPro/Mobile/Distance Field`、日本語 15 文字がアトラスに載る
+- **確かめたこと**（2026-11-08。[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) のタスク 1 のスパイク。[unity7-evaluation.md](unity7-evaluation.md) 2章）: 手を入れる前はプロジェクトの TMP Settings が無く、既定のフォントはパッケージ同梱の `DefaultFont` だった。`TmpSettingsBuilder` が同梱の設定を複製して作り、既定のフォントを `NotoSansJP-Regular SDF` にできた。Editor の Play と Windows の IL2CPP のプレイヤー（`-batchmode -nographics`）の両方で、`TMP_Text` の日本語について `font.HasCharacters` が Regular・Bold とも true だった（コンソールのログで判定）
+- **未確認**: 画面で豆腐にならないかを目で見る確認（Game ビュー、プレイヤーを引数なしで起動。手動で、まだ行っていない）。Android・iOS の実機
 - アプリ内のライセンス表示の画面は MVP では作らない（ストアに出すときに作る。ユーザーの確認待ち）
 
 ### 7.4 Presentation の部品と置き場 [Uta案]
 
 | 要素 | 置き場 | 役割 |
 |---|---|---|
-| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く |
-| 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う |
+| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く。共通部品は 10 個: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`・`BusyBlocker`・`UiRoot`（[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) 3.4）。画面の Prefab だけを Addressables の `Screens` に登録する。部品は画面の Prefab にネストし、`UiRoot` はシーンに置く（どちらも登録しない） |
+| 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う。入口は `PrefabBuildCommands`（メニュー `Uta/Prefabs/Build All`、`unity command eval` から呼ぶ `BuildAll()`）。生成クラスは `IPrefabBuilder` を実装すれば Build All に入る（`TypeCache` で集め、`Order` の順に作る） |
 | View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
 | Presenter | 同上 | View と `Application` のユースケースをつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
 | ユースケース | `Application/<機能>/` | 通信は `I<機能>Port` 越し。`Presentation` は `Infrastructure` に触れない |
@@ -219,4 +222,14 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 
 ## 実装メモ
 
-（実装後に仕様とのズレをここに記録する）
+### Prefab 1/3（共通部品・Addressables・TMP。2026-11-08。[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md)）
+
+- **確かめた範囲**: `BuildAll()` が `built 10`。もう一度回しても `Prefabs/Parts/` に差分は出なかった。Prefab の中身は `unity command eval` で計画 3.4 の表と突き合わせた（スクリーンショットでの見た目の確認はしていない）。`PrefabContractTests`（7 本）を含む EditMode のテストは、Editor を開いたまま `TestRunnerApi` で 43/43 が通り、`Header` の `titleText` を外すと `AllPrefabs_SerializedReferences_AreAssigned` だけが失敗した。バッチの入口 `BuildAllBatch` は終了コード 0 を 1 回確かめた
+- **計画とのズレ・気づいたこと**:
+  - `Pages`・`Modals`・`Overlays` に `RectMask2D` が自動で付く（USN の `PageContainer`・`ModalContainer` の `RequireComponent`）
+  - `EventSystem` の `InputSystemUIInputModule.AssignDefaultActions` の結果は Prefab に保存されない（`m_ActionsAsset` は空）。実行時は `OnEnable` が、アクションが無いときに既定のアクションを入れるはず（Play では未確認）
+  - `UiRoot` のルートの `RectTransform` は scale 0・anchor 0 で保存される（ルートの `Canvas` が実行時に決めるため。推測）
+  - **`BuildAll` のたびに `NotoSansJP-Regular SDF.asset` のマテリアルの `_ScaleRatioA`・`_ScaleRatioC` が変わり、`FontAssets.ClearDynamicData()` では戻らない**。毎回 `git restore client/uta/Assets/Fonts/NotoSansJP` で戻し、コミットに含めない（CLAUDE.md「ビルド・テスト・実行」）
+  - `PrefabContract.FindPrefabPaths` は、フォルダ（`Assets/Prefabs/Screens` など）が無いと空を返す（画面の Prefab が 0 個のときに通るため）
+  - テストの結果は `Temp/uta-test-results.xml` に出すので、`.gitignore` に `test-results.xml` を足していない
+  - プレイヤーのビルド（`BuildPlayerContent` を足したあとの IL2CPP）と、フォントの二重の取り込み（画面の Prefab のバンドルとプレイヤーの両方にフォントが入るか。推測）は、ビルドを計画から外したので確かめていない。ビルドするときに `Build/` と `StreamingAssets/aa` の大きさを見る
