@@ -21,8 +21,9 @@
 | C# のコードを書く | 下の「C# コーディング規約」と `.editorconfig` |
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
 | 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
-| コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`） |
-| 実装計画を書く、実装を Sonnet に任せる | 下の「実装前のルール」と `uta_docs/plans/README.md`（計画の書式。[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
+| コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`、レビュー担当は `.claude/agents/uta-code-reviewer.md`） |
+| 実装計画を書く | `.claude/skills/uta-plan/SKILL.md`（ready・PR まで）と `uta_docs/plans/README.md`（計画の書式。[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
+| 計画を実装する、実装を Sonnet に任せる | `.claude/skills/uta-implement/SKILL.md`（タスクの受け渡し・確かめ・ズレの反映・done まで。実装担当は `.claude/agents/uta-implementer.md`） |
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
 | wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・目次（README）への登録・frontmatter・ADR の番号をスクリプトで点検） |
 | クラウド（Claude Code on the web）で作業する | 下の「クラウドでの作業」 |
@@ -98,9 +99,9 @@ uta/
 1. ゲームの仕様（`systems/`・`overview/`）を書く、または更新する
 2. 実装設計書（`architecture/`）を書く、または更新する。何の正がどのページかは `architecture/README.md`
 3. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
-4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、承認後に `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
+4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、`ready` にしたら `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
 5. 実装設計書と実装計画を `requesting-design-review` でレビューに出す（上の表の回し方）。実装計画は、実装可能性の観点が「質問せずに書ける」と判定するまで直し、`status: ready` にする
-6. 計画のタスクごとに Sonnet のサブエージェントに実装させる（Agent ツールで `model: sonnet`）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
+6. 計画のタスクごとに、実装担当 `uta-implementer`（Sonnet）に実装させる（`uta-implement` スキル）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
 7. `requesting-code-review` でコードレビューに出す
 8. 実装結果と設計書のズレを wiki に反映し（実装設計書を直す。ゲームの挙動が変わったときだけ仕様も直す）、計画を `status: done` にする
 9. コミットメッセージに、何を変えたかと決めたこと・理由を書く（変更の記録は `git log` から引く。[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）
@@ -153,6 +154,8 @@ uta/
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
 - コミットメッセージは日本語
 - **GitHub の操作（PR・Issue・API）は `gh` コマンドを使う**（2026-11-01 に確定）。GitHub の MCP は使わない
+- **作業を始める前に main を最新にする**: `main` のチェックアウトなら `git switch main` → `git pull --ff-only origin main` のあとにブランチを切る（`tools/worktree-pool.sh start` は `origin/main` を取得してから切るので、固定の worktree ではそのままでよい）。未コミットの変更があって切り替えられないときは、変更を消さず、ユーザーに確認する
+- **作業が完了したら、必ず PR を作るところまで行う**: コミット → push → PR の作成まで、ユーザーに確認を取らずに行う。PR の本文に、確認できていないことを書く。マージはユーザーが行う
 - **前提のタスク（未マージの PR）がある作業は、積み PR にする**: 前提のブランチから新しいブランチを切り（`git switch -c <新ブランチ> <前提ブランチ>`）、PR の base も前提のブランチにする（`gh pr create --base <前提ブランチ>`）。PR の本文に前提の PR を書く。前提の PR を先に main へマージしていき、後続の PR は base を main にリターゲットする（`gh pr edit --base main`）。リターゲットとマージはユーザーが進める。前提がない作業は main（または指定の base）に向ける
 - コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
 - 履歴は `git log -- uta_docs/wiki` などで引く
