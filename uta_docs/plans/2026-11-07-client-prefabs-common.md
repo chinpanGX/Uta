@@ -291,7 +291,7 @@ public sealed class UiRoot : MonoBehaviour
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `TabBar` | RectTransform 上帯 110。Image color `Header`、raycastTarget true。HLG: padding 0、spacing 0、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE minHeight 110・preferredHeight 110。`TabBarView`（tabs = 空の配列） |
+| `TabBar` | RectTransform 上帯 110。Image color `Header`、raycastTarget true。HLG: padding 0、spacing 0、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE minHeight 110・preferredHeight 110・flexibleHeight 0（P2 で追加）。`TabBarView`（tabs = 空の配列） |
 
 タブは画面の生成が `PrefabBuildUtil.AddTabBar` で `Tab` のインスタンスを子に並べ、`tabs` に入れる（3.5）。
 
@@ -311,7 +311,7 @@ public sealed class UiRoot : MonoBehaviour
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `Header` | RectTransform 上帯 150。Image color `Header`、raycastTarget true。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H false/true。LE minHeight 150・preferredHeight 150。`HeaderView`（backButton、titleText、rightSlot） |
+| `Header` | RectTransform 上帯 150。Image color `Header`、raycastTarget true。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H false/true。LE minHeight 150・preferredHeight 150・flexibleHeight 0（P2 で追加）。`HeaderView`（backButton、titleText、rightSlot） |
 | ├ `BackButton` | → `Button`。Image color `ButtonSecondary`、Label の text "戻る"。LE preferredWidth 200・flexibleWidth 0 |
 | ├ `TitleText` | → `Label`。fontSize 56（`FontTitle`）、alignment `Center`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "タイトル"。LE flexibleWidth 1 を足す |
 | └ `RightSlot` | RectTransform（レイアウト任せ）。LE preferredWidth 200・flexibleWidth 0（タイトルを中央に保つ。画面がここにボタンを全面で置く） |

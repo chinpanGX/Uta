@@ -1,4 +1,5 @@
-﻿using Uta.Client.Presentation.Gacha;
+﻿using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Gacha;
 
 namespace Uta.Client.Editor.Prefabs.Screens
 {
@@ -21,7 +22,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
             PrefabBuildUtil.SetLayout(lineup.gameObject, minHeight: 70f, flexibleHeight: 1f);
             var exchange = ScreenLayout.AddLabel(main, "ExchangeText", "交換pt - / -", ScreenLayout.LineCenter, 70f);
             var rates = PrefabBuildUtil.AddButtonPart(main, "RatesButton", "排出率", ButtonStyle.Secondary);
-            var drawRow = ScreenLayout.AddRow(main, "DrawRow", 130f);
+            var drawRow = ScreenLayout.AddRow(main, "DrawRow", UiTheme.ButtonHeight);
             var single = PrefabBuildUtil.AddButtonPart(drawRow, "SingleButton", "単発");
             var ten = PrefabBuildUtil.AddButtonPart(drawRow, "TenButton", "10連");
 

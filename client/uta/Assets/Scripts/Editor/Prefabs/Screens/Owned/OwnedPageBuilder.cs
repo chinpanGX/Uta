@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Uta.Client.Presentation.Common;
 using Uta.Client.Presentation.Common.Parts;
 using Uta.Client.Presentation.Owned;
 
@@ -21,10 +22,10 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
             var controls = PrefabBuildUtil.AddChild(main, "Controls");
             PrefabBuildUtil.AddVertical(controls.gameObject, new LayoutSpec(16f, 0, 0, 0, 0, TextAnchor.UpperCenter, true, true, true, false));
-            var sortRow = ScreenLayout.AddRow(controls, "SortRow", 130f);
+            var sortRow = ScreenLayout.AddRow(controls, "SortRow", UiTheme.ButtonHeight);
             var sort = PrefabBuildUtil.AddButtonPart(sortRow, "SortButton", "並び: レア度", ButtonStyle.Secondary);
             var order = PrefabBuildUtil.AddButtonPart(sortRow, "OrderButton", "降順", ButtonStyle.Secondary);
-            var filterRow = ScreenLayout.AddRow(controls, "FilterRow", 130f);
+            var filterRow = ScreenLayout.AddRow(controls, "FilterRow", UiTheme.ButtonHeight);
             var plan = PrefabBuildUtil.AddButtonPart(filterRow, "PlanButton", "プラン: 全て", ButtonStyle.Secondary);
             var type = PrefabBuildUtil.AddButtonPart(filterRow, "TypeButton", "タイプ: 全て", ButtonStyle.Secondary);
 

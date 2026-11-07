@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using Uta.Client.Presentation.Common.Parts;
 using Uta.Client.Presentation.Owned;
 
 namespace Uta.Client.Infrastructure.Tests
@@ -36,7 +37,7 @@ namespace Uta.Client.Infrastructure.Tests
             var view = ScreenPrefabAssert.RootView<OwnedPage>(ScreenPrefabAssert.Load(OwnedPagePath));
             var tabBar = view.transform.Find("Body/TabBar");
             Assert.IsNotNull(tabBar, "Body/TabBar not found");
-            var barView = tabBar.GetComponent<Uta.Client.Presentation.Common.Parts.TabBarView>();
+            var barView = tabBar.GetComponent<TabBarView>();
             Assert.IsNotNull(barView, "Body/TabBar has no TabBarView");
 
             var tabs = new SerializedObject(barView).FindProperty("tabs");
