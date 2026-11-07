@@ -30,6 +30,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - **計画 0 と P1 は `main` 向け。計画 0 を先に main へマージしてから P1 を始める**（確認 1）。積み PR の連鎖 main → P1 → P2 → foundation に計画 0 の変更は入らないので、計画 0 が main に無いと foundation の前提 2（`Card.Name`・`CardFace.Description`）で止まる
 - 「積み PR の base」は実装の PR（4章）の base。前の計画の実装 PR が main に入ったら、後の PR の base を `main` に付け替える（CLAUDE.md「Git」。付け替えとマージはユーザーが行う）
 - 状態は各計画の frontmatter の `status`。計画が `done` になったら、この表も `done` にする
+- **MVP の後の計画（順 7 の範囲外）**: ホームのキャラ表示を 3D モデルの待機モーションにする [ホームの 3D キャラ表示](2026-11-08-client-home-character-3d.md)（2026-11-08。`HomePage.CreateStage` だけを差し替える。この表の 10 本には入れない）
 
 ## 2. 各計画で決めたこと（要約）
 
