@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 4/6 編成・プロデュースの開始と再開
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 ---
@@ -25,11 +25,12 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 12. **例外**: ユースケースは通信の失敗を例外にしない（`PortResult` で返す）。例外は想定外のもの（不具合）だけで、**ボタンの処理（Presenter の公開 `UniTask` メソッド）と `ProduceEntry.StartAsync` が `catch (Exception e)` で受け、`Debug.LogException(e)` のあと `dialogs.ShowInfoAsync("エラーが発生しました: " + e.Message)` を出す**（`ProduceEntry` はそのあとホームへ戻る）。`ProduceFlow`・`ProduceMenu`・ユースケースは例外を受けない（投げたまま返す）。5・6 本目の Presenter も同じ書き方にする
 13. **ホームの「再開」の表示**: `session.Current` があれば `session.HasActive`（`ProduceSession` が新しい）、無ければ `cache.Current.HasActiveProduce`（起動時のサインインの値）。`ProduceSession` はルートにあるので、`Produce` から `Home` を読み込み直しても残る
 14. **`Produce` シーンはこの計画が作り直す**（foundation は変えていない: foundation の決めたこと 12）。`SceneBuilder.BuildProduce` を `Home` と同じ形（`UiRoot.prefab` を置き、`ProduceLifetimeScope.uiRoot` に入れる）にして legacy の補助と `using` を消し、`Produce.unity` を作り直し、#24 の `ProduceView`・`ProducePresenter` を消す（3.4・タスク 5）
+15. **`Produce` シーンの底をいつも背景のページ（週・パラメータ・体力だけの画面）にしてよいか**（決めたこと 2）。局面が変わるたびに、一瞬この背景のページが見えてから次の画面が出る。代わりの案は「最初の局面のページを底にする」だが、局面の切り替えで底のページを閉じられない（基盤は底のページの Pop で空にできるが、`PageStack` の数え方とスキルカード獲得の下に敷くページが局面ごとに分かれ、分岐が増える）ので採らない（ユーザーが推奨どおり了承した。2026-11-07）
+16. **5・6 本目ができるまで、ホームの「プロデュース開始」「再開」は `Produce` シーンへ移って、すぐ「この局面の画面は準備中です: WeekSelect」を出してホームへ戻る動きになる**（決めたこと 4）。プロデュースのセッションはサーバーに残る（「再開」のボタンが出る）。この途中の動きでよいか（ユーザーが推奨どおり了承した。2026-11-07）
 
 ## ユーザーの確認が要ること
 
-1. **`Produce` シーンの底をいつも背景のページ（週・パラメータ・体力だけの画面）にしてよいか**（決めたこと 2）。局面が変わるたびに、一瞬この背景のページが見えてから次の画面が出る。代わりの案は「最初の局面のページを底にする」だが、局面の切り替えで底のページを閉じられない（基盤は底のページの Pop で空にできるが、`PageStack` の数え方とスキルカード獲得の下に敷くページが局面ごとに分かれ、分岐が増える）ので採らない
-2. **5・6 本目ができるまで、ホームの「プロデュース開始」「再開」は `Produce` シーンへ移って、すぐ「この局面の画面は準備中です: WeekSelect」を出してホームへ戻る動きになる**（決めたこと 4）。プロデュースのセッションはサーバーに残る（「再開」のボタンが出る）。この途中の動きでよいか
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -713,7 +714,7 @@ public static class TestProduce
 3. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）を直す:
    - 7.6 の 1 つ目の箇条書きの「`ProduceSession`（最新の `ProduceStateView` と次の操作番号）」を「`ProduceSession`（最新の `ProduceProgress`（応答の写し）。次の操作番号は `Current.OperationNumber`。操作の前後の差は `Previous` と `Current`）」に直す
    - 7.6 の 3 つ目の箇条書きを「`PRODUCE_STALE_OPERATION`・`PRODUCE_UNEXPECTED_PHASE` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたら、セッションを消して所持データを取り直し、`Home` シーンへ戻る」に直す
-   - **7.6 で直すのは上の 2 つの箇条書きだけ**。プロデュースの画面の流れ（背景のページ・局面の切り替え・スキルカード獲得のモーダルの出し方）を 7.6 に足すこと、[screen-wireframes.md](../wiki/overview/screen-wireframes.md) の直しは、この計画ではしない。スキルカード獲得のモーダルを背景のページの上に出すこと（week の確認 1。[索引](2026-11-07-client-screens-index.md) 確認 15）がユーザーの了承待ちのため、了承のあとに week のタスク 5 が 7.6 と screen-wireframes を直す
+   - **7.6 で直すのは上の 2 つの箇条書きだけ**。プロデュースの画面の流れ（背景のページ・局面の切り替え・スキルカード獲得のモーダルの出し方）を 7.6 に足すこと、[screen-wireframes.md](../wiki/overview/screen-wireframes.md) の直しは、この計画ではしない。スキルカード獲得のモーダルを背景のページの上に出すこと（week の決めたこと 15。[索引](2026-11-07-client-screens-index.md) 確認 15）は 2026-11-07 にユーザーが了承済みだが、7.6 と screen-wireframes を直す仕事は week のタスク 5 が実装時に行う
    - 8章の表の `Home` の行の役割の「ここから `Produce` へ」を「編成（`FormationPage`）はこのシーンのページ。開始・再開で `Produce` へ」に、`Produce` の行の役割を「プロデュース。底に背景のページを置き、局面の画面を積む（7.6）。ホームへ戻る・放棄・終了で `Home` へ」に直す（foundation のタスク 6 がすでに書き換えていれば、その文に合わせて「空」などの古い記述だけを直す）
    - 「実装メモ」に、設計とのズレを書く（なければ「順 7 の 4 本目: なし」）
 4. produce-server.md の実装メモの「未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作」を、2 の結果に合わせて「…`WeekSelect` の応答までは確かめた（unity7-evaluation.md 2章）。`LessonDto`・`ExamResultDto` は未確認」に直す（確かめられなかったら直さない）
@@ -817,6 +818,6 @@ Play モード・IL2CPP・手動はタスク 6。
 
 ## 6. 未決事項
 
-いまは draft。「ユーザーの確認が要ること」の 1・2 の答えが出て、次の照合が済んだら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- （2026-11-07 に照合済み）owned・gacha の名前（`OwnedArgs`・`OwnedSelectionRequest`・`OwnedSelection`・`FormationValidator.IsPlanCompatible`・`DisplayText.RarityName`／`PlanName`／`ParamName`・`PortResult<T>`・`ServerReasons`・`FakeGameMaster`・`HomePresenter` の `IScreenNavigator`）。week・lesson はこの版の `ProduceFlow`（`ProduceEntry`・`ShowCurrentAsync`・`HandleStepAsync`・`GoToHomeAsync`）に合わせてある。スキルカード獲得のモーダルを背景の上に出すこと（week の確認 1）はユーザーの了承待ち（[索引](2026-11-07-client-screens-index.md)）
+- （2026-11-07 に照合済み）owned・gacha の名前（`OwnedArgs`・`OwnedSelectionRequest`・`OwnedSelection`・`FormationValidator.IsPlanCompatible`・`DisplayText.RarityName`／`PlanName`／`ParamName`・`PortResult<T>`・`ServerReasons`・`FakeGameMaster`・`HomePresenter` の `IScreenNavigator`）。week・lesson はこの版の `ProduceFlow`（`ProduceEntry`・`ShowCurrentAsync`・`HandleStepAsync`・`GoToHomeAsync`）に合わせてある。スキルカード獲得のモーダルを背景の上に出すこと（week の決めたこと 15）は 2026-11-07 にユーザーが了承済み（[索引](2026-11-07-client-screens-index.md)）

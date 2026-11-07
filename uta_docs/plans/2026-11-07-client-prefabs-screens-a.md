@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 2/3 Title・Home・ガチャ・所持一覧
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -23,11 +23,12 @@ spec: ../wiki/architecture/screen-design.md
 10. 叩き台（screen-wireframes）との差: ガチャの結果は絵のグリッドではなく 1 枠 1 行の文字、ガチャ名の行と画像・「交換」ボタンは無し（gacha の C# 計画の範囲どおり）、ホームの「週 7 / 16」とキャラ表示は無し（foundation の C# 計画どおり。キャラ表示の場所は空き）
 11. **Title シーンのページは `TitlePage`**（タイトルの文字・状態の文・「スタート」のボタン）。旧 foundation の `StartupPage`（「起動中…」だけのページ）は作らない。foundation（C#）が `TitlePage` に `ITitleView`（`SetStatus`・`SetStartInteractable`・`StartClicked`。foundation 3.7）を実装する
 12. **`HomePage.resumePanel` の型は `GameObject`**（foundation 3.7 の `SetResumeVisible` が `resumePanel.SetActive` を呼ぶ）
+13. **タイトルの文字を「Uta」にしてよいか**（プロジェクト名。既存作品の名前ではない。ロゴの画像は作らない）（ユーザーが推奨どおり了承した。2026-11-07）
+14. 見た目の値（寸法・フォントサイズ・色の割り当て）は仮。P1 の `UiTheme` の範囲で決めた（3.4）。この値で進めてよいか（ユーザーが推奨どおり了承した。2026-11-07）
 
 ## ユーザーの確認が要ること
 
-1. **タイトルの文字を「Uta」にしてよいか**（プロジェクト名。既存作品の名前ではない。ロゴの画像は作らない）
-2. 見た目の値（寸法・フォントサイズ・色の割り当て）は仮。P1 の `UiTheme` の範囲で決めた（3.4）。この値で進めてよいか
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -149,7 +150,7 @@ namespace Uta.Client.Presentation.Home
 | └ `Body` | ページの共通の形（`Header` なし） | [P2] |
 | 　└ `Main` | ページの共通の形。ただし childAlignment は `MiddleCenter` | [P2] |
 | 　　├ `TopSpacer` | RectTransform（レイアウト任せ）。LE flexibleHeight 1（`ScreenLayout.AddFlexibleSpacer(main, "TopSpacer")`） | [P2] |
-| 　　├ `TitleText` | → `UtaLabel`。`Title`（56・`Text`・`Center`・折り返さない・省略）、text "Uta"。LE 120（`ScreenLayout.AddLabel(main, "TitleText", "Uta", ScreenLayout.Title, 120f)`） | 確認 1 |
+| 　　├ `TitleText` | → `UtaLabel`。`Title`（56・`Text`・`Center`・折り返さない・省略）、text "Uta"。LE 120（`ScreenLayout.AddLabel(main, "TitleText", "Uta", ScreenLayout.Title, 120f)`） | 決めたこと 13 |
 | 　　├ `MiddleSpacer` | RectTransform（レイアウト任せ）。LE flexibleHeight 1（`AddFlexibleSpacer`） | [P2] |
 | 　　├ `StatusText` | → `UtaLabel`。`BlockCenter`（40・`Text`・`Center`・折り返す・省略）、text "タップしてスタート"。LE 160（3 行まで。`AddLabel(…, ScreenLayout.BlockCenter, 160f)`） | screen-design 8章（Title の状態の表示） |
 | 　　├ `StartButton` | → `UtaButton`（`Primary`）。Label "スタート" | screen-design 8章「スタートをタップ」 |
@@ -710,7 +711,6 @@ Editor でしか確かめられないもの（自動のテストにしない）:
 
 ## 6. 未決事項
 
-いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- 「ユーザーの確認が要ること」の 1・2 の答え
 - 他の計画への影響は反映済み（2026-11-07）: foundation（C#）は `TitlePage`・`HomePage` の骨格に `ITitleView`・`IHomeView` を実装し、部品の View の表示のメソッド（`UtaButtonView.SetLabel`・`SetInteractable`、`UtaHeaderView.SetTitle` など。foundation 3.2）を足す。gacha・owned（C#）は 3.3 の表のフィールドを使う。P3 は `ScreenLayout` を使う

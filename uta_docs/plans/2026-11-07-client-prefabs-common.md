@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 1/3 共通部品・Addressables・TextMeshPro
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -12,8 +12,8 @@ spec: ../wiki/architecture/screen-design.md
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。
 
 1. **最初のタスクはスパイク（止まる条件つき）**。Addressables 4.1.2 と TextMeshPro（日本語の動的 SDF フォント）が Unity 7（`7000.0.0a12`）の Editor の Play と Windows の IL2CPP のプレイヤーで動くかを、**使い捨ての専用シーン `Assets/Spike/Spike.unity`** で確かめる（Editor の Play もこのシーンから始める。サーバー・`Bootstrap` は要らず、シーンの切り替えでプローブが消えない）。動かなければ止まって報告する（Resources・legacy `Text` などへ勝手に変えない）。確かめ終えたら使い捨てのファイルは消す
-2. **Unity 7 の TMP は Essential Resources の取り込みが無くなった**（uGUI 7.0.0 の CHANGELOG: 既定のフォント・シェーダー・TMP Settings がパッケージに同梱され、取り込みの窓とメニューは削除）。そのため screen-design 7.3 の「Essential Resources を取り込む」はやらず、代わりに**プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り、既定のフォントを Noto Sans JP の動的 SDF にする**（確認 2）
-3. **フォントは作成済みのものを使う（この計画では作らない）**。別の作業（PR #29。ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。この計画の前に main へ入っている前提: 前提 2・確認 4）が `Assets/Fonts/NotoSansJP/` に Noto Sans JP の静的な ttf（Regular・Bold）・`OFL.txt`・TMP のフォントアセット 2 つを置いた: `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic、Multi Atlas 有効、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効。シェーダーは `TextMeshPro/Mobile/Distance Field`）。この計画はアセットを作り直さず、設定も変えない。文字は Regular、**太字は Bold の SDF アセットを font に入れる**（`FontStyles.Bold` の疑似太字は使わない。`fontStyle` は常に `Normal`）
+2. **Unity 7 の TMP は Essential Resources の取り込みが無くなった**（uGUI 7.0.0 の CHANGELOG: 既定のフォント・シェーダー・TMP Settings がパッケージに同梱され、取り込みの窓とメニューは削除）。そのため screen-design 7.3 の「Essential Resources を取り込む」はやらず、代わりに**プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り、既定のフォントを Noto Sans JP の動的 SDF にする**（決めたこと 16）
+3. **フォントは作成済みのものを使う（この計画では作らない）**。別の作業（PR #29。ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。この計画の前に main へ入っている前提: 前提 2・決めたこと 18）が `Assets/Fonts/NotoSansJP/` に Noto Sans JP の静的な ttf（Regular・Bold）・`OFL.txt`・TMP のフォントアセット 2 つを置いた: `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic、Multi Atlas 有効、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効。シェーダーは `TextMeshPro/Mobile/Distance Field`）。この計画はアセットを作り直さず、設定も変えない。文字は Regular、**太字は Bold の SDF アセットを font に入れる**（`FontStyles.Bold` の疑似太字は使わない。`fontStyle` は常に `Normal`）
 4. **フォントの読み込みは Prefab からのシリアライズ参照**。`TMP_Text.font` は生成スクリプトが Prefab に入れる（Regular か Bold のアセットへの参照）。TMP Settings の既定フォントも同じ Regular のアセット。**フォントは Addressables に入れない**（Addressables に入れるのは画面の Prefab だけ。フォントは画面の Prefab・シーンの `UiRoot` から参照され、ビルドに一緒に入る）。動的アセットは Editor で文字を描くとアトラスに字が足され `.asset` が変わるので、`BuildAll()` の最後に 2 つのアセットの動的データを空に戻す（`FontAssets.ClearDynamicData()`）。それでも `Fonts/NotoSansJP/*.asset` に差分が残ったら、コミットせず `git restore` で戻す（コミット済みのアセットはアトラスが空）
 5. **共通部品の Prefab は 10 個**（`Assets/Prefabs/Parts/`）: `UtaLabel`・`UtaButton`・`UtaPanel`・`UtaListRow`・`UtaHeader`・`UtaTab`・`UtaTabBar`・`UtaDialog`（確認・お知らせ・選択を 1 つで。ボタンは実行時に `UtaButton` から並べる）・`UtaBusyBlocker`・`UiRoot`。値（色・寸法・フォントサイズ）は旧 foundation の `UiTheme` を流用し、足りない色（ヘッダー・二次ボタン）を足した（3.2）
 6. **Addressables**: 設定は `Assets/AddressableAssetsData/`（Editor のスクリプトが作る。コミットする）。グループ `Screens`（スキーマは Default Local Group の写し）、アドレス = Prefab のファイル名、ラベル無し。**登録するのは画面の Prefab だけ**（`Assets/Prefabs/Screens/` の下。P2・P3 が足す）。部品の Prefab は画面の Prefab にネストし、`UiRoot` はシーンに置くので、Addressables に入れない。`BuildAddressablesWithPlayerBuild` は `AddressableAssetSettings.PlayerBuildOption.DoNotBuildWithPlayer` にし、`BuildCommands` が明示的に `BuildPlayerContent` を呼ぶ
@@ -25,13 +25,14 @@ spec: ../wiki/architecture/screen-design.md
 12. EditMode のテストのコマンド `unity test --mode EditMode` は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章に無いので、タスク 5 で動くことを確かめて 4章と CLAUDE.md に足す（foundation のタスク 6 にあった CLAUDE.md の追記はこの計画に移る）。`unity test` は同じプロジェクトを開いた Editor があると使えないので、**`unity close .` → `unity test` → `unity open .` → `unity status --until-ready`** の順で回す（`unity close`・`unity open` も 4章に無いので、タスク 5 で一緒に確かめて足す）。P2・P3 はこの手順を使う。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）
 13. **テストのアセンブリは `Uta.Client.Editor` を参照する**（`TmpSettings_DefaultFont_IsNotoSansJpDynamic` が `FontAssets.RegularPath` を使うため。3.1）。テストの asmdef は Editor 専用なので、Editor のアセンブリを参照してよい
 14. **foundation（C#）との境界は foundation の計画で決まった**（2026-11-07）: 旧版の `UiFactory`・`UiFonts`・`EnsureBuilt`・`UiFactoryTests` などを消し、`UiTheme`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`・`ModalBase`・`UiRoot` は P1 が作る（foundation の決めたこと 2）。`DialogService` の公開 API（`UtaDialogView` を使う形）は foundation 3.2 が正。各シーンの `UiRoot` の `BusyIndicator`・`DialogService` は、ルートの `ActiveSceneUi` に各シーンのスコープが入れて、`ApiActivityBridge`・`ErrorDialogView` がそこから取る（foundation の決めたこと 4）。この計画はそれに合わせてある（1.1 の表）
+15. **Noto Sans JP（SIL Open Font License 1.1）のライセンス表示**。ライセンス文 `Assets/Fonts/NotoSansJP/OFL.txt` はフォントと一緒にリポジトリに入っている。アプリ内のライセンス表示の画面は MVP では作らず、ストアに出すときに作る。この案でよいか（ユーザーが推奨どおり了承した。2026-11-07）
+16. **screen-design 7.3 の「TMP の Essential Resources を取り込む」を「プロジェクトの TMP Settings を作り、既定のフォントを設定する」に直したこと**（このページの 7.3 は [Uta案] として直してある。印は実装時に外す）。Unity 7 の uGUI 7.0.0 で取り込み自体が無くなったため。ユーザーの判断（2026-11-07）の中身を変えるものなので確認する（ユーザーが推奨どおり了承した。2026-11-07）
+17. 見た目の値（色・寸法）は仮。旧 foundation の値に、ヘッダーの色 `(0.14, 0.15, 0.20)` と二次ボタンの色 `(0.30, 0.33, 0.42)` を足した。角丸・アイコンの画像は使わない（単色の四角）。この案で進めてよいか（ユーザーが推奨どおり了承した。2026-11-07）
+18. **PR #28（`external/` のサブモジュールを消す）と PR #29（Noto Sans JP のフォント）を、この計画の実装の前に両方 main へマージしてよいか**（[索引](2026-11-07-client-screens-index.md)の確認 1）。この計画の実装ブランチは main から切る前提で書いた（前提 2）。片方だけでは前提がそろわない（1 つの PR の base は 1 つしか選べない）（ユーザーが推奨どおり了承した。2026-11-07）
 
 ## ユーザーの確認が要ること
 
-1. **Noto Sans JP（SIL Open Font License 1.1）のライセンス表示**。ライセンス文 `Assets/Fonts/NotoSansJP/OFL.txt` はフォントと一緒にリポジトリに入っている。アプリ内のライセンス表示の画面は MVP では作らず、ストアに出すときに作る。この案でよいか
-2. **screen-design 7.3 の「TMP の Essential Resources を取り込む」を「プロジェクトの TMP Settings を作り、既定のフォントを設定する」に直したこと**（このページの 7.3 は [Uta案。確認待ち] として直してある）。Unity 7 の uGUI 7.0.0 で取り込み自体が無くなったため。ユーザーの判断（2026-11-07）の中身を変えるものなので確認する
-3. 見た目の値（色・寸法）は仮。旧 foundation の値に、ヘッダーの色 `(0.14, 0.15, 0.20)` と二次ボタンの色 `(0.30, 0.33, 0.42)` を足した。角丸・アイコンの画像は使わない（単色の四角）。この案で進めてよいか
-4. **PR #28（`external/` のサブモジュールを消す）と PR #29（Noto Sans JP のフォント）を、この計画の実装の前に両方 main へマージしてよいか**（[索引](2026-11-07-client-screens-index.md)の確認 1）。この計画の実装ブランチは main から切る前提で書いた（前提 2）。片方だけでは前提がそろわない（1 つの PR の base は 1 つしか選べない）
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -40,7 +41,7 @@ spec: ../wiki/architecture/screen-design.md
 - 関係する ADR: [0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・VContainer・UniTask・縦画面）、[0006](../wiki/decisions/0006-adopt-unity-7-early.md)（Unity 7）、[0005](../wiki/decisions/0005-foundation-submodule.md)（共通基盤。`external/` は直さない）、[0001](../wiki/decisions/0001-ip-policy.md)（文言・名前はオリジナル）
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0（[masterdata-card-text](2026-11-03-masterdata-card-text.md)）→ **P1（この計画）** → P2（[screens-a](2026-11-07-client-prefabs-screens-a.md)）→ foundation（[C#](2026-11-03-client-screens-foundation.md)。シーン・`UiRoot` の配置・Bootstrap の接続、`BusyIndicator`・`DialogService` のロジック）→ gacha → owned（C#）→ P3（[screens-b](2026-11-07-client-prefabs-screens-b.md)）→ formation → week → lesson（C#）。この計画は計画 0 の型には依存しない
 - **前提 1**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
-- **前提 2**: PR #28・PR #29 が main に入っていること（確認 4。[索引](2026-11-07-client-screens-index.md)の「前提となる未マージの PR」。2026-11-07 時点でどちらも未マージ）。この計画の実装のブランチは `main` から切る（`tools/worktree-pool.sh start <番号> <新ブランチ>`。base は既定の `origin/main`）。PR #29 のフォント（`client/uta/Assets/Fonts/NotoSansJP/` に `NotoSansJP-Regular.ttf`・`NotoSansJP-Bold.ttf`・`NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`・`OFL.txt`）が main にある。タスク 1 の前に 5 つのファイルがあることを確かめ、無ければ止まって報告する（フォントのブランチから切って進めない）
+- **前提 2**: PR #28・PR #29 が main に入っていること（決めたこと 18。[索引](2026-11-07-client-screens-index.md)の「前提となる未マージの PR」。2026-11-07 時点でどちらも未マージ）。この計画の実装のブランチは `main` から切る（`tools/worktree-pool.sh start <番号> <新ブランチ>`。base は既定の `origin/main`）。PR #29 のフォント（`client/uta/Assets/Fonts/NotoSansJP/` に `NotoSansJP-Regular.ttf`・`NotoSansJP-Bold.ttf`・`NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`・`OFL.txt`）が main にある。タスク 1 の前に 5 つのファイルがあることを確かめ、無ければ止まって報告する（フォントのブランチから切って進めない）
   - 補足（使わない予定の代わりの手順）: ユーザーが #29 だけを先にしない・遅らせると決めたときだけ、ブランチを `claude/noto-sans-jp-font` から切り、PR の base もそのブランチにする積み PR にできる。この場合 PR #28 の変更（`manifest.json`・`external/` の削除）は入らないので、下の「PR #28 の読み替え」は使わず `external/` のソースを読む
 - **前提 3**: Windows の IL2CPP のビルドはバッチモードで行い、同じプロジェクトを開いている Editor を先に閉じる（CLAUDE.md「ビルド・テスト・実行」、unity7-evaluation 4章）
 - **PR #28 の読み替え**: PR #28（前提 2 で main に入っている。PR #28 が足す ADR）は `external/` のサブモジュールを全部消す（UnityScreenNavigator・Supplement・VolTech-MagicOnion・MasterMemoryAddons）。サーバー・shared は `packages/` の `.nupkg`、Unity は `manifest.json` の git URL で参照し、`Uta.slnx` から共通基盤が外れる。**PR #28 のあとは、共通基盤のソース（USN の `Runtime/ChinpanGX`・README・`AddressableAssetLoader`、VolTech-MagicOnion のコードなど）は `client/uta/Library/PackageCache/<パッケージ名>@<ハッシュ>/`（USN は `com.harumak.unityscreennavigator`。Unity でパッケージを解決した環境にだけある）か GitHub のリポジトリを読む。マージ前は `external/<名前>`**。この計画に書いた `external/` のパスは、そう読み替える（`external/` は直さない、の決まりは変わらない）
@@ -113,7 +114,7 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 
 ### 3.2 `UiTheme`（`Uta.Client.Presentation.Common`）
 
-値の出どころ: 旧 foundation 3.2 の `UiTheme`（そのまま流用）、`[P1]` はこの計画で足した値（確認 3）。
+値の出どころ: 旧 foundation 3.2 の `UiTheme`（そのまま流用）、`[P1]` はこの計画で足した値（決めたこと 17）。
 
 ```csharp
 public static class UiTheme
@@ -817,7 +818,7 @@ public static class PrefabContract
 
 手順:
 1. screen-design.md（frontmatter の `updated` を実施日に）:
-   - 7.3 の「**未確認**」を、タスク 1 の結果（`TMP_Text` の表示・TMP Settings の既定フォント・Windows の IL2CPP。確かめた日と方法。unity7-evaluation へのリンク）に直す。TMP Settings の節の印 [Uta案。確認待ち] は、確認 2 が取れていれば外す（取れていなければ残して報告する）
+   - 7.3 の「**未確認**」を、タスク 1 の結果（`TMP_Text` の表示・TMP Settings の既定フォント・Windows の IL2CPP。確かめた日と方法。unity7-evaluation へのリンク）に直す。TMP Settings の節の印 [Uta案。確認待ち] は外す（決めたこと 16 は 2026-11-07 にユーザーが了承済み）
    - 7.2 の「**未確認**: Addressables 4.1.2 …」を、タスク 1・6 の結果（確かめた日と方法。unity7-evaluation へのリンク）に直す
    - 7.4 の表の「Prefab」の行に、部品の一覧（3.4 の 10 個）と「画面の Prefab だけを Addressables の `Screens` に登録する。部品はネスト、`UiRoot` はシーンに置く」を足し、「生成スクリプト」の行に「入口は `PrefabBuildCommands`（`Uta/Prefabs/Build All`）。生成クラスは `IPrefabBuilder` を実装すれば Build All に入る」を足す
    - 実装メモに、実装と計画のズレ（あれば）と、タスク 4 の再生成の差分の結果を書く
@@ -850,8 +851,7 @@ Editor・プレイヤーでしか確かめられないもの（自動のテス�
 
 ## 6. 未決事項
 
-いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- 「ユーザーの確認が要ること」の 1〜4 の答え
 - フォントの二重の取り込み（推測）: フォントは Addressables に入れないので、画面の Prefab（`Screens` のバンドル）とシーンの `UiRoot`（プレイヤー）の両方から参照されると、フォントのアセット（動的なので元の ttf を含む。1 本約 5.7 MB）がバンドルとプレイヤーの両方に入る可能性がある。タスク 6 のビルドで大きさを記録し、二重なら報告する（この計画では直さない）
 - （foundation との境界・`DialogService` の公開 API・シーンごとの `BusyIndicator` の見つけ方は foundation の計画で決まったので消した。決めたこと 14）

@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 2/6 ガチャ
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 ---
@@ -23,17 +23,16 @@ spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 10. **DI**: ゲートウェイとユースケースを `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足す。Presenter・ページは登録しない（基盤の `ScreenNavigator` が Push のたびに子スコープで解決する）。Addressables への登録は P2 の生成スクリプトが済ませている
 11. テスト用の `FakeGameMaster`（`IGameMaster` の偽）はこの計画で作る（3 本目以降も使う）。所持データの取り直しの偽は foundation の `StubPlayerPort` を使う
 12. **テストのダミー値は共通のヘルパー `GachaFixtures`（`Tests/EditMode/Support/`）に 1 か所で決める**: `IdolInfo`・`SupportCardInfo`・`GachaInfo`・`PlayerSnapshot`・`DrawResultDto` の、名前とレア度（DTO は枠・種別・ID・結果・かけら・強化pt）以外の引数の値はここだけに書く。ガチャのテストはこれを使い、これらの型を直接 `new` しない（5章）
-
-## ユーザーの確認が要ること
-
-どちらも未回答（ユーザーの確認待ち）。答えが出るまで `status` は `draft` のまま。
-
-1. **叩き台（[screen-wireframes.md](../wiki/overview/screen-wireframes.md) 9）との差を、次の 4 つにしてよいか**（[Uta案]）
+13. **叩き台（[screen-wireframes.md](../wiki/overview/screen-wireframes.md) 9）との差を、次の 4 つにしてよいか**（[Uta案]）（ユーザーが推奨どおり了承した。2026-11-07）
    - ガチャ名の行は固定の「ガチャ」（マスタの `Gacha` に名前の列が無い）
    - ガチャの画像は出さない（MVP は文字だけ）
    - 結果はカードの絵のグリッドではなく、1 枠 1 行の文字
    - 「NEW」は育成アイドルを初めて得たときだけ。サポートカードは 2 枚目以降も「行が増えた」（`Outcome = New`。gacha.md 5章）なので、「NEW」ではなく「所持に追加」と出す
-2. **結果の「もう一度」も、引く前の確認ダイアログ（消費量と所持）を出してよいか**。確認を省く案もあるが、通貨を使う操作なので毎回確かめる
+14. **結果の「もう一度」も、引く前の確認ダイアログ（消費量と所持）を出してよいか**。確認を省く案もあるが、通貨を使う操作なので毎回確かめる（ユーザーが推奨どおり了承した。2026-11-07）
+
+## ユーザーの確認が要ること
+
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -573,7 +572,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 1. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）:
    - 2章の表の「ガチャ（結果）」の行の「ページ／モーダル」を「モーダル」にする
    - 7.5 の「所持データのキャッシュ」の項の最後に「RPC が成功したあとの取り直しが失敗しても、RPC の結果は捨てずに出す（ガチャの結果のモーダルを出し、通貨は `DrawResponse` の値で出す）。キャッシュは次に取り直すまで古いまま」を足す（foundation のタスク 6 が同じ意味の文を足していれば足さない）
-   - 「実装メモ」に、「ユーザーの確認が要ること」の 1 の叩き台との差 4 つ（ユーザーの答えに合わせる）と、実装で設計から変えたこと（なければ「順 7 の 2 本目: 叩き台との差のほかは、なし」）を書く
+   - 「実装メモ」に、「この計画で決めたこと」13 の叩き台との差 4 つと、実装で設計から変えたこと（なければ「順 7 の 2 本目: 叩き台との差のほかは、なし」）を書く
 2. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md):
    - 2章の表に、Editor の Play で確かめたものを 1 行足す（`IGachaService` の `GetGachasAsync`・`DrawAsync` を `ApiCore` 経由で呼び、`DrawResultDto[]` を受け取れた。基盤の `ScreenNavigator` で Addressables のモーダル（`ModalBase` + `DefaultModalBackdrop`）を積んで閉じられた。確かめた日付）。確かめられなかったものは 3.3 に書く
    - 3.3 に「Windows の IL2CPP のプレイヤーでの `IGachaService`（`DrawResponse`・`DrawResultDto[]`）の送受信は未確認（順 7 の 6 本目の通しのビルドで確かめる）」を足す。foundation が 3.3 に「モーダルは 2 本目で確かめる」と書いていれば、確かめた結果に直す
@@ -715,6 +714,6 @@ Play・手動（Editor、サーバー起動済み・初期付与済みのプレ�
 
 ## 6. 未決事項
 
-いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- 「ユーザーの確認が要ること」の 1・2 の答え
+- なし

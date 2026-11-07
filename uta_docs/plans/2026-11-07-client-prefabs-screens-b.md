@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 3/3 編成・プロデュース
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -20,15 +20,16 @@ spec: ../wiki/architecture/screen-design.md
 7. 文字の大きさ・色・寸法は P1 の `UiTheme` の値だけを使う（新しい色・フォントサイズを足さない）。表示の文字（ラベルの初期値）は C# の計画の文言に合わせる
 8. View の骨格（`[SerializeField] private` のフィールドだけ）を、C# の計画の `IXxxView` から導いて作る（3.1）。C# の計画（formation・week・lesson）は、この計画の対応表（3.2・4章）のフィールドと、foundation 3.2 の部品の View のメソッド（`UtaHeaderView.SetTitle`・`BackButton`、`UtaButtonView.Button`・`SetLabel`・`SetInteractable`、`ListRowBase.Button`・`SetInteractable`）を使う
 9. **画面とシーンの関係**（formation の計画が正。Prefab はシーンに依存しない）: `FormationPage` は `Home` シーンでホームのページの上に積む。プロデュースの画面（`WeekPage` から `ProduceResultPage` まで）は `Produce` シーンに積み、**底のページはいつも `ProduceBackdropPage`**（局面の画面は背景より上を Pop してから Push する。`CardOfferModal` は背景のページの上にモーダルで出す）
-
-## ユーザーの確認が要ること
-
-1. **叩き台（[screen-wireframes.md](../wiki/overview/screen-wireframes.md)）との見た目の差**。どれも「見た目は仮」の範囲で、C# の計画の表示の形（文字の行）をそのまま Prefab にしたもの。この案で進めてよいか:
+10. **叩き台（[screen-wireframes.md](../wiki/overview/screen-wireframes.md)）との見た目の差**。どれも「見た目は仮」の範囲で、C# の計画の表示の形（文字の行）をそのまま Prefab にしたもの。この案で進めてよいか:（ユーザーが推奨どおり了承した。2026-11-07）
    - a. 手札は**縦の一覧**（1 枚 = 名前・消費・説明文の 3 行。4 枚を超えるとスクロール）。叩き台 3 は横に 3 枚並べるが、説明文を出すと横 1/3 の幅では読めないため
    - b. ステータスは**文字の行**（「好調 3　集中 4」）。叩き台 3 の [好調3] の札にはしない（札を並べる部品と行の C# が増えるため。MVP の後に足せる）
    - c. 週の行動は**縦に並んだボタン**（叩き台 2 は 2×2）。行動の数が週で 1〜4 と変わり、縦の並びなら数に依らず同じ形で済むため
    - d. 試験結果の順位表は 1 行 1 文字列（「2位　あなた　1,388 ◀」）で、自分の行の文字だけ `Accent` の色（C# が色を変える）
-2. **記号の字形**: `≡`（メニュー）・`◀`（順位表の自分の印）・`＜` が Noto Sans JP にある前提（`≡` は JIS X 0208 にある。`◀` は JIS X 0213 の字で、Noto Sans JP にあるのは推測）。タスク 5 の目視で豆腐（□）なら、`◀` は C# の計画の文言を `"（あなた）"` などに変える案にする（その時点で確認する）
+11. **記号の字形**: `≡`（メニュー）・`◀`（順位表の自分の印）・`＜` が Noto Sans JP にある前提（`≡` は JIS X 0208 にある。`◀` は JIS X 0213 の字で、Noto Sans JP にあるのは推測）。タスク 5 の目視で豆腐（□）なら、`◀` は C# の計画の文言を `"（あなた）"` などに変える案にする（その時点で確認する）（ユーザーが推奨どおり了承した。2026-11-07）
+
+## ユーザーの確認が要ること
+
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -60,7 +61,7 @@ spec: ../wiki/architecture/screen-design.md
 | 生成（変更） | `AddressableAssetsData/AssetGroups/Screens.asset` | 画面 10 個のエントリ（`RegisterScreen` が足す） |
 | 作成 | `Tests/EditMode/ProducePrefabTests.cs` | 画面固有の確かめ（5章） |
 | 変更 | `uta_docs/wiki/architecture/screen-design.md` | 実装メモ（タスク 6） |
-| 変更 | `uta_docs/wiki/overview/screen-wireframes.md` | 2・3・7 の MVP の見た目の注記（タスク 6。確認 1 が取れたときだけ） |
+| 変更 | `uta_docs/wiki/overview/screen-wireframes.md` | 2・3・7 の MVP の見た目の注記（タスク 6。決めたこと 10 は了承済み） |
 
 ## 3. 型とシグネチャ
 
@@ -643,9 +644,9 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 1. 6章のテストを作る
 2. テストを回す（前提 3。保存 → `unity close .` → `unity test --mode EditMode` → `unity open .`）。P1 の `PrefabContractTests`（全部の Prefab の参照・画面の名前と登録）と `ProducePrefabTests` が全部通る。手順 3・4 は Editor を開き直してから行う
 3. 冪等の確かめ: もう一度 `BuildAll()` を実行し、`git diff --stat` で `Prefabs/Parts/`・`Prefabs/Screens/`・`AddressableAssetsData/` に差分が出るかを見る。**出ても止まらない**（P1 タスク 4 と同じ扱い）。差分の有無と、出たならどの値かを報告に書く。`Fonts/NotoSansJP-Regular SDF.asset` に差分が無いこと
-4. ユーザーに、Editor で 10 個の画面と 5 個の行の Prefab を Prefab モードで開き、表の配置になっていること、日本語と `≡`（`MenuButton`）が豆腐でないことを見てもらう。`◀`・`＜` は仮の文字に無いので、`ExamRankingRow` を Prefab モードで開き、`Text` の TMP の text 欄に `◀＜` を入れて見るだけにし、保存せずに閉じる（手動。確認 2）
+4. ユーザーに、Editor で 10 個の画面と 5 個の行の Prefab を Prefab モードで開き、表の配置になっていること、日本語と `≡`（`MenuButton`）が豆腐でないことを見てもらう。`◀`・`＜` は仮の文字に無いので、`ExamRankingRow` を Prefab モードで開き、`Text` の TMP の text 欄に `◀＜` を入れて見るだけにし、保存せずに閉じる（手動。決めたこと 11）
 
-終わったことの確かめ方: テストが通る。手動の確認が済んだ（豆腐があれば確認 2 のとおりユーザーに聞く）。
+終わったことの確かめ方: テストが通る。手動の確認が済んだ（豆腐があれば決めたこと 11 のとおりユーザーに聞く）。
 
 ### タスク 6: 結果の記録
 
@@ -653,7 +654,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 
 手順:
 1. screen-design.md（frontmatter の `updated` を実施日に）の「実装メモ」に、P3 で作った Prefab（画面 10・行 5）、プロデュースのメニューは `UtaDialog` で Prefab を作らないこと、手札と獲得の選択肢が `SkillCardRow` を共有すること、実装と計画のズレ（あれば）、タスク 5 の再生成の差分の結果を書く
-2. 確認 1 が取れているときだけ、screen-wireframes.md（`updated` を実施日に）の 2・3・7 の節の末尾に「MVP の実装は … [決定。<日付>。ユーザーの判断]」を 1 行ずつ足す（2: 行動は縦のボタン、3: 手札は縦の一覧・ステータスは文字の行、7: 順位表は 1 行 1 文字列で自分の行を色で示す）。取れていなければ足さずに報告する
+2. 決めたこと 10 は了承済みなので、screen-wireframes.md（`updated` を実施日に）の 2・3・7 の節の末尾に「MVP の実装は … [決定。<日付>。ユーザーの判断]」を 1 行ずつ足す（2: 行動は縦のボタン、3: 手札は縦の一覧・ステータスは文字の行、7: 順位表は 1 行 1 文字列で自分の行を色で示す）
 3. `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
 4. この計画の frontmatter を `status: done`、`updated` を実施日にする
 
@@ -792,9 +793,4 @@ Editor でしか確かめられないもの（自動のテストにしない）:
 
 ## 7. 未決事項
 
-いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
-
-- 「ユーザーの確認が要ること」の 1・2 の答え
-- **他の計画への影響**:
-  - （2026-11-07 に解決したものは消した: foundation 3.2 に `UtaHeaderView.SetTitle`・`UtaButtonView.SetLabel`・`SetInteractable` がある。プロデュースの画面は `Produce` シーンに積み、底はいつも `ProduceBackdropPage`（formation の決めたこと 1・2。この計画の決めたこと 9）。画面を組む補助は P2 の `ScreenLayout` にまとめた（3.3））
-  - formation・week・lesson（C#）: 各 `BuildUi`／レイアウトの節（FM 3.5 の「画面のレイアウト」、FM 3.4 の `ProduceBackdropPage` の `BuildUi`、WK 3.6、LS 3.6）を消し、この計画の 3.2・4章のフィールドを使う形に直す。`UiFactory`・`EnsureBuilt` を使わない（P1 決めたこと 8）。行の View を使う形: 手札・獲得の選択肢は `SkillCardRowView`、山札などの一覧は `DeckSectionHeaderRowView`＋`DeckCardRowView`、順位表は `ExamRankingRowView`。`WeekPage`・`ClassPage` のボタンは `UtaButtonView` の Instantiate
+なし。ユーザーの確認は全件了承済み（2026-11-07）。formation・week・lesson（C#）の計画は、この計画の 3.2・4章のフィールドと行の View を使う形に直してある。

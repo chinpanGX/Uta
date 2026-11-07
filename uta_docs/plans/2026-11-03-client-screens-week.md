@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 5/6 週の行動選択・授業・支給・スキルカードの選択肢
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/systems/produce.md
 ---
@@ -13,7 +13,7 @@ spec: ../wiki/systems/produce.md
 
 1. **画面は `Produce` シーンに積む**（[formation](2026-11-03-client-screens-formation.md) 決めたこと 1〜3 のとおり）。底はいつも背景のページ（`ProduceBackdropPage`）。局面の切り替えは `ProduceFlow.ShowCurrentAsync`（背景より上のページ・モーダルを全部 Pop してから、局面の画面を Push）。この計画は `ProduceFlow.PushForPhaseAsync` に `WeekSelect` → `WeekPage`、`CardOffer` → `CardOfferModal` の 2 つの `case` を足す
 2. **授業・支給はページ**（[screen-wireframes.md](../wiki/overview/screen-wireframes.md)「共通の方針」の決定 2026-11-01、[screen-design.md](../wiki/architecture/screen-design.md) 7.6）。`WeekPage` の上に `ClassPage`・`SupplyPage` を積む。押された枠の番号（`SlotIndex`）は Args（`WeekSlotArgs`）で渡す（授業の枠を探し直さない）
-3. **スキルカード獲得のモーダルは、背景のページの上に出る**（`ShowCurrentAsync` に合わせる）。授業・支給のページは、操作のあとの `flow.HandleStepAsync` → `ShowCurrentAsync` が `WeekPage` ごと閉じる。授業・支給の Presenter は自分では閉じない（二重に Pop しない）。カードの選択肢の Presenter も自分では閉じない（解決のあと `flow.HandleStepAsync` を呼ぶだけ。次の `ShowCurrentAsync` がモーダルを閉じる）。再開で局面が `CardOffer` でも、同じく背景の上にモーダルが出る（旧版の「再開のときだけ背景のページを積む」分岐は無い）。叩き台の決定（授業・支給の画面の上に重ねる）との差は「ユーザーの確認が要ること」1
+3. **スキルカード獲得のモーダルは、背景のページの上に出る**（`ShowCurrentAsync` に合わせる）。授業・支給のページは、操作のあとの `flow.HandleStepAsync` → `ShowCurrentAsync` が `WeekPage` ごと閉じる。授業・支給の Presenter は自分では閉じない（二重に Pop しない）。カードの選択肢の Presenter も自分では閉じない（解決のあと `flow.HandleStepAsync` を呼ぶだけ。次の `ShowCurrentAsync` がモーダルを閉じる）。再開で局面が `CardOffer` でも、同じく背景の上にモーダルが出る（旧版の「再開のときだけ背景のページを積む」分岐は無い）。叩き台の決定（授業・支給の画面の上に重ねる）との差は決めたこと 15
 4. **View は P3 の骨格に `IXxxView` の実装を足す**（[foundation](2026-11-03-client-screens-foundation.md) 3.3.3）。`WeekPage`（`IWeekView`）・`ClassPage`（`IClassView`）・`SupplyPage`（`ISupplyView`）・`CardOfferModal`（`ICardOfferView`）と、行の View `SkillCardRowView` に表示のメソッド `SetTexts` を足す。フィールド・子の名前は [P3](2026-11-07-client-prefabs-screens-b.md) の 3.1・3.2・4章が正で、この計画は UI を組まない（旧版の `BuildUi`・`UiFactory`・「画面のレイアウト」の節は消した）。Prefab の作り直しは要らない
 5. **支給のページは「受け取る」だけ** [Uta案]: MVP の支給は育成pt もドリンクも付かず（[produce.md](../wiki/systems/produce.md) 3.3「MVP の支給」）、出す結果が無い。叩き台 5 の「結果表示 → 4」の代わりに、受け取る前のページにする。「受け取る」ボタンが確認を兼ねる（確認ダイアログを重ねない）
 6. **レッスンは「レッスン」のボタン 1 つ → パラメータの選択ダイアログ**（叩き台 2 の歌唱・律動・表現の 3 ボタン、ターン数・目標の表示はしない。`WeekActions` はレッスンを 1 枠で返し、ターン数を持たないため）。選択ダイアログが確認を兼ねる
@@ -25,10 +25,11 @@ spec: ../wiki/systems/produce.md
 12. **テスト用の部品は formation のものを使う**: `FakeProducePort`・`FakePlayerPort`・`TestProduce`（formation 3.7）。旧版の `ScriptedProducePort`・`ProduceStates` は作らない。`FakeProduceFlow` だけをこの計画が作る（6 本目も使う）
 13. **型の名前は formation に合わせる**: 応答の写しの最上位は `ProduceProgress`（旧版の `ProduceStateView`）。それ以外（`CardSummary`・`DisplayText`・`ProduceChange`・`WeekProgress`）は旧版のまま
 14. **カードの選択肢は常に未強化として出す**（`enhanced: false`）。根拠: 応答の `CardOffers` はカード ID だけの `int[]`（[produce-domain.md](../wiki/architecture/produce-domain.md) 8章）、選んだカードはサーバーが未強化でデッキに足す（`shared/Uta.Shared.Domain/Produce/ProduceEngine.cs` の `OfferPick`: `new CardInstance(..., false)`）、[produce.md](../wiki/systems/produce.md) 3.5 の候補の決め方に強化済みの提示は無い。叩き台 4 の「強化済み(+)のカードは強化版の性能を表示する」は MVP では起きない
+15. **スキルカード獲得のモーダルを、授業・支給のページの上ではなく、背景のページ（週・パラメータ・体力だけの画面）の上に出してよいか**（決めたこと 3）。[screen-wireframes.md](../wiki/overview/screen-wireframes.md)「共通の方針」の決定（2026-11-01。ユーザーの判断）は「4. スキルカード獲得はモーダル（レッスン・授業・支給の画面の上に重ねる）」。formation の `ShowCurrentAsync`（局面が変わるたびに背景より上を全部閉じる）に合わせると、モーダルが出る前に授業・支給のページは閉じる。授業の上がった値のダイアログは授業のページの上に出してから移るので、結果は見える。背景のページの見出しは、授業・支給のページが閉じたときに最新の値に変わる。代わりの案は「`ProduceFlow` が局面ごとに Pop の範囲を変え、`CardOffer` のときだけ閉じない」だが、formation の 1 つの規則（背景より上を全部閉じる）が局面ごとの分岐になり、6 本目のレッスンの上に重ねる場合も分岐が増えるので採らない。タスク 5 で screen-wireframes の決定の文を「（背景のページの上に重ねる。授業・支給・レッスンのページは局面が移るときに閉じる）」に直す（ユーザーが推奨どおり了承した。2026-11-07）
 
 ## ユーザーの確認が要ること
 
-1. **スキルカード獲得のモーダルを、授業・支給のページの上ではなく、背景のページ（週・パラメータ・体力だけの画面）の上に出してよいか**（決めたこと 3）。[screen-wireframes.md](../wiki/overview/screen-wireframes.md)「共通の方針」の決定（2026-11-01。ユーザーの判断）は「4. スキルカード獲得はモーダル（レッスン・授業・支給の画面の上に重ねる）」。formation の `ShowCurrentAsync`（局面が変わるたびに背景より上を全部閉じる）に合わせると、モーダルが出る前に授業・支給のページは閉じる。授業の上がった値のダイアログは授業のページの上に出してから移るので、結果は見える。背景のページの見出しは、授業・支給のページが閉じたときに最新の値に変わる。代わりの案は「`ProduceFlow` が局面ごとに Pop の範囲を変え、`CardOffer` のときだけ閉じない」だが、formation の 1 つの規則（背景より上を全部閉じる）が局面ごとの分岐になり、6 本目のレッスンの上に重ねる場合も分岐が増えるので採らない。よければ、タスク 5 で screen-wireframes の決定の文を「（背景のページの上に重ねる。授業・支給・レッスンのページは局面が移るときに閉じる）」に直す
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -495,10 +496,10 @@ Presenter は型で次の Presenter を参照するので、**参照される側
 1. **Editor の Play モード**（サーバーを起動した状態。CLAUDE.md「ローカルのサーバー」）: `unity command editor.playmode start` のあと、5.3 を手で確かめる。終わったら `unity command console get --tail 50 --level error --format json` のエラーが 0 → `unity command editor.playmode stop`。サーバーを起動できない・Editor を開けない環境では、確かめていないと報告する
 2. [screen-design.md](../wiki/architecture/screen-design.md)（frontmatter の `updated` を実施日に）:
    - 7.6 の「授業・休むの結果は、操作の前後の状態の差で出す。…」の項を「授業・休むの結果（上がった値）は、操作の前後の `ProduceProgress` の差でクライアントが出し、次の局面へ移る前にダイアログで見せる（サーバーは差を返さない）。MVP の支給は値が変わらないので結果を出さない。ターン終了時の効果の 1 件ずつの表示は MVP から外す（応答に効果の記録が無い）」に直す
-   - 「ユーザーの確認が要ること」1 が了承されたら、7.6 の最初の項の「`CardOffer` → スキルカード獲得（モーダル）」を「`CardOffer` → スキルカード獲得（モーダル。背景のページの上に出す。授業・支給のページは局面が移るときに閉じる）」に直す（formation のタスク 6 が足した 7.6 の最後の項と食い違わないこと）
+   - 決めたこと 15 は了承済み（2026-11-07）なので、7.6 の最初の項の「`CardOffer` → スキルカード獲得（モーダル）」を「`CardOffer` → スキルカード獲得（モーダル。背景のページの上に出す。授業・支給のページは局面が移るときに閉じる）」に直す（formation のタスク 6 が足した 7.6 の最後の項と食い違わないこと）
    - 「実装メモ」に、この計画の実装と設計のズレを書く（なければ「順 7 の 5 本目: なし」）
 3. [screen-wireframes.md](../wiki/overview/screen-wireframes.md):
-   - 「ユーザーの確認が要ること」1 が了承されたら、「共通の方針」の「4. スキルカード獲得はモーダル(レッスン・授業・支給の画面の上に重ねる)」を「4. スキルカード獲得はモーダル(プロデュースの背景のページの上に重ねる。レッスン・授業・支給のページは局面が移るときに閉じる。2026-11-07 にユーザーの判断で改めた)」に直す。了承されなかったら直さず、止まって進行役に報告する（formation の `ShowCurrentAsync` を局面ごとに分ける案に戻す）
+   - 決めたこと 15 は了承済み（2026-11-07）なので、「共通の方針」の「4. スキルカード獲得はモーダル(レッスン・授業・支給の画面の上に重ねる)」を「4. スキルカード獲得はモーダル(プロデュースの背景のページの上に重ねる。レッスン・授業・支給のページは局面が移るときに閉じる。2026-11-07 にユーザーの判断で改めた)」に直す
    - 0章の「中断したプロデュースは、ホームの「再開」から 2 または 3 に戻る。」を「中断したプロデュースは、ホームの「再開」から 2・3・4 のどれかに戻る（4 のときは、プロデュースの背景のページの上に 4 を出す）。」に直す（formation が同じ変更をしていれば何もしない）
 4. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md): モーダル（`ModalBase`・`DefaultModalBackdrop`）をページの上に出して閉じられたことを Play で確かめた場合だけ、2章の表に 1 行足す（P2 の計画・gacha・formation が足していれば何もしない）
 5. `python -I .claude/skills/linting-wiki/lint_wiki.py` を回し、エラーが 0 であること
@@ -625,6 +626,6 @@ return CardCatalog.Create(cards, faces, costs, effects, new ConditionRow[0]);
 
 ## 6. 未決事項
 
-いまは draft。「ユーザーの確認が要ること」1 の答えが出て、次の照合が済んだら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - （2026-11-07 に照合済み）formation の名前（`ProduceProgress`・`ProduceSession.Previous`・`ProduceFlow`／`ProduceMenu` のコンストラクター・`TestProduce.Progress`・`FakeProducePort.StateResults`）、P3 の `SkillCardRowView`、foundation の `ListRowBase`・`UiObjects.AddRow` は一致。lesson はこの版の `FakeProduceFlow`・`SkillCardRowView.SetTexts` を使う形に直した。`DisplayText` の owned の分は `RarityName`・`PlanName`・`SupportTypeName`・`ParamName` にそろえた

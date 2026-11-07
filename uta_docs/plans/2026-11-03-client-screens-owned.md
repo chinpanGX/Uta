@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/systems/idol-support.md
 ---
@@ -16,22 +16,21 @@ spec: ../wiki/systems/idol-support.md
 3. **所持一覧・詳細は `Home` シーンの中のページ**（screen-design 8章、foundation 3.3.1）。ホームの「アイドル」ボタン（P2 の `HomePage` の `Menu/OwnedButton`）→ `HomePresenter.OpenOwnedAsync` → `OwnedPresenter` を積む → 行のタップで `SupportDetailPresenter` を積む → 上限解放の素材は `OwnedPresenter`（選択モード）をもう 1 枚積む。どれも `Home` シーンの `IScreenNavigator` で積み、「＜」で `PopPageAsync(this)`。シーンはまたがない
 4. **ユースケース・ゲートウェイの登録は `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足すだけ**。画面の登録（旧 `UiRoot.RegisterPage`）は無い（Prefab は P2 が Addressables の `Screens` に登録済み。Presenter は基盤が Push のたびに作る）
 5. `ServerReasons`（2 本目）に、この計画が使う reason 6 つ（`SUPPORT_*` 5 つと `PLAYER_NOT_ENOUGH_GOLD`）を足す（2 本目の「ほかの reason は、それを使う計画が足す」のとおり）
-6. **[Uta案] 育成アイドルの一覧は `IdolId` の昇順に固定**し、並び替え・絞り込みを持たない（MVP の育成アイドルは 4 人で、並べ替える意味が小さいため）。叩き台 [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び: レア度・Lv・入手順。絞り込み: プラン」は、MVP では**サポートカードだけ**に持たせる（叩き台との差。タスク 6 で screen-wireframes.md 10 に注記する）（確認 1）
+6. **[Uta案] 育成アイドルの一覧は `IdolId` の昇順に固定**し、並び替え・絞り込みを持たない（MVP の育成アイドルは 4 人で、並べ替える意味が小さいため）。叩き台 [screen-wireframes.md](../wiki/overview/screen-wireframes.md) 10 の「一覧の並び: レア度・Lv・入手順。絞り込み: プラン」は、MVP では**サポートカードだけ**に持たせる（叩き台との差。タスク 6 で screen-wireframes.md 10 に注記する）（決めたこと 14）
 7. サポートカードの「入手順」は所持ID（ULID）の昇順（ULID は発行時刻の順。`string.CompareOrdinal` で比べる。サーバーの返す並びに頼らない）
 8. 上限解放の素材は、仕様（idol-support.md 2.2.1）どおり**プレイヤーが選ぶ**。選び方は所持一覧の選択モード（素材の選択）を使う
-9. レベル上げ（+1／+5／最大）と上限解放は、**確認ダイアログを出してから** RPC を呼ぶ（叩き台 10「強化・上限解放…は、確認ダイアログ → サーバーで確定」）。上限解放の確認には、素材の Lv にかかわらず常に「素材は無くなります。強化に使った強化pt・ゴールドは戻りません。」を出す（確認 3）
-10. サポートカードの詳細と強化（レベル上げ・上限解放）は **1 ページ**（`SupportDetailPage`）にする（screen-design.md 2・3章の「詳細 ─▶ 強化」を 1 枚にまとめる。タスク 6 で 2・3章を直す）（確認 2）
+9. レベル上げ（+1／+5／最大）と上限解放は、**確認ダイアログを出してから** RPC を呼ぶ（叩き台 10「強化・上限解放…は、確認ダイアログ → サーバーで確定」）。上限解放の確認には、素材の Lv にかかわらず常に「素材は無くなります。強化に使った強化pt・ゴールドは戻りません。」を出す（決めたこと 16）
+10. サポートカードの詳細と強化（レベル上げ・上限解放）は **1 ページ**（`SupportDetailPage`）にする（screen-design.md 2・3章の「詳細 ─▶ 強化」を 1 枚にまとめる。タスク 6 で 2・3章を直す）（決めたこと 15）
 11. 詳細のアビリティは枠 1（`SupportAbility` の行）を、今のレベルの値で出す（`ProduceFormulas.AbilityValue`。サーバーのプロデュース開始と同じ計算）
 12. 上限解放の最大回数はマスタ（`IGameMaster.GetSupportMaxLimitBreak`）から読む。サーバーは定数 `SupportRules.MaxLimitBreak = 4` を使うので、マスタの `SupportLevelCap` に各レアの `LimitBreak = 4` の行があることが前提（今のマスタはそうなっている。食い違っても、超えた分はサーバーが `SUPPORT_MAX_LIMIT_BREAK` で拒否する）
 13. プランの適合の規則は Shared.Domain の `FormationValidator.IsPlanCompatible` に 1 つ（shared/ の変更。サーバーの `Validate` も使う）
+14. **育成アイドルの一覧を `IdolId` の順に固定し、並び・絞り込みをサポートカードだけにしてよいか**（決めたこと 6。叩き台 10 からの縮小）。代わりの案は、育成アイドルにもプランの絞り込みを付ける（分岐が増える）（ユーザーが推奨どおり了承した。2026-11-07）
+15. **サポートカードの詳細と強化を 1 ページにしてよいか**（決めたこと 10。screen-design 2・3章の「詳細 ─▶ 強化」の 2 枚からの変更）（ユーザーが推奨どおり了承した。2026-11-07）
+16. **上限解放の確認文「強化に使った強化pt・ゴールドは戻りません」を、素材の Lv にかかわらず常に出してよいか**（決めたこと 9。仕様 2.2.1 は「素材のレベルが 1 より大きいとき」）（ユーザーが推奨どおり了承した。2026-11-07）
 
 ## ユーザーの確認が要ること
 
-1〜3 はどれも未回答（ユーザーの確認待ち）。答えが出るまで `status` は `draft` のまま。
-
-1. **育成アイドルの一覧を `IdolId` の順に固定し、並び・絞り込みをサポートカードだけにしてよいか**（決めたこと 6。叩き台 10 からの縮小）。代わりの案は、育成アイドルにもプランの絞り込みを付ける（分岐が増える）
-2. **サポートカードの詳細と強化を 1 ページにしてよいか**（決めたこと 10。screen-design 2・3章の「詳細 ─▶ 強化」の 2 枚からの変更）
-3. **上限解放の確認文「強化に使った強化pt・ゴールドは戻りません」を、素材の Lv にかかわらず常に出してよいか**（決めたこと 9。仕様 2.2.1 は「素材のレベルが 1 より大きいとき」）
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -806,7 +805,6 @@ Play モード・手動（タスク 5。Editor、サーバー起動済み。初�
 
 ## 6. 未決事項
 
-いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- 「ユーザーの確認が要ること」の 1〜3 の答え
-- 他の計画との食い違い（進行役が扱う。この計画では直さない）: foundation 3.9 は `HomePage.resumePanel` を `GameObject`、P2 3.1 は `RectTransform` としている（この計画は `HomePage` を触らないので影響しない）
+なし。（`HomePage.resumePanel` の型は P2 で `GameObject` に統一済み。）

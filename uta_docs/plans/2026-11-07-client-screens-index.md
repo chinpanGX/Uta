@@ -1,13 +1,13 @@
 ---
 title: 実装計画: client/ の画面 索引
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/overview/game-spec.md
 ---
 
 # 実装計画: client/ の画面 索引
 
-[game-spec.md](../wiki/overview/game-spec.md)「実装計画の単位と順」の順 7（client/ の画面）は、10 本の計画に分けて実装する。このページは、10 本の順番と関係、各計画の「決めたこと」と「ユーザーの確認が要ること」の要約、実装の前提と流れをまとめる。**ユーザーはこのページだけを読めば判断できる**ように書く。細部の正は各計画（要約と食い違ったら各計画が正）。方針の正は [screen-design.md](../wiki/architecture/screen-design.md) 7章（Prefab・Addressables・TextMeshPro）と 8章（シーン構成）、計画の進め方は [README](README.md)「計画のブランチと PR（流れ）」。
+[game-spec.md](../wiki/overview/game-spec.md)「実装計画の単位と順」の順 7（client/ の画面）は、10 本の計画に分けて実装する。このページは、10 本の順番と関係、各計画の「決めたこと」と「ユーザーの確認」（全件が 2026-11-07 にユーザーの推奨どおりの了承で解決した。5章）の要約、実装の前提と流れをまとめる。細部の正は各計画（要約と食い違ったら各計画が正）。方針の正は [screen-design.md](../wiki/architecture/screen-design.md) 7章（Prefab・Addressables・TextMeshPro）と 8章（シーン構成）、計画の進め方は [README](README.md)「計画のブランチと PR（流れ）」。
 
 ## 1. 順番と関係
 
@@ -15,16 +15,16 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 | 順 | 計画 | 何を作るか | 前の計画 | 積み PR の base | 状態 |
 |---|---|---|---|---|---|
-| 1 | [計画 0 マスタ スキルカードの名前と説明文](2026-11-03-masterdata-card-text.md) | `Card.Name`・`CardFace.Description` の列と 36 枚の値（masterdata・サーバーのテスト） | なし | `main` | draft |
-| 2 | [P1 共通部品・Addressables・TextMeshPro](2026-11-07-client-prefabs-common.md) | スパイク、TMP Settings、共通部品の Prefab 10 個（`UiRoot` を含む）、生成の補助 `PrefabBuildUtil`、`PrefabContractTests`、`BuildCommands` の `BuildPlayerContent` | なし（計画 0 の型は使わない）。PR #28・#29 と計画 0 の実装 PR が main にマージ済み | `main`（PR #28・#29 と計画 0 がマージ済みのとき。3章・確認 1） | draft |
-| 3 | [P2 Title・Home・ガチャ・所持一覧の Prefab](2026-11-07-client-prefabs-screens-a.md) | 画面の Prefab 7 個・行の Prefab 3 個・View の骨格 8 型、画面の補助 `ScreenLayout` | P1 | P1 の実装ブランチ | draft |
-| 4 | [foundation 土台・タイトル・ホーム](2026-11-03-client-screens-foundation.md) | ダイアログ・ブロッカー・`PageStack`・シーンのスコープへの登録、`IGameMaster`、業務エラー、タイトル・ホーム、`Bootstrap`・`Title`・`Home` シーンの `UiRoot` | 計画 0・P1・P2 | P2 の実装ブランチ（計画 0 は main にある前提） | draft |
-| 5 | [gacha ガチャ](2026-11-03-client-screens-gacha.md) | ガチャのページ・排出率・結果のモーダル、`IGachaPort`、`PortResult<T>`・`ServerReasons`・`FakeGameMaster` | foundation・P2 | foundation の実装ブランチ | draft |
-| 6 | [owned 所持一覧・サポートカードの強化](2026-11-03-client-screens-owned.md) | 所持一覧（選択モード付き）・サポートカードの詳細と強化、`DisplayText`、`FormationValidator.IsPlanCompatible`（shared/） | gacha | gacha の実装ブランチ | draft |
-| 7 | [P3 編成・プロデュースの Prefab](2026-11-07-client-prefabs-screens-b.md) | 画面の Prefab 10 個・行の Prefab 5 個・View の骨格 | P1・P2（C# の型には依存しない） | owned の実装ブランチ | draft |
-| 8 | [formation 編成・プロデュースの開始と再開](2026-11-03-client-screens-formation.md) | 編成のページ、`IProducePort`・`ProduceSession`・`ProduceFlow`・`ProduceMenu`、`Produce` シーンの作り直し（`UiRoot`）、`LessonDto.UsableHand`（server・shared） | owned・P3 | P3 の実装ブランチ | draft |
-| 9 | [week 週の行動選択・授業・支給・スキルカードの選択肢](2026-11-03-client-screens-week.md) | 週・授業・支給のページ、カードの選択肢のモーダル、`ProduceFlow` の `WeekSelect`・`CardOffer`、`FakeProduceFlow` | formation | formation の実装ブランチ | draft |
-| 10 | [lesson レッスン・試験・試験結果・プロデュース結果](2026-11-03-client-screens-lesson.md) | レッスンのページ・山札などの一覧・試験結果・プロデュース結果、`ProduceFlow` の残りの局面。完了条件 6 の通し | week | week の実装ブランチ | draft |
+| 1 | [計画 0 マスタ スキルカードの名前と説明文](2026-11-03-masterdata-card-text.md) | `Card.Name`・`CardFace.Description` の列と 36 枚の値（masterdata・サーバーのテスト） | なし | `main` | ready |
+| 2 | [P1 共通部品・Addressables・TextMeshPro](2026-11-07-client-prefabs-common.md) | スパイク、TMP Settings、共通部品の Prefab 10 個（`UiRoot` を含む）、生成の補助 `PrefabBuildUtil`、`PrefabContractTests`、`BuildCommands` の `BuildPlayerContent` | なし（計画 0 の型は使わない）。PR #28・#29 と計画 0 の実装 PR が main にマージ済み | `main`（PR #28・#29 と計画 0 がマージ済みのとき。3章・確認 1） | ready |
+| 3 | [P2 Title・Home・ガチャ・所持一覧の Prefab](2026-11-07-client-prefabs-screens-a.md) | 画面の Prefab 7 個・行の Prefab 3 個・View の骨格 8 型、画面の補助 `ScreenLayout` | P1 | P1 の実装ブランチ | ready |
+| 4 | [foundation 土台・タイトル・ホーム](2026-11-03-client-screens-foundation.md) | ダイアログ・ブロッカー・`PageStack`・シーンのスコープへの登録、`IGameMaster`、業務エラー、タイトル・ホーム、`Bootstrap`・`Title`・`Home` シーンの `UiRoot` | 計画 0・P1・P2 | P2 の実装ブランチ（計画 0 は main にある前提） | ready |
+| 5 | [gacha ガチャ](2026-11-03-client-screens-gacha.md) | ガチャのページ・排出率・結果のモーダル、`IGachaPort`、`PortResult<T>`・`ServerReasons`・`FakeGameMaster` | foundation・P2 | foundation の実装ブランチ | ready |
+| 6 | [owned 所持一覧・サポートカードの強化](2026-11-03-client-screens-owned.md) | 所持一覧（選択モード付き）・サポートカードの詳細と強化、`DisplayText`、`FormationValidator.IsPlanCompatible`（shared/） | gacha | gacha の実装ブランチ | ready |
+| 7 | [P3 編成・プロデュースの Prefab](2026-11-07-client-prefabs-screens-b.md) | 画面の Prefab 10 個・行の Prefab 5 個・View の骨格 | P1・P2（C# の型には依存しない） | owned の実装ブランチ | ready |
+| 8 | [formation 編成・プロデュースの開始と再開](2026-11-03-client-screens-formation.md) | 編成のページ、`IProducePort`・`ProduceSession`・`ProduceFlow`・`ProduceMenu`、`Produce` シーンの作り直し（`UiRoot`）、`LessonDto.UsableHand`（server・shared） | owned・P3 | P3 の実装ブランチ | ready |
+| 9 | [week 週の行動選択・授業・支給・スキルカードの選択肢](2026-11-03-client-screens-week.md) | 週・授業・支給のページ、カードの選択肢のモーダル、`ProduceFlow` の `WeekSelect`・`CardOffer`、`FakeProduceFlow` | formation | formation の実装ブランチ | ready |
+| 10 | [lesson レッスン・試験・試験結果・プロデュース結果](2026-11-03-client-screens-lesson.md) | レッスンのページ・山札などの一覧・試験結果・プロデュース結果、`ProduceFlow` の残りの局面。完了条件 6 の通し | week | week の実装ブランチ | ready |
 
 - 並行しない。後の計画は前の計画の型・偽・Prefab を使う（各計画の 1章の前提）
 - **計画 0 と P1 は `main` 向け。計画 0 を先に main へマージしてから P1 を始める**（確認 1）。積み PR の連鎖 main → P1 → P2 → foundation に計画 0 の変更は入らないので、計画 0 が main に無いと foundation の前提 2（`Card.Name`・`CardFace.Description`）で止まる
@@ -92,14 +92,14 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - `ProduceFlow`・`ProduceMenu` は `Produce` シーンのスコープ、`ProduceSession`・ユースケースはルート。取り直しは状態を変えたユースケースが行う
 - 局面の画面がまだ無い局面は「準備中です」を出してホームへ戻る（確認 14）
 - サーバーの `LessonDto` に `UsableHand`（`Key(19)`）を足す
-- screen-design 7.6 は `ProduceStateView` と `PRODUCE_STALE_OPERATION` の 2 つの箇条書きだけを直す。プロデュースの画面の流れ（スキルカード獲得のモーダルの出し方を含む）は 7.6 に書かない（確認 15 の了承のあとに week のタスク 5 が書く）
+- screen-design 7.6 は `ProduceStateView` と `PRODUCE_STALE_OPERATION` の 2 つの箇条書きだけを直す。プロデュースの画面の流れ（スキルカード獲得のモーダルの出し方を含む）は 7.6 に書かない（確認 15 は了承済み。7.6 と screen-wireframes を直す仕事は week のタスク 5 が実装時に行う。今は直さない）
 - **`Produce` シーンを作り直す**: `UiRoot` を置き、`SceneBuilder.BuildProduce` を `Home` と同じ形にして legacy の補助と `using` を消し、`Produce.unity` を作り直し、#24 の `ProduceView`・`ProducePresenter` を消す
 
 ### week 週の行動選択・授業・支給・スキルカードの選択肢
 
 - `ProduceFlow.PushForPhaseAsync` に `WeekSelect`（`WeekPage`）と `CardOffer`（`CardOfferModal`）の `case` を足す
 - 授業・支給はページ（`WeekPage` の上）。支給は「受け取る」だけ。レッスンは 1 つのボタン → パラメータの選択ダイアログ
-- スキルカード獲得のモーダルは背景のページの上に出る（確認 15。保留）
+- スキルカード獲得のモーダルは背景のページの上に出る（確認 15。了承済み）
 - 授業・休むの結果は前後の差を情報ダイアログで出す。カードの選択肢は常に未強化で出す
 - `SkillCardRowView.SetTexts`・`FakeProduceFlow`（`ShowCurrentAsync`・`ExitToHomeAsync`・`HandleStepAsync` の上書き）を作る（lesson も使う）。`DisplayText` に `CardTypeName`・`CostKindName`・`Card`・`Costs`・`Change` を足す
 
@@ -127,49 +127,37 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 [README](README.md)「計画のブランチと PR（流れ）」のとおり。
 
-1. 10 本の計画（とこの索引）は計画用のブランチ（`claude/client-screens-plan`）に `draft` で書いた。CLAUDE.md の規則の名前は `claude/plan-<件名>` なので、**PR を出す前に `claude/plan-client-screens` に改名する**（進行役が行う）。設計書のレビュー（`requesting-design-review`）を回し、5章の確認の答えを反映して `ready` にする
+1. 10 本の計画（とこの索引）は計画用のブランチ（`claude/client-screens-plan`）に `draft` で書き、レビューの指摘を直して 5章の確認が全件了承されたので、全計画を `ready` にした（2026-11-07）。CLAUDE.md の規則の名前は `claude/plan-<件名>` なので、**PR を出す前に `claude/plan-client-screens` に改名する**（進行役が行う）。設計書のレビュー（`requesting-design-review`）は回した
 2. ユーザーが承認したら、`main` 向けに docs だけの PR を作る。マージはユーザー
 3. マージされたら、1章の順に、計画ごとに固定の worktree（`tools/worktree-pool.sh start <番号> <新ブランチ> <base>`）で実装する。base は 1章の「積み PR の base」。実装は計画のタスクごとに Sonnet のサブエージェントに任せ、計画に無い設計判断に出会ったら止まって計画を直す
 4. **実装の PR は計画ごとに分ける**。前の計画の PR が未マージなら積み PR にし（`gh pr create --base <前の計画のブランチ>`）、本文に前の PR を書く
 5. コードレビュー（`requesting-code-review`）のあと、実装と設計書のズレを wiki に反映し、計画を `status: done` にする。この索引の 1章の状態も `done` にする。最後の lesson が done になったら、game-spec.md の順 7 の行を done にする（lesson のタスク 5）
 
-## 5. ユーザーの確認が要ること（全計画ぶん）
+## 5. ユーザーの確認（全件が了承済み）
 
-各計画の「ユーザーの確認が要ること」を 1 か所に集め、重複をまとめた。番号はこのページの通し番号（括弧の中が元の計画と番号）。
+全 17 件が、2026-11-07 にユーザーの推奨どおり（各計画が提案した案のとおり）の了承で解決した（ユーザーの判断）。詳しい中身は各計画の「この計画で決めたこと」の末尾に移してある。計画 0・foundation には確認が要ることは無かった。
 
-**進め方**
+| # | 件名 | 結果 |
+|---|---|---|
+| 1 | PR #28・#29 と計画 0 のマージを P1 の実装の前に行う | 了承 |
+| 2 | Noto Sans JP（SIL OFL 1.1）のライセンス表示 | 了承 |
+| 3 | screen-design 7.3 を TMP Settings の作成と既定フォントの設定に直す | 了承 |
+| 4 | 見た目の値（色・寸法・フォントサイズ）は仮 | 了承 |
+| 5 | タイトルの文字を「Uta」にする | 了承 |
+| 6 | プロデュースの画面の叩き台との差（a〜d） | 了承 |
+| 7 | 記号の字形 `≡`・`◀`・`＜`（目視で豆腐なら `◀` を変える） | 了承 |
+| 8 | ガチャの叩き台との差（4 点） | 了承 |
+| 9 | 「もう一度」でも確認ダイアログを出す | 了承 |
+| 10 | 育成アイドルの一覧は `IdolId` の順に固定 | 了承 |
+| 11 | サポートカードの詳細と強化を 1 ページにする | 了承 |
+| 12 | 上限解放の確認文を常に出す | 了承 |
+| 13 | `Produce` シーンの底をいつも背景のページにする | 了承 |
+| 14 | week・lesson ができるまでの「プロデュース開始」「再開」の動き | 了承 |
+| 15 | スキルカード獲得のモーダルは背景のページの上に出す | 了承 |
+| 16 | 順位表のライバルの名前は「ライバル 1・2・3」 | 了承 |
+| 17 | レッスンが終わるたびに「レッスン終了」のダイアログで止まる | 了承 |
 
-1. **PR #28・#29 と計画 0 のマージを、P1 の実装の前に行ってよいか**（3章。P1 の 4）。片方だけでは P1 の前提がそろわない。計画 0 は main 向けの実装 PR で、先に main へマージしてから P1 を始める（積み PR の連鎖 main → P1 → P2 → foundation に計画 0 が入らず、foundation の前提 2 で止まるため。1章）
-
-**見た目・部品（P1・P2・P3）**
-
-2. **Noto Sans JP（SIL OFL 1.1）のライセンス表示**: `OFL.txt` をリポジトリに入れ、アプリ内のライセンス表示の画面は MVP では作らず、ストアに出すときに作る（P1 の 1）
-3. **screen-design 7.3 の「TMP の Essential Resources を取り込む」を「プロジェクトの TMP Settings を作り、既定のフォントを設定する」に直したこと**（P1 の 2）。Unity 7 の uGUI 7.0.0 で取り込み自体が無くなったため。2026-11-07 のユーザーの判断の中身を変えるので確認する
-4. **見た目の値（色・寸法・フォントサイズ）は仮**（P1 の 3、P2 の 2）。旧 foundation の値に、ヘッダーの色と二次ボタンの色を足した。角丸・アイコンの画像は使わない
-5. **タイトルの文字を「Uta」にしてよいか**（P2 の 1）。ロゴの画像は作らない
-6. **プロデュースの画面の叩き台との差**（P3 の 1）: a. 手札は縦の一覧（1 枚 = 名前・消費・説明文の 3 行）、b. ステータスは文字の行（札にしない）、c. 週の行動は縦に並んだボタン（2×2 にしない）、d. 順位表は 1 行 1 文字列で、自分の行の文字だけ `Accent` の色
-7. **記号の字形 `≡`・`◀`・`＜` が Noto Sans JP にある前提**（P3 の 2、lesson の 3）。`◀` は推測。目視で豆腐なら、順位表の自分の印を `"（あなた）"` などに変える（その時点で確認する）
-
-**ガチャ（gacha）**
-
-8. **叩き台（screen-wireframes 9）との差**（gacha の 1）: ガチャ名の行は固定の「ガチャ」、画像は出さない、結果は 1 枠 1 行の文字、「NEW」は育成アイドルを初めて得たときだけ（サポートカードは「所持に追加」）
-9. **結果の「もう一度」でも、引く前の確認ダイアログを出してよいか**（gacha の 2）
-
-**所持一覧・強化（owned）**
-
-10. **育成アイドルの一覧を `IdolId` の順に固定し、並び・絞り込みをサポートカードだけにしてよいか**（owned の 1。叩き台 10 からの縮小）
-11. **サポートカードの詳細と強化を 1 ページにしてよいか**（owned の 2。screen-design 2・3章の「詳細 ─▶ 強化」の 2 枚からの変更）
-12. **上限解放の確認文「強化に使った強化pt・ゴールドは戻りません」を、素材の Lv にかかわらず常に出してよいか**（owned の 3。仕様 2.2.1 は「素材のレベルが 1 より大きいとき」）
-
-**プロデュース（formation・week・lesson）**
-
-13. **`Produce` シーンの底をいつも背景のページ（週・パラメータ・体力だけの画面）にしてよいか**（formation の 1）。局面が変わるたびに、一瞬この背景が見えてから次の画面が出る
-14. **week・lesson ができるまで、「プロデュース開始」「再開」は `Produce` シーンへ移ってすぐ「この局面の画面は準備中です: WeekSelect」を出してホームへ戻る動きになる**（formation の 2）。セッションはサーバーに残る
-15. **[保留。ユーザーの了承待ち] スキルカード獲得のモーダルを、授業・支給のページの上ではなく、背景のページの上に出してよいか**（week の 1）。[screen-wireframes.md](../wiki/overview/screen-wireframes.md)「共通の方針」の決定（2026-11-01。ユーザーの判断）は「レッスン・授業・支給の画面の上に重ねる」。13 の「局面が変わるたびに背景より上を全部閉じる」に合わせると、モーダルが出る前に授業・支給のページ（lesson ではレッスンのページ）は閉じる。授業の上がった値のダイアログは閉じる前に出すので、結果は見える。代わりの案（`CardOffer` のときだけ閉じない分岐を `ProduceFlow` に入れる）は採っていない。**了承が出るまで screen-wireframes.md と screen-design 7.6 にこの出し方を書かない**: formation は 7.6 の 2 つの箇条書き（`ProduceStateView`・`PRODUCE_STALE_OPERATION`）を直すだけで、プロデュースの画面の流れ・モーダルの出し方は書かない。了承されたら week のタスク 5 が 7.6 と screen-wireframes の決定の文を直す
-16. **試験の順位表のライバルの名前を、仮に「ライバル 1・2・3」にしてよいか**（lesson の 1）。`ExamResultDto` は NPC の名前を返さないため
-17. **レッスンが終わるたびに「レッスン終了」と上がった値のダイアログで 1 回止まる動きでよいか**（lesson の 2。ターン終了時の効果の表示を MVP から外した代わり）
-
-計画 0・foundation には確認が要ることは無い（計画 0 のカードの名前は確認済み。foundation の判断は 2026-11-07 に決めたことに移した）。
+- 15 のスキルカード獲得のモーダルの出し方も了承された。ただし、screen-design 7.6 と [screen-wireframes.md](../wiki/overview/screen-wireframes.md) の「共通の方針」を直す仕事は week のタスク 5 が実装時に行う（今は直さない）。formation は 7.6 の 2 つの箇条書きだけを直す
 
 ## 6. Unity Editor が要るタスクの扱い
 

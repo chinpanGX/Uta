@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -42,7 +42,7 @@ spec: ../wiki/architecture/screen-design.md
 - 画面遷移は、基盤 `external/UnityScreenNavigator` の `Runtime/ChinpanGX`（`IScreenNavigator`・`ScreenNavigator`・`IPresenter`・`ILifecycleHandler`・`IScreenWithArgs<TArgs>`・`[AssetAddress]`・`OverlayContainer`。使い方は基盤の README「Presenter-Driven Navigation」）を**そのまま使う**
 - **PR #28 の読み替え**: PR #28（未マージ。PR #28 が足す ADR）は `external/` のサブモジュールを全部消す（UnityScreenNavigator・Supplement・VolTech-MagicOnion・MasterMemoryAddons）。サーバー・shared は `packages/` の `.nupkg`、Unity は `manifest.json` の git URL で参照し、`Uta.slnx` から共通基盤が外れる。**PR #28 のあとは、共通基盤のソース（USN の `Runtime/ChinpanGX`・README・`AddressableAssetLoader`、VolTech-MagicOnion のコードなど）は `client/uta/Library/PackageCache/<パッケージ名>@<ハッシュ>/`（USN は `com.harumak.unityscreennavigator`。Unity でパッケージを解決した環境にだけある）か GitHub のリポジトリを読む。マージ前は `external/<名前>`**。この計画に書いた `external/` のパスは、そう読み替える（`external/` は直さない、の決まりは変わらない）
 - **前提 1**: PR #24（シーン構成・サインアップ・サインイン）が main に入っていること（入っている）。触る既存のコードは `client/uta/Assets/Scripts/` の `Bootstrap/`・`Presentation/{Title,Home,Startup}/`・`Editor/SceneBuilder.cs`・`Infrastructure/Api/`（`Presentation/Produce/` は触らない: 決めたこと 12）
-- **前提 2**: 計画 0（[masterdata-card-text](2026-11-03-masterdata-card-text.md)）が **main にマージ済み**で（積み PR の連鎖 main → P1 → P2 → この計画には計画 0 の変更が入らないので、計画 0 を先に main へマージしてから P1 を始める。[索引](2026-11-07-client-screens-index.md) 1章・確認 1）、生成された `Uta.MasterData.Card` に `string Name`、`Uta.MasterData.CardFace` に `string Description` があること。タスク 2 の前に確かめ、無ければ止まって報告する
+- **前提 2**: 計画 0（[masterdata-card-text](2026-11-03-masterdata-card-text.md)）が **main にマージ済み**で（積み PR の連鎖 main → P1 → P2 → この計画には計画 0 の変更が入らないので、計画 0 を先に main へマージしてから P1 を始める。[索引](2026-11-07-client-screens-index.md) 1章・5章の 1）、生成された `Uta.MasterData.Card` に `string Name`、`Uta.MasterData.CardFace` に `string Description` があること。タスク 2 の前に確かめ、無ければ止まって報告する
 - **前提 3**: P1 が done で、`Presentation/Common/` に `UiTheme`・`PageBase`・`ModalBase`・`UiRoot`・`BusyIndicator`（骨格）・`SafeAreaFitter`・`WindowAspectKeeper`、`Common/Parts/` に部品の View の骨格、`Assets/Prefabs/Parts/` に 10 個の部品（`UiRoot.prefab` を含む）、テストの `PrefabContract` があること。タスク 1 の前に確かめ、無ければ止まって報告する。テストは `unity test --mode EditMode`（回し方は P1 タスク 5 の「テストの回し方」）で回す。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則。CLAUDE.md に行が無いことは止まる理由にしない）
 - **前提 4**: P2 が done で、`Presentation/Title/TitlePage.cs`・`Presentation/Home/HomePage.cs`（`PageBase` の派生。3.9 のフィールド）と、`Assets/Prefabs/Screens/Title/TitlePage.prefab`・`Assets/Prefabs/Screens/Home/HomePage.prefab`（Addressables の `Screens` に、アドレス `TitlePage`・`HomePage`）があること。タスク 1 の前に確かめ、3.9 とフィールドの名前・型が違えば止まって報告する
 - **前提 5**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、コンパイル・テスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
@@ -1187,6 +1187,6 @@ Play モード・手動（Editor、サーバー起動済み）:
 
 ## 6. 未決事項
 
-いまは draft。次が決まったら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
-- なし（2026-11-07: ユーザーの確認は決めたこと 3・6・12 に移した。P2 の `TitlePage`・`HomePage` の表（3.1・3.3）と 3.9 は突き合わせ済みで一致）。レビューに出して `ready` にする
+- なし（2026-11-07: ユーザーの確認は決めたこと 3・6・12 に移した。P2 の `TitlePage`・`HomePage` の表（3.1・3.3）と 3.9 は突き合わせ済みで一致）

@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 6/6 レッスン・試験・試験結果・プロデュース結果
-status: draft
+status: ready
 updated: 2026-11-07
 spec: ../wiki/systems/produce.md
 ---
@@ -18,15 +18,16 @@ spec: ../wiki/systems/produce.md
 5. **プロデュース結果の「ホームへ」は、`session.Clear()` のあと `ProduceFlow.ExitToHomeAsync()`**（中身は `ISceneNavigator.GoToHomeAsync`。`Home` シーンを読み込み直し、`Produce` のページはシーンごと破棄される）。所持品の取り直しは、局面 `Finished` の応答を受けたときに `ProduceActions` が済ませている
 6. **例外は formation の決めたこと 12 に合わせる**: ボタンの処理（Presenter の公開 `UniTask` メソッド）が `catch (Exception e)` で受け、`Debug.LogException(e)` のあと `"エラーが発生しました: " + e.Message` を出す。そのため `ProduceResultPresenter` も `DialogService` を受ける（旧版は受けていなかった）
 7. **スキルカードの文字は 5 本目（[week](2026-11-03-client-screens-week.md)）の `CardSummaryBuilder`・`DisplayText.Card`・`DisplayText.Costs` を使う**（獲得の選択肢と同じ書式 `"まっすぐ一声+ [N] アクティブ"`・`"消費 3"`）。この計画の `LessonCardText` は、デッキからカード ID と強化の有無を引いてそれを呼ぶだけ
-8. **行の View のメソッド**: `DeckSectionHeaderRowView.SetText`・`DeckCardRowView.SetText`・`ExamRankingRowView.SetRow(text, isPlayer)` を足す。**順位表の自分の行だけ、C# が文字の色を `UiTheme.Accent` に変える**（P3 の確認 1-d・3.2 の表。foundation 3.3.3 の「C# は色を変えない」の例外）。手札の行（`SkillCardRowView`）の文字を入れるメソッド `SetTexts` は、獲得の選択肢で先に使う week の計画が足した `SetTexts(string title, string costs, string description)` を使う（この計画は足さない）
+8. **行の View のメソッド**: `DeckSectionHeaderRowView.SetText`・`DeckCardRowView.SetText`・`ExamRankingRowView.SetRow(text, isPlayer)` を足す。**順位表の自分の行だけ、C# が文字の色を `UiTheme.Accent` に変える**（P3 の決めたこと 10 の d・3.2 の表。foundation 3.3.3 の「C# は色を変えない」の例外）。手札の行（`SkillCardRowView`）の文字を入れるメソッド `SetTexts` は、獲得の選択肢で先に使う week の計画が足した `SetTexts(string title, string costs, string description)` を使う（この計画は足さない）
 9. **`DisplayText` の 3 つのメソッドは、型と同じ名前にしない**: `LessonKindName`・`ExamOutcomeText`・`ExamKindName`（旧版の `LessonKind`・`ExamOutcome`・`ExamKind`）。型と同じ名前のメソッドにすると、メソッドの中の `LessonKind.Normal` がメソッドに解決されてコンパイルできないため（week の `CardTypeName` と同じ理由）。文字列は旧版のまま
 10. 画面の表示の決定（旧版の 1.2）は変えない: カードはタップ → 確認 → 使用、スキップは確認なし、操作の前後の差の行、レッスン終了のダイアログ、山札などの一覧のモーダル、残りターンの表示、順位表のライバルの仮の名前（1.2）
+11. **順位表のライバルの名前を、仮に「ライバル 1・2・3」（上から順）にしてよいか**（1.2）。`ExamResultDto` は NPC の名前を返さず、名前を決める仕様も無いため（ユーザーが推奨どおり了承した。2026-11-07）
+12. **レッスンが終わるたびに「レッスン終了」と上がった値のダイアログで 1 回止まる**（1.2。ターン終了時の効果の 1 件ずつの表示を MVP から外した代わり）。この動きでよいか（ユーザーが推奨どおり了承した。2026-11-07）
+13. **自分の行の印 `◀`** は P3 の決めたこと 11（Noto Sans JP に字形があるか）の答えに従う。豆腐なら、この計画の文言（3.4.3 の `" ◀"`）を P3 の確認で決めた文字に置き換える（ユーザーが推奨どおり了承した。2026-11-07）
 
 ## ユーザーの確認が要ること
 
-1. **順位表のライバルの名前を、仮に「ライバル 1・2・3」（上から順）にしてよいか**（1.2）。`ExamResultDto` は NPC の名前を返さず、名前を決める仕様も無いため
-2. **レッスンが終わるたびに「レッスン終了」と上がった値のダイアログで 1 回止まる**（1.2。ターン終了時の効果の 1 件ずつの表示を MVP から外した代わり）。この動きでよいか
-3. **自分の行の印 `◀`** は P3 の確認 2（Noto Sans JP に字形があるか）の答えに従う。豆腐なら、この計画の文言（3.4.3 の `" ◀"`）を P3 の確認で決めた文字に置き換える
+なし（全件、2026-11-07 にユーザーが推奨どおり了承した。「この計画で決めたこと」の末尾に移した）。
 
 ## 1. 目的と前提
 
@@ -628,10 +629,10 @@ Editor の Play モードで、ローカルのサーバー（CLAUDE.md の「ビ
 **通し A・B のほかに Editor で確かめること**:
 - レッスンの途中でアプリを終了 → 再起動 → ホームの「再開」で `Produce` シーンのレッスンに戻る（同じ手札・ターン。「直前の結果」は空）
 - 「≡」→ 閉じる → そのままカードを使える。「≡」→ ホームへ戻る → `Home` シーン（「再開」がある）。「≡」→ 放棄 → 確認 → `Home` シーン
-- 日本語と記号（`≡`・`◀`）が豆腐でない（P3 の確認 2）。コンソールにエラーが無い
+- 日本語と記号（`≡`・`◀`）が豆腐でない（P3 の決めたこと 11）。コンソールにエラーが無い
 
 ## 6. 未決事項
 
-いまは draft。「ユーザーの確認が要ること」の 1〜3 の答えが出て、次の照合が済んだら、ここを空にしてレビューに出し、`ready` にする。
+いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - （2026-11-07 に照合済み）week の形: `PushForPhaseAsync` の `switch` の `case`、`FakeProduceFlow`（`ShowCurrentAsync`・`ExitToHomeAsync`・`HandleStepAsync` の上書きと記録の書式）、`SkillCardRowView.SetTexts(title, costs, description)`（week が足す）、`DisplayText` の命名（型と同じ名前にしない: owned の `RarityName`・`ParamName` も同じ規則にそろえた）。索引（[2026-11-07-client-screens-index.md](2026-11-07-client-screens-index.md)）は 1 の表に状態の列を持つ
