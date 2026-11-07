@@ -99,7 +99,7 @@ uta/
 1. ゲームの仕様（`systems/`・`overview/`）を書く、または更新する
 2. 実装設計書（`architecture/`）を書く、または更新する。何の正がどのページかは `architecture/README.md`
 3. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
-4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、承認後に `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
+4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、`ready` にしたら `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
 5. 実装設計書と実装計画を `requesting-design-review` でレビューに出す（上の表の回し方）。実装計画は、実装可能性の観点が「質問せずに書ける」と判定するまで直し、`status: ready` にする
 6. 計画のタスクごとに、実装担当 `uta-implementer`（Sonnet）に実装させる（`uta-implement` スキル）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
 7. `requesting-code-review` でコードレビューに出す
@@ -154,6 +154,8 @@ uta/
 - Unity が生成する `.csproj` / `.sln` は `client/<プロジェクト名>/` 直下（現在は `client/uta/`）のみ除外する。`server/` と `shared/` のプロジェクトファイルはコミットする
 - コミットメッセージは日本語
 - **GitHub の操作（PR・Issue・API）は `gh` コマンドを使う**（2026-11-01 に確定）。GitHub の MCP は使わない
+- **作業を始める前に main を最新にする**: `main` のチェックアウトなら `git switch main` → `git pull --ff-only origin main` のあとにブランチを切る（`tools/worktree-pool.sh start` は `origin/main` を取得してから切るので、固定の worktree ではそのままでよい）。未コミットの変更があって切り替えられないときは、変更を消さず、ユーザーに確認する
+- **作業が完了したら、必ず PR を作るところまで行う**: コミット → push → PR の作成まで、ユーザーに確認を取らずに行う。PR の本文に、確認できていないことを書く。マージはユーザーが行う
 - **前提のタスク（未マージの PR）がある作業は、積み PR にする**: 前提のブランチから新しいブランチを切り（`git switch -c <新ブランチ> <前提ブランチ>`）、PR の base も前提のブランチにする（`gh pr create --base <前提ブランチ>`）。PR の本文に前提の PR を書く。前提の PR を先に main へマージしていき、後続の PR は base を main にリターゲットする（`gh pr edit --base main`）。リターゲットとマージはユーザーが進める。前提がない作業は main（または指定の base）に向ける
 - コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
 - 履歴は `git log -- uta_docs/wiki` などで引く

@@ -20,7 +20,7 @@ description: Uta の実装計画（uta_docs/plans）を書き、レビューを�
 
 ### 1. 計画が要るかを決める
 
-[plans/README.md](../../../uta_docs/plans/README.md)「計画を書くとき」に当たらなければ、計画を書かずに直して終わる。当たるなら、`main` のチェックアウトで `git switch -c claude/plan-<件名> main`（worktree は使わない）。
+[plans/README.md](../../../uta_docs/plans/README.md)「計画を書くとき」に当たらなければ、計画を書かずに直して終わる。当たるなら、`main` のチェックアウトで `git pull --ff-only origin main` → `git switch -c claude/plan-<件名> main`（worktree は使わない）。
 
 ### 2. 文脈を集める
 
@@ -94,7 +94,7 @@ description: Uta の実装計画（uta_docs/plans）を書き、レビューを�
 ### 9. ready にして PR に出す
 
 1. `status: ready` にし、`updated` を更新する。索引があれば状態を直す
-2. ユーザーの承認を取り、`main` 向けの PR を作る（`gh pr create`。docs だけ）。マージはユーザーが行う
+2. コミットして push し、`main` 向けの PR を作る（`gh pr create`。docs だけ）。確認を取らずに必ず行う。マージはユーザーが行う
 3. ここが区切り。続けず、実装は新しいセッションで [uta-implement](../uta-implement/SKILL.md) を使うよう提案する（`start_session`。ブリーフには計画のパスを書く）
 
 ## してはいけないこと
