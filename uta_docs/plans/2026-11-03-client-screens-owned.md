@@ -12,7 +12,7 @@ spec: ../wiki/systems/idol-support.md
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。
 
 1. **画面は P2 の Prefab と View の骨格の上に作る**（2026-11-07 の Prefab 化）。`OwnedPage`・`SupportDetailPage` の Prefab・子の並び・`[SerializeField]` のフィールドは P2（[2026-11-07-client-prefabs-screens-a.md](2026-11-07-client-prefabs-screens-a.md) 3.2・3.3）が作る。この計画は、その骨格に `IOwnedView`・`ISupportDetailView` の実装（フィールドを使う表示と、`Awake` でのボタンの購読）を足すだけで、C# で UI を組まない（旧版の `BuildUi`・`UiFactory`・`EnsureBuilt` と「画面のレイアウト」の節はやめた）
-2. **P2 の構造に合わせた表示の決め方**: 0 件の「ありません」は一覧の外の `emptyText` を出し隠しする（一覧の中に置かない）。タブの選択は `UtaTabBarView.SetSelected`（下線 `underline` の表示）で表す（旧: ボタンを押せなくする）。プラン・タイプのボタンは `filterRow`（下段）ごと出し隠しする。所持一覧の行は P1 の `UtaListRow`（`TitleText`・`SubText`・`RightText`。`RightText` は空）。レベルのボタン（+1／+5／最大）は Prefab に固定で 3 つあり、ラベルと押せるかだけを変える
+2. **P2 の構造に合わせた表示の決め方**: 0 件の「ありません」は一覧の外の `emptyText` を出し隠しする（一覧の中に置かない）。タブの選択は `TabBarView.SetSelected`（下線 `underline` の表示）で表す（旧: ボタンを押せなくする）。プラン・タイプのボタンは `filterRow`（下段）ごと出し隠しする。所持一覧の行は P1 の `ListRow`（`TitleText`・`SubText`・`RightText`。`RightText` は空）。レベルのボタン（+1／+5／最大）は Prefab に固定で 3 つあり、ラベルと押せるかだけを変える
 3. **所持一覧・詳細は `Home` シーンの中のページ**（screen-design 8章、foundation 3.3.1）。ホームの「アイドル」ボタン（P2 の `HomePage` の `Menu/OwnedButton`）→ `HomePresenter.OpenOwnedAsync` → `OwnedPresenter` を積む → 行のタップで `SupportDetailPresenter` を積む → 上限解放の素材は `OwnedPresenter`（選択モード）をもう 1 枚積む。どれも `Home` シーンの `IScreenNavigator` で積み、「＜」で `PopPageAsync(this)`。シーンはまたがない
 4. **ユースケース・ゲートウェイの登録は `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足すだけ**。画面の登録（旧 `UiRoot.RegisterPage`）は無い（Prefab は P2 が Addressables の `Screens` に登録済み。Presenter は基盤が Push のたびに作る）
 5. `ServerReasons`（2 本目）に、この計画が使う reason 6 つ（`SUPPORT_*` 5 つと `PLAYER_NOT_ENOUGH_GOLD`）を足す（2 本目の「ほかの reason は、それを使う計画が足す」のとおり）
@@ -42,9 +42,9 @@ spec: ../wiki/systems/idol-support.md
 - 関係する ADR: [0008](../wiki/decisions/0008-shared-domain-and-onion.md)（層。判定は Shared.Domain の関数を両側で使う）、[0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・VContainer・UniTask）
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1（[prefabs-common](2026-11-07-client-prefabs-common.md)）→ P2 → foundation → gacha → **この計画** → P3 → formation・week・lesson
 - 使う前の計画の型:
-  - P1: `PageBase`、部品の View（`UtaButtonView`・`UtaHeaderView`・`UtaTabBarView`・`UtaTabView`・`ListRowBase`・`UtaListRowView`）、部品の Prefab `UtaListRow`
+  - P1: `PageBase`、部品の View（`ButtonView`・`HeaderView`・`TabBarView`・`TabView`・`ListRowBase`・`ListRowView`）、部品の Prefab `ListRow`
   - P2: `OwnedPage`・`SupportDetailPage` の骨格（フィールドだけ）と Prefab（Addressables のアドレス `OwnedPage`・`SupportDetailPage`）
-  - foundation: 部品の View に足したメソッド（3.2。`UtaButtonView.Button`・`SetLabel`・`SetInteractable`、`UtaHeaderView.BackButton`・`SetTitle`、`UtaTabBarView.TabClicked`・`SetSelected`、`ListRowBase.Button`・`SetInteractable`、`UtaListRowView.SetTexts`）、`UiObjects.ClearChildren`・`AddRow<T>`、`DialogService`・`DialogResult`、`IGameMaster`（`GetSupportAbilities` を含む）、`RefreshPlayerUseCase`、`PlayerCache`、`HomePresenter`、`BootstrapEntry.RegisterUseCases`、`UtaErrors`（`SupportErrors` 5 つと `PlayerErrors.NotEnoughGold` が `Stay` で登録済み）、テスト用の `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`StubPlayerPort`
+  - foundation: 部品の View に足したメソッド（3.2。`ButtonView.Button`・`SetLabel`・`SetInteractable`、`HeaderView.BackButton`・`SetTitle`、`TabBarView.TabClicked`・`SetSelected`、`ListRowBase.Button`・`SetInteractable`、`ListRowView.SetTexts`）、`UiObjects.ClearChildren`・`AddRow<T>`、`DialogService`・`DialogResult`、`IGameMaster`（`GetSupportAbilities` を含む）、`RefreshPlayerUseCase`、`PlayerCache`、`HomePresenter`、`BootstrapEntry.RegisterUseCases`、`UtaErrors`（`SupportErrors` 5 つと `PlayerErrors.NotEnoughGold` が `Stay` で登録済み）、テスト用の `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`StubPlayerPort`
   - gacha（2 本目）: `PortResult<T>`・`ServerReasons`・テスト用の `FakeGameMaster`（`Tests/EditMode/Fakes/`。`Abilities` の口を持つ）、`HomePresenter` に足された `IScreenNavigator`
 - **前提 1**: P1・P2・foundation・gacha が done。タスク 1 の前に、`Presentation/Owned/OwnedPage.cs`・`SupportDetailPage.cs` のフィールドが P2 の 3.1 の表と同じこと、`HomePresenter` のコンストラクターに `IScreenNavigator` があることを確かめ、違えば止まって報告する
 - **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、コンパイル・EditMode のテスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）。shared/ の変更（タスク 1 の 1）は .NET SDK で確かめられる
@@ -492,7 +492,7 @@ if (selection == null || selection.IsCancelled) { /* 何もしない */ }
 
 **`OwnedPage` の実装**（P2 の骨格に足す。foundation 3.3.3 の形。フィールドと Prefab の子の対応は P2 の 3.3 の表）
 
-P2 の骨格のフィールド（変えない）: `UtaHeaderView header`、`UtaTabBarView tabBar`、`RectTransform controls`、`RectTransform filterRow`、`UtaButtonView sortButton`・`orderButton`・`planButton`・`typeButton`、`TMP_Text emptyText`、`RectTransform listContent`、`UtaListRowView rowPrefab`。足すもの:
+P2 の骨格のフィールド（変えない）: `HeaderView header`、`TabBarView tabBar`、`RectTransform controls`、`RectTransform filterRow`、`ButtonView sortButton`・`orderButton`・`planButton`・`typeButton`、`TMP_Text emptyText`、`RectTransform listContent`、`ListRowView rowPrefab`。足すもの:
 
 ```csharp
 public sealed class OwnedPage : PageBase, IOwnedView
@@ -518,7 +518,7 @@ public sealed class OwnedPage : PageBase, IOwnedView
 - タブの添字: `0` = `OwnedTab.Idols`（`TabIdols`）、`1` = `OwnedTab.SupportCards`（`TabSupport`）（P2 の `tabs` の並び）
 - `Awake()`:
   - `header.BackButton.Button.onClick.AddListener(() => BackClicked?.Invoke());`
-  - `tabBar.TabClicked += index => TabSelected?.Invoke(index == 0 ? OwnedTab.Idols : OwnedTab.SupportCards);`（`UtaTabBarView` が自分の `Awake` でタブのボタンを購読し、添字で知らせる。どちらの `Awake` が先でも C# の `event` の購読なので動く）
+  - `tabBar.TabClicked += index => TabSelected?.Invoke(index == 0 ? OwnedTab.Idols : OwnedTab.SupportCards);`（`TabBarView` が自分の `Awake` でタブのボタンを購読し、添字で知らせる。どちらの `Awake` が先でも C# の `event` の購読なので動く）
   - `sortButton.Button.onClick` → `SortKeyClicked`、`orderButton` → `SortOrderClicked`、`planButton` → `PlanFilterClicked`、`typeButton` → `TypeFilterClicked`（どれも `AddListener(() => Xxx?.Invoke())`）
 - `SetTitle(title)`: `header.SetTitle(title)`
 - `SetTabs(selected, visible)`: `tabBar.gameObject.SetActive(visible);` → `tabBar.SetSelected(selected == OwnedTab.Idols ? 0 : 1);`（選んだタブの下線 `underline` を出し、もう一方を消す。ボタンはどちらも押せるまま。今のタブを押したときは Presenter が何もしない）
@@ -527,7 +527,7 @@ public sealed class OwnedPage : PageBase, IOwnedView
   1. `UiObjects.ClearChildren(listContent);`
   2. `emptyText.gameObject.SetActive(rows.Count == 0);`（文字は Prefab の「ありません」のまま。C# は替えない）
   3. 添字 `i` ごとに `var row = UiObjects.AddRow(rowPrefab, listContent, "Row" + i);`、`row.SetTexts(rows[i].Title, rows[i].Detail, "");`（右の文字は使わない）、`row.SetInteractable(rows[i].Enabled);`（押せない行は Button の ColorTint の disabled で暗くなる）、`var index = i; row.Button.onClick.AddListener(() => RowClicked?.Invoke(index));`（行は次の `ClearChildren` で消えるので、解除は書かない）
-- 文字の大きさ・色・行の高さは Prefab（P1 の `UtaListRow` は高さ 160、`TitleText`・`SubText` の 2 段）が決める。C# は文字と表示・押せるかだけを変える（foundation 3.3.3）
+- 文字の大きさ・色・行の高さは Prefab（P1 の `ListRow` は高さ 160、`TitleText`・`SubText` の 2 段）が決める。C# は文字と表示・押せるかだけを変える（foundation 3.3.3）
 
 ### 3.7 サポートカードの詳細（`Uta.Client.Presentation.Owned`）
 
@@ -611,7 +611,7 @@ public sealed class SupportDetailPresenter : IScreenWithArgs<SupportDetailArgs>
 
 **`SupportDetailPage` の実装**（P2 の骨格に足す。foundation 3.3.3 の形。フィールドと Prefab の子の対応は P2 の 3.3 の表）
 
-P2 の骨格のフィールド（変えない）: `UtaHeaderView header`、`TMP_Text infoText`、`TMP_Text resourcesText`、`UtaButtonView plus1Button`・`plus5Button`・`maxButton`・`limitBreakButton`、`TMP_Text abilitiesText`。見出し「サポートカード」と「アビリティ」は Prefab の固定の文字（C# は替えない）。足すもの:
+P2 の骨格のフィールド（変えない）: `HeaderView header`、`TMP_Text infoText`、`TMP_Text resourcesText`、`ButtonView plus1Button`・`plus5Button`・`maxButton`・`limitBreakButton`、`TMP_Text abilitiesText`。見出し「サポートカード」と「アビリティ」は Prefab の固定の文字（C# は替えない）。足すもの:
 
 ```csharp
 public sealed class SupportDetailPage : PageBase, ISupportDetailView

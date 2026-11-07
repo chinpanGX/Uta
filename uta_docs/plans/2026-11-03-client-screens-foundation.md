@@ -24,7 +24,7 @@ spec: ../wiki/architecture/screen-design.md
 11. **エラーの「ホームへ」は、所持データを取り直してから `Home` を読み込み直す**（`ErrorNavigator` が `IObjectResolver` を受け、`GoToHomeAsync` の中で `RefreshPlayerUseCase` を遅延解決して呼ぶ。コンストラクターで受けると `UtaApiClient` → `IErrorNavigator` → `RefreshPlayerUseCase` → `IPlayerPort` → `UtaApiClient` の DI の循環になるため。取り直しの失敗はログだけで、ホームへは行く。取り直しの中で再び「ホームへ」が来たら、取り直しを飛ばす）。`ApiCore` は順番待ちを解いてから遷移を呼ぶので、遷移の中で通信してよい
 12. **ホームの 4 つのボタン（プロデュース・再開・ガチャ・アイドル）は「準備中です。」のダイアログ**（2〜4 本目が自分のボタンを差し替える）。#24 の「PRODUCE → `Produce` シーン」はやめる。**`Produce` シーンはこの計画では変えない**（#24 の仮の画面のまま: `ProduceLifetimeScope`・`ProduceView`・`ProducePresenter`・`SceneBuilder` の `BuildProduce` を消さない・直さない）。ホームから `Produce` へ移る道が無くなるので、4 本目（formation）までは使われない。4 本目が `Produce` シーンを作り直す（`UiRoot` を置き、`ProduceLifetimeScope` を `SceneUiInstaller` と入口の形にし、#24 の仮の画面を消す。底のページはいつも `ProduceBackdropPage`）
 13. 業務エラー 18 個を `UtaErrors` に `ErrorAction.Stay` で登録する（旧版と同じ）。`IGameMaster`（`GetCardText`・`GetSupportAbilities` を含む）・`MasterGameData`・`RefreshPlayerUseCase` も旧版と同じ
-14. 部品の View（P1 の骨格）に表示のメソッドを足す（3.2）。見出しを変える `UtaHeaderView.SetTitle`、ラベルと押せるかを変える `UtaButtonView.SetLabel`・`SetInteractable` を含む（P3 の画面と formation・week・lesson が使う）。後続の計画はこれを使い、部品の View を書き換えない
+14. 部品の View（P1 の骨格）に表示のメソッドを足す（3.2）。見出しを変える `HeaderView.SetTitle`、ラベルと押せるかを変える `ButtonView.SetLabel`・`SetInteractable` を含む（P3 の画面と formation・week・lesson が使う）。後続の計画はこれを使い、部品の View を書き換えない
 15. 型の名前の衝突: 基盤に `UnityScreenNavigator.ISceneNavigator`（別物）がある。`using UnityScreenNavigator;` と `using Uta.Client.Application.Navigation;` の両方を書くファイルは、`using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;` を足す（3.3.10。後続の計画も従う）
 16. **ホームのボタンのテストはボタンごとに分ける**（5章の `ProduceClicked_ShowsNotReady` など 4 本）。2〜4 本目は、自分が差し替えたボタンのテストだけを書き換える（「準備中です。」が何回出るかに依らない）
 
@@ -57,7 +57,7 @@ spec: ../wiki/architecture/screen-design.md
 |---|---|---|---|
 | 1 | 変更 | `Tests/EditMode/Uta.Client.Infrastructure.Tests.EditMode.asmdef` | 参照に `Uta.Client.Bootstrap`・`VContainer` を足す（3.1） |
 | 1 | 変更 | `Scripts/Presentation/Common/BusyIndicator.cs` | `Begin`・`End`・`IsBusy` を足す（3.2。P1 の骨格） |
-| 1 | 変更 | `Scripts/Presentation/Common/Parts/UtaButtonView.cs`・`UtaHeaderView.cs`・`UtaTabView.cs`・`UtaTabBarView.cs`・`UtaDialogView.cs`・`ListRowBase.cs`・`UtaListRowView.cs` | 表示のメソッドを足す（3.2。P1 の骨格） |
+| 1 | 変更 | `Scripts/Presentation/Common/Parts/ButtonView.cs`・`HeaderView.cs`・`TabView.cs`・`TabBarView.cs`・`DialogView.cs`・`ListRowBase.cs`・`ListRowView.cs` | 表示のメソッドを足す（3.2。P1 の骨格） |
 | 1 | 作成 | `Scripts/Presentation/Common/UiObjects.cs` | 消す・子を全部消す・行を作るの補助（3.2） |
 | 1 | 作成 | `Scripts/Presentation/Common/DialogResult.cs`・`DialogService.cs` | 確認・お知らせ・選択のダイアログ（3.2） |
 | 1 | 作成 | `Scripts/Presentation/Common/PageStack.cs` | ページ・モーダルの枚数を数えて底まで戻す（3.2） |
@@ -110,7 +110,7 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 | `DialogService.ShowInfoAsync`・`ConfirmAsync`・`ChooseAsync`、`DialogResult` | 各シーンのスコープ | 3.2 |
 | `BusyIndicator.Begin`・`End`・`IsBusy`（画面は直接呼ばない） | `UiRoot.Busy` | 3.2 |
 | `UiObjects.Destroy`・`ClearChildren`・`AddRow<T>` | 静的 | 3.2 |
-| 部品の View のメソッド（`UtaButtonView.Button`・`SetLabel`・`SetInteractable`・`SetColor`、`UtaHeaderView.BackButton`・`RightSlot`・`SetTitle`、`UtaTabView.Button`・`SetLabel`・`SetSelected`、`UtaTabBarView.Count`・`GetTab`・`TabClicked`・`SetSelected`、`ListRowBase.Button`・`SetInteractable`、`UtaListRowView.SetTexts`、`UtaDialogView.SetMessage`・`AddButton`・`Destroyed`） | `Common/Parts` | 3.2 |
+| 部品の View のメソッド（`ButtonView.Button`・`SetLabel`・`SetInteractable`・`SetColor`、`HeaderView.BackButton`・`RightSlot`・`SetTitle`、`TabView.Button`・`SetLabel`・`SetSelected`、`TabBarView.Count`・`GetTab`・`TabClicked`・`SetSelected`、`ListRowBase.Button`・`SetInteractable`、`ListRowView.SetTexts`、`DialogView.SetMessage`・`AddButton`・`Destroyed`） | `Common/Parts` | 3.2 |
 | `SceneUiInstaller.Install(IContainerBuilder, UiRoot)`（新しいシーンのスコープを作るとき） | 静的 | 3.2 |
 | `IGameMaster`（`GetCardText`・`GetSupportAbilities` を含む）と読み取り用の型 | ルート | 3.4 |
 | `RefreshPlayerUseCase.ExecuteAsync` | ルート | 3.5 |
@@ -126,7 +126,7 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 P1 が `Uta.Client.Presentation`（`UnityScreenNavigator`・`Unity.TextMeshPro` など）・`Uta.Client.Editor`・テストの asmdef（`Uta.Client.Presentation`・`UnityScreenNavigator`・`UnityEngine.UI`・`Unity.TextMeshPro`・Addressables）の参照を足してある。この計画で足すのは次だけ:
 
 - `Uta.Client.Infrastructure.Tests.EditMode.asmdef` の `references` の最後に `"Uta.Client.Bootstrap"`, `"VContainer"` を足す（タスク 1。`ApiActivityBridge`・`ErrorDialogView`・`ErrorNavigator`・`BootstrapEntry` のテストと、`ErrorNavigatorTests` の `ContainerBuilder` のため。`Uta.Client.Bootstrap` は `autoReferenced: false` なので名前で足す）
-- `Uta.Client.Bootstrap.asmdef` の `references` の最後に `"UnityScreenNavigator"`, `"Unity.TextMeshPro"`, `"UnityEngine.UI"` の 3 つを、この順で足す（タスク 4。3 つとも必ず足す）。`Bootstrap` が使う `UiRoot`（`PageContainer` などの USN の型）・`UtaDialogView`（`TMP_Text`）・`UtaButtonView`（`UnityEngine.UI.Button`）・`BusyIndicator`（`Image`）のメンバーの型が、この 3 つのアセンブリにあるため。asmdef の名前は `com.unity.ugui` 7.0.0 のパッケージ（`Library/PackageCache/com.unity.ugui@<ハッシュ>/Runtime/TMP/Unity.TextMeshPro.asmdef`・`Runtime/UGUI/UnityEngine.UI.asmdef`）で確かめた（2026-11-07）。`UnityScreenNavigator` は P1 が `Uta.Client.Presentation` に足したものと同じ名前
+- `Uta.Client.Bootstrap.asmdef` の `references` の最後に `"UnityScreenNavigator"`, `"Unity.TextMeshPro"`, `"UnityEngine.UI"` の 3 つを、この順で足す（タスク 4。3 つとも必ず足す）。`Bootstrap` が使う `UiRoot`（`PageContainer` などの USN の型）・`DialogView`（`TMP_Text`）・`ButtonView`（`UnityEngine.UI.Button`）・`BusyIndicator`（`Image`）のメンバーの型が、この 3 つのアセンブリにあるため。asmdef の名前は `com.unity.ugui` 7.0.0 のパッケージ（`Library/PackageCache/com.unity.ugui@<ハッシュ>/Runtime/TMP/Unity.TextMeshPro.asmdef`・`Runtime/UGUI/UnityEngine.UI.asmdef`）で確かめた（2026-11-07）。`UnityScreenNavigator` は P1 が `Uta.Client.Presentation` に足したものと同じ名前
 - `Uta.Client.Presentation.asmdef` は変えない（Input System は `UiRoot.prefab` の `EventSystem` が持つので、C# から参照しない）
 
 ### 3.2 共通部品（`Uta.Client.Presentation.Common`）
@@ -156,13 +156,13 @@ public sealed class BusyIndicator : MonoBehaviour
 
 | 型 | 足すメンバー |
 |---|---|
-| `UtaButtonView` | `public Button Button => button;`（`onClick` の購読用）、`public void SetLabel(string text)`（`label.text = text`）、`public void SetInteractable(bool value)`（`button.interactable = value`。見た目は ColorTint）、`public void SetColor(Color color)`（`background.color = color`） |
-| `UtaHeaderView` | `public UtaButtonView BackButton => backButton;`、`public RectTransform RightSlot => rightSlot;`、`public void SetTitle(string text)`（`titleText.text = text`） |
-| `UtaTabView` | `public Button Button => button;`、`public void SetLabel(string text)`、`public void SetSelected(bool selected)`（`underline.enabled = selected`） |
-| `UtaTabBarView` | `public int Count => tabs.Length;`、`public UtaTabView GetTab(int index)`（`tabs[index]`）、`public event Action<int> TabClicked;`、`private void Awake()`（各 i について `var index = i; tabs[i].Button.onClick.AddListener(() => TabClicked?.Invoke(index));`）、`public void SetSelected(int index)`（`index < 0 \|\| index >= Count` なら `ArgumentOutOfRangeException`。各 i で `tabs[i].SetSelected(i == index)`） |
-| `UtaDialogView` | `public event Action Destroyed;`、`public void SetMessage(string message)`（`messageText.text = message`）、`public UtaButtonView AddButton(string name, string label, Color color)`（`var b = UnityEngine.Object.Instantiate(buttonPrefab, buttonList, false); b.gameObject.name = name; b.SetLabel(label); b.SetColor(color); return b;`）、`private void OnDestroy()`（`Destroyed?.Invoke()`） |
+| `ButtonView` | `public Button Button => button;`（`onClick` の購読用）、`public void SetLabel(string text)`（`label.text = text`）、`public void SetInteractable(bool value)`（`button.interactable = value`。見た目は ColorTint）、`public void SetColor(Color color)`（`background.color = color`） |
+| `HeaderView` | `public ButtonView BackButton => backButton;`、`public RectTransform RightSlot => rightSlot;`、`public void SetTitle(string text)`（`titleText.text = text`） |
+| `TabView` | `public Button Button => button;`、`public void SetLabel(string text)`、`public void SetSelected(bool selected)`（`underline.enabled = selected`） |
+| `TabBarView` | `public int Count => tabs.Length;`、`public TabView GetTab(int index)`（`tabs[index]`）、`public event Action<int> TabClicked;`、`private void Awake()`（各 i について `var index = i; tabs[i].Button.onClick.AddListener(() => TabClicked?.Invoke(index));`）、`public void SetSelected(int index)`（`index < 0 \|\| index >= Count` なら `ArgumentOutOfRangeException`。各 i で `tabs[i].SetSelected(i == index)`） |
+| `DialogView` | `public event Action Destroyed;`、`public void SetMessage(string message)`（`messageText.text = message`）、`public ButtonView AddButton(string name, string label, Color color)`（`var b = UnityEngine.Object.Instantiate(buttonPrefab, buttonList, false); b.gameObject.name = name; b.SetLabel(label); b.SetColor(color); return b;`）、`private void OnDestroy()`（`Destroyed?.Invoke()`） |
 | `ListRowBase` | `public Button Button => button;`、`public void SetInteractable(bool value)`（`button.interactable = value`）、`protected Image Background => background;` |
-| `UtaListRowView` | `public void SetTexts(string title, string sub, string right)`（3 つの `TMP_Text.text` に入れる。null は空文字にする） |
+| `ListRowView` | `public void SetTexts(string title, string sub, string right)`（3 つの `TMP_Text.text` に入れる。null は空文字にする） |
 
 #### `UiObjects`・`DialogResult`・`DialogService`
 
@@ -191,7 +191,7 @@ public enum DialogResult { Positive, Negative }
 public class DialogService
 {
     /// <summary>layer・prefab を保存するだけ（C# の null を許す。ArgumentNullException は投げない。FakeDialogService が base(null, null) で作り、公開メソッドを全部上書きするので layer を使わない。下の「順番が来たら」）。</summary>
-    public DialogService(RectTransform layer, UtaDialogView prefab);
+    public DialogService(RectTransform layer, DialogView prefab);
 
     /// <summary>お知らせ。ボタンは「OK」1 つ（ButtonPrimary）。押されたら閉じて終わる。</summary>
     public virtual UniTask ShowInfoAsync(string message);
@@ -244,7 +244,7 @@ public class DialogService
 - 順番が来たら、同じフレームのうちに（`UniTask.Yield` を挟まず）: `ReferenceEquals(layer, null) || ReferenceEquals(prefab, null)` なら `InvalidOperationException("dialog layer is not set")`。`var view = UnityEngine.Object.Instantiate(prefab, layer, false); view.gameObject.name = "Dialog"; view.SetMessage(message);` → ボタンを `view.AddButton("Button" + i, label, 色)` で上から順に作り、`button.Button.onClick.AddListener(() => Complete(i))`
 - `Complete(i)`: 済みなら何もしない。済みにして `UiObjects.Destroy(view.gameObject)` し、i を結果にする。`view.Destroyed` では、済みでなければ済みにして −1 を結果にする（シーンを閉じてダイアログが消えた）
 - 結果の読み替え: `ShowInfoAsync` は添字を捨てる。`ConfirmAsync` は 0 → `Positive`、それ以外（1・−1）→ `Negative`。`ChooseAsync` は添字をそのまま返す。`ShowInfoAsync`・`ConfirmAsync` は `async` で `await EnqueueAsync(...)` して読み替える。**`ChooseAsync` は `async` にしない**: ラベルを検証して（違反なら同期に `ArgumentException` を投げる）から、`EnqueueAsync(...)` の `UniTask<int>` をそのまま返す（`async` にすると例外が `UniTask` の中に入り、呼んだその場で投げられないため）
-- ボタンの色は `UiTheme.ButtonPrimary`／`UiTheme.ButtonSecondary`（P1）。文字の大きさ・並びは `UtaDialog.prefab`（P1）が決める
+- ボタンの色は `UiTheme.ButtonPrimary`／`UiTheme.ButtonSecondary`（P1）。文字の大きさ・並びは `Dialog.prefab`（P1）が決める
 
 #### `PageStack`
 
@@ -458,7 +458,7 @@ public interface IHomeView
 public sealed class HomePage : PageBase, IHomeView
 {
     [SerializeField] private TMP_Text profileText;        // P2 の骨格のまま
-    [SerializeField] private UtaButtonView gachaButton;   // P2 の骨格のまま
+    [SerializeField] private ButtonView gachaButton;   // P2 の骨格のまま
 
     public event Action GachaClicked;                     // ここから下をこの計画（C#）が足す
 
@@ -959,14 +959,14 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 
 | View | フィールド（`[SerializeField] private`） | Prefab の子（名前） | 使い方 |
 |---|---|---|---|
-| `TitlePage` | `UtaButtonView startButton` | `StartButton`（→ `UtaButton`） | `StartClicked`・`SetStartInteractable` |
-| | `TMP_Text statusText` | `StatusText`（→ `UtaLabel`） | `SetStatus`（複数行。折り返しあり） |
+| `TitlePage` | `ButtonView startButton` | `StartButton`（→ `Button`） | `StartClicked`・`SetStartInteractable` |
+| | `TMP_Text statusText` | `StatusText`（→ `Label`） | `SetStatus`（複数行。折り返しあり） |
 | `HomePage` | `TMP_Text profileText` | `ProfileText` | `SetProfile` |
 | | `GameObject resumePanel` | `ResumePanel` | `SetResumeVisible` |
-| | `UtaButtonView resumeButton` | `ResumePanel/ResumeButton` | `ResumeClicked` |
-| | `UtaButtonView produceButton` | `ProduceButton` | `ProduceClicked` |
-| | `UtaButtonView gachaButton` | `GachaButton` | `GachaClicked` |
-| | `UtaButtonView ownedButton` | `OwnedButton` | `OwnedClicked` |
+| | `ButtonView resumeButton` | `ResumePanel/ResumeButton` | `ResumeClicked` |
+| | `ButtonView produceButton` | `ProduceButton` | `ProduceClicked` |
+| | `ButtonView gachaButton` | `GachaButton` | `GachaClicked` |
+| | `ButtonView ownedButton` | `OwnedButton` | `OwnedClicked` |
 
 ### 3.10 `SceneBuilder`（`Uta.Client.Editor`）
 
@@ -1073,7 +1073,7 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 #### タスク 6: 結果の記録（wiki）
 
 1. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md):
-   - 2章の表に、確かめたものを 1 行ずつ足す（基盤の `ScreenNavigator`（Presenter 駆動）で、シーンのスコープから Addressables のページを積む（Editor の Play・Windows の IL2CPP）／`IApiActivityHandler` → `BusyIndicator`／`DialogService`（`UtaDialog.prefab`））。確かめられなかったものは 3.3 に足す。モーダル（`ModalBase`・`DefaultModalBackdrop`）は「この計画では出していない。2 本目で確かめる」と 3.3 に書く
+   - 2章の表に、確かめたものを 1 行ずつ足す（基盤の `ScreenNavigator`（Presenter 駆動）で、シーンのスコープから Addressables のページを積む（Editor の Play・Windows の IL2CPP）／`IApiActivityHandler` → `BusyIndicator`／`DialogService`（`Dialog.prefab`））。確かめられなかったものは 3.3 に足す。モーダル（`ModalBase`・`DefaultModalBackdrop`）は「この計画では出していない。2 本目で確かめる」と 3.3 に書く
    - 3.3 の 63 行「`ErrorDialogView`（診断用の IMGUI）」を「`ErrorDialogView`（いまのシーンの `DialogService`。`-uta-quit-after-check` では自動で閉じる）」に直す（経路が未確認なのは変わらない）
    - 3.3 の 68 行「UnityScreenNavigator・Supplement は取り込みだけで、使っていない」を「UnityScreenNavigator は基盤の `Runtime/ChinpanGX`（`ScreenNavigator`）を画面に使った（2章）。Supplement は使っていない」に直す（P1 のタスク 7 が先に直していれば、それに合わせて足す）
    - 4章 80 行「画面は IMGUI の診断用で、画面の計画（7 番目）で作り直す」を「画面は順 7 の計画（`uta_docs/plans/2026-11-03-client-screens-foundation.md`）で Prefab に作り直した。診断は `-uta-quit-after-check` のときだけ（`TitleDiagnostics`）」に直す
@@ -1107,7 +1107,7 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 | | | `ChooseAsync_FiveLabels_Throws` | `Assert.Throws<ArgumentException>(() => service.ChooseAsync("m", new[] { "a", "b", "c", "d", "e" }))`（検証は待ち行列の前で同期に投げる）。層の子は 0 のまま |
 | | | `ShowInfoAsync_Twice_ShowsOneAtATime` | `var first = service.ShowInfoAsync("a"); var second = service.ShowInfoAsync("b");`（どちらも await しない）→ 層の子が 1 で、その `MessageText`（名前で探した `TMP_Text`）の text が `"a"`、`second.Status == Pending` → ボタン [0] を押す → `first` が `Succeeded`、層の子が 1 で text が `"b"`（次のダイアログは同期で出る。3.2）→ もう一度 [0] を押す → `second` が `Succeeded`、層の子が 0 |
 | | | `LayerDestroyed_ReturnsWithoutDialog` | `Object.DestroyImmediate(layer.gameObject)` のあとに `var confirm = service.ConfirmAsync("m"); var choose = service.ChooseAsync("m", new[] { "a" }); var info = service.ShowInfoAsync("m");`（await しない）→ 3 つとも `Status == Succeeded`（例外なし。`MissingReferenceException` が出ない）、`confirm` の結果が `Negative`、`choose` の結果が −1（層が破棄済みなら、要求ごとの開始時の確かめで −1。3.2）。`[TearDown]` は `if (layer != null)` のときだけ `DestroyImmediate` する |
-| | | `ButtonColors_PrimaryThenSecondary` | `ConfirmAsync("m")`（await しない）のボタン [0] の `UtaButtonView` の `Image.color == UiTheme.ButtonPrimary`、[1] が `ButtonSecondary`。最後に [0] を押して閉じる |
+| | | `ButtonColors_PrimaryThenSecondary` | `ConfirmAsync("m")`（await しない）のボタン [0] の `ButtonView` の `Image.color == UiTheme.ButtonPrimary`、[1] が `ButtonSecondary`。最後に [0] を押して閉じる |
 | 1 | `PageStackTests.cs` | `PopToRoot_ThreePages_PopsTwo` | `new PageStack(() => 3, () => 0)` → `log` が `"PopPage:2"` だけ |
 | | | `PopToRoot_WithModals_PopsModalsFirst` | 2・1 → `"PopModal:1"`, `"PopPage:1"` |
 | | | `PopToRoot_OnePage_DoesNothing` | 1・0 → 記録なし |
@@ -1170,7 +1170,7 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 
 **`ErrorNavigatorTests` の組み立て**: どれも `[UnityTest] public IEnumerator Xxx() => UniTask.ToCoroutine(async () => { ... });`。`var log = new CallLog();`。`var builder = new ContainerBuilder(); builder.RegisterInstance<IPlayerPort>(port); builder.Register<PlayerCache>(Lifetime.Singleton); builder.Register<RefreshPlayerUseCase>(Lifetime.Singleton); var container = builder.Build();`（`ContainerBuilder`・`Lifetime` は `VContainer`。テストの asmdef は 3.1 で `VContainer` を参照済み）。`var navigator = new ErrorNavigator(new FakeSceneNavigator(log), container);`（`IObjectResolver` は `container`。`using ISceneNavigator` の衝突は無い: `UnityScreenNavigator` を `using` しない）。`[TearDown]` で `container.Dispose()`。遷移の記録は `FakeSceneNavigator`（3.3.8）の `"GoToHome"` で確かめる。`GatedPlayerPort` はこのテストファイルの中の `private sealed class GatedPlayerPort : IPlayerPort`: `public UniTaskCompletionSource<PlayerSignInResult> Gate { get; set; } = new UniTaskCompletionSource<PlayerSignInResult>();`、`public int SignInCalls { get; private set; }`、`SignInAsync()` は `SignInCalls++` して `Gate.Task` を返す、`SignUpAsync()` は `UniTask.FromResult(PlayerSignUpResult.Success(true))`。`snapshot` は `new StubPlayerPort().Snapshot`（既定のスナップショット）を使う
 
-**`DialogServiceTests` の書き方**: どれも同期の `[Test]`（`[UnityTest]` にしない）。`[SetUp]` で層 `layer = new GameObject("Layer", typeof(RectTransform)).GetComponent<RectTransform>()`、prefab = `AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Parts/UtaDialog.prefab").GetComponent<UtaDialogView>()`、`service = new DialogService(layer, prefab)`。`[TearDown]` で `if (layer != null) Object.DestroyImmediate(layer.gameObject);`（`LayerDestroyed_ReturnsWithoutDialog` は先に消すため）。`ConfirmAsync` などを呼んだ戻り値の `UniTask` は **await せずに変数に受け**、そのまま同期で層の子（`layer.childCount`）とボタン（`layer.GetComponentsInChildren<Button>()`。並びは上から）を確かめる（待ち行列が空なら、ダイアログは呼んだその場で出る。3.2）。ボタンは `onClick.Invoke()` で押す（EditMode では `UiObjects.Destroy` が `DestroyImmediate` なので、押した直後に子が減る）。完了は、押したあとに `task.Status == UniTaskStatus.Succeeded` を確かめ、結果は `task.GetAwaiter().GetResult()` で読む（1 つの `UniTask` で 1 回だけ）。押す前に `Status` が `Pending` でなければ、または押したあとに次のダイアログが同期で出なければ、`UniTask.Yield` などを足して直さず、止まって報告する（3.2 の待ち行列の前提が崩れている）
+**`DialogServiceTests` の書き方**: どれも同期の `[Test]`（`[UnityTest]` にしない）。`[SetUp]` で層 `layer = new GameObject("Layer", typeof(RectTransform)).GetComponent<RectTransform>()`、prefab = `AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Parts/Dialog.prefab").GetComponent<DialogView>()`、`service = new DialogService(layer, prefab)`。`[TearDown]` で `if (layer != null) Object.DestroyImmediate(layer.gameObject);`（`LayerDestroyed_ReturnsWithoutDialog` は先に消すため）。`ConfirmAsync` などを呼んだ戻り値の `UniTask` は **await せずに変数に受け**、そのまま同期で層の子（`layer.childCount`）とボタン（`layer.GetComponentsInChildren<Button>()`。並びは上から）を確かめる（待ち行列が空なら、ダイアログは呼んだその場で出る。3.2）。ボタンは `onClick.Invoke()` で押す（EditMode では `UiObjects.Destroy` が `DestroyImmediate` なので、押した直後に子が減る）。完了は、押したあとに `task.Status == UniTaskStatus.Succeeded` を確かめ、結果は `task.GetAwaiter().GetResult()` で読む（1 つの `UniTask` で 1 回だけ）。押す前に `Status` が `Pending` でなければ、または押したあとに次のダイアログが同期で出なければ、`UniTask.Yield` などを足して直さず、止まって報告する（3.2 の待ち行列の前提が崩れている）
 
 **ホームのボタンのテストの差し替え**（決めたこと 16）: 2〜4 本目は、自分が行き先を変えたボタンのテスト（上の表の「差し替える」と書いた行）だけを、自分の処理を確かめるテストに置き換える。ほかのボタンのテストは触らない（「準備中です。」が全部で何回出るかを数えるテストは作らない）。
 

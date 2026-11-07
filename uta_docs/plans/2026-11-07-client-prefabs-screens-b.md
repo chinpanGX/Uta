@@ -13,12 +13,12 @@ spec: ../wiki/architecture/screen-design.md
 
 1. **作る画面の Prefab は 10 個**（Addressables の `Screens` に登録）: `FormationPage`（`Screens/Formation/`）、`ProduceBackdropPage`・`WeekPage`・`ClassPage`・`SupplyPage`・`CardOfferModal`・`LessonPage`・`DeckListModal`・`ExamResultPage`・`ProduceResultPage`（`Screens/Produce/`）。依頼の一覧に無い **`SupplyPage`（支給）も作る**: C# の計画（[week](2026-11-03-client-screens-week.md) 3.3）に `SupplyPage` があり、Prefab が無いと Push できないため
 2. **行の Prefab は 5 個**（`Assets/Prefabs/Parts/`。Addressables に入れない。画面の View が `[SerializeField]` でアセットを参照する）: `FormationSlotRow`（編成の枠）、`SkillCardRow`（スキルカード 1 枚。**手札とスキルカード獲得の選択肢で共有**: どちらも「名前・消費・説明文・タップ」で同じ形のため）、`DeckSectionHeaderRow`・`DeckCardRow`（山札などの一覧の見出しと行）、`ExamRankingRow`（試験結果の順位表）
-3. **プロデュースのメニュー（[≡]）は Prefab を作らない**。[formation](2026-11-03-client-screens-formation.md) 3.4 の `ProduceMenu` は `DialogService.ChooseAsync`（3 択）で足りるので、P1 の `UtaDialog` を使う。[≡] のボタンだけを `WeekPage`・`LessonPage` のヘッダーの右（`UtaHeader/RightSlot`）に置く
-4. **ヘッダーは P1 の `UtaHeader` を使う**。戻るの無い画面（`WeekPage`・`LessonPage`）は、ネストした `BackButton` を非アクティブにし、`TitleText` を左寄せにする。`ExamResultPage`・`ProduceResultPage`・`ProduceBackdropPage` はヘッダーを置かない（戻る先が無く、見出しは本文の中に置く）
+3. **プロデュースのメニュー（[≡]）は Prefab を作らない**。[formation](2026-11-03-client-screens-formation.md) 3.4 の `ProduceMenu` は `DialogService.ChooseAsync`（3 択）で足りるので、P1 の `Dialog` を使う。[≡] のボタンだけを `WeekPage`・`LessonPage` のヘッダーの右（`Header/RightSlot`）に置く
+4. **ヘッダーは P1 の `Header` を使う**。戻るの無い画面（`WeekPage`・`LessonPage`）は、ネストした `BackButton` を非アクティブにし、`TitleText` を左寄せにする。`ExamResultPage`・`ProduceResultPage`・`ProduceBackdropPage` はヘッダーを置かない（戻る先が無く、見出しは本文の中に置く）
 5. **ページの中身の組み方は P2 と同じ**: `Body`（P1 の雛形。Safe Area）に縦の並び（VLG）を付け、上から `Header`（あれば）→ `Main`（`LayoutSpec.Column`。残りの高さを全部取る）。`Main` の中で余った高さは `Spacer` か縦スクロールの一覧が取る。**組み方の補助は P2 の `ScreenLayout` を使い**（`SetupBody`・`AddMain`・`AddLabel`・`AddFlexibleSpacer`・`LoadPart`）、P2 に無いプロデュースの画面だけの補助（戻るの無いヘッダー・メニューのボタン・実行時に並べる一覧の入れ物）だけを `ProduceLayout` に置く（3.3）。Editor の名前空間は P2 と同じ `Uta.Client.Editor.Prefabs.Screens`
-6. **数が増減する要素はすべて実行時に C# が Instantiate する**（週の行動・授業の選択肢 = `UtaButton`、手札・獲得の選択肢 = `SkillCardRow`、山札などの一覧 = `DeckSectionHeaderRow`・`DeckCardRow`、順位表 = `ExamRankingRow`）。**数が決まっている編成の 5 枠だけは Prefab の中に `Slot0`〜`Slot4` として置く**（`FormationPresenter.SupportSlots = 5`）
+6. **数が増減する要素はすべて実行時に C# が Instantiate する**（週の行動・授業の選択肢 = `Button`、手札・獲得の選択肢 = `SkillCardRow`、山札などの一覧 = `DeckSectionHeaderRow`・`DeckCardRow`、順位表 = `ExamRankingRow`）。**数が決まっている編成の 5 枠だけは Prefab の中に `Slot0`〜`Slot4` として置く**（`FormationPresenter.SupportSlots = 5`）
 7. 文字の大きさ・色・寸法は P1 の `UiTheme` の値だけを使う（新しい色・フォントサイズを足さない）。表示の文字（ラベルの初期値）は C# の計画の文言に合わせる
-8. View の骨格（`[SerializeField] private` のフィールドだけ）を、C# の計画の `IXxxView` から導いて作る（3.1）。C# の計画（formation・week・lesson）は、この計画の対応表（3.2・4章）のフィールドと、foundation 3.2 の部品の View のメソッド（`UtaHeaderView.SetTitle`・`BackButton`、`UtaButtonView.Button`・`SetLabel`・`SetInteractable`、`ListRowBase.Button`・`SetInteractable`）を使う
+8. View の骨格（`[SerializeField] private` のフィールドだけ）を、C# の計画の `IXxxView` から導いて作る（3.1）。C# の計画（formation・week・lesson）は、この計画の対応表（3.2・4章）のフィールドと、foundation 3.2 の部品の View のメソッド（`HeaderView.SetTitle`・`BackButton`、`ButtonView.Button`・`SetLabel`・`SetInteractable`、`ListRowBase.Button`・`SetInteractable`）を使う
 9. **画面とシーンの関係**（formation の計画が正。Prefab はシーンに依存しない）: `FormationPage` は `Home` シーンでホームのページの上に積む。プロデュースの画面（`WeekPage` から `ProduceResultPage` まで）は `Produce` シーンに積み、**底のページはいつも `ProduceBackdropPage`**（局面の画面は背景より上を Pop してから Push する。`CardOfferModal` は背景のページの上にモーダルで出す）
 10. **叩き台（[screen-wireframes.md](../wiki/overview/screen-wireframes.md)）との見た目の差**。どれも「見た目は仮」の範囲で、C# の計画の表示の形（文字の行）をそのまま Prefab にしたもの。この案で進めてよいか:（ユーザーが推奨どおり了承した。2026-11-07）
    - a. 手札は**縦の一覧**（1 枚 = 名前・消費・説明文の 3 行。4 枚を超えるとスクロール）。叩き台 3 は横に 3 枚並べるが、説明文を出すと横 1/3 の幅では読めないため
@@ -37,10 +37,10 @@ spec: ../wiki/architecture/screen-design.md
 
 - 関係する ADR: [0009](../wiki/decisions/0009-client-stack.md)（uGUI + UnityScreenNavigator・縦画面）、[0006](../wiki/decisions/0006-adopt-unity-7-early.md)（Unity 7）、[0001](../wiki/decisions/0001-ip-policy.md)（文言はオリジナル）
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1（[common](2026-11-07-client-prefabs-common.md)）→ P2（[screens-a](2026-11-07-client-prefabs-screens-a.md)）→ foundation → gacha → owned → **P3（この計画）** → formation → week → lesson
-- **前提 1**: P1 が done（`PrefabBuildUtil`・`IPrefabBuilder`・`RectSpec`・`LayoutSpec`・`TextSpec`・`UtaButtonStyle`・`PrefabBuildCommands`・`PrefabContract`／`PrefabContractTests`・部品の Prefab 10 個・`PageBase`／`ModalBase`・部品の View・`UiTheme`）。加えて P2 が done（Editor の補助 `ScreenLayout`。3.3）。P3 の View の型が使うのは P1 の型だけ、生成が使うのは P1 と P2 の `ScreenLayout` だけ（foundation・C# の計画の型には依存しない）。無ければ止まって報告する
+- **前提 1**: P1 が done（`PrefabBuildUtil`・`IPrefabBuilder`・`RectSpec`・`LayoutSpec`・`TextSpec`・`ButtonStyle`・`PrefabBuildCommands`・`PrefabContract`／`PrefabContractTests`・部品の Prefab 10 個・`PageBase`／`ModalBase`・部品の View・`UiTheme`）。加えて P2 が done（Editor の補助 `ScreenLayout`。3.3）。P3 の View の型が使うのは P1 の型だけ、生成が使うのは P1 と P2 の `ScreenLayout` だけ（foundation・C# の計画の型には依存しない）。無ければ止まって報告する
 - **前提 2**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready` が ready）。**Editor が無い環境ではこの計画のどのタスクも実行できない**。実行できないときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
 - **前提 3**: テストの回し方は [P1](2026-11-07-client-prefabs-common.md) のタスク 5 の手順 2（`unity test` は同じプロジェクトを開いた Editor があると使えないので、`unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'` → `client/uta` で `unity close .` → `unity test --mode EditMode` → `unity open .` → `unity status --until-ready`）。P1 の実施後に CLAUDE.md「ビルド・テスト・実行」に EditMode のテストの行があれば、その行の方法が正。行が無い（`unity test` が使えないと分かった）ときは、Editor の Test Runner の EditMode を全部実行してもらう（手動）
-- **この計画で決めないこと**: View のメソッド・`IXxxView` の実装・Presenter・`ProduceFlow`（C# の計画）。どのシーンにどの画面を積むか（formation の計画が正。決めたこと 9）。`UtaHeaderView`・`UtaButtonView` の表示のメソッド（foundation 3.2 が足す: `UtaHeaderView.SetTitle`、`UtaButtonView.SetLabel`・`SetInteractable`）
+- **この計画で決めないこと**: View のメソッド・`IXxxView` の実装・Presenter・`ProduceFlow`（C# の計画）。どのシーンにどの画面を積むか（formation の計画が正。決めたこと 9）。`HeaderView`・`ButtonView` の表示のメソッド（foundation 3.2 が足す: `HeaderView.SetTitle`、`ButtonView.SetLabel`・`SetInteractable`）
 
 ## 2. 触るファイル
 
@@ -68,10 +68,10 @@ spec: ../wiki/architecture/screen-design.md
 C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイルスコープ namespace・プライマリコンストラクタ・コレクション式 `[...]`・Index/Range・record は使わない。配列は `new[] { ... }`）。BOM 付き UTF-8、LF、Allman、`var`、private フィールドは接頭辞なしの camelCase。名前空間: `Scripts/Presentation/Formation` → `Uta.Client.Presentation.Formation`、`Scripts/Presentation/Produce` → `Uta.Client.Presentation.Produce`、`Scripts/Editor/Prefabs/Screens/Formation`・`Scripts/Editor/Prefabs/Screens/Produce` → どちらも `Uta.Client.Editor.Prefabs.Screens`（P2 の生成クラス・`ScreenLayout` と同じ。フォルダで名前空間を分けない）、テストは `Uta.Client.Infrastructure.Tests`。
 
 表の書き方は P1 3.4 の「共通の書き方」（全面・上帯・中央・レイアウト任せ・TMP の共通の値・Image・Button の共通の値・VLG/HLG の「制御 W/H」「伸ばす W/H」・LE・「→ 部品」のネスト）に従う。加えて:
-- 「TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis」は、`TextSpec(40, UiTheme.Text, TextAlignmentOptions.MidlineLeft, wrap: false, ellipsis: true)` の意味（順に fontSize・color・alignment・折り返し（`Normal`＝wrap true／`NoWrap`）・はみ出し（`Ellipsis`／`Overflow`））。「→ `UtaLabel` TMP …」は `PrefabBuildUtil.AddLabel(parent, 名前, 文字, その TextSpec)`
-- 「`ScreenLayout.AddLabel` TMP …、高さ h」は `ScreenLayout.AddLabel(parent, 名前, 文字, その TextSpec, h)`（P2 3.4。`UtaLabel` をネストして LE h を付ける）
+- 「TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis」は、`TextSpec(40, UiTheme.Text, TextAlignmentOptions.MidlineLeft, wrap: false, ellipsis: true)` の意味（順に fontSize・color・alignment・折り返し（`Normal`＝wrap true／`NoWrap`）・はみ出し（`Ellipsis`／`Overflow`））。「→ `Label` TMP …」は `PrefabBuildUtil.AddLabel(parent, 名前, 文字, その TextSpec)`
+- 「`ScreenLayout.AddLabel` TMP …、高さ h」は `ScreenLayout.AddLabel(parent, 名前, 文字, その TextSpec, h)`（P2 3.4。`Label` をネストして LE h を付ける）
 - 「LE h 52」は `SetLayout(go, minHeight: 52, preferredHeight: 52)`。「LE w 200」は `preferredWidth: 200, flexibleWidth: 0`。「LE 伸び」は `flexibleHeight: 1`（縦の並びの中）か `flexibleWidth: 1`（横の並びの中）
-- 「→ `UtaButton` Primary "選ぶ"」は `PrefabBuildUtil.AddButtonPart(parent, 名前, "選ぶ", UtaButtonStyle.Primary)`
+- 「→ `Button` Primary "選ぶ"」は `PrefabBuildUtil.AddButtonPart(parent, 名前, "選ぶ", ButtonStyle.Primary)`
 - 色は `UiTheme` の名前（`Text`・`TextMuted`・`Accent`・`Panel`・`Header` など）
 - 出どころの略: 「W1」= screen-wireframes.md 1 編成（同様に W2〜W8）、「FM」= formation の計画、「WK」= week の計画、「LS」= lesson の計画（節の番号を付ける）
 
@@ -84,20 +84,20 @@ namespace Uta.Client.Presentation.Formation
 {
     public sealed class FormationPage : PageBase
     {
-        [SerializeField] private UtaHeaderView header;
+        [SerializeField] private HeaderView header;
         [SerializeField] private TMP_Text idolText;
-        [SerializeField] private UtaButtonView selectIdolButton;
+        [SerializeField] private ButtonView selectIdolButton;
         [SerializeField] private FormationSlotRowView[] slots;      // 長さ 5。Slot0〜Slot4 の順
         [SerializeField] private TMP_Text scenarioText;
-        [SerializeField] private UtaButtonView changeScenarioButton;
-        [SerializeField] private UtaButtonView startButton;
+        [SerializeField] private ButtonView changeScenarioButton;
+        [SerializeField] private ButtonView startButton;
     }
 
     public sealed class FormationSlotRowView : MonoBehaviour
     {
         [SerializeField] private TMP_Text labelText;
-        [SerializeField] private UtaButtonView selectButton;
-        [SerializeField] private UtaButtonView clearButton;
+        [SerializeField] private ButtonView selectButton;
+        [SerializeField] private ButtonView clearButton;
     }
 }
 
@@ -110,25 +110,25 @@ namespace Uta.Client.Presentation.Produce
 
     public sealed class WeekPage : PageBase
     {
-        [SerializeField] private UtaHeaderView header;              // titleText に週の文字
-        [SerializeField] private UtaButtonView menuButton;
+        [SerializeField] private HeaderView header;              // titleText に週の文字
+        [SerializeField] private ButtonView menuButton;
         [SerializeField] private TMP_Text nextExamText;
         [SerializeField] private TMP_Text statusText;
         [SerializeField] private RectTransform actionList;          // 行動のボタンを実行時に並べる親
-        [SerializeField] private UtaButtonView actionButtonPrefab;  // Parts/UtaButton.prefab のアセットの参照
+        [SerializeField] private ButtonView actionButtonPrefab;  // Parts/Button.prefab のアセットの参照
     }
 
     public sealed class ClassPage : PageBase
     {
-        [SerializeField] private UtaHeaderView header;
+        [SerializeField] private HeaderView header;
         [SerializeField] private RectTransform optionList;
-        [SerializeField] private UtaButtonView optionButtonPrefab;  // Parts/UtaButton.prefab のアセットの参照
+        [SerializeField] private ButtonView optionButtonPrefab;  // Parts/Button.prefab のアセットの参照
     }
 
     public sealed class SupplyPage : PageBase
     {
-        [SerializeField] private UtaHeaderView header;
-        [SerializeField] private UtaButtonView receiveButton;
+        [SerializeField] private HeaderView header;
+        [SerializeField] private ButtonView receiveButton;
     }
 
     public sealed class CardOfferModal : ModalBase
@@ -136,21 +136,21 @@ namespace Uta.Client.Presentation.Produce
         [SerializeField] private RectTransform cardList;
         [SerializeField] private SkillCardRowView cardRowPrefab;    // Parts/SkillCardRow.prefab のアセットの参照
         [SerializeField] private TMP_Text deckCountText;
-        [SerializeField] private UtaButtonView declineButton;
+        [SerializeField] private ButtonView declineButton;
     }
 
     public sealed class LessonPage : PageBase
     {
-        [SerializeField] private UtaHeaderView header;              // titleText にレッスンの見出し
+        [SerializeField] private HeaderView header;              // titleText にレッスンの見出し
         [SerializeField] private TMP_Text turnText;
-        [SerializeField] private UtaButtonView menuButton;
+        [SerializeField] private ButtonView menuButton;
         [SerializeField] private TMP_Text progressText;
         [SerializeField] private TMP_Text statusText;
         [SerializeField] private TMP_Text lastResultText;
-        [SerializeField] private UtaButtonView pilesButton;
+        [SerializeField] private ButtonView pilesButton;
         [SerializeField] private RectTransform handContent;         // 縦スクロールの Content
         [SerializeField] private SkillCardRowView handRowPrefab;    // Parts/SkillCardRow.prefab のアセットの参照
-        [SerializeField] private UtaButtonView skipButton;
+        [SerializeField] private ButtonView skipButton;
     }
 
     public sealed class DeckListModal : ModalBase
@@ -158,7 +158,7 @@ namespace Uta.Client.Presentation.Produce
         [SerializeField] private RectTransform listContent;         // 縦スクロールの Content
         [SerializeField] private DeckSectionHeaderRowView sectionHeaderPrefab;  // Parts/DeckSectionHeaderRow.prefab
         [SerializeField] private DeckCardRowView cardRowPrefab;                 // Parts/DeckCardRow.prefab
-        [SerializeField] private UtaButtonView closeButton;
+        [SerializeField] private ButtonView closeButton;
     }
 
     public sealed class ExamResultPage : PageBase
@@ -167,15 +167,15 @@ namespace Uta.Client.Presentation.Produce
         [SerializeField] private RectTransform rankingContent;      // 縦スクロールの Content
         [SerializeField] private ExamRankingRowView rankingRowPrefab;           // Parts/ExamRankingRow.prefab
         [SerializeField] private TMP_Text outcomeText;
-        [SerializeField] private UtaButtonView retryButton;
-        [SerializeField] private UtaButtonView nextButton;
+        [SerializeField] private ButtonView retryButton;
+        [SerializeField] private ButtonView nextButton;
     }
 
     public sealed class ProduceResultPage : PageBase
     {
         [SerializeField] private TMP_Text rankText;
         [SerializeField] private TMP_Text linesText;
-        [SerializeField] private UtaButtonView homeButton;
+        [SerializeField] private ButtonView homeButton;
     }
 
     /// <summary>スキルカード 1 枚の行（手札・獲得の選択肢）。button・background は ListRowBase。</summary>
@@ -254,7 +254,7 @@ C# の計画の `IXxxView` の各メンバーが、どのフィールドを使�
 
 | P2 の関数 | P3 での使い方 |
 |---|---|
-| `ScreenLayout.SetupBody(body)` | ページの `Body` に縦の並び（spacing 0・padding 0・`UpperCenter`・制御 true/true・伸ばす true/false）。子 `Header`（あれば。`UtaHeader` の LE 150）と `Main` を縦に積む |
+| `ScreenLayout.SetupBody(body)` | ページの `Body` に縦の並び（spacing 0・padding 0・`UpperCenter`・制御 true/true・伸ばす true/false）。子 `Header`（あれば。`Header` の LE 150）と `Main` を縦に積む |
 | `ScreenLayout.AddMain(body)` | 子 `Main`（`LayoutSpec.Column`: padding 32・spacing 24、LE flexibleHeight 1）。中身はここに置く |
 | `ScreenLayout.AddLabel(parent, name, text, spec, height)` | 高さの決まった文字（下の表の「`ScreenLayout.AddLabel` TMP …、高さ h」） |
 | `ScreenLayout.AddFlexibleSpacer(parent, "Spacer")` | 余った高さを取る空き（下の表の `Spacer`） |
@@ -269,15 +269,15 @@ public static class ProduceLayout
     /// PrefabBuildUtil.AddHeader(body, title) のあと、header.transform.Find("BackButton") の GameObject を SetActive(false) にし、
     /// PrefabUtility.RecordPrefabInstancePropertyModifications(その GameObject)。
     /// header.transform.Find("TitleText") の TMP に ApplyText(new TextSpec(56, UiTheme.Text, TextAlignmentOptions.MidlineLeft, false, true))。
-    /// 子が見つからなければ InvalidOperationException("UtaHeader child not found: " + 名前)。
+    /// 子が見つからなければ InvalidOperationException("Header child not found: " + 名前)。
     /// </summary>
-    public static UtaHeaderView AddHeaderWithoutBack(RectTransform body, string title);
+    public static HeaderView AddHeaderWithoutBack(RectTransform body, string title);
 
     /// <summary>
-    /// header.transform.Find("RightSlot") に AddButtonPart(slot, "MenuButton", "≡", UtaButtonStyle.Secondary) を置き、SetRect(Stretch())。
+    /// header.transform.Find("RightSlot") に AddButtonPart(slot, "MenuButton", "≡", ButtonStyle.Secondary) を置き、SetRect(Stretch())。
     /// （RightSlot はレイアウトグループを持たないので、全面で 200×130 を埋める）
     /// </summary>
-    public static UtaButtonView AddMenuButton(UtaHeaderView header);
+    public static ButtonView AddMenuButton(HeaderView header);
 
     /// <summary>AddChild(parent, name) + AddVertical(new LayoutSpec(spacing, 0, 0, 0, 0, TextAnchor.UpperCenter, true, true, true, false))。子は無し（実行時に並べる）。</summary>
     public static RectTransform AddRuntimeList(RectTransform parent, string name, float spacing);
@@ -360,18 +360,18 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 階層 | コンポーネントと値 |
 |---|---|
 | `FormationSlotRow` | RectTransform 全面（レイアウト任せ）。Image `Panel`、raycastTarget false。LE h 130。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、`MiddleLeft`、制御 W/H true/true、伸ばす W/H false/true。`FormationSlotRowView`（labelText、selectButton、clearButton） |
-| ├ `LabelText` | → `UtaLabel` TMP 32/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "枠: （空）"。LE `flexibleWidth: 1` |
-| ├ `SelectButton` | → `UtaButton` Primary "選ぶ"。LE `minHeight: 110, preferredHeight: 110, preferredWidth: 180, flexibleWidth: 0` |
-| └ `ClearButton` | → `UtaButton` Secondary "外す"。LE は `SelectButton` と同じ |
+| ├ `LabelText` | → `Label` TMP 32/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "枠: （空）"。LE `flexibleWidth: 1` |
+| ├ `SelectButton` | → `Button` Primary "選ぶ"。LE `minHeight: 110, preferredHeight: 110, preferredWidth: 180, flexibleWidth: 0` |
+| └ `ClearButton` | → `Button` Secondary "外す"。LE は `SelectButton` と同じ |
 
 #### SkillCardRow（出どころ: W3 の手札・W4 の選択肢、WK 3.6 の `CardOfferModal`、LS 3.6 の `SetHand`。高さ 220 は LS の値）
 
 | 階層 | コンポーネントと値 |
 |---|---|
 | `SkillCardRow` | RectTransform 全面（レイアウト任せ）。Image `Panel`、raycastTarget true。Button（共通の値。targetGraphic = 自分の Image）。LE h 220。VLG: padding 左 32・右 32・上 12・下 12、spacing 4、`UpperLeft`、制御 W/H true/true、伸ばす W/H true/false。`SkillCardRowView`（button、background = 自分の Image、titleText、costsText、descriptionText） |
-| ├ `TitleText` | → `UtaLabel` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "カード名 [R] アクティブ"。LE h 52 |
-| ├ `CostsText` | → `UtaLabel` TMP 32/`Accent`/`MidlineLeft`/NoWrap/Ellipsis、text "消費 4"。LE h 44 |
-| └ `DescriptionText` | → `UtaLabel` TMP 32/`TextMuted`/`TopLeft`/Normal/Ellipsis、text "説明文"。LE h 92（2 行） |
+| ├ `TitleText` | → `Label` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "カード名 [R] アクティブ"。LE h 52 |
+| ├ `CostsText` | → `Label` TMP 32/`Accent`/`MidlineLeft`/NoWrap/Ellipsis、text "消費 4"。LE h 44 |
+| └ `DescriptionText` | → `Label` TMP 32/`TextMuted`/`TopLeft`/Normal/Ellipsis、text "説明文"。LE h 92（2 行） |
 
 （高さ: 上下 24 + 52 + 44 + 92 + spacing 8 = 220）
 
@@ -379,7 +379,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `DeckSectionHeaderRow` | RectTransform 全面（レイアウト任せ）。TMP（`AddText`。`UtaLabel` をネストしない）40/`Accent`/`MidlineLeft`/NoWrap/Ellipsis、text "山札 0 枚"。LE h 60。`DeckSectionHeaderRowView`（headerText = 自分の TMP） |
+| `DeckSectionHeaderRow` | RectTransform 全面（レイアウト任せ）。TMP（`AddText`。`Label` をネストしない）40/`Accent`/`MidlineLeft`/NoWrap/Ellipsis、text "山札 0 枚"。LE h 60。`DeckSectionHeaderRowView`（headerText = 自分の TMP） |
 
 #### DeckCardRow（出どころ: LS 3.6 の `DeckListModal` の行。行の文字は `"<名前>　<消費>\n<説明文>"`）
 
@@ -392,7 +392,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 階層 | コンポーネントと値 |
 |---|---|
 | `ExamRankingRow` | RectTransform 全面（レイアウト任せ）。Image `Panel`、raycastTarget false。LE h 100。`ExamRankingRowView`（background = 自分の Image、text = 子 `Text` の TMP） |
-| └ `Text` | → `UtaLabel` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "1位　ライバル 1　1,000"。RectTransform `RectSpec.Stretch(32, 32, 0, 0)` |
+| └ `Text` | → `Label` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "1位　ライバル 1　1,000"。RectTransform `RectSpec.Stretch(32, 32, 0, 0)` |
 
 ### 3.6 FormationPage（出どころ: W1、FM 3.5）
 
@@ -400,19 +400,19 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 |---|---|
 | `FormationPage` | P1 の雛形（Image `Background`、`FormationPage`） |
 | └ `Body` | 雛形 + `SetupBody` |
-| 　├ `Header` | → `UtaHeader`（`AddHeader(body, "編成")`）。BackButton は "戻る" のまま。RightSlot は空 |
+| 　├ `Header` | → `Header`（`AddHeader(body, "編成")`）。BackButton は "戻る" のまま。RightSlot は空 |
 | 　└ `Main` | `ScreenLayout.AddMain`（VLG Column: padding 32、spacing 24、`UpperCenter`、制御 true/true、伸ばす true/false。LE 伸び） |
-| 　　├ `IdolPanel` | → `UtaPanel`（VLG padding 32・spacing 24） |
-| 　　│├ `IdolText` | → `UtaLabel` TMP 40/`Text`/`MidlineLeft`/Normal/Ellipsis、text "育成アイドル: 未選択"。LE h 110 |
-| 　　│└ `SelectIdolButton` | → `UtaButton` Primary "育成アイドルを選ぶ" |
+| 　　├ `IdolPanel` | → `Panel`（VLG padding 32・spacing 24） |
+| 　　│├ `IdolText` | → `Label` TMP 40/`Text`/`MidlineLeft`/Normal/Ellipsis、text "育成アイドル: 未選択"。LE h 110 |
+| 　　│└ `SelectIdolButton` | → `Button` Primary "育成アイドルを選ぶ" |
 | 　　├ `SlotsTitle` | `ScreenLayout.AddLabel` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "サポートカード"、高さ 60 |
 | 　　├ `SlotList` | `ProduceLayout.AddRuntimeList(main, "SlotList", 16)`（名前は Runtime だが、ここでは生成時に子を置く） |
 | 　　│└ `Slot0`〜`Slot4` | → `FormationSlotRow`（`InstantiatePart<FormationSlotRowView>`）。`LabelText` の text を "枠1: （空）"〜"枠5: （空）" にオーバーライド |
 | 　　├ `ScenarioRow` | `AddChild` + HLG `new LayoutSpec(16, 0, 0, 0, 0, MiddleLeft, true, true, false, true)` + LE h 130 |
-| 　　│├ `ScenarioText` | → `UtaLabel` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "シナリオ: なし"。LE `flexibleWidth: 1` |
-| 　　│└ `ChangeScenarioButton` | → `UtaButton` Secondary "変更"。LE w 200 |
+| 　　│├ `ScenarioText` | → `Label` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "シナリオ: なし"。LE `flexibleWidth: 1` |
+| 　　│└ `ChangeScenarioButton` | → `Button` Secondary "変更"。LE w 200 |
 | 　　├ `Spacer` | `ScreenLayout.AddFlexibleSpacer(main, "Spacer")` |
-| 　　└ `StartButton` | → `UtaButton` Primary "プロデュース開始" |
+| 　　└ `StartButton` | → `Button` Primary "プロデュース開始" |
 
 （高さの見積り: Header 150 + 上下 64 + IdolPanel 328 + 60 + SlotList 714 + 130 + 130 + spacing 144 = 1720。1920 から Safe Area で 200 まで削られても収まる）
 
@@ -435,13 +435,13 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　├ `Header` | `ProduceLayout.AddHeaderWithoutBack(body, "週 1 / 16")`。`RightSlot/MenuButton`（`ProduceLayout.AddMenuButton`） |
 | 　└ `Main` | `ScreenLayout.AddMain` |
 | 　　├ `NextExamText` | `ScreenLayout.AddLabel` TMP 32/`TextMuted`/`MidlineLeft`/NoWrap/Ellipsis、text ""、高さ 50 |
-| 　　├ `StatusPanel` | → `UtaPanel` |
+| 　　├ `StatusPanel` | → `Panel` |
 | 　　│└ `StatusText` | `ScreenLayout.AddLabel` TMP 40/`Text`/`TopLeft`/Normal/Overflow、text "歌唱 0 / 0"、高さ 300（5 行） |
 | 　　├ `Spacer` | `ScreenLayout.AddFlexibleSpacer(main, "Spacer")` |
 | 　　├ `ActionsTitle` | `ScreenLayout.AddLabel` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "今週の行動"、高さ 60 |
 | 　　└ `ActionList` | `ProduceLayout.AddRuntimeList(main, "ActionList", 24)`。子は無し |
 
-参照: `actionButtonPrefab` = `ScreenLayout.LoadPart<UtaButtonView>("UtaButton")`。
+参照: `actionButtonPrefab` = `ScreenLayout.LoadPart<ButtonView>("Button")`。
 
 ### 3.9 ClassPage（出どころ: W5、WK 3.6）
 
@@ -454,7 +454,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　　├ `OptionList` | `ProduceLayout.AddRuntimeList(main, "OptionList", 24)`。子は無し |
 | 　　└ `Spacer` | `ScreenLayout.AddFlexibleSpacer(main, "Spacer")` |
 
-参照: `optionButtonPrefab` = `ScreenLayout.LoadPart<UtaButtonView>("UtaButton")`。
+参照: `optionButtonPrefab` = `ScreenLayout.LoadPart<ButtonView>("Button")`。
 
 ### 3.10 SupplyPage（出どころ: W5、WK 3.6・決めたこと 3）
 
@@ -465,7 +465,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　├ `Header` | `AddHeader(body, "支給")`（戻るあり） |
 | 　└ `Main` | `ScreenLayout.AddMain` |
 | 　　├ `MessageText` | `ScreenLayout.AddLabel` TMP 40/`Text`/`Center`/Normal/Overflow、text "スキルカードの選択肢から 1 枚を受け取れます。"、高さ 200（View のフィールドにしない。文言は固定） |
-| 　　├ `ReceiveButton` | → `UtaButton` Primary "受け取る" |
+| 　　├ `ReceiveButton` | → `Button` Primary "受け取る" |
 | 　　└ `Spacer` | `ScreenLayout.AddFlexibleSpacer(main, "Spacer")` |
 
 ### 3.11 CardOfferModal（出どころ: W4、WK 3.6）
@@ -477,7 +477,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　├ `TitleText` | `ScreenLayout.AddLabel` TMP 56/`Text`/`Center`/NoWrap/Ellipsis、text "スキルカードを1枚獲得"、高さ 80（固定の文言。フィールドにしない） |
 | 　├ `CardList` | `ProduceLayout.AddRuntimeList(panel, "CardList", 24)`。子は無し |
 | 　├ `DeckCountText` | `ScreenLayout.AddLabel` TMP 32/`TextMuted`/`MidlineLeft`/NoWrap/Ellipsis、text "デッキ 0 枚"、高さ 50 |
-| 　└ `DeclineButton` | → `UtaButton` Secondary "受け取らない" |
+| 　└ `DeclineButton` | → `Button` Secondary "受け取らない" |
 
 参照: `cardRowPrefab` = `ScreenLayout.LoadPart<SkillCardRowView>("SkillCardRow")`。再抽選・除去のボタンは作らない（WK 1 章: MVP で回数 0）。高さは 3 枚で約 1120（ContentSizeFitter が決める）。
 
@@ -487,15 +487,15 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 |---|---|
 | `LessonPage` | 雛形 |
 | └ `Body` | 雛形 + `SetupBody` |
-| 　├ `Header` | `ProduceLayout.AddHeaderWithoutBack(body, "レッスン")`。`RightSlot/MenuButton`（`ProduceLayout.AddMenuButton`）。ヘッダーの子は足さない（`UtaHeader` のまま `BackButton`・`TitleText`・`RightSlot`） |
+| 　├ `Header` | `ProduceLayout.AddHeaderWithoutBack(body, "レッスン")`。`RightSlot/MenuButton`（`ProduceLayout.AddMenuButton`）。ヘッダーの子は足さない（`Header` のまま `BackButton`・`TitleText`・`RightSlot`） |
 | 　└ `Main` | `ScreenLayout.AddMain` |
 | 　　├ `TurnText` | **`Main` の先頭の子**（ヘッダーの外）。`ScreenLayout.AddLabel` TMP 40/`Text`/`MidlineRight`/NoWrap/Ellipsis、text "残り 0 / 0"、高さ 60 |
 | 　　├ `ProgressText` | `ScreenLayout.AddLabel` TMP 40/`Text`/`TopLeft`/Normal/Overflow、text ""、高さ 170（3 行） |
 | 　　├ `StatusText` | `ScreenLayout.AddLabel` TMP 32/`Text`/`TopLeft`/Normal/Overflow、text ""、高さ 220（5 行） |
 | 　　├ `LastResultText` | `ScreenLayout.AddLabel` TMP 32/`Accent`/`MidlineLeft`/NoWrap/Ellipsis、text ""、高さ 50 |
-| 　　├ `PilesButton` | → `UtaButton` Secondary "山札 0　捨札 0　除外 0" |
+| 　　├ `PilesButton` | → `Button` Secondary "山札 0　捨札 0　除外 0" |
 | 　　├ `HandScroll` | `PrefabBuildUtil.AddScrollList(main, "HandScroll", out _)`（LE 伸び。戻り値の `Content` を `handContent` に） |
-| 　　└ `SkipButton` | → `UtaButton` Primary "スキップ" |
+| 　　└ `SkipButton` | → `Button` Primary "スキップ" |
 
 参照: `handRowPrefab` = `ScreenLayout.LoadPart<SkillCardRowView>("SkillCardRow")`、`turnText` = `Main/TurnText` の TMP（`ScreenLayout.AddLabel` の戻り値）、`menuButton` = `Header/RightSlot/MenuButton`。
 
@@ -509,7 +509,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | └ `Panel` | 雛形 |
 | 　├ `TitleText` | `ScreenLayout.AddLabel` TMP 56/`Text`/`Center`/NoWrap/Ellipsis、text "山札・捨札・除外"、高さ 80（固定。フィールドにしない） |
 | 　├ `ListScroll` | `var content = PrefabBuildUtil.AddScrollList(panel, "ListScroll", out var scroll);` のあと、`PrefabBuildUtil.SetLayout(scroll.gameObject, minHeight: 1200f, preferredHeight: 1200f)`、`PrefabBuildUtil.AddVertical(content.gameObject, new LayoutSpec(8f, 0, 0, 0, 0, TextAnchor.UpperCenter, true, true, true, false))`（`Content` に付いている VLG をそのまま使って spacing を 24 から 8 に変える。`AddVertical` は既にあれば使う） |
-| 　└ `CloseButton` | → `UtaButton` Secondary "閉じる" |
+| 　└ `CloseButton` | → `Button` Secondary "閉じる" |
 
 参照: `listContent` = `ListScroll/Viewport/Content`（上の `content`）、`sectionHeaderPrefab` = `ScreenLayout.LoadPart<DeckSectionHeaderRowView>("DeckSectionHeaderRow")`、`cardRowPrefab` = `ScreenLayout.LoadPart<DeckCardRowView>("DeckCardRow")`。
 
@@ -523,8 +523,8 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　　├ `TitleText` | `ScreenLayout.AddLabel` TMP 56/`Text`/`Center`/NoWrap/Ellipsis、text "試験結果"、高さ 100 |
 | 　　├ `RankingScroll` | `AddScrollList(main, "RankingScroll", out _)`（LE 伸び） |
 | 　　├ `OutcomeText` | `ScreenLayout.AddLabel` TMP 56/`Accent`/`Center`/NoWrap/Ellipsis、text ""、高さ 100 |
-| 　　├ `RetryButton` | → `UtaButton` Secondary "再挑戦" |
-| 　　└ `NextButton` | → `UtaButton` Primary "次へ" |
+| 　　├ `RetryButton` | → `Button` Secondary "再挑戦" |
+| 　　└ `NextButton` | → `Button` Primary "次へ" |
 
 参照: `rankingContent` = `RankingScroll/Viewport/Content`、`rankingRowPrefab` = `ScreenLayout.LoadPart<ExamRankingRowView>("ExamRankingRow")`。
 
@@ -536,8 +536,8 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | └ `Body` | 雛形 + `SetupBody`（ヘッダーなし） |
 | 　└ `Main` | `ScreenLayout.AddMain` |
 | 　　├ `RankText` | `ScreenLayout.AddLabel` TMP 56/`Accent`/`Center`/NoWrap/Ellipsis、text "ランク -"、高さ 120 |
-| 　　├ `LinesText` | → `UtaLabel` TMP 40/`Text`/`TopLeft`/Normal/Overflow、text ""。LE `flexibleHeight: 1`（10 行で約 520） |
-| 　　└ `HomeButton` | → `UtaButton` Primary "ホームへ" |
+| 　　├ `LinesText` | → `Label` TMP 40/`Text`/`TopLeft`/Normal/Overflow、text ""。LE `flexibleHeight: 1`（10 行で約 520） |
+| 　　└ `HomeButton` | → `Button` Primary "ホームへ" |
 
 ## 4. 値 → Prefab の部品 → View のフィールド（子の名前の対応表）
 
@@ -545,9 +545,9 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 
 | 画面 | ワイヤー／仕様の値（出どころ） | 子のパス | View のフィールド（型） |
 |---|---|---|---|
-| FormationPage | 戻る（W1「＜」） | `Body/Header`（`BackButton`） | `header`（`UtaHeaderView`） |
+| FormationPage | 戻る（W1「＜」） | `Body/Header`（`BackButton`） | `header`（`HeaderView`） |
 | | 育成アイドルの名前・レア度・プラン（FM `SetIdol`） | `Body/Main/IdolPanel/IdolText` | `idolText`（`TMP_Text`） |
-| | 「変更」（W1） | `Body/Main/IdolPanel/SelectIdolButton` | `selectIdolButton`（`UtaButtonView`） |
+| | 「変更」（W1） | `Body/Main/IdolPanel/SelectIdolButton` | `selectIdolButton`（`ButtonView`） |
 | | サポートカード 5 枠（W1・FM `SetSlots`） | `Body/Main/SlotList/Slot0`〜`Slot4` | `slots`（`FormationSlotRowView[5]`） |
 | | 枠の文字・選ぶ・外す | `SlotN/LabelText`・`SelectButton`・`ClearButton` | `FormationSlotRowView.labelText`・`selectButton`・`clearButton` |
 | | シナリオ（FM `SetScenario`） | `Body/Main/ScenarioRow/ScenarioText`・`ChangeScenarioButton` | `scenarioText`、`changeScenarioButton` |
@@ -557,9 +557,9 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 | | [≡]（W2） | `Body/Header/RightSlot/MenuButton` | `menuButton` |
 | | 次: 中間試験まで（W2） | `Body/Main/NextExamText` | `nextExamText` |
 | | 歌唱・律動・表現・体力（W2） | `Body/Main/StatusPanel/StatusText` | `statusText` |
-| | 今週の行動のボタン（W2） | `Body/Main/ActionList`（子は実行時） | `actionList`、`actionButtonPrefab`（`Parts/UtaButton`） |
+| | 今週の行動のボタン（W2） | `Body/Main/ActionList`（子は実行時） | `actionList`、`actionButtonPrefab`（`Parts/Button`） |
 | ClassPage | 戻る・見出し「授業　体力」（W5） | `Body/Header` | `header` |
-| | 選択肢（W5） | `Body/Main/OptionList`（子は実行時） | `optionList`、`optionButtonPrefab`（`Parts/UtaButton`） |
+| | 選択肢（W5） | `Body/Main/OptionList`（子は実行時） | `optionList`、`optionButtonPrefab`（`Parts/Button`） |
 | SupplyPage | 戻る（WK） | `Body/Header` | `header` |
 | | 受け取る（WK 決めたこと 3） | `Body/Main/ReceiveButton` | `receiveButton` |
 | CardOfferModal | 選択肢 3 枚（W4） | `Panel/CardList`（子は実行時） | `cardList`、`cardRowPrefab`（`Parts/SkillCardRow`） |
@@ -588,7 +588,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 | | 一覧の行 | `DeckCardRow`（ルート） | `DeckCardRowView.text` |
 | | 順位表の行 | `ExamRankingRow/Text` | `ExamRankingRowView.text`・`background` |
 
-（プロデュースのメニュー（W2・W3 の [≡] の中身）は Prefab を作らない: P1 の `UtaDialog`（`DialogService.ChooseAsync`））
+（プロデュースのメニュー（W2・W3 の [≡] の中身）は Prefab を作らない: P1 の `Dialog`（`DialogService.ChooseAsync`））
 
 ## 5. タスク
 
@@ -653,7 +653,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 触る: `uta_docs/wiki/architecture/screen-design.md`、`uta_docs/wiki/overview/screen-wireframes.md`、この計画。
 
 手順:
-1. screen-design.md（frontmatter の `updated` を実施日に）の「実装メモ」に、P3 で作った Prefab（画面 10・行 5）、プロデュースのメニューは `UtaDialog` で Prefab を作らないこと、手札と獲得の選択肢が `SkillCardRow` を共有すること、実装と計画のズレ（あれば）、タスク 5 の再生成の差分の結果を書く
+1. screen-design.md（frontmatter の `updated` を実施日に）の「実装メモ」に、P3 で作った Prefab（画面 10・行 5）、プロデュースのメニューは `Dialog` で Prefab を作らないこと、手札と獲得の選択肢が `SkillCardRow` を共有すること、実装と計画のズレ（あれば）、タスク 5 の再生成の差分の結果を書く
 2. 決めたこと 10 は了承済みなので、screen-wireframes.md（`updated` を実施日に）の 2・3・7 の節の末尾に「MVP の実装は … [決定。<日付>。ユーザーの判断]」を 1 行ずつ足す（2: 行動は縦のボタン、3: 手札は縦の一覧・ステータスは文字の行、7: 順位表は 1 行 1 文字列で自分の行を色で示す）
 3. `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
 4. この計画の frontmatter を `status: done`、`updated` を実施日にする
@@ -670,7 +670,7 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 | `HeaderBackButton_ActiveOnlyWhereBackExists` | `Body/Header/BackButton` の `activeSelf` が、`WeekPage`・`LessonPage` で false、`FormationPage`・`ClassPage`・`SupplyPage` で true |
 | `LessonPage_TurnTextIsFirstInMain` | `LessonPage` の `Body/Header` の子の名前が順に `BackButton`・`TitleText`・`RightSlot`（ヘッダーに子を足していない）。`Body/Main` の子の名前が順に `TurnText`・`ProgressText`・`StatusText`・`LastResultText`・`PilesButton`・`HandScroll`・`SkipButton` |
 | `FormationPage_HasFiveSlotsInOrder` | `FormationPage` の `SerializedObject` の `slots` の `arraySize` が 5、要素 `i` の GameObject の名前が `"Slot" + i` |
-| `RowPrefabFields_ReferencePartAssets` | 次のフィールドの `objectReferenceValue` がアセット（`AssetDatabase.GetAssetPath` が次のパス）: `WeekPage.actionButtonPrefab`・`ClassPage.optionButtonPrefab` → `Assets/Prefabs/Parts/UtaButton.prefab`、`CardOfferModal.cardRowPrefab`・`LessonPage.handRowPrefab` → `SkillCardRow.prefab`、`DeckListModal.sectionHeaderPrefab` → `DeckSectionHeaderRow.prefab`、`DeckListModal.cardRowPrefab` → `DeckCardRow.prefab`、`ExamResultPage.rankingRowPrefab` → `ExamRankingRow.prefab`（ネストしたインスタンスを指していないこと） |
+| `RowPrefabFields_ReferencePartAssets` | 次のフィールドの `objectReferenceValue` がアセット（`AssetDatabase.GetAssetPath` が次のパス）: `WeekPage.actionButtonPrefab`・`ClassPage.optionButtonPrefab` → `Assets/Prefabs/Parts/Button.prefab`、`CardOfferModal.cardRowPrefab`・`LessonPage.handRowPrefab` → `SkillCardRow.prefab`、`DeckListModal.sectionHeaderPrefab` → `DeckSectionHeaderRow.prefab`、`DeckListModal.cardRowPrefab` → `DeckCardRow.prefab`、`ExamResultPage.rankingRowPrefab` → `ExamRankingRow.prefab`（ネストしたインスタンスを指していないこと） |
 | `RuntimeLists_AreEmpty` | `WeekPage` の `ActionList`、`ClassPage` の `OptionList`、`CardOfferModal` の `CardList`、`LessonPage`・`DeckListModal`・`ExamResultPage` のスクロールの `Content` の子が 0 個 |
 
 **`Find` するパスの一覧**（`ProduceScreens_HaveNamedChildren` にこのまま書く。4章の表から取った。範囲は展開し、1 セルに 2 本あるものは分けた。行の Prefab の子も同じテストで確かめる）:

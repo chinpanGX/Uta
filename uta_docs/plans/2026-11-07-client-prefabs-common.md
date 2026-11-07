@@ -15,7 +15,7 @@ spec: ../wiki/architecture/screen-design.md
 2. **Unity 7 の TMP は Essential Resources の取り込みが無くなった**（uGUI 7.0.0 の CHANGELOG: 既定のフォント・シェーダー・TMP Settings がパッケージに同梱され、取り込みの窓とメニューは削除）。そのため screen-design 7.3 の「Essential Resources を取り込む」はやらず、代わりに**プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り、既定のフォントを Noto Sans JP の動的 SDF にする**（決めたこと 16）
 3. **フォントは作成済みのものを使う（この計画では作らない）**。別の作業（PR #29。ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。この計画の前に main へ入っている前提: 前提 2・決めたこと 18）が `Assets/Fonts/NotoSansJP/` に Noto Sans JP の静的な ttf（Regular・Bold）・`OFL.txt`・TMP のフォントアセット 2 つを置いた: `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic、Multi Atlas 有効、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効。シェーダーは `TextMeshPro/Mobile/Distance Field`）。この計画はアセットを作り直さず、設定も変えない。文字は Regular、**太字は Bold の SDF アセットを font に入れる**（`FontStyles.Bold` の疑似太字は使わない。`fontStyle` は常に `Normal`）
 4. **フォントの読み込みは Prefab からのシリアライズ参照**。`TMP_Text.font` は生成スクリプトが Prefab に入れる（Regular か Bold のアセットへの参照）。TMP Settings の既定フォントも同じ Regular のアセット。**フォントは Addressables に入れない**（Addressables に入れるのは画面の Prefab だけ。フォントは画面の Prefab・シーンの `UiRoot` から参照され、ビルドに一緒に入る）。動的アセットは Editor で文字を描くとアトラスに字が足され `.asset` が変わるので、`BuildAll()` の最後に 2 つのアセットの動的データを空に戻す（`FontAssets.ClearDynamicData()`）。それでも `Fonts/NotoSansJP/*.asset` に差分が残ったら、コミットせず `git restore` で戻す（コミット済みのアセットはアトラスが空）
-5. **共通部品の Prefab は 10 個**（`Assets/Prefabs/Parts/`）: `UtaLabel`・`UtaButton`・`UtaPanel`・`UtaListRow`・`UtaHeader`・`UtaTab`・`UtaTabBar`・`UtaDialog`（確認・お知らせ・選択を 1 つで。ボタンは実行時に `UtaButton` から並べる）・`UtaBusyBlocker`・`UiRoot`。値（色・寸法・フォントサイズ）は旧 foundation の `UiTheme` を流用し、足りない色（ヘッダー・二次ボタン）を足した（3.2）
+5. **共通部品の Prefab は 10 個**（`Assets/Prefabs/Parts/`）: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`（確認・お知らせ・選択を 1 つで。ボタンは実行時に `Button` から並べる）・`BusyBlocker`・`UiRoot`。値（色・寸法・フォントサイズ）は旧 foundation の `UiTheme` を流用し、足りない色（ヘッダー・二次ボタン）を足した（3.2）
 6. **Addressables**: 設定は `Assets/AddressableAssetsData/`（Editor のスクリプトが作る。コミットする）。グループ `Screens`（スキーマは Default Local Group の写し）、アドレス = Prefab のファイル名、ラベル無し。**登録するのは画面の Prefab だけ**（`Assets/Prefabs/Screens/` の下。P2・P3 が足す）。部品の Prefab は画面の Prefab にネストし、`UiRoot` はシーンに置くので、Addressables に入れない。`BuildAddressablesWithPlayerBuild` は `AddressableAssetSettings.PlayerBuildOption.DoNotBuildWithPlayer` にし、`BuildCommands` が明示的に `BuildPlayerContent` を呼ぶ
 7. **USN のコンテナーの AssetLoader**: `PageContainer`・`ModalContainer` の `AssetLoader` は実行時だけのプロパティ（シリアライズされない。未設定なら USN の設定の既定＝Resources）。`UiRoot`（MonoBehaviour）が `Awake` と各プロパティの初回の取得で、1 つの `AddressableAssetLoader` を 3 つのコンテナー（Pages・Modals・Overlays の `ModalContainer`）に入れる（3.3）。USN の設定アセット（`UnityScreenNavigatorSettings`。internal）は作らない
 8. **View の骨格**: View・部品の View は「`[SerializeField] private` のフィールドだけ」を持つ（メソッドは C# の計画が足す）。例外として、実行時の振る舞いが Prefab の成立に要る小さな部品（`UiRoot` の AssetLoader の設定、`SafeAreaFitter`、`WindowAspectKeeper`）はこの計画で中身まで作る。`UiTheme`（定数）もこの計画で作る。旧 foundation の `UiFactory`・`UiFonts`・`EnsureBuilt` は作らない
@@ -24,7 +24,7 @@ spec: ../wiki/architecture/screen-design.md
 11. **PrefabContractTests**（EditMode）は Prefab の一覧を持たず、`Assets/Prefabs/` の下を全部読む。P2・P3 は Prefab を足すだけで自動で確かめの対象になる（3.6）
 12. EditMode のテストのコマンド `unity test --mode EditMode` は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章に無いので、タスク 5 で動くことを確かめて 4章と CLAUDE.md に足す（foundation のタスク 6 にあった CLAUDE.md の追記はこの計画に移る）。`unity test` は同じプロジェクトを開いた Editor があると使えないので、**`unity close .` → `unity test` → `unity open .` → `unity status --until-ready`** の順で回す（`unity close`・`unity open` も 4章に無いので、タスク 5 で一緒に確かめて足す）。P2・P3 はこの手順を使う。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）
 13. **テストのアセンブリは `Uta.Client.Editor` を参照する**（`TmpSettings_DefaultFont_IsNotoSansJpDynamic` が `FontAssets.RegularPath` を使うため。3.1）。テストの asmdef は Editor 専用なので、Editor のアセンブリを参照してよい
-14. **foundation（C#）との境界は foundation の計画で決まった**（2026-11-07）: 旧版の `UiFactory`・`UiFonts`・`EnsureBuilt`・`UiFactoryTests` などを消し、`UiTheme`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`・`ModalBase`・`UiRoot` は P1 が作る（foundation の決めたこと 2）。`DialogService` の公開 API（`UtaDialogView` を使う形）は foundation 3.2 が正。各シーンの `UiRoot` の `BusyIndicator`・`DialogService` は、ルートの `ActiveSceneUi` に各シーンのスコープが入れて、`ApiActivityBridge`・`ErrorDialogView` がそこから取る（foundation の決めたこと 4）。この計画はそれに合わせてある（1.1 の表）
+14. **foundation（C#）との境界は foundation の計画で決まった**（2026-11-07）: 旧版の `UiFactory`・`UiFonts`・`EnsureBuilt`・`UiFactoryTests` などを消し、`UiTheme`・`SafeAreaFitter`・`WindowAspectKeeper`・`PageBase`・`ModalBase`・`UiRoot` は P1 が作る（foundation の決めたこと 2）。`DialogService` の公開 API（`DialogView` を使う形）は foundation 3.2 が正。各シーンの `UiRoot` の `BusyIndicator`・`DialogService` は、ルートの `ActiveSceneUi` に各シーンのスコープが入れて、`ApiActivityBridge`・`ErrorDialogView` がそこから取る（foundation の決めたこと 4）。この計画はそれに合わせてある（1.1 の表）
 15. **Noto Sans JP（SIL Open Font License 1.1）のライセンス表示**。ライセンス文 `Assets/Fonts/NotoSansJP/OFL.txt` はフォントと一緒にリポジトリに入っている。アプリ内のライセンス表示の画面は MVP では作らず、ストアに出すときに作る。この案でよいか（ユーザーが推奨どおり了承した。2026-11-07）
 16. **screen-design 7.3 の「TMP の Essential Resources を取り込む」を「プロジェクトの TMP Settings を作り、既定のフォントを設定する」に直したこと**（このページの 7.3 は [Uta案] として直してある。印は実装時に外す）。Unity 7 の uGUI 7.0.0 で取り込み自体が無くなったため。ユーザーの判断（2026-11-07）の中身を変えるものなので確認する（ユーザーが推奨どおり了承した。2026-11-07）
 17. 見た目の値（色・寸法）は仮。旧 foundation の値に、ヘッダーの色 `(0.14, 0.15, 0.20)` と二次ボタンの色 `(0.30, 0.33, 0.42)` を足した。角丸・アイコンの画像は使わない（単色の四角）。この案で進めてよいか（ユーザーが推奨どおり了承した。2026-11-07）
@@ -53,9 +53,9 @@ spec: ../wiki/architecture/screen-design.md
 |---|---|---|
 | `UiTheme` | 定数を全部作る（3.2） | 使う |
 | `PageBase`／`ModalBase` | `[SerializeField]` のフィールドと、それを返す `protected` プロパティだけ | 何も足さない（派生の View が使う） |
-| 部品の View（`UtaButtonView` など） | フィールドだけ | 表示のメソッド（ラベルを変える・選択の見た目など）を足す |
-| `BusyIndicator` | フィールド `blocker` だけ（Prefab の `UtaBusyBlocker` のルートに付く） | `Begin()`・`End()`・`IsBusy` を足す（3.5） |
-| `DialogService` | 作らない。`UtaDialog` の Prefab と `UtaDialogView` のフィールド、`UiRoot.DialogLayer`・`UiRoot.DialogPrefab` を用意する | `DialogService` を作る（3.5 の公開 API） |
+| 部品の View（`ButtonView` など） | フィールドだけ | 表示のメソッド（ラベルを変える・選択の見た目など）を足す |
+| `BusyIndicator` | フィールド `blocker` だけ（Prefab の `BusyBlocker` のルートに付く） | `Begin()`・`End()`・`IsBusy` を足す（3.5） |
+| `DialogService` | 作らない。`Dialog` の Prefab と `DialogView` のフィールド、`UiRoot.DialogLayer`・`UiRoot.DialogPrefab` を用意する | `DialogService` を作る（3.5 の公開 API） |
 | `UiRoot` | Prefab と MonoBehaviour（AssetLoader の設定とプロパティ）を全部作る | 各シーンに置き、`LifetimeScope` に登録する |
 | `SafeAreaFitter`・`WindowAspectKeeper` | 中身まで作る | 作らない（foundation の 2 章の表から消す） |
 | asmdef の参照（Presentation・Editor・テスト） | 足す（3.1） | 足りないものだけ足す |
@@ -70,7 +70,7 @@ spec: ../wiki/architecture/screen-design.md
 | 使う（作成済み。触らない） | `Fonts/NotoSansJP/NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（と ttf 2 本・`OFL.txt`） | 動的 SDF のフォントアセット（前提 2）。動的データが足されたら `BuildAll()` が空に戻す（決めたこと 4） |
 | 生成 | `TextMesh Pro/Resources/TMP Settings.asset` | プロジェクトの TMP Settings（`TmpSettingsBuilder`） |
 | 生成 | `AddressableAssetsData/`（設定・グループ `Default Local Group`・`Screens`・テンプレート） | Addressables の設定（`AddressablesSetup`） |
-| 生成 | `Prefabs/Parts/UtaLabel.prefab`・`UtaButton.prefab`・`UtaPanel.prefab`・`UtaListRow.prefab`・`UtaHeader.prefab`・`UtaTab.prefab`・`UtaTabBar.prefab`・`UtaDialog.prefab`・`UtaBusyBlocker.prefab`・`UiRoot.prefab` | 共通部品（3.4） |
+| 生成 | `Prefabs/Parts/Label.prefab`・`Button.prefab`・`Panel.prefab`・`ListRow.prefab`・`Header.prefab`・`Tab.prefab`・`TabBar.prefab`・`Dialog.prefab`・`BusyBlocker.prefab`・`UiRoot.prefab` | 共通部品（3.4） |
 | 変更 | `Scripts/Presentation/Uta.Client.Presentation.asmdef` | 参照を足す（3.1） |
 | 作成 | `Scripts/Presentation/Common/UiTheme.cs` | 色・寸法の定数（3.2） |
 | 作成 | `Scripts/Presentation/Common/OptionalReferenceAttribute.cs` | `null` を許す参照の印（3.6） |
@@ -78,13 +78,13 @@ spec: ../wiki/architecture/screen-design.md
 | 作成 | `Scripts/Presentation/Common/PageBase.cs`・`ModalBase.cs` | ページ・モーダルの基底の骨格（3.3） |
 | 作成 | `Scripts/Presentation/Common/UiRoot.cs` | `UiRoot` の MonoBehaviour（3.3） |
 | 作成 | `Scripts/Presentation/Common/BusyIndicator.cs` | ブロッカーの骨格（3.3） |
-| 作成 | `Scripts/Presentation/Common/Parts/UtaButtonView.cs`・`UtaHeaderView.cs`・`UtaTabView.cs`・`UtaTabBarView.cs`・`UtaDialogView.cs`・`ListRowBase.cs`・`UtaListRowView.cs` | 部品の View の骨格（3.3） |
+| 作成 | `Scripts/Presentation/Common/Parts/ButtonView.cs`・`HeaderView.cs`・`TabView.cs`・`TabBarView.cs`・`DialogView.cs`・`ListRowBase.cs`・`ListRowView.cs` | 部品の View の骨格（3.3） |
 | 変更 | `Scripts/Editor/Uta.Client.Editor.asmdef` | 参照を足す（3.1） |
 | 作成 | `Scripts/Editor/Prefabs/PrefabBuildUtil.cs` | 生成の共通の補助（3.5） |
-| 作成 | `Scripts/Editor/Prefabs/RectSpec.cs`・`LayoutSpec.cs`・`TextSpec.cs`・`UtaButtonStyle.cs`・`IPrefabBuilder.cs` | 補助の値の型（3.5） |
+| 作成 | `Scripts/Editor/Prefabs/RectSpec.cs`・`LayoutSpec.cs`・`TextSpec.cs`・`ButtonStyle.cs`・`IPrefabBuilder.cs` | 補助の値の型（3.5） |
 | 作成 | `Scripts/Editor/Prefabs/FontAssets.cs`・`TmpSettingsBuilder.cs`・`AddressablesSetup.cs` | フォントのアセットの読み込み・TMP Settings・Addressables（3.5） |
 | 作成 | `Scripts/Editor/Prefabs/PrefabBuildCommands.cs` | メニューとバッチの入口（3.5） |
-| 作成 | `Scripts/Editor/Prefabs/Parts/UtaLabelBuilder.cs`・`UtaButtonBuilder.cs`・`UtaPanelBuilder.cs`・`UtaTabBuilder.cs`・`UtaTabBarBuilder.cs`・`UtaListRowBuilder.cs`・`UtaHeaderBuilder.cs`・`UtaDialogBuilder.cs`・`UtaBusyBlockerBuilder.cs`・`UiRootBuilder.cs` | 部品ごとの生成クラス（3.4） |
+| 作成 | `Scripts/Editor/Prefabs/Parts/LabelBuilder.cs`・`ButtonBuilder.cs`・`PanelBuilder.cs`・`TabBuilder.cs`・`TabBarBuilder.cs`・`ListRowBuilder.cs`・`HeaderBuilder.cs`・`DialogBuilder.cs`・`BusyBlockerBuilder.cs`・`UiRootBuilder.cs` | 部品ごとの生成クラス（3.4） |
 | 変更 | `Scripts/Editor/BuildCommands.cs` | `BuildPlayerContent` を足す（3.7） |
 | 変更 | `Tests/EditMode/Uta.Client.Infrastructure.Tests.EditMode.asmdef` | 参照を足す（3.1） |
 | 作成 | `Tests/EditMode/PrefabContract.cs`・`PrefabContractTests.cs` | Prefab の契約のテスト（3.6） |
@@ -192,7 +192,7 @@ public abstract class ModalBase : Modal   // UnityScreenNavigator.Runtime.Core.M
     protected RectTransform Panel => panel;
 }
 
-/// <summary>通信中のブロッカー（UtaBusyBlocker のルート）。この計画ではフィールドだけ。Begin/End/IsBusy は foundation が足す。</summary>
+/// <summary>通信中のブロッカー（BusyBlocker のルート）。この計画ではフィールドだけ。Begin/End/IsBusy は foundation が足す。</summary>
 public sealed class BusyIndicator : MonoBehaviour
 {
     [SerializeField] private Image blocker;
@@ -207,7 +207,7 @@ public sealed class UiRoot : MonoBehaviour
     [SerializeField] private OverlayContainer overlayContainer;
     [SerializeField] private BusyIndicator busyIndicator;
     [SerializeField] private RectTransform dialogLayer;
-    [SerializeField] private UtaDialogView dialogPrefab;   // Parts/UtaDialog.prefab のアセット（ネストではなく参照）
+    [SerializeField] private DialogView dialogPrefab;   // Parts/Dialog.prefab のアセット（ネストではなく参照）
 
     private AddressableAssetLoader assetLoader;           // UnityScreenNavigator.Runtime.Foundation.AssetLoader
 
@@ -217,7 +217,7 @@ public sealed class UiRoot : MonoBehaviour
     public OverlayContainer Overlays { get { EnsureConfigured(); return overlayContainer; } }
     public BusyIndicator Busy => busyIndicator;
     public RectTransform DialogLayer => dialogLayer;
-    public UtaDialogView DialogPrefab => dialogPrefab;
+    public DialogView DialogPrefab => dialogPrefab;
 
     private void Awake() { EnsureConfigured(); }
 
@@ -235,16 +235,16 @@ public sealed class UiRoot : MonoBehaviour
 
 | 型 | フィールド（`[SerializeField] private`） | 付く Prefab |
 |---|---|---|
-| `UtaButtonView` | `Button button`、`Image background`、`TMP_Text label` | `UtaButton` のルート |
-| `UtaHeaderView` | `UtaButtonView backButton`、`TMP_Text titleText`、`RectTransform rightSlot` | `UtaHeader` のルート |
-| `UtaTabView` | `Button button`、`TMP_Text label`、`Image underline` | `UtaTab` のルート |
-| `UtaTabBarView` | `UtaTabView[] tabs`（部品の Prefab では空の配列。画面の生成で入れる） | `UtaTabBar` のルート |
-| `UtaDialogView` | `TMP_Text messageText`、`RectTransform buttonList`、`UtaButtonView buttonPrefab`（`Parts/UtaButton.prefab` のアセットの参照） | `UtaDialog` のルート |
+| `ButtonView` | `Button button`、`Image background`、`TMP_Text label` | `Button` のルート |
+| `HeaderView` | `ButtonView backButton`、`TMP_Text titleText`、`RectTransform rightSlot` | `Header` のルート |
+| `TabView` | `Button button`、`TMP_Text label`、`Image underline` | `Tab` のルート |
+| `TabBarView` | `TabView[] tabs`（部品の Prefab では空の配列。画面の生成で入れる） | `TabBar` のルート |
+| `DialogView` | `TMP_Text messageText`、`RectTransform buttonList`、`ButtonView buttonPrefab`（`Parts/Button.prefab` のアセットの参照） | `Dialog` のルート |
 | `ListRowBase`（abstract） | `Button button`、`Image background` | 行の Prefab のルート（派生を付ける） |
-| `UtaListRowView : ListRowBase` | `TMP_Text titleText`、`TMP_Text subText`、`TMP_Text rightText` | `UtaListRow` のルート |
+| `ListRowView : ListRowBase` | `TMP_Text titleText`、`TMP_Text subText`、`TMP_Text rightText` | `ListRow` のルート |
 
-- `UtaLabel`・`UtaPanel` には View を付けない（画面の View は `TMP_Text`・`RectTransform` を直接持つ）
-- 画面の View が部品を持つときは、部品の View の型（`UtaButtonView`・`UtaHeaderView`・`UtaTabBarView`）でフィールドを宣言する。ボタンの `onClick` は C# が購読する（Prefab に永続リスナーを張らない）
+- `Label`・`Panel` には View を付けない（画面の View は `TMP_Text`・`RectTransform` を直接持つ）
+- 画面の View が部品を持つときは、部品の View の型（`ButtonView`・`HeaderView`・`TabBarView`）でフィールドを宣言する。ボタンの `onClick` は C# が購読する（Prefab に永続リスナーを張らない）
 
 ### 3.4 共通部品の Prefab（`Assets/Prefabs/Parts/`）
 
@@ -255,80 +255,80 @@ public sealed class UiRoot : MonoBehaviour
 - Button は `transition = ColorTint`、`targetGraphic` = 同じ GameObject の Image、colors = normal `TintNormal`・highlighted `TintHighlighted`・pressed `TintPressed`・selected `TintNormal`・disabled `TintDisabled`、`colorMultiplier = 1`、`fadeDuration = 0.1`、`navigation.mode = None`
 - VLG = `VerticalLayoutGroup`、HLG = `HorizontalLayoutGroup`。表の「制御 W/H」は `childControlWidth`／`childControlHeight`、「伸ばす W/H」は `childForceExpandWidth`／`childForceExpandHeight`。`childScaleWidth/Height` はどちらも false
 - LE = `LayoutElement`。書いていない値は既定（−1）
-- 部品の中で別の部品を使うときは、部品の Prefab のインスタンスをネストする（「→ `UtaLabel`」のように書く）。ネストした部品の値の変更は Prefab のオーバーライドになる
+- 部品の中で別の部品を使うときは、部品の Prefab のインスタンスをネストする（「→ `Label`」のように書く）。ネストした部品の値の変更は Prefab のオーバーライドになる
 
-#### UtaLabel（出どころ: 旧 foundation `CreateText`、screen-design 7.3）
-
-| 階層 | コンポーネントと値 |
-|---|---|
-| `UtaLabel` | RectTransform 全面。TMP: text "ラベル"、fontSize 40（`FontBody`）、color `Text`、alignment `MidlineLeft`、折り返し `Normal`、はみ出し `Overflow` |
-
-#### UtaButton（出どころ: 旧 foundation `CreateButton`。高さ 130）
+#### Label（出どころ: 旧 foundation `CreateText`、screen-design 7.3）
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaButton` | RectTransform 中央 600×130。Image color `ButtonPrimary`、raycastTarget true。Button（共通の値）。LE minHeight 130・preferredHeight 130。`UtaButtonView`（button = 自分の Button、background = 自分の Image、label = 子 `Label` の TMP） |
+| `Label` | RectTransform 全面。TMP: text "ラベル"、fontSize 40（`FontBody`）、color `Text`、alignment `MidlineLeft`、折り返し `Normal`、はみ出し `Overflow` |
+
+#### Button（出どころ: 旧 foundation `CreateButton`。高さ 130）
+
+| 階層 | コンポーネントと値 |
+|---|---|
+| `Button` | RectTransform 中央 600×130。Image color `ButtonPrimary`、raycastTarget true。Button（共通の値）。LE minHeight 130・preferredHeight 130。`ButtonView`（button = 自分の Button、background = 自分の Image、label = 子 `Label` の TMP） |
 | └ `Label` | RectTransform 全面で offsetMin (16,0)・offsetMax (−16,0)。TMP: text "ボタン"、fontSize 40、color `Text`、alignment `Center`、折り返し `NoWrap`、はみ出し `Ellipsis` |
 
-ボタンの種類（`UtaButtonStyle`。画面の生成で Image の色をオーバーライドする）: `Primary` = `ButtonPrimary`、`Secondary` = `ButtonSecondary`、`Danger` = `ButtonDanger`。
+ボタンの種類（`ButtonStyle`。画面の生成で Image の色をオーバーライドする）: `Primary` = `ButtonPrimary`、`Secondary` = `ButtonSecondary`、`Danger` = `ButtonDanger`。
 
-#### UtaPanel（出どころ: 旧 foundation `CreatePanel`）
-
-| 階層 | コンポーネントと値 |
-|---|---|
-| `UtaPanel` | RectTransform 全面（レイアウト任せ）。Image color `Panel`、raycastTarget true。VLG: padding 32（上下左右）、spacing 24、childAlignment `UpperCenter`、制御 W/H true/true、伸ばす W/H true/false |
-
-#### UtaTab（[P1]。所持一覧のタブ（screen-wireframes 10）など）
+#### Panel（出どころ: 旧 foundation `CreatePanel`）
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaTab` | RectTransform 全面（レイアウト任せ）。Image color `Header`、raycastTarget true。Button（共通の値）。LE minHeight 110・preferredHeight 110・flexibleWidth 1。`UtaTabView`（button、label = 子 `Label`、underline = 子 `Underline` の Image） |
+| `Panel` | RectTransform 全面（レイアウト任せ）。Image color `Panel`、raycastTarget true。VLG: padding 32（上下左右）、spacing 24、childAlignment `UpperCenter`、制御 W/H true/true、伸ばす W/H true/false |
+
+#### Tab（[P1]。所持一覧のタブ（screen-wireframes 10）など）
+
+| 階層 | コンポーネントと値 |
+|---|---|
+| `Tab` | RectTransform 全面（レイアウト任せ）。Image color `Header`、raycastTarget true。Button（共通の値）。LE minHeight 110・preferredHeight 110・flexibleWidth 1。`TabView`（button、label = 子 `Label`、underline = 子 `Underline` の Image） |
 | ├ `Label` | RectTransform 全面で offsetMin (8,8)・offsetMax (−8,0)。TMP: text "タブ"、fontSize 40、color `Text`、alignment `Center`、折り返し `NoWrap`、はみ出し `Ellipsis` |
 | └ `Underline` | RectTransform: anchorMin (0,0)、anchorMax (1,0)、pivot (0.5,0)、offsetMin (0,0)、offsetMax (0,8)。Image color `Accent`、raycastTarget false、**`enabled = false`**（選ばれたタブだけ C# が有効にする） |
 
-#### UtaTabBar（[P1]）
+#### TabBar（[P1]）
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaTabBar` | RectTransform 上帯 110。Image color `Header`、raycastTarget true。HLG: padding 0、spacing 0、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE minHeight 110・preferredHeight 110。`UtaTabBarView`（tabs = 空の配列） |
+| `TabBar` | RectTransform 上帯 110。Image color `Header`、raycastTarget true。HLG: padding 0、spacing 0、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE minHeight 110・preferredHeight 110。`TabBarView`（tabs = 空の配列） |
 
-タブは画面の生成が `PrefabBuildUtil.AddTabBar` で `UtaTab` のインスタンスを子に並べ、`tabs` に入れる（3.5）。
+タブは画面の生成が `PrefabBuildUtil.AddTabBar` で `Tab` のインスタンスを子に並べ、`tabs` に入れる（3.5）。
 
-#### UtaListRow（[P1]。一覧の行の基底。所持一覧・ガチャの一覧など）
+#### ListRow（[P1]。一覧の行の基底。所持一覧・ガチャの一覧など）
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaListRow` | RectTransform 全面（レイアウト任せ）。Image color `Panel`、raycastTarget true。Button（共通の値）。LE minHeight 160・preferredHeight 160。HLG: padding 左 32・右 32・上 16・下 16、spacing 24、childAlignment `MiddleLeft`、制御 W/H true/true、伸ばす W/H false/true。`UtaListRowView`（button、background、titleText、subText、rightText） |
+| `ListRow` | RectTransform 全面（レイアウト任せ）。Image color `Panel`、raycastTarget true。Button（共通の値）。LE minHeight 160・preferredHeight 160。HLG: padding 左 32・右 32・上 16・下 16、spacing 24、childAlignment `MiddleLeft`、制御 W/H true/true、伸ばす W/H false/true。`ListRowView`（button、background、titleText、subText、rightText） |
 | ├ `TextColumn` | RectTransform（レイアウト任せ）。VLG: padding 0、spacing 4、childAlignment `MiddleLeft`、制御 W/H true/true、伸ばす W/H true/false。LE flexibleWidth 1 |
-| │├ `TitleText` | → `UtaLabel`。fontSize 40、color `Text`、alignment `MidlineLeft`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "名前" |
-| │└ `SubText` | → `UtaLabel`。fontSize 32、color `TextMuted`、alignment `MidlineLeft`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "補足" |
-| └ `RightText` | → `UtaLabel`。fontSize 32、color `Text`、alignment `MidlineRight`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "" 。LE preferredWidth 240・flexibleWidth 0 |
+| │├ `TitleText` | → `Label`。fontSize 40、color `Text`、alignment `MidlineLeft`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "名前" |
+| │└ `SubText` | → `Label`。fontSize 32、color `TextMuted`、alignment `MidlineLeft`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "補足" |
+| └ `RightText` | → `Label`。fontSize 32、color `Text`、alignment `MidlineRight`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "" 。LE preferredWidth 240・flexibleWidth 0 |
 
 行が別の形（ボタンを持つ・2 段より多い）の画面は、P2・P3 が `ListRowBase` を継承した行の View と行の Prefab（`Parts/<名前>Row.prefab`）を自分で作る。
 
-#### UtaHeader（[P1]。戻るボタン＋タイトル。右上の [≡] は画面が `RightSlot` に置く（screen-wireframes 共通の方針））
+#### Header（[P1]。戻るボタン＋タイトル。右上の [≡] は画面が `RightSlot` に置く（screen-wireframes 共通の方針））
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaHeader` | RectTransform 上帯 150。Image color `Header`、raycastTarget true。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H false/true。LE minHeight 150・preferredHeight 150。`UtaHeaderView`（backButton、titleText、rightSlot） |
-| ├ `BackButton` | → `UtaButton`。Image color `ButtonSecondary`、Label の text "戻る"。LE preferredWidth 200・flexibleWidth 0 |
-| ├ `TitleText` | → `UtaLabel`。fontSize 56（`FontTitle`）、alignment `Center`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "タイトル"。LE flexibleWidth 1 を足す |
+| `Header` | RectTransform 上帯 150。Image color `Header`、raycastTarget true。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、childAlignment `MiddleCenter`、制御 W/H true/true、伸ばす W/H false/true。LE minHeight 150・preferredHeight 150。`HeaderView`（backButton、titleText、rightSlot） |
+| ├ `BackButton` | → `Button`。Image color `ButtonSecondary`、Label の text "戻る"。LE preferredWidth 200・flexibleWidth 0 |
+| ├ `TitleText` | → `Label`。fontSize 56（`FontTitle`）、alignment `Center`、折り返し `NoWrap`、はみ出し `Ellipsis`、text "タイトル"。LE flexibleWidth 1 を足す |
 | └ `RightSlot` | RectTransform（レイアウト任せ）。LE preferredWidth 200・flexibleWidth 0（タイトルを中央に保つ。画面がここにボタンを全面で置く） |
 
-#### UtaDialog（出どころ: 旧 foundation `DialogService` の "Dialog"／"Panel"）
+#### Dialog（出どころ: 旧 foundation `DialogService` の "Dialog"／"Panel"）
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaDialog` | RectTransform 全面。Image color `Overlay`、raycastTarget true（下の入力を止める）。`UtaDialogView`（messageText、buttonList、buttonPrefab = `Parts/UtaButton.prefab` の `UtaButtonView`） |
+| `Dialog` | RectTransform 全面。Image color `Overlay`、raycastTarget true（下の入力を止める）。`DialogView`（messageText、buttonList、buttonPrefab = `Parts/Button.prefab` の `ButtonView`） |
 | └ `Panel` | RectTransform 中央 880×0（高さは ContentSizeFitter が決める）。Image color `Panel`、raycastTarget true。VLG: padding 40、spacing 32、childAlignment `UpperCenter`、制御 W/H true/true、伸ばす W/H true/false。ContentSizeFitter: horizontalFit `Unconstrained`、verticalFit `PreferredSize` |
-| 　├ `MessageText` | → `UtaLabel`。fontSize 40、alignment `Center`、折り返し `Normal`、はみ出し `Overflow`、text "メッセージ" |
+| 　├ `MessageText` | → `Label`。fontSize 40、alignment `Center`、折り返し `Normal`、はみ出し `Overflow`、text "メッセージ" |
 | 　└ `ButtonList` | RectTransform（レイアウト任せ）。VLG: padding 0、spacing 24、childAlignment `UpperCenter`、制御 W/H true/true、伸ばす W/H true/false。子は無し（`DialogService` が `buttonPrefab` から実行時に並べる） |
 
-#### UtaBusyBlocker（出どころ: screen-design 7.5「全面の透明な Image で入力を止める」）
+#### BusyBlocker（出どころ: screen-design 7.5「全面の透明な Image で入力を止める」）
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `UtaBusyBlocker` | RectTransform 全面。Image color `Transparent`、raycastTarget true、**`enabled = false`**。`BusyIndicator`（blocker = 自分の Image） |
+| `BusyBlocker` | RectTransform 全面。Image color `Transparent`、raycastTarget true、**`enabled = false`**。`BusyIndicator`（blocker = 自分の Image） |
 
 #### UiRoot（出どころ: screen-wireframes 共通の方針、screen-design 7.2・7.5、旧 foundation `UiRoot.Create`）
 
@@ -339,11 +339,11 @@ public sealed class UiRoot : MonoBehaviour
 | ├ `Pages` | RectTransform 全面。`PageContainer`（`_name` は空のまま） |
 | ├ `Modals` | RectTransform 全面。`ModalContainer`（既定の値） |
 | ├ `Overlays` | RectTransform 全面。`ModalContainer` + `OverlayContainer`（同じ GameObject。`ScreenNavigator` のコンストラクターが要る。Uta は Overlay に画面を出さない） |
-| ├ `Busy` | → `UtaBusyBlocker`（全面） |
+| ├ `Busy` | → `BusyBlocker`（全面） |
 | ├ `Dialogs` | RectTransform 全面。ほかのコンポーネントなし（ダイアログの層。Busy より手前なので、通信中でもダイアログは押せる） |
 | └ `EventSystem` | Transform（RectTransform にしない）。`EventSystem` + `InputSystemUIInputModule`（生成で `AssignDefaultActions()` を呼ぶ。`SceneBuilder` と同じ） |
 
-`UiRoot` の参照: canvas = 自分の Canvas、pageContainer = `Pages`、modalContainer = `Modals`、overlayContainer = `Overlays` の `OverlayContainer`、busyIndicator = `Busy` の `BusyIndicator`、dialogLayer = `Dialogs`、dialogPrefab = `Parts/UtaDialog.prefab` の `UtaDialogView`。
+`UiRoot` の参照: canvas = 自分の Canvas、pageContainer = `Pages`、modalContainer = `Modals`、overlayContainer = `Overlays` の `OverlayContainer`、busyIndicator = `Busy` の `BusyIndicator`、dialogLayer = `Dialogs`、dialogPrefab = `Parts/Dialog.prefab` の `DialogView`。
 
 `PageContainer` の子はすべて `Page` でなければならない（USN が子の `Page` の描画順を見る）ので、`Pages`・`Modals`・`Overlays` の下には何も置かない。
 
@@ -360,14 +360,14 @@ public sealed class UiRoot : MonoBehaviour
 
 | ワイヤー／仕様の値 | Prefab の部品（子の名前） | View のフィールド |
 |---|---|---|
-| 戻る（各画面の左上） | `UtaHeader/BackButton` | `UtaHeaderView.backButton` |
-| 画面の見出し | `UtaHeader/TitleText` | `UtaHeaderView.titleText` |
-| 右上の [≡]（プロデュース） | `UtaHeader/RightSlot`（P3 がボタンを置く） | `UtaHeaderView.rightSlot` |
-| タブ | `UtaTabBar/<タブ名>` → `UtaTab/Label`・`Underline` | `UtaTabBarView.tabs[i]`、`UtaTabView.label`・`underline` |
-| 一覧の行（名前・補足・右の値） | `UtaListRow/TextColumn/TitleText`・`SubText`、`RightText` | `UtaListRowView.titleText`・`subText`・`rightText` |
-| 確認・お知らせ・選択のダイアログの文 | `UtaDialog/Panel/MessageText` | `UtaDialogView.messageText` |
-| ダイアログのボタン（1〜4 個） | `UtaDialog/Panel/ButtonList` の子（実行時） | `UtaDialogView.buttonList`・`buttonPrefab` |
-| 通信中のブロッカー | `UiRoot/Busy`（`UtaBusyBlocker`） | `BusyIndicator.blocker`、`UiRoot.busyIndicator` |
+| 戻る（各画面の左上） | `Header/BackButton` | `HeaderView.backButton` |
+| 画面の見出し | `Header/TitleText` | `HeaderView.titleText` |
+| 右上の [≡]（プロデュース） | `Header/RightSlot`（P3 がボタンを置く） | `HeaderView.rightSlot` |
+| タブ | `TabBar/<タブ名>` → `Tab/Label`・`Underline` | `TabBarView.tabs[i]`、`TabView.label`・`underline` |
+| 一覧の行（名前・補足・右の値） | `ListRow/TextColumn/TitleText`・`SubText`、`RightText` | `ListRowView.titleText`・`subText`・`rightText` |
+| 確認・お知らせ・選択のダイアログの文 | `Dialog/Panel/MessageText` | `DialogView.messageText` |
+| ダイアログのボタン（1〜4 個） | `Dialog/Panel/ButtonList` の子（実行時） | `DialogView.buttonList`・`buttonPrefab` |
+| 通信中のブロッカー | `UiRoot/Busy`（`BusyBlocker`） | `BusyIndicator.blocker`、`UiRoot.busyIndicator` |
 | ページ・モーダル・オーバーレイの層 | `UiRoot/Pages`・`Modals`・`Overlays` | `UiRoot.pageContainer`・`modalContainer`・`overlayContainer` |
 | ダイアログの層 | `UiRoot/Dialogs` | `UiRoot.dialogLayer` |
 
@@ -414,7 +414,7 @@ public sealed class TextSpec
     public static TextSpec SingleLine { get; }  // 40、Text、MidlineLeft、wrap false、ellipsis true
 }
 
-public enum UtaButtonStyle { Primary, Secondary, Danger }
+public enum ButtonStyle { Primary, Secondary, Danger }
 
 /// <summary>Prefab を 1 つ作る生成クラス。引数なしのコンストラクターを持つ。PrefabBuildCommands.BuildAll が TypeCache で集める。</summary>
 public interface IPrefabBuilder
@@ -497,20 +497,20 @@ public static class PrefabBuildUtil
     public static ContentSizeFitter AddVerticalFitter(GameObject target);
 
     // --- 部品を置く（部品の Prefab をネストして値をオーバーライドする） ---
-    /// <summary>InstantiatePart(parent, "UtaLabel", name) → ApplyText(spec) → text。</summary>
+    /// <summary>InstantiatePart(parent, "Label", name) → ApplyText(spec) → text。</summary>
     public static TextMeshProUGUI AddLabel(Transform parent, string name, string text, TextSpec spec);
-    /// <summary>InstantiatePart&lt;UtaButtonView&gt;(parent, "UtaButton", name)。Label の text = label、Image の color を style の色に。</summary>
-    public static UtaButtonView AddButtonPart(Transform parent, string name, string label, UtaButtonStyle style = UtaButtonStyle.Primary);
-    /// <summary>InstantiatePart(parent, "UtaPanel", name) の RectTransform。</summary>
+    /// <summary>InstantiatePart&lt;ButtonView&gt;(parent, "Button", name)。Label の text = label、Image の color を style の色に。</summary>
+    public static ButtonView AddButtonPart(Transform parent, string name, string label, ButtonStyle style = ButtonStyle.Primary);
+    /// <summary>InstantiatePart(parent, "Panel", name) の RectTransform。</summary>
     public static RectTransform AddPanel(Transform parent, string name);
-    /// <summary>InstantiatePart&lt;UtaHeaderView&gt;(parent, "UtaHeader", "Header")。TitleText の text = title。</summary>
-    public static UtaHeaderView AddHeader(Transform parent, string title);
+    /// <summary>InstantiatePart&lt;HeaderView&gt;(parent, "Header", "Header")。TitleText の text = title。</summary>
+    public static HeaderView AddHeader(Transform parent, string title);
     /// <summary>
-    /// InstantiatePart&lt;UtaTabBarView&gt;(parent, "UtaTabBar", name)。tabNames と labels の長さが違う・0 なら ArgumentException。
-    /// 各 i について InstantiatePart&lt;UtaTabView&gt;(bar, "UtaTab", tabNames[i]) を置き、Label の text = labels[i]。
-    /// 最後に SetRefs(bar, "tabs", 置いた UtaTabView の配列)。
+    /// InstantiatePart&lt;TabBarView&gt;(parent, "TabBar", name)。tabNames と labels の長さが違う・0 なら ArgumentException。
+    /// 各 i について InstantiatePart&lt;TabView&gt;(bar, "Tab", tabNames[i]) を置き、Label の text = labels[i]。
+    /// 最後に SetRefs(bar, "tabs", 置いた TabView の配列)。
     /// </summary>
-    public static UtaTabBarView AddTabBar(Transform parent, string name, string[] tabNames, string[] labels);
+    public static TabBarView AddTabBar(Transform parent, string name, string[] tabNames, string[] labels);
     /// <summary>
     /// 縦スクロール（旧 foundation CreateScrollContent と同じ形）: AddChild(parent, name) + ScrollRect（horizontal false、vertical true、movementType Clamped、scrollSensitivity 30）+ SetLayout(flexibleHeight: 1)、
     /// 子 "Viewport"（全面、Image Transparent raycastTarget true、RectMask2D）、その子 "Content"（anchorMin (0,1)、anchorMax (1,1)、pivot (0.5,1)、offset 0、
@@ -639,18 +639,18 @@ public static class PrefabBuildCommands
 
 | クラス | Order | 作るもの | 使う部品 |
 |---|---|---|---|
-| `UtaLabelBuilder` | 100 | `UtaLabel` | — |
-| `UtaButtonBuilder` | 110 | `UtaButton` | — |
-| `UtaPanelBuilder` | 120 | `UtaPanel` | — |
-| `UtaTabBuilder` | 130 | `UtaTab` | — |
-| `UtaTabBarBuilder` | 140 | `UtaTabBar` | — |
-| `UtaListRowBuilder` | 150 | `UtaListRow` | `UtaLabel` |
-| `UtaHeaderBuilder` | 160 | `UtaHeader` | `UtaButton`、`UtaLabel` |
-| `UtaDialogBuilder` | 170 | `UtaDialog` | `UtaLabel`、`UtaButton`（アセットの参照） |
-| `UtaBusyBlockerBuilder` | 180 | `UtaBusyBlocker` | — |
-| `UiRootBuilder` | 190 | `UiRoot` | `UtaBusyBlocker`、`UtaDialog`（アセットの参照） |
+| `LabelBuilder` | 100 | `Label` | — |
+| `ButtonBuilder` | 110 | `Button` | — |
+| `PanelBuilder` | 120 | `Panel` | — |
+| `TabBuilder` | 130 | `Tab` | — |
+| `TabBarBuilder` | 140 | `TabBar` | — |
+| `ListRowBuilder` | 150 | `ListRow` | `Label` |
+| `HeaderBuilder` | 160 | `Header` | `Button`、`Label` |
+| `DialogBuilder` | 170 | `Dialog` | `Label`、`Button`（アセットの参照） |
+| `BusyBlockerBuilder` | 180 | `BusyBlocker` | — |
+| `UiRootBuilder` | 190 | `UiRoot` | `BusyBlocker`、`Dialog`（アセットの参照） |
 
-- `UtaDialogBuilder` の `buttonPrefab` と `UiRootBuilder` の `dialogPrefab` は、`AssetDatabase.LoadAssetAtPath<GameObject>(PartPath(...)).GetComponent<…View>()` を `SetRef` で入れる（ネストではない）
+- `DialogBuilder` の `buttonPrefab` と `UiRootBuilder` の `dialogPrefab` は、`AssetDatabase.LoadAssetAtPath<GameObject>(PartPath(...)).GetComponent<…View>()` を `SetRef` で入れる（ネストではない）
 - `UiRootBuilder` の `EventSystem` は `new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule))` を `SetParent(root, false)` し、`GetComponent<InputSystemUIInputModule>().AssignDefaultActions()`
 - P2・P3 の書き方: 画面ごとに `public sealed class <名前>PageBuilder : IPrefabBuilder`（Order 2000、行の部品は 1000）を `Scripts/Editor/Prefabs/Screens/<機能>/` に作り、`CreatePage<THomePage>("HomePage", out var body)` → 中身 → `SavePrefab(root, ScreenPath("Home", "HomePage"))` → `RegisterScreen(同じパス)`。Build All への登録は要らない
 
@@ -752,7 +752,7 @@ public static class PrefabContract
 
 ### タスク 3: 生成の補助と入口
 
-触る: `Scripts/Editor/Prefabs/PrefabBuildUtil.cs`・`RectSpec.cs`・`LayoutSpec.cs`・`TextSpec.cs`・`UtaButtonStyle.cs`・`IPrefabBuilder.cs`・`PrefabBuildCommands.cs`。
+触る: `Scripts/Editor/Prefabs/PrefabBuildUtil.cs`・`RectSpec.cs`・`LayoutSpec.cs`・`TextSpec.cs`・`ButtonStyle.cs`・`IPrefabBuilder.cs`・`PrefabBuildCommands.cs`。
 
 手順:
 1. 3.5 のとおりに作る
@@ -770,7 +770,7 @@ public static class PrefabContract
 1. 3.4 の表と 3.5 の Order のとおりに 10 クラスを作る
 2. `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'` が `built 10`。`unity command console get --tail 50 --level error --format json` にエラーが無い
 3. もう一度 `BuildAll()` を実行し、`git status`・`git diff --stat` で `Prefabs/Parts/` に差分が出るかを見る。**出ても止まらない**（fileID が作り直されている可能性。推測）。差分の有無と、出たならどの行か（`m_` のどの値か・fileID か）を報告に書く。`Fonts/NotoSansJP/` の 2 つの `.asset` に差分が出ていないこと（出たら `FontAssets.ClearDynamicData()` で戻りきっていない。差分の中身を報告に書き、`git restore` で戻す。止まらない）
-4. ユーザーに、Editor で `UiRoot.prefab`・`UtaDialog.prefab`・`UtaHeader.prefab`・`UtaListRow.prefab` を Prefab モードで開いて、日本語の仮の文字が出ていること、3.4 の表の配置になっていることを見てもらう（手動）
+4. ユーザーに、Editor で `UiRoot.prefab`・`Dialog.prefab`・`Header.prefab`・`ListRow.prefab` を Prefab モードで開いて、日本語の仮の文字が出ていること、3.4 の表の配置になっていることを見てもらう（手動）
 5. Editor を閉じたときのバッチの入口を確かめる: Editor を閉じ、`Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` が終了コード 0、ログに `[Uta] prefabs: built 10`
 
 境界: 部品の Prefab が無い状態から（`Prefabs/Parts/` を消してから）でも、Order の順で全部できる。
@@ -792,8 +792,8 @@ public static class PrefabContract
    - **`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（全計画共通の規則）。`unity test` が使えないことは unity7-evaluation 4章に書く
 3. わざと壊して効くことを確かめる:
    1. Editor で次を実行し `broken` が返る（`SetRef` は Editor のアセンブリの `PrefabBuildUtil`。`unity command eval` は `return` が要る）:
-      `unity command eval 'var path = "Assets/Prefabs/Parts/UtaHeader.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { Uta.Client.Editor.Prefabs.PrefabBuildUtil.SetRef(root.GetComponent<Uta.Client.Presentation.Common.Parts.UtaHeaderView>(), "titleText", null); UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); } return "broken";'`
-   2. 手順 2 の 1〜2（保存して閉じる）→ `unity test --mode EditMode --filter PrefabContractTests` が終了コード 8 で、`test-results.xml` で `AllPrefabs_SerializedReferences_AreAssigned` が失敗し、文に `UtaHeader` と `titleText` が入る。**`--filter` が効かない**（オプションのエラー、または全件が走る・0 件しか走らない）ときは、`--filter` を外して全件を実行し、`test-results.xml` の失敗したテストの名前が `AllPrefabs_SerializedReferences_AreAssigned` だけであることを見る。どちらで確かめたかを記録する
+      `unity command eval 'var path = "Assets/Prefabs/Parts/Header.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { Uta.Client.Editor.Prefabs.PrefabBuildUtil.SetRef(root.GetComponent<Uta.Client.Presentation.Common.Parts.HeaderView>(), "titleText", null); UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); } return "broken";'`
+   2. 手順 2 の 1〜2（保存して閉じる）→ `unity test --mode EditMode --filter PrefabContractTests` が終了コード 8 で、`test-results.xml` で `AllPrefabs_SerializedReferences_AreAssigned` が失敗し、文に `Header` と `titleText` が入る。**`--filter` が効かない**（オプションのエラー、または全件が走る・0 件しか走らない）ときは、`--filter` を外して全件を実行し、`test-results.xml` の失敗したテストの名前が `AllPrefabs_SerializedReferences_AreAssigned` だけであることを見る。どちらで確かめたかを記録する
    3. Editor を閉じたまま、バッチの入口で元に戻す: `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` が終了コード 0 → `unity test --mode EditMode` が全部通る → 手順 2 の 4（開く）
 4. 動いたコマンドを unity7-evaluation.md 4章の「`unity` CLI の使い方（動いたもの）」に足す（`unity test --mode EditMode`、`--filter` が効いたか、`unity close .`、`unity open .`、開いた Editor があるときの `unity test` の振る舞い）。CLAUDE.md「ビルド・テスト・実行」の Unity 7 の行の後に「Unity の EditMode のテスト: `client/uta` で `unity close .` → `unity test --mode EditMode` → `unity open .`（`unity close` は保存せずに閉じるので、先に `AssetDatabase.SaveAssets`。同じプロジェクトを開いた Editor があると `unity test` は使えない）」を 1 行足す（動いた形に合わせて書く）
 5. `test-results.xml` はコミットしない（`client/uta/` 直下に出るので、`.gitignore` の Unity の節に `client/*/test-results.xml` を 1 行足す）

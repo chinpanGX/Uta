@@ -155,7 +155,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 
 - **遷移**: ホーム（またはシーンの最初のページ）を底にする。局面ごとの切り替えは、いまのページを `Pop` してから次を `Push`（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではない）。ホームへ戻るときは上のページ・モーダルを全部 `Pop`
 - **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
-- **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品は `Uta` 接頭辞（`UtaButton`・`UtaLabel`）
+- **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品の Prefab も接頭辞を付けず、役割の名前にする（`Button`・`Label`・`Panel`。View の型は Prefab 名 + `View`: `ButtonView`）。部品に `Uta` 接頭辞は付けない [決定。2026-11-07。ユーザーの判断]
 
 ### 7.5 通信・状態・マスタの扱い [Uta案]
 

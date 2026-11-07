@@ -48,7 +48,7 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 - 関係する ADR: [0008](../wiki/decisions/0008-shared-domain-and-onion.md)（層。DTO の写しは Infrastructure に閉じる）、[0009](../wiki/decisions/0009-client-stack.md)
 - 計画の並び（[索引](2026-11-07-client-screens-index.md)）: 計画 0 → P1 → P2 → foundation → gacha → owned → P3 → **この計画** → week → lesson
 - **前提**（実装に入る前に、次がブランチに入っていることを確かめる。無ければ止まって報告する）:
-  - 1 本目（foundation）が done: `IScreenNavigator`（基盤）を各シーンのスコープに登録する `SceneUiInstaller`、`PageStack`、`PageBase`、`DialogService`、部品の View のメソッド（`UtaButtonView.Button`・`SetLabel`・`SetInteractable`、`UtaHeaderView.BackButton`）、`ISceneNavigator`（`GoToHomeAsync`・`GoToProduceAsync`）、`IGameMaster`・`ScenarioInfo`、`RefreshPlayerUseCase`、`HomePresenter`・`HomeEntry`、`SceneBuilder` の `InstantiateUiRoot`・`SetRef`（foundation 3.10。foundation は `Produce` シーンを一切変えていない: `BuildProduce`・`Produce.unity`・`ProduceLifetimeScope`・`ProduceView`・`ProducePresenter` は #24 のまま。この計画が作り直す: 3.4・タスク 5）、`BootstrapEntry.RegisterUseCases`、`UtaErrors`（`ProduceErrors` の 7 つを `ErrorAction.Stay` で登録済み）、`Tests/EditMode/Fakes/`（`CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`）
+  - 1 本目（foundation）が done: `IScreenNavigator`（基盤）を各シーンのスコープに登録する `SceneUiInstaller`、`PageStack`、`PageBase`、`DialogService`、部品の View のメソッド（`ButtonView.Button`・`SetLabel`・`SetInteractable`、`HeaderView.BackButton`）、`ISceneNavigator`（`GoToHomeAsync`・`GoToProduceAsync`）、`IGameMaster`・`ScenarioInfo`、`RefreshPlayerUseCase`、`HomePresenter`・`HomeEntry`、`SceneBuilder` の `InstantiateUiRoot`・`SetRef`（foundation 3.10。foundation は `Produce` シーンを一切変えていない: `BuildProduce`・`Produce.unity`・`ProduceLifetimeScope`・`ProduceView`・`ProducePresenter` は #24 のまま。この計画が作り直す: 3.4・タスク 5）、`BootstrapEntry.RegisterUseCases`、`UtaErrors`（`ProduceErrors` の 7 つを `ErrorAction.Stay` で登録済み）、`Tests/EditMode/Fakes/`（`CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`）
   - 2 本目（gacha）が done: `PortResult<T>`・`ServerReasons` と `ServerReasonsTests`（`ProduceStaleOperation` ほか 7 つ。無ければこの計画のタスク 2 で定数とテストの行を足す: 下の 3.2）、`FakeGameMaster`、`HomePresenter` のコンストラクターへの `IScreenNavigator` の追加
   - 3 本目（owned）が done: `OwnedSelectionRequest`（`ForIdol`・`ForSupportCard`）・`OwnedSelection`（`IsCancelled`・`IdolId`・`SupportCardUid`）、選択モードの `OwnedPresenter`（Args は `OwnedArgs`。結果は `WaitForPopAsync<OwnedSelection>`）、`DisplayText`（`RarityName`・`PlanName`・`ParamName`）、`FormationValidator.IsPlanCompatible(Plan idolPlan, Plan supportPlan)`（Shared.Domain。**main には無く、owned のタスク 1 が `shared/` に足す**）
   - P3 が done: `Scripts/Presentation/Formation/FormationPage.cs`・`FormationSlotRowView.cs`、`Scripts/Presentation/Produce/ProduceBackdropPage.cs`（P3 3.1 のフィールドだけの骨格）と、`Assets/Prefabs/Screens/Formation/FormationPage.prefab`・`Assets/Prefabs/Screens/Produce/ProduceBackdropPage.prefab`（Addressables の `Screens` に、アドレス `FormationPage`・`ProduceBackdropPage`）。フィールドの名前・型が P3 3.1 と違えば止まって報告する
@@ -107,7 +107,7 @@ C# は C# 9 の範囲（`client/`・`shared/`。コレクション式 `[...]`・
 |---|---|---|
 | `DisplayText` | `Uta.Client.Presentation.Common` | owned 3.2 |
 | `PageStack`・`DialogService`・`DialogResult`・`PageBase`・`UiRoot`・`SceneUiInstaller` | `Uta.Client.Presentation.Common` | foundation 3.2、P1 3.3 |
-| `UtaButtonView`・`UtaHeaderView` | `Uta.Client.Presentation.Common.Parts` | foundation 3.2、P1 |
+| `ButtonView`・`HeaderView` | `Uta.Client.Presentation.Common.Parts` | foundation 3.2、P1 |
 | `OwnedSelectionRequest`・`OwnedSelection`・`OwnedSelectionKind` | `Uta.Client.Application.Owned` | owned 3.4 |
 | `OwnedArgs`・`OwnedPresenter` | `Uta.Client.Presentation.Owned` | owned 3.6 |
 | `IGameMaster`・`IdolInfo`・`SupportCardInfo`・`ScenarioInfo` | `Uta.Client.Application.Master` | foundation 3.4 |
@@ -413,7 +413,7 @@ public class ProduceMenu     // [≡] のメニュー。5・6 本目の画面か
     /// </summary>
     public virtual UniTask ShowAsync();
 }
-// メニューの Prefab は作らない（P3 決めたこと 3。P1 の UtaDialog を DialogService.ChooseAsync で出す）。
+// メニューの Prefab は作らない（P3 決めたこと 3。P1 の Dialog を DialogService.ChooseAsync で出す）。
 
 public interface IProduceBackdropView
 {
@@ -477,8 +477,8 @@ public interface IFormationView
 // FormationSlotRowView.cs（P3 の骨格: labelText・selectButton・clearButton）に足す
 public sealed class FormationSlotRowView : MonoBehaviour
 {
-    public UtaButtonView SelectButton => selectButton;
-    public UtaButtonView ClearButton => clearButton;
+    public ButtonView SelectButton => selectButton;
+    public ButtonView ClearButton => clearButton;
     public void SetLabel(string text) { labelText.text = text; }
 }
 
