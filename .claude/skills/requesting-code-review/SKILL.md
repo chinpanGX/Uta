@@ -16,7 +16,7 @@ description: Uta でコードの変更をレビューに出すときに使う。
 **必ず:**
 - 大きな機能を実装し終えたとき
 - main にマージする前
-- 計画の1タスクを終えたとき（タスクに分けて進めている場合）
+- 計画のタスクをすべて終えたとき（タスクの途中で出す基準は [uta-implement](../uta-implement/SKILL.md) の 5）
 
 **あると良い:**
 - 行き詰まったとき（別の視点）
@@ -52,7 +52,11 @@ git diff --stat $BASE_SHA..$HEAD_SHA
 
 ### 3. レイヤーごとにレビュー担当を出す
 
-該当するレイヤーごとに `general-purpose` のサブエージェントを1つずつ出し、[code-reviewer.md](code-reviewer.md) の雛形を埋めて渡す。複数のレイヤーにまたがるときは、**同じメッセージで並べて出す**（並行して動く）。
+該当するレイヤーごとに、専用のレビュー担当 `uta-code-reviewer`（`.claude/agents/uta-code-reviewer.md`）を 1 つずつ出し、[code-reviewer.md](code-reviewer.md) の雛形を埋めて渡す。複数のレイヤーにまたがるときは、**同じメッセージで並べて出す**（並行して動く）。
+
+- モデル・エフォート・使えるツールはエージェントの定義で決まっている。Agent ツールに `model`・`effort` は渡さない。ユーザーが別の指定をしたときだけ渡す。
+- `uta-code-reviewer` が使えるエージェントの一覧にないとき（`.claude/agents/` を足した直後のセッションなど）は、セッションを開き直すようユーザーに頼む。
+- 途中の通知には返事をしない。そろってから 1 回だけユーザーに伝える。
 
 **埋めるもの:**
 - `[LAYER]`: client / server / shared / foundation
@@ -62,17 +66,19 @@ git diff --stat $BASE_SHA..$HEAD_SHA
 - `[BASE_SHA]` / `[HEAD_SHA]`: 範囲。foundation は共通基盤のリポジトリの範囲と、リポジトリ名
 - `[FILES]`: そのレイヤーに振り分けたファイルの一覧
 - `[OTHER_LAYERS]`: 同じ変更でほかのレイヤーに入ったファイルの一覧（通信契約やマッピングの食い違いを見るため。なければ「なし」）
+- `[FOCUS]`: 特に気にしていること（なければ「なし」）。2 回目以降は直した箇所を挙げる
+- `[OUTPUT]`: 報告の全文を書くファイル（`uta_docs/reviews/.raw/YYYY-MM-DD-<件名>/code-<レイヤー>-<回>.md`）
 
 ### 4. 指摘に対応する
 
-レイヤーごとの結果を、Critical → Important → Minor の順にまとめてユーザーに見せる。
+レビュー担当は報告の全文をファイルに書き、あなたには要約だけを返す。レイヤーごとの要約を、Critical → Important の順にまとめてユーザーに見せ、Minor は件数だけ伝える。直すときは、その指摘の節だけを報告のファイルから読む（全文を Read しない）。
 
 - **Critical** は直ちに直す
 - **Important** は次に進む前に直す
 - **Minor** は後でよいものとして控える
 - レビュー担当が間違っていると思うなら、理由を添えて反論する（コードやテストで示す）
 - **ADR・CLAUDE.md の方針そのものへの反対**は、勝手に直さず、ADR を見直す提案としてユーザーに確認する
-- 「判断しなかったこと」の一覧は、1行ずつ扱いを決める。黙って捨てない
+- 「判断しなかったこと」の一覧は、報告のファイルの該当の節を読んで 1 行ずつ扱いを決める。黙って捨てない
 - 直したら、仕様ページの更新が必要か確かめる（CLAUDE.md の「実装前のルール」）
 
 ## 例
@@ -86,13 +92,15 @@ BASE_SHA=$(git merge-base origin/main HEAD)
 HEAD_SHA=$(git rev-parse HEAD)
 → server/・shared/・client/uta/ に変更あり → server・shared・client の3人を並べて出す
 
-[server のレビュー担当]
+[subagent_type: uta-code-reviewer]
   LAYER: server
   CHECKLIST: .claude/skills/requesting-code-review/layers/server.md
   DESCRIPTION: ガチャ1回・10回の抽選と天井、交換pt の加算
   PLAN_OR_REQUIREMENTS: uta_docs/wiki/systems/gacha.md、architecture/api-design.md、decisions/0010-database.md
   FILES: server/Uta.Server/...
   OTHER_LAYERS: shared/Uta.Shared.Contracts/...、client/uta/Assets/Scripts/Infrastructure/...
+  FOCUS: なし
+  OUTPUT: uta_docs/reviews/.raw/2026-11-08-gacha/code-server-1.md
 
 [結果]
   server: Important 1件（冪等性の対象になっていない）→ 直す
@@ -121,4 +129,4 @@ HEAD_SHA=$(git rev-parse HEAD)
 - 動くことを示すコードやテストを見せる
 - 意図を確かめる質問をする
 
-雛形: [code-reviewer.md](code-reviewer.md)
+雛形: [code-reviewer.md](code-reviewer.md)　エージェント: `.claude/agents/uta-code-reviewer.md`
