@@ -19,7 +19,7 @@ updated: 2026-11-01
 
 | 何 | 正のページ |
 |---|---|
-| リポジトリ構成、ソリューションと版、アセンブリと層の依存、共通基盤（external/）の扱い、Shared のコードの制約、ID・時刻・乱数・テスト・アプリのバージョンの規約、環境とデプロイ、1 番目の計画の中身 | [repository-layout.md](repository-layout.md) |
+| リポジトリ構成、ソリューションと版、アセンブリと層の依存、共通基盤の扱い、Shared のコードの制約、ID・時刻・乱数・テスト・アプリのバージョンの規約、環境とデプロイ、1 番目の計画の中身 | [repository-layout.md](repository-layout.md) |
 | サーバー基盤（VolTech-MagicOnion）の使い方の要点と、Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）。基盤そのものの正は VolTech-MagicOnion の docs | [server-foundation.md](server/server-foundation.md) |
 | マスタの定義・生成・配信、列の型と表現の規約、出し分け（Common / ServerOnly） | [master/masterdata-pipeline.md](master/masterdata-pipeline.md) |
 | マスタのテーブル・列・区分・検証、全テーブルの索引 | [master/](master/README.md) のシステムごとのページ（`*-tables.md`）。索引は master/README.md |
@@ -41,7 +41,7 @@ updated: 2026-11-01
 
 共通の 4 編（[repository-layout.md](repository-layout.md) 1章）。マスター設計編は master/ にある:
 
-- [repository-layout.md](repository-layout.md) — 共通・基盤編：リポジトリ構成、ソリューションと NuGet の版、アセンブリと層の依存ルール、共通基盤（external/）の扱い、Shared のコードの制約、機能ID、共通の規約、環境構成とデプロイ、実装の進め方（1 番目の計画の中身）
+- [repository-layout.md](repository-layout.md) — 共通・基盤編：リポジトリ構成、ソリューションと NuGet の版、アセンブリと層の依存ルール、共通基盤の扱い、Shared のコードの制約、機能ID、共通の規約、環境構成とデプロイ、実装の進め方（1 番目の計画の中身）
 - [api-design.md](api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [screen-design.md](screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
 

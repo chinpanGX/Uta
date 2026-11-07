@@ -79,7 +79,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - `ProjectSettings.asset` の `applicationIdentifier` は、もう鍵に使わない（上）
 - **起動の流れ**: この計画で作ったのは、[screen-design.md](screen-design.md) 4章の「1. 認証（端末の登録・トークンの発行）」だけ。画面は IMGUI の診断用で、画面の計画（7 番目）で作り直す
 - **`unity` CLI（Editor を操作する）の使い方**（動いたもの）: `unity status`（`--until-ready`）、`unity recompile --format json`、`unity command package resolve`、`unity command console get --tail N --level error|warning --format json`、`unity command editor.playmode start|stop`、`unity command eval '<C#>'`（`return` が要る）。`unity command` の名前は、`group name` ではなく、`editor.playmode start` のように `.` でつなぐ形もある（`unity list` で確認する）
-- Unity のバッチモードでビルドするときは、Editor が同じプロジェクトを開いていると競合する。別のワークスペース（`../Uta-wt/<名前>`）に worktree を作り、サブモジュールの初期化と `Assets/Packages/` のコピーをしてから回す
+- Unity のバッチモードでビルドするときは、Editor が同じプロジェクトを開いていると競合する。別のワークスペース（`../Uta-wt/<名前>`）に worktree を作り、`Assets/Packages/` のコピーをしてから回す
 
 ## 5. 次にやること
 

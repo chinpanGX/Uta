@@ -9,7 +9,7 @@ updated: 2026-11-03
 実装設計書（4編）の2編目。マスタデータ（排出テーブル、カード定義、週構成など）を、1つの定義からクライアント用・サーバー用に出し分けて作り、配る仕組みを定める。前提は [repository-layout.md](../repository-layout.md)。
 
 - マスタの**中身**（テーブル・列・区分・検証）は、システムごとのページ（`*-tables.md`）が正。全テーブルの索引は [README.md](README.md)。何を持つかの根拠はゲームの仕様（`systems/`）。ここには、定義・生成・配信の仕組みと、表現の規約を書く（2026-10-31 に「中身は `systems/` が正」から直した。[ADR 0017](../../decisions/0017-spec-design-plan-stages.md) の追記）
-- 仕組みは自作の [MasterMemoryAddons](../../../../external/MasterMemoryAddons/README.md)（`external/`）を使う。採用は [ADR 0007](../../decisions/0007-masterdata-with-addons.md)（accepted）
+- 仕組みは自作の [MasterMemoryAddons](https://github.com/chinpanGX/MasterMemoryAddons/blob/main/README.md)を使う。採用は [ADR 0007](../../decisions/0007-masterdata-with-addons.md)（accepted）
 
 ## 凡例
 
@@ -51,7 +51,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 
 ## 2. 定義の書き方 [確認]
 
-[defining-master-data](../../../../external/MasterMemoryAddons/docs/guide/defining-master-data.md) のルールを、Uta の規約として採用する。
+[defining-master-data](https://github.com/chinpanGX/MasterMemoryAddons/blob/main/docs/guide/defining-master-data.md) のルールを、Uta の規約として採用する。
 
 - `class` に `[MemoryTable("名前")]` と `[MessagePackObject(true)]`。**テーブル名に `_` は使えない**（CSV の水平分割の区切りに使うため）
 - プロパティは `{ get; init; }`。テーブルの型は `class` のみ（`record` / `struct` は定義のエラー）
@@ -174,7 +174,7 @@ outputs:
 
 ## 6. バイナリと配信
 
-[確認]（[build-and-distribute](../../../../external/MasterMemoryAddons/docs/guide/build-and-distribute.md)）
+[確認]（[build-and-distribute](https://github.com/chinpanGX/MasterMemoryAddons/blob/main/docs/guide/build-and-distribute.md)）
 
 - バイナリには平文のヘッダ（スキーマの ID、データのハッシュ）が付く。アプリは `MasterDataBinary.Read(bytes, MasterDataSchema.Hash)` で、ヘッダを確かめ、暗号化されていれば復号してから `MemoryDatabase` に渡す
 - 読めないときは `MasterDataFormatException`（`SchemaMismatch` はアプリとデータの定義が違う、`Corrupted` は壊れている）
@@ -190,9 +190,9 @@ outputs:
 
 ## 7. 導入と運用
 
-- ツール（`net10.0`）の実行方法: `masterdata/gen.ps1`（`code-gen`・`master-gen`・`check`）が `dotnet run --project external/MasterMemoryAddons/src/MasterMemory.Addons.Tools -p:ManagePackageVersionsCentrally=false -- <command> --config masterdata/masterdata.yaml` を呼ぶ。**`-p:ManagePackageVersionsCentrally=false` が要る**: Uta のルートの `Directory.Packages.props`（パッケージ版の一括管理）がツールにも効き、付けないと `NU1008` で止まる [確認。2026-11-01]。実行ポリシーで `gen.ps1` が読めない環境では `powershell -NoProfile -ExecutionPolicy Bypass -File masterdata/gen.ps1 <command>` で呼ぶ。アドオンは Makefile を前提にしているが、Uta では make を使わず PowerShell のスクリプトで包む（下記）
+- ツール（`net10.0`）の実行方法: `masterdata/gen.ps1`（`code-gen`・`master-gen`・`check`）が `dotnet tool restore` のあと `dotnet tool run mastermemory-addons -- <command> --config masterdata/masterdata.yaml` を呼ぶ。ツールは `packages/` の `MasterMemory.Addons.Tools` で、版は `.config/dotnet-tools.json` が固定する（[ADR 0019](../../decisions/0019-foundation-packages.md)）。実行ポリシーで `gen.ps1` が読めない環境では `powershell -NoProfile -ExecutionPolicy Bypass -File masterdata/gen.ps1 <command>` で呼ぶ。アドオンは Makefile を前提にしているが、Uta では make を使わず PowerShell のスクリプトで包む（下記）
 - アプリが参照する MasterMemory / MessagePack のバージョンは、**アドオンのツールと同じにする**（MasterMemory 3.0.4、MessagePack 3.1.12。サーバーは `Directory.Packages.props` で 3.1.12 に一致している [確認。2026-11-01]）
-- アドオンの変更は、サブモジュール側を先に push してから Uta のポインタを更新する（[ADR 0005](../../decisions/0005-foundation-submodule.md)）
+- アドオンの変更は、アドオン側を先に push してから `tools/pack-foundation.sh MasterMemoryAddons <コミット>` で Uta の固定を上げる（[ADR 0019](../../decisions/0019-foundation-packages.md)）
 - **CSV は Git の `masterdata/csv/` を正本にする** [決定]。差分をレビューでき、ビルドが再現できる
   - ファイル名＝テーブル名。水平分割は `item_weapon.csv` のように `_` で区切る [確認]
   - **最初はスプレッドシートを使わず、CSV を直接編集する** [決定。2026-10-28]。書き出しの手順が要らない。グループ ID を使う入れ子の表（3章）を手で編集するのがつらくなったら、スプレッドシートと書き出しのスクリプトを足す（そのときは、タブ名をテーブル名にそろえる）
@@ -200,14 +200,14 @@ outputs:
 
 ## 8. アドオンの改善バックログ
 
-Uta で MasterMemoryAddons を使って見つかった改善は、ここに書く。直したらアドオン側（`external/MasterMemoryAddons`）の docs と log に反映し、ここから消す（[ADR 0007](../../decisions/0007-masterdata-with-addons.md)）。
+Uta で MasterMemoryAddons を使って見つかった改善は、ここに書く。直したらアドオン側（`MasterMemoryAddons`）の docs と log に反映し、ここから消す（[ADR 0007](../../decisions/0007-masterdata-with-addons.md)）。
 
 | 項目 | 内容 | 状態 |
 |---|---|---|
 | Unity での読み込みの確認 | アドオンの docs が「Unity での読み込みは未確認」と明記している。Uta が最初の確認になる | Windows の Editor（Mono）と Windows の IL2CPP のプレイヤーで確認済み（2026-11-01）。Android・iOS は未確認 |
 | `[Exists]` が別の側を参照する場合 | `[ClientOnly]` / `[ServerOnly]` の列・テーブルを参照したとき、片側の生成物や検証がどうなるか | 確認済み（4章。問題なし） |
 | Windows での実行 | アドオンは make を前提にしている。Uta は `masterdata/gen.ps1` で回避する（7章）。アドオン側に PowerShell のスクリプトを用意してもよい | 回避済み |
-| 導入方法（配布形態） | アドオンの docs では未定。Uta ではサブモジュールの `dotnet run` で使う | 未定 |
+| 導入方法（配布形態） | アドオンの docs では未定。Uta では `packages/` の NuGet パッケージと dotnet tool で使う | 未定 |
 | 日時の列の検証 | `string` の日時の形式（`yyyy-MM-dd HH:mm:ss`）を属性で宣言し、`master-gen` が検証できるとよい。いまは `IValidatable` で書く | 案 |
 | 中身が同じなら書き換えない | データのハッシュ（`dataHash`）が既存のバイナリと同じなら、ファイルを書き換えない（マニフェストも）。バイナリをコミットするので、意味のない差分を出さないため（[ADR 0013](../../decisions/0013-commit-masterdata-binary.md)） | 案 |
 | `--check` でバイナリの古さも検出 | 出力済みのバイナリの `dataHash` が、今の CSV から計算した値と違えば終了コード 1 にする。作り直し忘れを CI で検出するため（[ADR 0013](../../decisions/0013-commit-masterdata-binary.md)） | 案 |

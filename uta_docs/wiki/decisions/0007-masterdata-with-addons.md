@@ -12,7 +12,7 @@ updated: 2026-10-28
 
 [ADR 0002](0002-magiconion.md) と [CLAUDE.md](../../../CLAUDE.md) は、マスタ型を `shared/` に置いて Unity とサーバーで共有する方針だった。しかしこの方式だと、サーバー専用のテーブル・列（レンタル候補、報酬の設定など）の型がクライアントから見え、配布物にも含まれる。
 
-マスタデータは MasterMemory を使う（[ADR 0004](0004-server-foundation.md)）。MasterMemory は C# のクラスでテーブルを定義できる強みがあるが、列単位でクライアント用・サーバー用に出し分ける仕組みはない。自作のアドオン [MasterMemoryAddons](https://github.com/chinpanGX/MasterMemoryAddons)（`external/MasterMemoryAddons`、[ADR 0005](0005-foundation-submodule.md)）は、定義に付ける `[ClientOnly]` / `[ServerOnly]` で、それぞれの側に要るものだけを残したソースとバイナリを出力する。
+マスタデータは MasterMemory を使う（[ADR 0004](0004-server-foundation.md)）。MasterMemory は C# のクラスでテーブルを定義できる強みがあるが、列単位でクライアント用・サーバー用に出し分ける仕組みはない。自作のアドオン [MasterMemoryAddons](https://github.com/chinpanGX/MasterMemoryAddons)（`MasterMemoryAddons`、[ADR 0005](0005-foundation-submodule.md)）は、定義に付ける `[ClientOnly]` / `[ServerOnly]` で、それぞれの側に要るものだけを残したソースとバイナリを出力する。
 
 ## 決定
 

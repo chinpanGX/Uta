@@ -19,4 +19,4 @@ color: purple
 4. 依頼文の「対象」と「関係するページ」
 5. 必要に応じて `uta_docs/wiki/overview/game-spec.md`（MVP の範囲）
 
-新しい型・仕組みを作ると書いてあれば、`shared/`・`server/`・`client/uta/Assets/`・`external/` に同じものが既にないかを Grep・Glob で確かめます。
+新しい型・仕組みを作ると書いてあれば、`shared/`・`server/`・`client/uta/Assets/`・共通基盤（`client/uta/Library/PackageCache` か GitHub）に同じものが既にないかを Grep・Glob で確かめます。

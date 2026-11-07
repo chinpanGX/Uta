@@ -59,7 +59,7 @@
 uta/
 ├─ CLAUDE.md
 ├─ .editorconfig / .gitattributes / .gitignore  # .editorconfig は client/・server/・shared/ にも置く
-├─ external/      # Git サブモジュール（共通基盤: 自作の Unity・サーバーのパッケージ）
+├─ packages/      # 共通基盤の .nupkg（ADR 0019。tools/pack-foundation.sh が作る）
 ├─ masterdata/    # マスタの正本（定義・CSV・設定）。Unity にも shared/ にも入れない（ADR 0007）
 ├─ uta_docs/      # ドキュメント（Obsidian の vault。.obsidian/ は .gitignore で除外）
 │  ├─ raw/        # 変更しない一次資料（調査ログ、観察メモ）
@@ -156,17 +156,13 @@ uta/
 - **前提のタスク（未マージの PR）がある作業は、積み PR にする**: 前提のブランチから新しいブランチを切り（`git switch -c <新ブランチ> <前提ブランチ>`）、PR の base も前提のブランチにする（`gh pr create --base <前提ブランチ>`）。PR の本文に前提の PR を書く。前提の PR を先に main へマージしていき、後続の PR は base を main にリターゲットする（`gh pr edit --base main`）。リターゲットとマージはユーザーが進める。前提がない作業は main（または指定の base）に向ける
 - コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
 - 履歴は `git log -- uta_docs/wiki` などで引く
-- サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
+- 共通基盤（`VolTech-MagicOnion`・`MasterMemoryAddons`・`Supplement`・`UnityScreenNavigator`）は別リポジトリのまま、サーバーは `packages/` の NuGet パッケージ、Unity は git URL で参照する（[ADR 0019](uta_docs/wiki/decisions/0019-foundation-packages.md)）。サブモジュールは使わない。開発は別の clone で行う
   - 共通基盤は Uta の開発を通して整え、別のアプリでも使える形でリリースする。Uta 固有のものを共通基盤に入れない。固定はコミット（タグを待たない）。ルールは [repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 3.1
-  - clone: `git clone --recurse-submodules <Uta の URL>`（済みの clone では `git submodule update --init`）
-  - サブモジュール内で作業する前にブランチを切る（`git switch -c <branch>`）。detached HEAD のまま commit しない
-  - 追加: `git submodule add <URL> external/<名前>`（すでに clone 済みなら、その場所を指定すれば取り込める）。追加したら ADR 0005 の表も更新する
-  - ポインタ更新: サブモジュール側を push → Uta で `git add external/<名前>` → commit
+  - 固定の更新: 共通基盤を push → `tools/pack-foundation.sh <VolTech-MagicOnion|MasterMemoryAddons> <コミット>` → Unity で `unity command package resolve` → commit。`Supplement`・`UnityScreenNavigator` は `client/uta/Packages/manifest.json` のコミットだけを上げる
 - **worktree は固定のものを使い回す**（`../Uta-wt/1` 〜。Unity の Library を worktree ごとに 1 回だけ作り、使い捨てて作り直さないため）。Uta の外に置く。アプリが `.claude/worktrees/` に使い捨ての worktree を作る方式は、Unity を開く作業では使わない
   - 作成と運用は `tools/worktree-pool.sh`: `init`（固定の worktree を作る。作ったら Unity Hub に登録して 1 回だけ開き、Library を作る）、`start <番号> <新ブランチ> [base]`（base は既定 `origin/main`。前提のタスクがあるときは前提のブランチを渡す）、`release <番号>`（PR のマージ後に `origin/main` へ戻して空ける）、`list`
   - Claude のセッションは、新しい worktree を作らず、固定の worktree のフォルダを開いて始める
   - 同じブランチを複数の worktree で同時に開けない。固定の worktree は detached HEAD で空けておく
-  - サブモジュールは worktree ごとに `git submodule update --init` が必要（スクリプトが実行する）
 
 ## ビルド・テスト・実行
 
@@ -178,6 +174,7 @@ uta/
 - サーバーのテスト: `dotnet test --project server/Uta.Server.Tests`（アーキテクチャテストと結合テスト。結合テストは Docker が要る: Testcontainers が PostgreSQL を起動する）
 - ローカルのサーバー: `docker compose --env-file server/.env -f server/compose.yaml up -d --wait`（`server/.env` は `.env.example` を写して `POSTGRES_PASSWORD` を書く）→ `dotnet user-secrets set "ConnectionStrings:Default" "<接続文字列>" --project server/Uta.Server` → `dotnet run --project server/Uta.Server -- migrate`（マイグレーション）→ `dotnet run --project server/Uta.Server`（`http://localhost:5000`）
 - Unity 7 の Editor が開いているときのコンパイル確認: `unity recompile --format json`（`client/uta` で実行）。パッケージの再解決: `unity command package resolve`。コンソールの読み出し・Play モードの開始と停止は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章。Windows の IL2CPP のプレイヤー（バッチモード。Editor を閉じてから）: `Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 -executeMethod Uta.Client.Editor.BuildCommands.BuildWindowsIl2Cpp -logFile <ログ>` → `client/uta/Build/Windows/Uta.exe`。起動して通信を確かめる: `Uta.exe -batchmode -nographics -uta-quit-after-check`（終了コード 0 が成功。接続先は `-uta-server-url <URL>`。[unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 3.1）
+- 共通基盤の固定を上げる: `tools/pack-foundation.sh <VolTech-MagicOnion|MasterMemoryAddons> <コミット>`（`.nupkg` を作り、版と `manifest.json` を揃える）
 - マスタの生成（`masterdata/`。生成物は手で直さない。CSV か定義を変えたときだけ実行する）: `powershell -NoProfile -File masterdata/gen.ps1 code-gen`（定義から生成ソース）、`... master-gen`（CSV の検証とバイナリの生成。省略時）、`... check`（検証だけ。何も書かない）。実行ポリシーで読めないときは `-ExecutionPolicy Bypass` を足す
 - wiki の点検（Lint）: `python -I .claude/skills/linting-wiki/lint_wiki.py`（Python 3。エラーがあれば終了コード 1）
 
@@ -195,7 +192,7 @@ uta/
 | `client/` の実装の確認（コンパイル・Play・実機） | できない。ローカルで行う |
 | `/egm:*` | 使えない（`~/.claude` のプラグインは読まれない）。設計書のレビューは egm に頼らない |
 
-- 環境は `.claude/hooks/cloud-setup.sh` が整える（SessionStart。`CLAUDE_CODE_REMOTE=true` のときだけ動く）。入れるものは .NET 10 SDK・PowerShell、取り込むものはサブモジュール 4 つ。結果は `[cloud-setup]` の行で報告される。足りないものがあれば、確かめられなかったと明記して進める
+- 環境は `.claude/hooks/cloud-setup.sh` が整える（SessionStart。`CLAUDE_CODE_REMOTE=true` のときだけ動く）。入れるものは .NET 10 SDK・PowerShell。結果は `[cloud-setup]` の行で報告される。足りないものがあれば、確かめられなかったと明記して進める
 - セッションは新しい clone から始まる。ローカルの未コミット・未 push の変更は届かない。前の作業の続きは、そのブランチを選んで始める
 - 固定の worktree（`tools/worktree-pool.sh`）は使わない
 - **PR は `gh pr create` で作れない**（GraphQL が拒否される）。Web の画面の Create PR を使うか、`gh api repos/chinpanGX/Uta/pulls -f title=... -f body=... -f head=<ブランチ> -f base=<base>` を使う。`gh pr` のほかのコマンドも同じなので、`gh api` の REST に読み替える。積み PR のルールは同じ

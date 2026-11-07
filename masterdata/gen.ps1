@@ -10,7 +10,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$tools = Join-Path $repoRoot 'external/MasterMemoryAddons/src/MasterMemory.Addons.Tools'
 $config = Join-Path $PSScriptRoot 'masterdata.yaml'
 
 if ($Command -eq 'check')
@@ -22,6 +21,13 @@ else
     $toolArgs = @($Command)
 }
 
-# Uta のルートの Directory.Packages.props（パッケージ版の一括管理）がツールにも効くので、この呼び出しだけ切る
-dotnet run --project $tools -p:ManagePackageVersionsCentrally=false -- @toolArgs --config $config
+# ツールは packages/ の版を .config/dotnet-tools.json で固定している（ADR 0019）
+Set-Location $repoRoot
+dotnet tool restore
+if ($LASTEXITCODE -ne 0)
+{
+    exit $LASTEXITCODE
+}
+
+dotnet tool run mastermemory-addons -- @toolArgs --config $config
 exit $LASTEXITCODE

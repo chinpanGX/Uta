@@ -19,9 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\external\VolTech-MagicOnion\src\VolTech.Server\VolTech.Server.csproj" />
-    <ProjectReference Include="..\..\external\VolTech-MagicOnion\src\VolTech.Server.Abstractions\VolTech.Server.Abstractions.csproj" />
-    <ProjectReference Include="..\..\external\MasterMemoryAddons\src\MasterMemory.Addons.Core\MasterMemory.Addons.Core.csproj" />
+    <PackageReference Include="VolTech.Server" />
+    <PackageReference Include="VolTech.Server.Abstractions" />
+    <PackageReference Include="MasterMemory.Addons.Core" />
     <ProjectReference Include="..\..\shared\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
     <ProjectReference Include="..\..\shared\Uta.Shared.Contracts\Uta.Shared.Contracts.csproj" />
   </ItemGroup>

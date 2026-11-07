@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "masterMemory.addons.tools": {
+      "version": "0.1.0-g80c7d82",
+      "commands": [
+        "mastermemory-addons"
+      ],
+      "rollForward": false
+    }
+  }
+}

@@ -1,7 +1,7 @@
 # /egm:egm-bootstrap の対象外（.claude/skills/uta-elephant/SKILL.md）
 # 書式は .gitignore と同じ glob。.gitignore で除外したものは書かなくても対象外
 .claude/
-external/
+packages/
 uta_docs/
 masterdata/
 scratch/

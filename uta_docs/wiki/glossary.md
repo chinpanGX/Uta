@@ -108,7 +108,7 @@ updated: 2026-11-01
 
 | 用語 | 定義 | 備考 |
 |---|---|---|
-| 共通基盤 | `external/` に Git サブモジュールで取り込んだ自作のリポジトリ 4 つ（VolTech-MagicOnion・Supplement・UnityScreenNavigator・MasterMemoryAddons）の総称。Uta 以外のアプリでも使う前提で育てる。「共通」はこの意味でだけ使う | [repository-layout](architecture/repository-layout.md) 3.1。1 つを指すときはリポジトリ名で書き、「基盤」とだけ書かない |
+| 共通基盤 | 自作のリポジトリ 4 つ（VolTech-MagicOnion・Supplement・UnityScreenNavigator・MasterMemoryAddons）の総称。別リポジトリのまま、サーバーとマスタの生成は `packages/` の NuGet パッケージ、Unity は git URL で参照する。Uta 以外のアプリでも使う前提で育てる。「共通」はこの意味でだけ使う | [repository-layout](architecture/repository-layout.md) 3.1。1 つを指すときはリポジトリ名で書き、「基盤」とだけ書かない |
 | VolTech-MagicOnion | 共通基盤のうち、MagicOnion の通信の土台（サーバー側の `VolTech.Server`・共有する `VolTech.Server.Abstractions`・Unity のクライアントのパッケージ） | [server-foundation](architecture/server/server-foundation.md) |
 | サーバー基盤 | VolTech-MagicOnion のサーバー側（`VolTech.Server`。認証・冪等性・エラー・フィルター順） | 同上 |
 | Shared | `shared/` にある、クライアントとサーバーの両方から使うコード（Shared.Domain と Shared.Contracts）。「共有」とは書かず Shared と書く（「共通」と見間違えないため） | [repository-layout](architecture/repository-layout.md) 3章・5章 |

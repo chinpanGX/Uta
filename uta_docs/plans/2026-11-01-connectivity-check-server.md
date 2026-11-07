@@ -98,7 +98,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 
 ### 3.3 `Uta.slnx`
 
-[VolTech-MagicOnion.slnx](../../external/VolTech-MagicOnion/VolTech-MagicOnion.slnx) と同じ書式。ソリューションフォルダは `/shared/`・`/server/`・`/external/`。
+[VolTech-MagicOnion.slnx](https://github.com/chinpanGX/VolTech-MagicOnion/blob/main/VolTech-MagicOnion.slnx) と同じ書式。ソリューションフォルダは `/shared/`・`/server/`・`/external/`。
 
 ```xml
 <Solution>

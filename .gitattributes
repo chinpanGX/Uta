@@ -73,5 +73,6 @@ Makefile    text eol=lf
 *.ogg       binary
 *.mp4       binary
 *.ttf       binary
+*.nupkg     binary
 *.otf       binary
 *.pdf       binary

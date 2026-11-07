@@ -75,6 +75,6 @@ ADR で決まっていることへの反対意見は、「ADR を見直す提案
 
 `/egm:egm-bootstrap` は**コードのフォルダだけ**に使う。対象は `shared/`・`server/`・`client/uta/Assets/` の自作コード。
 
-- `uta_docs/`・`external/`（別リポジトリのサブモジュール）・`masterdata/`・Unity の自動生成物には使わない（ルートの `.egmignore`）。
+- `uta_docs/`・`packages/`・`masterdata/`・Unity の自動生成物には使わない（ルートの `.egmignore`）。
 - README は日本語で、フォルダとファイルの役割に絞る。仕様や設計の理由は書かず、wiki の該当ページへリンクする（知識の正は wiki）。
 - `client/uta/Assets/` に README を置くと Unity が `.meta` を作る。`.meta` もコミットする。

@@ -30,7 +30,7 @@ description: Uta でコードの変更をレビューに出すときに使う。
 ```bash
 BASE_SHA=$(git merge-base origin/main HEAD)   # または: git rev-parse HEAD~1
 HEAD_SHA=$(git rev-parse HEAD)
-git diff --stat --submodule=log $BASE_SHA..$HEAD_SHA
+git diff --stat $BASE_SHA..$HEAD_SHA
 ```
 
 コミットしていない変更をレビューするときは、先にコミットするか、`HEAD_SHA` の代わりに作業ツリー（`git diff $BASE_SHA`）を対象にすると明記する。
@@ -44,11 +44,11 @@ git diff --stat --submodule=log $BASE_SHA..$HEAD_SHA
 | `client/uta/`（`Assets/`・`Packages/manifest.json`・`ProjectSettings/`） | client | [layers/client.md](layers/client.md) |
 | `server/` | server | [layers/server.md](layers/server.md) |
 | `shared/`、`masterdata/` | shared | [layers/shared.md](layers/shared.md) |
-| `external/<名前>`（サブモジュールのポインタ） | foundation | [layers/foundation.md](layers/foundation.md) |
+| `packages/`・`client/uta/Packages/manifest.json` の共通基盤のコミット | foundation | [layers/foundation.md](layers/foundation.md) |
 | `uta_docs/`、`CLAUDE.md`、設定ファイルだけ | （コードのレビューは不要） | — |
 
 - コードの変更がなければ、このスキルは使わない。
-- `external/` はポインタの差分しか出ないので、サブモジュールの中の範囲（古いポインタ..新しいポインタ）を `git diff --submodule=log` で調べて渡す。
+- 共通基盤は固定の差分しか出ないので、そのリポジトリの範囲（古いコミット..新しいコミット）を別の clone か GitHub の compare で調べて渡す。
 
 ### 3. レイヤーごとにレビュー担当を出す
 
@@ -59,7 +59,7 @@ git diff --stat --submodule=log $BASE_SHA..$HEAD_SHA
 - `[CHECKLIST]`: そのレイヤーのチェックリストのパス（例: `.claude/skills/requesting-code-review/layers/server.md`）
 - `[DESCRIPTION]`: 何を作ったかの短い要約
 - `[PLAN_OR_REQUIREMENTS]`: 仕様。wiki の該当ページ（`uta_docs/wiki/systems/`・`architecture/`）と、関係する ADR のパス。タスクの文があればそれも
-- `[BASE_SHA]` / `[HEAD_SHA]`: 範囲。foundation はサブモジュールの中の範囲と、サブモジュールのパス
+- `[BASE_SHA]` / `[HEAD_SHA]`: 範囲。foundation は共通基盤のリポジトリの範囲と、リポジトリ名
 - `[FILES]`: そのレイヤーに振り分けたファイルの一覧
 - `[OTHER_LAYERS]`: 同じ変更でほかのレイヤーに入ったファイルの一覧（通信契約やマッピングの食い違いを見るため。なければ「なし」）
 

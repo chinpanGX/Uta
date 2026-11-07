@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
-    <ProjectReference Include="..\..\external\VolTech-MagicOnion\src\VolTech.Server.Abstractions\VolTech.Server.Abstractions.csproj" />
+    <PackageReference Include="VolTech.Server.Abstractions" />
   </ItemGroup>
 
 </Project>
