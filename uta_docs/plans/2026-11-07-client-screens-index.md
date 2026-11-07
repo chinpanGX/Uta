@@ -53,13 +53,15 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 - ページの形は `Header` →（`TabBar`）→ `Main`。組み方の補助 `ScreenLayout` は P3 も使う
 - レベルのボタン 3 つは固定で置く。所持一覧の並び・絞り込みは 2 段。0 件の「ありません」は一覧の外
 - 画面ごとのテストで「View のフィールドが表の子を指す」ことを確かめる。P1 の型だけに依存する
+- **ホームの構成（2026-11-07 追加。ユーザーの判断）**: 上部のステータス → キャラ表示のステージ `Stage`（`RawImage` + 枠の文字。後から 3D の `RenderTexture` を割り当てられる）→ 「プロデュース中」の帯 → 大きな主ボタン → 下部のナビ（プロデュース・ガチャ・アイドル）。フィールドは `produceButton`・`gachaButton`・`ownedButton` を `nav…Button` に改名し、`resumeButton` を消し、`stageImage`・`stageLabel`・`primaryButton` を足した
 
 ### foundation 土台・タイトル・ホーム
 
 - PR #24 のシーン構成の上に作る。起動の流れは `Title` シーンの `TitlePresenter`、ホームは `Home` シーンの `HomePresenter`。基盤の `IScreenNavigator` をそのまま使い、`Replace` は作らない
 - C# で UI を組まない（旧版の `UiFactory` などは消す）。`UiRoot` は `Bootstrap`・`Title`・`Home` に置き、各シーンのスコープが `SceneUiInstaller.Install` で登録する。ルートの共通エラーとブロッカーは `ActiveSceneUi` で「いまのシーン」の UI を見つける
 - 診断（`-uta-quit-after-check`）は `TitleDiagnostics` に分ける。タイトルの失敗は状態の文を出してもう一度タップ
-- ホームの 4 つのボタンは「準備中です。」で、テストはボタンごとに 4 本（`ProduceClicked_`・`ResumeClicked_`・`GachaClicked_`・`OwnedClicked_ShowsNotReady`）。後の計画は自分のボタンのテストだけを差し替える
+- ホームの 3 つのボタンの動作（プロデュース・ガチャ・アイドル）は「準備中です。」で、テストはイベントごとに 3 本（`ProduceClicked_`・`GachaClicked_`・`OwnedClicked_ShowsNotReady`）。後の計画は自分のボタンのテストだけを差し替える
+- **ホームの構成（2026-11-07 追加。ユーザーの判断）**: `IHomeView` のイベントは 3 つ（主ボタンとナビの「プロデュース」は同じ `ProduceClicked`。`ResumeClicked`・`ResumeProduceAsync` は無い）。キャラ表示は `ICharacterStage`（MVP は `PlaceholderCharacterStage`。`HomePage.CreateStage` が作る）で、`HomePresenter` がレア度の最も高い所持の育成アイドルを選ぶ。`HomePresenter` のコンストラクターに `IGameMaster` が入った（gacha・owned・formation の `HomePresenter` の節も合わせた）
 - **`Produce` シーンは一切変えない**（作り直すのは formation）
 - 確認が要ることはなし
 
@@ -135,7 +137,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 
 ## 5. ユーザーの確認（全件が了承済み）
 
-全 17 件が、2026-11-07 にユーザーの推奨どおり（各計画が提案した案のとおり）の了承で解決した（ユーザーの判断）。詳しい中身は各計画の「この計画で決めたこと」の末尾に移してある。計画 0・foundation には確認が要ることは無かった。
+全 17 件が、2026-11-07 にユーザーの推奨どおり（各計画が提案した案のとおり）の了承で解決した（ユーザーの判断）。詳しい中身は各計画の「この計画で決めたこと」の末尾に移してある。計画 0・foundation には確認が要ることは無かった。18 は、2026-11-07 にユーザーが指示したホームの構成の変更（了承済みとして扱う）。
 
 | # | 件名 | 結果 |
 |---|---|---|
@@ -156,6 +158,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 | 15 | スキルカード獲得のモーダルは背景のページの上に出す | 了承 |
 | 16 | 順位表のライバルの名前は「ライバル 1・2・3」 | 了承 |
 | 17 | レッスンが終わるたびに「レッスン終了」のダイアログで止まる | 了承 |
+| 18 | ホームの構成の変更と 3D 対応の枠（上部のステータス・キャラ表示のステージ・大きな主ボタン・下部のナビ。ステージは `RawImage` と `ICharacterStage` で、MVP は仮の枠、3D は拡張点。screen-design 7.8） | ユーザーが 2026-11-07 に指示した（了承済み）。P2 の決めたこと 15、foundation の決めたこと 17 |
 
 - 15 のスキルカード獲得のモーダルの出し方も了承された。ただし、screen-design 7.6 と [screen-wireframes.md](../wiki/overview/screen-wireframes.md) の「共通の方針」を直す仕事は week のタスク 5 が実装時に行う（今は直さない）。formation は 7.6 の 2 つの箇条書きだけを直す
 

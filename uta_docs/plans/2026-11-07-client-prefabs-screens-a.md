@@ -20,11 +20,12 @@ spec: ../wiki/architecture/screen-design.md
 7. **生成クラスは 10 個**（`Scripts/Editor/Prefabs/Screens/<機能>/`、名前空間はどのフォルダでも `Uta.Client.Editor.Prefabs.Screens`）と、画面の生成の共通の補助 `ScreenLayout`（同じ名前空間。文字の型と、`Body`・`Main`・横並び・固定高の文字を作る関数）。P1 の `PrefabBuildCommands.BuildAll()` が `TypeCache` で拾うので、登録は要らない。**`ScreenLayout` は P3 も使う**（画面の組み方の補助はこれが正。P3 は重ねて作らず、プロデュースの画面だけに要る関数を P3 の `ProduceLayout` に足す）
 8. **画面ごとのテスト**: 「View のフィールドが、表の子（のコンポーネント）を指している」ことを全フィールドについて確かめる（`TitlePrefabTests`・`HomePrefabTests`・`GachaPrefabTests`・`OwnedPrefabTests`。補助 `ScreenPrefabAssert`）。C# の計画が表のフィールドを使うときの食い違いを、ここで止める
 9. **この計画は P1 の型だけに依存し、C#（foundation）の型に依存しない**。計画の順は「計画 0 → P1 → **P2（この計画）** → foundation → gacha → owned → P3 → formation → week → lesson」（2026-11-07 に決定）。foundation（C#）は、この計画が作る `TitlePage`・`HomePage` の骨格に `ITitleView`・`IHomeView` を実装する
-10. 叩き台（screen-wireframes）との差: ガチャの結果は絵のグリッドではなく 1 枠 1 行の文字、ガチャ名の行と画像・「交換」ボタンは無し（gacha の C# 計画の範囲どおり）、ホームの「週 7 / 16」とキャラ表示は無し（foundation の C# 計画どおり。キャラ表示の場所は空き）
+10. 叩き台（screen-wireframes）との差: ガチャの結果は絵のグリッドではなく 1 枠 1 行の文字、ガチャ名の行と画像・「交換」ボタンは無し（gacha の C# 計画の範囲どおり）。ホームの「プロデュース中」の帯は週を出さない（foundation の C# 計画どおり）
 11. **Title シーンのページは `TitlePage`**（タイトルの文字・状態の文・「スタート」のボタン）。旧 foundation の `StartupPage`（「起動中…」だけのページ）は作らない。foundation（C#）が `TitlePage` に `ITitleView`（`SetStatus`・`SetStartInteractable`・`StartClicked`。foundation 3.7）を実装する
 12. **`HomePage.resumePanel` の型は `GameObject`**（foundation 3.7 の `SetResumeVisible` が `resumePanel.SetActive` を呼ぶ）
 13. **タイトルの文字を「Uta」にしてよいか**（プロジェクト名。既存作品の名前ではない。ロゴの画像は作らない）（ユーザーが推奨どおり了承した。2026-11-07）
 14. 見た目の値（寸法・フォントサイズ・色の割り当て）は仮。P1 の `UiTheme` の範囲で決めた（3.4）。この値で進めてよいか（ユーザーが推奨どおり了承した。2026-11-07）
+15. **ホームの構成（2026-11-07 追加。ユーザーの判断。screen-design 7.8）**: 上から `ProfileText`（プレイヤーLv・ガチャ通貨）→ キャラ表示のステージ `Stage`（`RawImage`。子に枠の文字 `StageLabel`）→ 「プロデュース中」の帯 `ResumePanel`（文字だけ。ボタンは無い）→ 大きな主ボタン `PrimaryButton`（高さ 200・文字 56）→ 下部のナビ `Nav`（`NavProduceButton`・`NavGachaButton`・`NavOwnedButton`）。**旧 `Menu`・`ResumePanel/ResumeButton` は作らない**。View のフィールドの対応: `produceButton` → `navProduceButton`、`gachaButton` → `navGachaButton`、`ownedButton` → `navOwnedButton` に改名（子も `Menu/ProduceButton` → `Nav/NavProduceButton` などに改名）。`resumeButton` は削除（再開は主ボタンが「再開」の表示になり、押すと「プロデュース」と同じ選択が出る）。`stageImage`（`RawImage`）・`stageLabel`（`TMP_Text`）・`primaryButton`（`ButtonView`）を新しく足す。`profileText`・`resumePanel` は残す。ステージの `RawImage` は MVP ではテクスチャなしの色つきの枠で、将来 3D モデルを描いた `RenderTexture` を割り当てる（C# は触らない。差し替えは foundation の `ICharacterStage`）
 
 ## ユーザーの確認が要ること
 
@@ -80,13 +81,14 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 
 ### 3.1 View の骨格（`Uta.Client.Presentation.<機能>`）
 
-全部「`[SerializeField] private` のフィールドだけ」。メソッド・プロパティ・イベントを書かない（C# の計画が足す）。`using TMPro;`・`using UnityEngine;`・`using Uta.Client.Presentation.Common;`・`using Uta.Client.Presentation.Common.Parts;` のうち使うものを書く。フィールドが使われていない警告（CS0169・CS0414・CS0649）が出ても止まらない（C# の計画が使うと消える）。
+全部「`[SerializeField] private` のフィールドだけ」。メソッド・プロパティ・イベントを書かない（C# の計画が足す）。`using TMPro;`・`using UnityEngine;`・`using UnityEngine.UI;`（`RawImage`。`HomePage` だけ）・`using Uta.Client.Presentation.Common;`・`using Uta.Client.Presentation.Common.Parts;` のうち使うものを書く。フィールドが使われていない警告（CS0169・CS0414・CS0649）が出ても止まらない（C# の計画が使うと消える）。
 
 形の例（`HomePage`）:
 
 ```csharp
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Uta.Client.Presentation.Common;
 using Uta.Client.Presentation.Common.Parts;
 
@@ -96,11 +98,13 @@ namespace Uta.Client.Presentation.Home
     public sealed class HomePage : PageBase
     {
         [SerializeField] private TMP_Text profileText;
+        [SerializeField] private RawImage stageImage;          // キャラ表示のステージ。MVP はテクスチャなし。将来 RenderTexture を割り当てる（screen-design 7.8）
+        [SerializeField] private TMP_Text stageLabel;
         [SerializeField] private GameObject resumePanel;
-        [SerializeField] private ButtonView resumeButton;
-        [SerializeField] private ButtonView produceButton;
-        [SerializeField] private ButtonView gachaButton;
-        [SerializeField] private ButtonView ownedButton;
+        [SerializeField] private ButtonView primaryButton;
+        [SerializeField] private ButtonView navProduceButton;
+        [SerializeField] private ButtonView navGachaButton;
+        [SerializeField] private ButtonView navOwnedButton;
     }
 }
 ```
@@ -163,15 +167,18 @@ namespace Uta.Client.Presentation.Home
 | `HomePage` | 雛形のルート。View `HomePage` | P1 |
 | └ `Body` | ページの共通の形（`Header` なし） | [P2] |
 | 　└ `Main` | ページの共通の形 | [P2] |
-| 　　├ `ProfileText` | → `Label`。`Line`（40・`Text`・`MidlineLeft`・折り返さない・省略）、text "プレイヤーLv -　ガチャ通貨 -"。LE 80（`ScreenLayout.AddLabel(main, "ProfileText", "プレイヤーLv -　ガチャ通貨 -", ScreenLayout.Line, 80f)`） | WF ホーム上段、F 3.7 の 1 |
-| 　　├ `Spacer` | RectTransform（レイアウト任せ）。LE flexibleHeight 1（`AddFlexibleSpacer(main, "Spacer")`。叩き台のキャラ表示の場所。MVP は空） | WF ホーム、F 3.7 の 2 |
-| 　　├ `ResumePanel` | → `Panel`（P1。VLG 余白 32・間隔 24）。LE 288（32 + 70 + 24 + 130 + 32。`PrefabBuildUtil.SetLayout(resumePanel.gameObject, minHeight: 288f, preferredHeight: 288f)`）。**アクティブのまま**（C# が `SetResumeVisible` で切り替える） | WF ホーム「プロデュース中」、F 3.7 の 3 |
-| 　　│├ `ResumeText` | → `Label`。`LineCenter`（40・`Text`・`Center`・折り返さない・省略）、text "プロデュース中"。LE 70（`ScreenLayout.AddLabel(resumePanel, "ResumeText", "プロデュース中", ScreenLayout.LineCenter, 70f)`） | F 3.7 の 3 |
-| 　　│└ `ResumeButton` | → `Button`（`Primary`）。Label "再開" | F 3.7 の 3 |
-| 　　└ `Menu` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）: spacing 24、padding 0、`MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE 130（`ScreenLayout.AddRow(main, "Menu", 130f)`） | WF ホーム下段、F 3.7 の 4 |
-| 　　　├ `ProduceButton` | → `Button`（`Primary`）。Label "プロデュース" | F 3.7 の 4 |
-| 　　　├ `GachaButton` | → `Button`（`Primary`）。Label "ガチャ" | F 3.7 の 4 |
-| 　　　└ `OwnedButton` | → `Button`（`Primary`）。Label "アイドル" | F 3.7 の 4 |
+| 　　├ `ProfileText` | → `Label`。`Line`（40・`Text`・`MidlineLeft`・折り返さない・省略）、text "プレイヤーLv -　ガチャ通貨 -"。LE 80（`ScreenLayout.AddLabel(main, "ProfileText", "プレイヤーLv -　ガチャ通貨 -", ScreenLayout.Line, 80f)`） | WF ホーム上部、F 3.7 の `SetProfile` |
+| 　　├ `Stage` | RectTransform（レイアウト任せ。`PrefabBuildUtil.AddChild(main, "Stage")`）。`RawImage`（`stage.gameObject.AddComponent<RawImage>()`）: texture null、color `UiTheme.Panel`、raycastTarget false、uvRect (0, 0, 1, 1)（既定のまま）。`PrefabBuildUtil.MarkModified(stageImage)`。LE minHeight 600・flexibleHeight 1（`PrefabBuildUtil.SetLayout(stage.gameObject, minHeight: 600f, flexibleHeight: 1f)`。残りの高さを全部使う） | WF ホーム中央、screen-design 7.8、決めたこと 15 |
+| 　　│└ `StageLabel` | → `Label`（全面のまま。`Stage` にレイアウトグループは無いので `Stage` いっぱいに広がる）。`Title`（56・`Text`・`Center`・折り返さない・省略）、text "キャラ表示"（`ScreenLayout.AddLabel(stage, "StageLabel", "キャラ表示", ScreenLayout.Title, 0f)`。LE は付けない） | screen-design 7.8（MVP の仮の枠の文字。C# の `PlaceholderCharacterStage` が育成アイドルの名前に替える） |
+| 　　├ `ResumePanel` | → `Panel`（P1。VLG 余白 32・間隔 24）。LE 134（32 + 70 + 32。`PrefabBuildUtil.SetLayout(resumePanel.gameObject, minHeight: 134f, preferredHeight: 134f)`）。**アクティブのまま**（C# が `SetResumeVisible` で切り替える） | WF ホーム「プロデュース中」、F 3.7 の `SetResumeVisible` |
+| 　　│└ `ResumeText` | → `Label`。`LineCenter`（40・`Text`・`Center`・折り返さない・省略）、text "プロデュース中"。LE 70（`ScreenLayout.AddLabel(resumePanel, "ResumeText", "プロデュース中", ScreenLayout.LineCenter, 70f)`。フィールドなし。固定の文字） | WF ホーム「プロデュース中」 |
+| 　　├ `PrimaryButton` | → `Button`（`Primary`）。Label の文字の型を `Title`（56）に、text "プロデュース"（`ScreenLayout.SetButtonLabel(primary, "プロデュース", ScreenLayout.Title)`）。LE 200（`PrefabBuildUtil.SetLayout(primary.gameObject, minHeight: 200f, preferredHeight: 200f)`。部品の 130 を上書きする） | WF ホーム主ボタン、F 3.7 の `SetResumeVisible`（「再開」の表示）・`ProduceClicked` |
+| 　　└ `Nav` | RectTransform（レイアウト任せ）。HLG（`LayoutSpec.Row`）: spacing 24、padding 0、`MiddleCenter`、制御 W/H true/true、伸ばす W/H true/true。LE 130（`ScreenLayout.AddRow(main, "Nav", 130f)`） | WF ホーム下部のナビ |
+| 　　　├ `NavProduceButton` | → `Button`（`Secondary`）。Label "プロデュース" | F 3.7 の `ProduceClicked` |
+| 　　　├ `NavGachaButton` | → `Button`（`Secondary`）。Label "ガチャ" | F 3.7 の `GachaClicked` |
+| 　　　└ `NavOwnedButton` | → `Button`（`Secondary`）。Label "アイドル" | F 3.7 の `OwnedClicked` |
+
+高さ（基準 1080×1920。`Body` が全面のとき）: `Main` の余白 32 + `ProfileText` 80 + 24 + `Stage` + 24 + `ResumePanel` 134 + 24 + `PrimaryButton` 200 + 24 + `Nav` 130 + 余白 32 = 704 + `Stage`。`Stage` は残りの 1920 − 704 = 1216（`ResumePanel` が非表示のときは、VLG が非アクティブの子を飛ばすので 1216 + 134 + 24 = 1374）。`Stage` の minHeight 600 を足しても 704 + 600 = 1304 で 1920 に収まる。ナビのボタン 1 つの幅は (1016 − 24 × 2) / 3 ≈ 322 で、「プロデュース」（40pt × 6 字 ≈ 240）が入る。主ボタンの「プロデュース」（56pt × 6 字 ≈ 336）は幅 1016 に入る。
 
 #### GachaPage（`Prefabs/Screens/Gacha/GachaPage.prefab`）
 
@@ -275,9 +282,11 @@ namespace Uta.Client.Presentation.Home
 | Title | 状態の文（起動中・失敗・再試行） | `Body/Main/StatusText` | `statusText`（`TMP_Text`） | `SetStatus`（foundation 3.7） |
 | Title | スタート | `Body/Main/StartButton` | `startButton`（`ButtonView`） | `StartClicked`・`SetStartInteractable`（foundation 3.7） |
 | Home | プレイヤーLv・ガチャ通貨 | `Body/Main/ProfileText` | `profileText`（`TMP_Text`） | `SetProfile` |
-| Home | プロデュース中の枠 | `Body/Main/ResumePanel` | `resumePanel`（`GameObject`） | `SetResumeVisible` |
-| Home | 再開 | `Body/Main/ResumePanel/ResumeButton` | `resumeButton`（`ButtonView`） | `ResumeClicked` |
-| Home | プロデュース・ガチャ・アイドル | `Body/Main/Menu/ProduceButton`・`GachaButton`・`OwnedButton` | `produceButton`・`gachaButton`・`ownedButton`（`ButtonView`） | `ProduceClicked`・`GachaClicked`・`OwnedClicked` |
+| Home | キャラ表示のステージ（枠） | `Body/Main/Stage` | `stageImage`（`RawImage`） | なし（MVP は触らない。将来の `ModelCharacterStage` が `texture` を入れる。foundation 3.7 の `HomePage.CreateStage`） |
+| Home | キャラ表示のステージ（枠の文字） | `Body/Main/Stage/StageLabel` | `stageLabel`（`TMP_Text`） | `HomePage.CreateStage` が `PlaceholderCharacterStage` に渡す（foundation 3.7） |
+| Home | プロデュース中の帯 | `Body/Main/ResumePanel` | `resumePanel`（`GameObject`） | `SetResumeVisible` |
+| Home | 主ボタン（プロデュース／再開） | `Body/Main/PrimaryButton` | `primaryButton`（`ButtonView`） | `ProduceClicked`・`SetResumeVisible`（ラベル） |
+| Home | ナビ（プロデュース・ガチャ・アイドル） | `Body/Main/Nav/NavProduceButton`・`NavGachaButton`・`NavOwnedButton` | `navProduceButton`・`navGachaButton`・`navOwnedButton`（`ButtonView`） | `ProduceClicked`・`GachaClicked`・`OwnedClicked` |
 | Gacha | ＜（戻る）・見出し | `Body/Header` | `header`（`HeaderView`。戻るは `header` の `backButton`） | `BackClicked` |
 | Gacha | ガチャ通貨 | `Body/Main/CurrencyText` | `currencyText`（`TMP_Text`） | `SetCurrency` |
 | Gacha | SSR の顔ぶれ | `Body/Main/LineupText` | `lineupText`（`TMP_Text`） | `SetLineup` |
@@ -307,7 +316,7 @@ namespace Uta.Client.Presentation.Home
 | SupportDetail | 上限解放 | `Body/Main/LimitBreakButton` | `limitBreakButton`（`ButtonView`） | `SetLimitBreak`・`LimitBreakClicked` |
 | SupportDetail | アビリティ | `Body/Main/AbilitiesText` | `abilitiesText`（`TMP_Text`） | `SetAbilities`（行を `"\n"` でつなぐ） |
 
-フィールド名の例外（子の名前の先頭を小文字にした形でないもの）: `header`（子 `Header` はそのまま）、`tabBar`（`TabBar`）、`listContent`（子 `Content`。一覧の入れ物と分かる名前にする）、`resumePanel`・`controls`・`filterRow`（そのまま）。行の Prefab の参照は `rowPrefab`／`headingRowPrefab`／`lineRowPrefab`。
+フィールド名の例外（子の名前の先頭を小文字にした形でないもの）: `header`（子 `Header` はそのまま）、`tabBar`（`TabBar`）、`listContent`（子 `Content`。一覧の入れ物と分かる名前にする）、`resumePanel`・`controls`・`filterRow`（そのまま）、`stageImage`（子 `Stage` の `RawImage`。型が分かる名前にする）。行の Prefab の参照は `rowPrefab`／`headingRowPrefab`／`lineRowPrefab`。
 
 ### 3.4 `ScreenLayout`（`Uta.Client.Editor.Prefabs.Screens`。`Scripts/Editor/Prefabs/Screens/ScreenLayout.cs`）
 
@@ -372,10 +381,10 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
 3.2 の表の読み方（生成クラスはこのとおりに書く）:
 - **表の階層の順 = `AddChild`（と `AddLabel`・`AddRow`・`AddButtonPart` などの子を作る呼び出し）を呼ぶ順**。兄弟の順は表の上から下
-- **表の「LE n」は `ScreenLayout.AddLabel`／`ScreenLayout.AddRow` の `height` 引数**（`minHeight = preferredHeight = n` になる）。高さが伸びる文字（「LE minHeight m・flexibleHeight 1」。`LineupText`・`AbilitiesText`）は `ScreenLayout.AddLabel(…, 0f)` で作り、そのあと `PrefabBuildUtil.SetLayout(label.gameObject, minHeight: m, flexibleHeight: 1f)`。文字でもボタンの行でもないもの（`ResumePanel`・`List`）は `PrefabBuildUtil.SetLayout` を直接呼ぶ（表のセルに書いた呼び出し）
+- **表の「LE n」は `ScreenLayout.AddLabel`／`ScreenLayout.AddRow` の `height` 引数**（`minHeight = preferredHeight = n` になる）。高さが伸びる文字（「LE minHeight m・flexibleHeight 1」。`LineupText`・`AbilitiesText`）は `ScreenLayout.AddLabel(…, 0f)` で作り、そのあと `PrefabBuildUtil.SetLayout(label.gameObject, minHeight: m, flexibleHeight: 1f)`。文字でもボタンの行でもないもの（`ResumePanel`・`List`・`Stage`）と、部品の高さを上書きするボタン（`PrimaryButton`）は `PrefabBuildUtil.SetLayout` を直接呼ぶ（表のセルに書いた呼び出し）
 - **`Style` の指定が無いボタンは `Primary`**（`AddButtonPart` の既定値）
 
-すべて `public sealed class <名前>Builder : IPrefabBuilder`（引数なしのコンストラクター）。`Build()` は「`CreatePage`／`CreateModal`（行は `CreateRoot`）→ 3.2 の表の上から順に組む → `SetRef` で 3.1 のフィールドを入れる → `SavePrefab` → 画面だけ `RegisterScreen(同じパス)`」。`using` は `UnityEngine`・`TMPro`・`Uta.Client.Presentation.Common`（`UiTheme`）・`Uta.Client.Presentation.Common.Parts` と各画面の名前空間のうち使うもの（`Uta.Client.Editor.Prefabs` は親の名前空間なので書かなくてよい）。
+すべて `public sealed class <名前>Builder : IPrefabBuilder`（引数なしのコンストラクター）。`Build()` は「`CreatePage`／`CreateModal`（行は `CreateRoot`）→ 3.2 の表の上から順に組む → `SetRef` で 3.1 のフィールドを入れる → `SavePrefab` → 画面だけ `RegisterScreen(同じパス)`」。`using` は `UnityEngine`・`UnityEngine.UI`（`RawImage`。`HomePageBuilder` だけ）・`TMPro`・`Uta.Client.Presentation.Common`（`UiTheme`）・`Uta.Client.Presentation.Common.Parts` と各画面の名前空間のうち使うもの（`Uta.Client.Editor.Prefabs` は親の名前空間なので書かなくてよい）。
 
 | クラス（ファイル） | Order | `AssetPath` | 登録 |
 |---|---|---|---|
@@ -439,24 +448,37 @@ public void Build()
     var main = ScreenLayout.AddMain(body);
 
     var profile = ScreenLayout.AddLabel(main, "ProfileText", "プレイヤーLv -　ガチャ通貨 -", ScreenLayout.Line, 80f);
-    ScreenLayout.AddFlexibleSpacer(main, "Spacer");
+
+    var stage = PrefabBuildUtil.AddChild(main, "Stage");
+    var stageImage = stage.gameObject.AddComponent<RawImage>();   // using UnityEngine.UI;
+    stageImage.texture = null;
+    stageImage.color = UiTheme.Panel;
+    stageImage.raycastTarget = false;
+    PrefabBuildUtil.MarkModified(stageImage);
+    PrefabBuildUtil.SetLayout(stage.gameObject, minHeight: 600f, flexibleHeight: 1f);
+    var stageLabel = ScreenLayout.AddLabel(stage, "StageLabel", "キャラ表示", ScreenLayout.Title, 0f);
 
     var resumePanel = PrefabBuildUtil.AddPanel(main, "ResumePanel");
-    PrefabBuildUtil.SetLayout(resumePanel.gameObject, minHeight: 288f, preferredHeight: 288f);
+    PrefabBuildUtil.SetLayout(resumePanel.gameObject, minHeight: 134f, preferredHeight: 134f);
     ScreenLayout.AddLabel(resumePanel, "ResumeText", "プロデュース中", ScreenLayout.LineCenter, 70f);
-    var resume = PrefabBuildUtil.AddButtonPart(resumePanel, "ResumeButton", "再開");
 
-    var menu = ScreenLayout.AddRow(main, "Menu", UiTheme.ButtonHeight);
-    var produce = PrefabBuildUtil.AddButtonPart(menu, "ProduceButton", "プロデュース");
-    var gacha = PrefabBuildUtil.AddButtonPart(menu, "GachaButton", "ガチャ");
-    var owned = PrefabBuildUtil.AddButtonPart(menu, "OwnedButton", "アイドル");
+    var primary = PrefabBuildUtil.AddButtonPart(main, "PrimaryButton", "プロデュース");
+    ScreenLayout.SetButtonLabel(primary, "プロデュース", ScreenLayout.Title);
+    PrefabBuildUtil.SetLayout(primary.gameObject, minHeight: 200f, preferredHeight: 200f);
+
+    var nav = ScreenLayout.AddRow(main, "Nav", UiTheme.ButtonHeight);
+    var navProduce = PrefabBuildUtil.AddButtonPart(nav, "NavProduceButton", "プロデュース", ButtonStyle.Secondary);
+    var navGacha = PrefabBuildUtil.AddButtonPart(nav, "NavGachaButton", "ガチャ", ButtonStyle.Secondary);
+    var navOwned = PrefabBuildUtil.AddButtonPart(nav, "NavOwnedButton", "アイドル", ButtonStyle.Secondary);
 
     PrefabBuildUtil.SetRef(page, "profileText", profile);
+    PrefabBuildUtil.SetRef(page, "stageImage", stageImage);
+    PrefabBuildUtil.SetRef(page, "stageLabel", stageLabel);
     PrefabBuildUtil.SetRef(page, "resumePanel", resumePanel.gameObject);   // フィールドは GameObject
-    PrefabBuildUtil.SetRef(page, "resumeButton", resume);
-    PrefabBuildUtil.SetRef(page, "produceButton", produce);
-    PrefabBuildUtil.SetRef(page, "gachaButton", gacha);
-    PrefabBuildUtil.SetRef(page, "ownedButton", owned);
+    PrefabBuildUtil.SetRef(page, "primaryButton", primary);
+    PrefabBuildUtil.SetRef(page, "navProduceButton", navProduce);
+    PrefabBuildUtil.SetRef(page, "navGachaButton", navGacha);
+    PrefabBuildUtil.SetRef(page, "navOwnedButton", navOwned);
 
     PrefabBuildUtil.SavePrefab(page.gameObject, AssetPath);
     PrefabBuildUtil.RegisterScreen(AssetPath);
@@ -585,7 +607,8 @@ public static class ScreenPrefabAssert
 | ファイル | テスト | 確かめること |
 |---|---|---|
 | `TitlePrefabTests.cs` | `TitlePage_FieldsPointToChildren` | `TitlePage` の 2 フィールドが 3.3 の表の子を指す |
-| `HomePrefabTests.cs` | `HomePage_FieldsPointToChildren` | `HomePage` の 6 フィールド |
+| `HomePrefabTests.cs` | `HomePage_FieldsPointToChildren` | `HomePage` の 8 フィールドが 3.3 の表の子を指す（`profileText` → `Body/Main/ProfileText`、`stageImage` → `Body/Main/Stage`、`stageLabel` → `Body/Main/Stage/StageLabel`、`resumePanel` → `Body/Main/ResumePanel`、`primaryButton` → `Body/Main/PrimaryButton`、`navProduceButton`・`navGachaButton`・`navOwnedButton` → `Body/Main/Nav/NavProduceButton`・`NavGachaButton`・`NavOwnedButton`） |
+| | `HomePage_StageIsPlaceholder` | `Body/Main/Stage` の `RawImage` の `texture` が null、`raycastTarget` が false。`Body/Main/Stage/StageLabel` の `TMP_Text.text` が "キャラ表示"。`Body/Main/PrimaryButton` の `LayoutElement.preferredHeight` が 200 |
 | `GachaPrefabTests.cs` | `GachaPage_FieldsPointToChildren` | `GachaPage` の 7 フィールド（`header` → `Body/Header`） |
 | | `GachaRatesModal_FieldsPointToChildrenAndRows` | `listContent` → `Panel/List/Viewport/Content`、`closeButton` → `Panel/CloseButton`、`headingRowPrefab` → `Assets/Prefabs/Parts/GachaRateHeadingRow.prefab`、`lineRowPrefab` → `…/GachaRateRow.prefab` |
 | | `GachaResultModal_FieldsPointToChildrenAndRow` | `listContent`・`retryButton`・`closeButton`、`rowPrefab` → `…/GachaResultRow.prefab` |
@@ -666,12 +689,12 @@ public static class ScreenPrefabAssert
 1. `BuildAll()` をもう一度実行し、`git status`・`git diff --stat` で `Prefabs/Screens/`・`Prefabs/Parts/Gacha*`・`AddressableAssetsData/` に差分が出るかを見る。**出ても止まらない**（P1 のタスク 4 と同じ扱い）。差分の有無と、出たならどの値か（`m_` のどの値か・fileID か）を報告に書く
 2. わざと壊す（Prefab の子を改名して保存する）。次の 1 式を実行し、`renamed` が返る（`unity command eval` は `return` が要る。見つからなければ `not found` が返るので、止まって報告する）:
    ```
-   unity command eval 'var path = "Assets/Prefabs/Screens/Home/HomePage.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { var child = root.transform.Find("Body/Main/Menu/GachaButton"); if (child == null) { return "not found"; } child.name = "GachaButton2"; UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); return "renamed"; } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); }'
+   unity command eval 'var path = "Assets/Prefabs/Screens/Home/HomePage.prefab"; var root = UnityEditor.PrefabUtility.LoadPrefabContents(path); try { var child = root.transform.Find("Body/Main/Nav/NavGachaButton"); if (child == null) { return "not found"; } child.name = "NavGachaButton2"; UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path); return "renamed"; } finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); }'
    ```
-   - `GachaButton` は `Button` の Prefab をネストしたインスタンスなので、名前の変更は `HomePage.prefab` の中のオーバーライド（`m_Name` の property modification）として保存される。`Button.prefab` そのものは変わらない（`git status` で `Parts/Button.prefab` に差分が無いことを見る）
+   - `NavGachaButton` は `Button` の Prefab をネストしたインスタンスなので、名前の変更は `HomePage.prefab` の中のオーバーライド（`m_Name` の property modification）として保存される。`Button.prefab` そのものは変わらない（`git status` で `Parts/Button.prefab` に差分が無いことを見る）
    - 続けて `unity command eval 'UnityEditor.AssetDatabase.SaveAssets(); return "ok";'`
 3. `client/uta` で `unity close .`
-4. `unity test --mode EditMode --filter HomePrefabTests` が終了コード 8（テストの失敗）で、`test-results.xml` で `HomePage_FieldsPointToChildren` が失敗し、失敗の文に `gachaButton` と `Body/Main/Menu/GachaButton` が入る。**`--filter` はまだ実績が無い**（P1 のタスク 5 で確かめる）。`--filter` が効かない（オプションのエラー、0 件しか走らない、全件が走る）ときは、`--filter` を外して `unity test --mode EditMode` を全件実行し、`test-results.xml` で失敗したテストの名前が `HomePage_FieldsPointToChildren` だけであること（ほかに失敗が無いこと）を見る。どちらで確かめたかを報告に書く
+4. `unity test --mode EditMode --filter HomePrefabTests` が終了コード 8（テストの失敗）で、`test-results.xml` で `HomePage_FieldsPointToChildren` が失敗し、失敗の文に `navGachaButton` と `Body/Main/Nav/NavGachaButton` が入る。**`--filter` はまだ実績が無い**（P1 のタスク 5 で確かめる）。`--filter` が効かない（オプションのエラー、0 件しか走らない、全件が走る）ときは、`--filter` を外して `unity test --mode EditMode` を全件実行し、`test-results.xml` で失敗したテストの名前が `HomePage_FieldsPointToChildren` だけであること（ほかに失敗が無いこと）を見る。どちらで確かめたかを報告に書く
 5. Editor を閉じたまま、バッチの入口で元に戻す: `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` が終了コード 0、ログに `[Uta] prefabs: built 20`（バッチの入口の確かめを兼ねる）
 6. `unity test --mode EditMode` が終了コード 0（全部通る）
 7. `unity open .` → `unity status --until-ready` が ready。`git status` で `Prefabs/Screens/Home/HomePage.prefab` に手順 2 の改名が残っていないこと
@@ -698,7 +721,7 @@ public static class ScreenPrefabAssert
 | ファイル | テスト | 確かめること |
 |---|---|---|
 | `TitlePrefabTests.cs` | `TitlePage_FieldsPointToChildren` | 3.6 |
-| `HomePrefabTests.cs` | `HomePage_FieldsPointToChildren` | 3.6 |
+| `HomePrefabTests.cs` | `HomePage_FieldsPointToChildren`・`HomePage_StageIsPlaceholder` | 3.6 |
 | `GachaPrefabTests.cs` | `GachaPage_FieldsPointToChildren`・`GachaRatesModal_FieldsPointToChildrenAndRows`・`GachaResultModal_FieldsPointToChildrenAndRow`・`GachaRows_TextIsOwnTmp` | 3.6 |
 | `OwnedPrefabTests.cs` | `OwnedPage_FieldsPointToChildren`・`OwnedPage_TabsAreIdolsThenSupport`・`OwnedPage_EmptyTextIsInactive`・`SupportDetailPage_FieldsPointToChildren` | 3.6 |
 | P1 の `PrefabContractTests.cs`（変えない） | `AllPrefabs_SerializedReferences_AreAssigned`・`ScreenPrefabs_RootViewIsNamedAfterPrefab`・`ScreenPrefabs_AreRegisteredInScreensGroup`・`ScreensGroup_ContainsOnlyScreenPrefabs` | この計画の 10 個の Prefab が自動で対象になる |
@@ -714,3 +737,4 @@ Editor でしか確かめられないもの（自動のテストにしない）:
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - 他の計画への影響は反映済み（2026-11-07）: foundation（C#）は `TitlePage`・`HomePage` の骨格に `ITitleView`・`IHomeView` を実装し、部品の View の表示のメソッド（`ButtonView.SetLabel`・`SetInteractable`、`HeaderView.SetTitle` など。foundation 3.2）を足す。gacha・owned（C#）は 3.3 の表のフィールドを使う。P3 は `ScreenLayout` を使う
+- ホームの構成の変更（決めたこと 15。2026-11-07）は、foundation の 3.7・3.9・5章（`IHomeView` のイベントが 3 つ、`ICharacterStage`・`PlaceholderCharacterStage`、`HomePage.CreateStage`）と、gacha・owned・formation の `HomePresenter` の節に反映済み

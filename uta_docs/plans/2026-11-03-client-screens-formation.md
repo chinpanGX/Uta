@@ -86,7 +86,7 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 | 生成 | `Scenes/Produce.unity` | `Uta/Create Scenes` で作り直す（`UiRoot` を置く。タスク 5） |
 | 作成 | `Scripts/Presentation/Formation/IFormationView.cs`・`FormationPresenter.cs`・`FormationSlotViewData.cs` | 編成の IF と Presenter（3.5） |
 | 変更 | `Scripts/Presentation/Formation/FormationPage.cs`・`FormationSlotRowView.cs` | P3 の骨格に `IFormationView` の実装と行の表示のメソッドを足す（3.5） |
-| 変更 | `Scripts/Presentation/Home/HomePresenter.cs` | `OpenProduceAsync`・`ResumeProduceAsync` を置き換える、再開の表示（3.6） |
+| 変更 | `Scripts/Presentation/Home/HomePresenter.cs` | `OpenProduceAsync` を置き換える、再開の表示（3.6） |
 | 変更 | `Scripts/Bootstrap/BootstrapEntry.cs` | `RegisterUseCases` にプロデュースの 6 行（タスク 5） |
 | 作成 | `Tests/EditMode/Fakes/FakeProducePort.cs`・`FakePlayerPort.cs`・`TestProduce.cs` | テスト用の偽と組み立て（3.7。5・6 本目も使う） |
 | 作成 | `Tests/EditMode/ProduceSessionTests.cs`・`ProduceProgressTests.cs`・`StartProduceUseCaseTests.cs`・`ResumeProduceUseCaseTests.cs`・`AbandonProduceUseCaseTests.cs`・`ProduceActionsTests.cs`・`ProduceGatewayTests.cs`・`ProduceFlowTests.cs`・`ProduceMenuTests.cs`・`ProduceEntryTests.cs`・`ProduceBackdropPresenterTests.cs`・`FormationPresenterTests.cs` | EditMode のテスト（5章） |
@@ -576,11 +576,10 @@ public sealed class FormationPresenter : IPresenter
 
 ### 3.6 ホーム（`HomePresenter` の変更）
 
-- コンストラクター（2 本）の**最後**（2 本目が足した `IScreenNavigator navigator` の後ろ）に `ProduceSession session, ResumeProduceUseCase resume, AbandonProduceUseCase abandon, ISceneNavigator scenes` を足す（`ProduceFlow` は `Produce` シーンのスコープにあり、`Home` からは受けられない: 決めたこと 3）
-- `Refresh()` の `view.SetResumeVisible(...)` の引数を `HasActiveProduce()` にする。`private bool HasActiveProduce()`: `session.Current != null ? session.HasActive : cache.Current.HasActiveProduce`
-- foundation の `OpenProduceAsync`・`ResumeProduceAsync`（「準備中です。」）を次に置き換える（どちらも実行中フラグ・`try`/`catch`/`finally`。catch は決めたこと 12）:
+- コンストラクター（2 本）の**最後**（2 本目が足した `IScreenNavigator navigator` の後ろ）に `ProduceSession session, ResumeProduceUseCase resume, AbandonProduceUseCase abandon, ISceneNavigator scenes` を足す（`ProduceFlow` は `Produce` シーンのスコープにあり、`Home` からは受けられない: 決めたこと 3）。足したあとの形: `[Inject] HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs, IGameMaster master, IScreenNavigator navigator, ProduceSession session, ResumeProduceUseCase resume, AbandonProduceUseCase abandon, ISceneNavigator scenes) : this((IHomeView)view, view.CreateStage(master), cache, dialogs, master, navigator, session, resume, abandon, scenes)` と、テスト用の `HomePresenter(IHomeView view, ICharacterStage stage, PlayerCache cache, DialogService dialogs, IGameMaster master, IScreenNavigator navigator, ProduceSession session, ResumeProduceUseCase resume, AbandonProduceUseCase abandon, ISceneNavigator scenes)`（foundation 3.7。ステージの選び直しの `RefreshStage` は変えない）
+- `Refresh()` の `view.SetResumeVisible(...)` の引数を `HasActiveProduce()` にする（`HomePage.SetResumeVisible` が帯の表示と主ボタンのラベル「再開」／「プロデュース」を切り替える: foundation 3.7）。`private bool HasActiveProduce()`: `session.Current != null ? session.HasActive : cache.Current.HasActiveProduce`
+- foundation の `OpenProduceAsync`（「準備中です。」）を次に置き換える（実行中フラグ・`try`/`catch`/`finally`。catch は決めたこと 12）。主ボタン（進行中は「再開」の表示）とナビの「プロデュース」はどちらも `ProduceClicked` → `OpenProduceAsync`（foundation の決めたこと 17。`ResumeClicked`・`ResumeProduceAsync` は無い）:
   - `OpenProduceAsync`: `HasActiveProduce()` が false なら `await navigator.PushPageAsync<FormationPresenter>(playAnimation: false);`。true なら `var index = await dialogs.ChooseAsync("進行中のプロデュースがあります。", new[] { "再開", "放棄", "やめる" });` `disposed` なら終わる。0 → `await ResumeCoreAsync();`、1 → `ConfirmAsync("放棄すると報酬は受け取れません。放棄しますか？")` が `Positive` なら `await abandon.ExecuteAsync();` のあと `disposed` でなければ `Refresh()`（結果が false でも呼ぶ。共通ダイアログは出ている）、2・−1 → 何もしない
-  - `ResumeProduceAsync`: `await ResumeCoreAsync();`
   - `private async UniTask ResumeCoreAsync()`: `var status = await resume.ExecuteAsync();` `disposed` なら終わる。`Resumed` → `await scenes.GoToProduceAsync();`（以後は View に触らない）、`NotInProgress` → `await dialogs.ShowInfoAsync("進行中のプロデュースはありません。");` のあと `disposed` でなければ `Refresh()`、`Failed` → 何もしない
 - `using Uta.Client.Application.Produce; using Uta.Client.Application.Navigation; using Uta.Client.Presentation.Formation;` と、3.3.10 の別名 `using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;` を足す
 - `HomeLifetimeScope`・`HomeEntry` は変えない（`FormationPresenter` は基盤が `Home` のスコープの子スコープで解決する。依存はルートと `Home` のスコープにある）
@@ -702,7 +701,7 @@ public static class TestProduce
    builder.Register<ProduceActions>(Lifetime.Singleton);
    ```
    `ProduceFlow`・`ProduceMenu` はルートに登録しない（1 の `ProduceLifetimeScope`）。Presenter はどこにも登録しない（foundation 3.3.2）
-4. `HomePresenterTests` の既存のテストの `HomePresenter` の生成に、新しい引数（`new ProduceSession()`、`resume`・`abandon` は `null`、`scenes` は同じ `CallLog` の `FakeSceneNavigator`）を足す。5 章の追記のテストと `ProduceEntryTests` を作る。**追記のテスト（と差し替えの 3 本）では、本物の `AbandonProduceUseCase`・`ResumeProduceUseCase` を、同じ `CallLog` の `FakeProducePort` と `new RefreshPlayerUseCase(new FakePlayerPort(log), cache)` で作る**（既存のテストでは `null` のまま）
+4. `HomePresenterTests` の既存のテストの `HomePresenter` の生成に、新しい引数（`new ProduceSession()`、`resume`・`abandon` は `null`、`scenes` は同じ `CallLog` の `FakeSceneNavigator`）を足す。5 章の追記のテストと `ProduceEntryTests` を作る。**追記のテスト（と差し替えの 2 本）では、本物の `AbandonProduceUseCase`・`ResumeProduceUseCase` を、同じ `CallLog` の `FakeProducePort` と `new RefreshPlayerUseCase(new FakePlayerPort(log), cache)` で作る**（既存のテストでは `null` のまま）
 5. `unity recompile --format json` のエラーが 0 になってから、`Uta/Create Scenes`（`unity command eval` で `Uta.Client.Editor.SceneBuilder.CreateScenes()`、または メニュー）でシーンを作り直す。`Produce.unity` に `UiRoot` と `ProduceScope`（`uiRoot` が入っている）があることを確かめる。`Bootstrap`・`Title`・`Home` の `.unity` に差分が出たら、中身が foundation の形のままであることを確かめてからコミットする
 
 確かめ方: `HomePresenterTests`（既存と追記）、`ProduceEntryTests`。
@@ -734,7 +733,7 @@ EditMode のテストは foundation 3.3.7 の書き方（偽の View・`FakeScre
 | | `SetStartEnabled(enabled)` | `"SetStartEnabled:" + enabled` |
 | | イベント | `RaiseIdolClicked()`・`RaiseSlotClicked(int)`・`RaiseSlotClearClicked(int)`・`RaiseScenarioClicked()`・`RaiseStartClicked()`・`RaiseBackClicked()` で起こす（記録しない） |
 | `FakeBackdropView : IProduceBackdropView`（`ProduceBackdropPresenterTests.cs`） | `SetHeader(text)` | `"SetHeader:" + text` |
-| `FakeHomeView : IHomeView`（`HomePresenterTests.cs`。foundation の既存の偽をそのまま使う） | `SetProfile`・`SetResumeVisible` | foundation の形のまま（`"SetProfile:12,3250"`・`"SetResumeVisible:True"`）。`RaiseProduceClicked()`・`RaiseResumeClicked()` も foundation のまま |
+| `FakeHomeView : IHomeView`（`HomePresenterTests.cs`。foundation の既存の偽をそのまま使う） | `SetProfile`・`SetResumeVisible` | foundation の形のまま（`"SetProfile:12,3250"`・`"SetResumeVisible:True"`）。`RaiseProduceClicked()` も foundation のまま。ステージの偽 `FakeCharacterStage`（`"ShowIdol:…"`・`"ClearStage"`）と `StubIdolMaster` も foundation のまま |
 
 - 「`SetIdol` が増えない」は、`log.Entries` の中の `"SetIdol:"` で始まる行の数を、操作の前後で比べる
 
@@ -804,14 +803,12 @@ EditMode のテストは foundation 3.3.7 の書き方（偽の View・`FakeScre
 | | `Start_NoSession_GoesHome` | `session.Current == null` → `log` が `"GoToHome"` だけ |
 | | `Start_Finished_GoesHome` | `Finished` → `"GoToHome"` だけ（`"PushPage:"` が無い） |
 | `HomePresenterTests.cs`（差し替え。タスク 5） | `ProduceClicked_ShowsNotReady` → `ProduceClicked_NoActive_PushesFormation` | `InitializeAsync` のあと `RaiseProduceClicked()` → 後の記録が `"PushPage:FormationPresenter"` だけ（foundation の決めたこと 16。ほかのボタンのテストは変えない） |
-| | `ResumeClicked_ShowsNotReady` → `ResumeClicked_Active_GoesToProduce` | キャッシュ `hasActiveProduce = true`、`StateResults` に `WeekSelect`。`RaiseResumeClicked()` → 後の記録が `"GetState"`, `"GoToProduce"` |
-| | `OpenProduceAsync_WhileRunning_Ignored`（gacha が直したもの）→ `ResumeProduceAsync_WhileRunning_Ignored` | `StateResults` に `Nothing` を 1 つ、`FakeDialogService.InfoGate` に未完了の源 → `ResumeProduceAsync()` を 2 回呼ぶ → `"GetState"` は 1 回（実行中フラグ）。源を完了させる |
+| | `OpenProduceAsync_WhileRunning_Ignored`（gacha が直したもの）を中身だけ直す | キャッシュ `hasActiveProduce = true`、`ChooseResults` に 0 を 2 つ、`StateResults` に `Nothing` を 1 つ、`FakeDialogService.InfoGate` に未完了の源 → `OpenProduceAsync()` を 2 回呼ぶ → `"Choose:"` で始まる記録と `"GetState"` は 1 回ずつ（1 回目が「進行中のプロデュースはありません。」の `ShowInfoAsync` で止まっている間、2 回目は実行中フラグで無視される）。源を完了させる |
 | `HomePresenterTests.cs`（追記。タスク 5） | `OpenProduce_NoActive_PushesFormation` | `"PushPage:FormationPresenter"` |
 | | `OpenProduce_Active_Resume_GoesToProduce` | キャッシュ `hasActiveProduce = true`、`ChooseResults` 0、`StateResults` に `WeekSelect` → `"Choose:進行中のプロデュースがあります。:再開/放棄/やめる"`, `"GetState"`, `"GoToProduce"` |
 | | `OpenProduce_Active_AbandonConfirmed_HidesResume` | 1・Positive、`FakePlayerPort.Snapshot` を `hasActiveProduce = false` に → `"Abandon"`, `"SignIn"`, `"SetResumeVisible:False"` |
 | | `OpenProduce_Active_Cancel_DoesNothing` | 2 → `"Choose:…"` のあと何も無い |
-| | `ResumeProduce_Active_GoesToProduce` | `StateResults` に `WeekSelect` → `"GetState"`, `"GoToProduce"` |
-| | `ResumeProduce_NotInProgress_ShowsInfoAndRefreshes` | `Nothing` → `"GetState"`, `"SignIn"`, `"Info:進行中のプロデュースはありません。"`, `"SetResumeVisible:False"` |
+| | `OpenProduce_Active_ResumeNotInProgress_ShowsInfoAndRefreshes` | キャッシュ `hasActiveProduce = true`、`ChooseResults` 0、`StateResults` に `Nothing` → `"Choose:…"`, `"GetState"`, `"SignIn"`, `"Info:進行中のプロデュースはありません。"`, `"SetResumeVisible:False"` |
 | | `Refresh_ActiveSession_ShowsResumeEvenIfCacheInactive` / `Refresh_FinishedSession_HidesResume` | `session.Set(TestProduce.Progress(WeekSelect))` → `"SetResumeVisible:True"`、`Finished` → `False`（キャッシュが true でも） |
 
 Play モード・IL2CPP・手動はタスク 6。
