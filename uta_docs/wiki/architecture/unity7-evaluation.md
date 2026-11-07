@@ -29,6 +29,7 @@ updated: 2026-11-03
 | Windows の IL2CPP のプレイヤーのビルド | 通った（3.1 の `.meta` の直しが要る）。基盤の Sandbox と Uta の `Uta.exe` | バッチモード（`BuildPipeline.BuildPlayer`） | 2026-11-01 |
 | Windows の IL2CPP のプレイヤーから、ローカルのサーバーに対する端末の登録・トークンの発行（1b） | 通った。アカウントのファイルが無い 1 回目は `SignedUp`（端末の登録）、2 回目は `SignedIn`（トークンの発行）、`reissue`・`server error delivery` も `ok`。サーバーに繋がらないとき（存在しないポート）は `connectivity check: FAILED`（`Unavailable`）で終了コード 1 | `Uta.exe -batchmode -nographics -uta-quit-after-check`（`-uta-server-url` でサーバーを変えた） | 2026-11-01 |
 | Windows の IL2CPP のプレイヤーから、Uta の RPC（`IPlayerService` の `SignUpAsync`・`SignInAsync`）を `ApiCore`（`PlayerApi : ApiServiceBase<IPlayerService>`）経由で呼ぶ | 通った。1 回目（アカウント無し）は `device: registered` → `sign-up: created` → `sign-in: ok`（所持データが入った `SignInResponse`。配列の入れ子の DTO を含む）。2 回目は `sign-up: skipped` → `sign-in: ok`。`players` の行だけを消した 3 回目は、`SignInAsync` が `PLAYER_NOT_CREATED` を返し（`ErrorInfo` のトレーラーが IL2CPP でも届き、`handledCodes` で受けた）、`SignUpAsync` → `SignInAsync` で復帰。別の `DeviceTokenProvider` でトークンを無効にしてから `SignInAsync` を呼ぶと、`ApiCore` が `Invalidate` を呼んで取り直し、再送が通った（`invalidations=1`）。`ApiServiceBase` の属性のリフレクション（`RpcSettings`）も動いた | `Uta.exe -batchmode -nographics -uta-quit-after-check`、ローカルのサーバー（Docker の PostgreSQL） | 2026-11-03 |
+| シーン構成（Bootstrap / Title / Home / Produce）の Play モードと Windows の IL2CPP | Editor の Play は `Bootstrap` から始まり（`playModeStartScene`）、`Title` のスタートで `device:` → `sign-up:` → `sign-in: ok` → `Home`（所持データの表示）、`PRODUCE` → `Produce` → `BACK TO HOME` → `Home` まで遷移した（ボタンは `unity command eval` で `onClick.Invoke()`）。`LifetimeScope.EnqueueParent` の中で `SceneManager.LoadSceneAsync(...).ToUniTask()` を待つ形で、子のスコープが親を見つけた。`LegacyRuntime.ttf` は取れた。Windows の IL2CPP のプレイヤー（4 シーン）でも `-uta-quit-after-check` で `Title` が自動で開始し、`connectivity check: OK`（終了コード 0）。繋がらないときは `start: FAILED` で終了コード 1 | Editor を開いたまま `unity command`（`editor.playmode`・`eval`）、`BuildPipeline.BuildPlayer`（`eval`）、`Uta.exe -batchmode -nographics -uta-quit-after-check` | 2026-11-03 |
 
 ## 3. 確かめられなかったもの・失敗したもの
 
@@ -58,6 +59,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 ### 3.3 そのほか未確認
 
 - ~~`ApiCore` 経由の再送と、`ApiServiceBase` の属性のリフレクションの IL2CPP~~ → Windows の IL2CPP で通った（上の表。2026-11-03）。iOS（AOT）は未確認
+- **`ReturnToTitle` で `Title` が読み込み直される経路（`ErrorNavigator`）**: 通信エラーを起こして `ApiCore` に遷移させる場面を作れず、Play でも通っていない。コードレビューで見つけた競合（古い `TitlePresenter` の続きが新しい `Title` を押しのける）は、破棄後に打ち切る処理で防いだが、実行では確かめていない
 - **`ErrorDialogView`（診断用の IMGUI）が `-uta-quit-after-check` で自動で閉じる経路と、`PlayerGateway` が `ApiResult` の失敗を `Failure` に直す経路**: `ApiCore` を通る呼び出しが失敗する場面を作れず（サーバーを止めると端末の認証が先に失敗する）、通っていない。`ApiResult.Success`・`Failure` が `internal` で、Uta の EditMode のテストからも作れない
 - **エラー詳細のトレーラー**（`ErrorInfo`・`grpc-status-details-bin`）が YetAnotherHttpHandler・IL2CPP で届くか。この計画の RPC は `ErrorInfo` を付けない
 - **Android / iOS** の実機ビルド

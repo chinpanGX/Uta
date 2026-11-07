@@ -39,7 +39,8 @@ namespace Uta.Client.Infrastructure.Api
         }
 
         /// <param name="errorHandler">アプリの共通エラーハンドラー（Bootstrap が DefaultCommonErrorHandler を渡す）</param>
-        public static UtaApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler)
+        /// <param name="errorNavigator">エラー後の画面遷移。null なら付けない（診断のとき）</param>
+        public static UtaApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IErrorNavigator errorNavigator)
         {
             var channel = ApiChannel.Create(serverUrl);
             var callInvoker = ApiChannel.CreateCallInvoker(channel);
@@ -48,7 +49,7 @@ namespace Uta.Client.Infrastructure.Api
             var playerClient = ServiceClientFactory.Create<IPlayerService>(callInvoker);
             var tokenProvider = new DeviceTokenProvider(deviceClient, new EncryptedFileAccountStore(accountFilePath, keySource), options);
             var counting = new CountingTokenProvider(tokenProvider);
-            var core = ApiCore.CreateBuilder(options, counting, new ErrorPolicyProvider(UtaErrors.Create()), errorHandler).Build();
+            var core = ApiCore.CreateBuilder(options, counting, new ErrorPolicyProvider(UtaErrors.Create()), errorHandler).WithErrorNavigator(errorNavigator).Build();
             return new UtaApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, new PlayerApi(core, playerClient));
         }
 
