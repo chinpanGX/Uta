@@ -22,11 +22,12 @@ spec: ../wiki/architecture/screen-design.md
 9. **タイトルでの失敗は、状態の文を出して、もう一度タップできる**（screen-design 8章）。旧版の「起動に失敗しました（再試行／終了）」のダイアログと実行番号（`currentRun`）は作らない（`ReturnToTitle` で `Title` シーンが読み込み直されると、古い Presenter はスコープごと破棄されるので、Presenter の `disposed` の印で止める）
 10. **プロデュースを破棄した知らせは `Home` で 1 回だけ出す**（screen-design 4章）: `PlayerCache` に「知らせ済み」の印を足し（`Set` で戻る）、`HomePresenter.DidPushEnter` で出す
 11. **エラーの「ホームへ」は、所持データを取り直してから `Home` を読み込み直す**（`ErrorNavigator` が `IObjectResolver` を受け、`GoToHomeAsync` の中で `RefreshPlayerUseCase` を遅延解決して呼ぶ。コンストラクターで受けると `UtaApiClient` → `IErrorNavigator` → `RefreshPlayerUseCase` → `IPlayerPort` → `UtaApiClient` の DI の循環になるため。取り直しの失敗はログだけで、ホームへは行く。取り直しの中で再び「ホームへ」が来たら、取り直しを飛ばす）。`ApiCore` は順番待ちを解いてから遷移を呼ぶので、遷移の中で通信してよい
-12. **ホームの 4 つのボタン（プロデュース・再開・ガチャ・アイドル）は「準備中です。」のダイアログ**（2〜4 本目が自分のボタンを差し替える）。#24 の「PRODUCE → `Produce` シーン」はやめる。**`Produce` シーンはこの計画では変えない**（#24 の仮の画面のまま: `ProduceLifetimeScope`・`ProduceView`・`ProducePresenter`・`SceneBuilder` の `BuildProduce` を消さない・直さない）。ホームから `Produce` へ移る道が無くなるので、4 本目（formation）までは使われない。4 本目が `Produce` シーンを作り直す（`UiRoot` を置き、`ProduceLifetimeScope` を `SceneUiInstaller` と入口の形にし、#24 の仮の画面を消す。底のページはいつも `ProduceBackdropPage`）
+12. **ホームの 3 つのボタンの動作（プロデュース・ガチャ・アイドル）は「準備中です。」のダイアログ**（2〜4 本目が自分のボタンを差し替える。「プロデュース」は主ボタンとナビの 2 つのボタンが同じ `ProduceClicked` を起こす。決めたこと 17）。#24 の「PRODUCE → `Produce` シーン」はやめる。**`Produce` シーンはこの計画では変えない**（#24 の仮の画面のまま: `ProduceLifetimeScope`・`ProduceView`・`ProducePresenter`・`SceneBuilder` の `BuildProduce` を消さない・直さない）。ホームから `Produce` へ移る道が無くなるので、4 本目（formation）までは使われない。4 本目が `Produce` シーンを作り直す（`UiRoot` を置き、`ProduceLifetimeScope` を `SceneUiInstaller` と入口の形にし、#24 の仮の画面を消す。底のページはいつも `ProduceBackdropPage`）
 13. 業務エラー 18 個を `UtaErrors` に `ErrorAction.Stay` で登録する（旧版と同じ）。`IGameMaster`（`GetCardText`・`GetSupportAbilities` を含む）・`MasterGameData`・`RefreshPlayerUseCase` も旧版と同じ
 14. 部品の View（P1 の骨格）に表示のメソッドを足す（3.2）。見出しを変える `HeaderView.SetTitle`、ラベルと押せるかを変える `ButtonView.SetLabel`・`SetInteractable` を含む（P3 の画面と formation・week・lesson が使う）。後続の計画はこれを使い、部品の View を書き換えない
 15. 型の名前の衝突: 基盤に `UnityScreenNavigator.ISceneNavigator`（別物）がある。`using UnityScreenNavigator;` と `using Uta.Client.Application.Navigation;` の両方を書くファイルは、`using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;` を足す（3.3.10。後続の計画も従う）
-16. **ホームのボタンのテストはボタンごとに分ける**（5章の `ProduceClicked_ShowsNotReady` など 4 本）。2〜4 本目は、自分が差し替えたボタンのテストだけを書き換える（「準備中です。」が何回出るかに依らない）
+16. **ホームのボタンのテストはイベントごとに分ける**（5章の `ProduceClicked_ShowsNotReady`・`GachaClicked_ShowsNotReady`・`OwnedClicked_ShowsNotReady` の 3 本。2026-11-07 に 4 本から変更: 再開のボタンが無くなったため）。2〜4 本目は、自分が差し替えたボタンのテストだけを書き換える（「準備中です。」が何回出るかに依らない）
+17. **ホームの構成とキャラ表示のステージ（2026-11-07 追加。ユーザーの判断。screen-design 7.8）**: P2 の `HomePage` は、上部の `ProfileText`、中央のステージ `Stage`（`RawImage` と枠の文字 `StageLabel`）、「プロデュース中」の帯 `ResumePanel`、大きな主ボタン `PrimaryButton`、下部のナビ `Nav`（プロデュース・ガチャ・アイドル）になった（P2 の決めたこと 15）。C# は次のとおり: (a) `IHomeView` のイベントは `ProduceClicked`・`GachaClicked`・`OwnedClicked` の 3 つ。**`ResumeClicked` と `HomePresenter.ResumeProduceAsync` は作らない**（主ボタンとナビの「プロデュース」はどちらも `ProduceClicked`。進行中の再開・放棄は「プロデュース」を押したときの選択: formation）。(b) `SetResumeVisible(visible)` は帯の表示に加えて、主ボタンのラベルを「再開」／「プロデュース」に切り替える。(c) キャラ表示は `ICharacterStage`（`ShowIdol(int idolId)`・`Clear()`）で隠し、MVP の実装 `PlaceholderCharacterStage`（枠の文字に育成アイドルの名前）を `HomePage.CreateStage(IGameMaster)` が作る。`HomePresenter` は所持の育成アイドルのうちレア度が最も高いもの（同率なら `IdolId` が小さいもの）を選んで `ShowIdol`、所持が 0 なら `Clear`。3D の `ModelCharacterStage` は MVP 外で、差し替えるのは `HomePage.CreateStage` だけ。(d) `HomePresenter` のコンストラクターに `IGameMaster master` を足し、テスト用のコンストラクターは `IHomeView` の直後に `ICharacterStage stage` を受ける（3.7）
 
 ## ユーザーの確認が要ること
 
@@ -46,7 +47,7 @@ spec: ../wiki/architecture/screen-design.md
 - **前提 3**: P1 が done で、`Presentation/Common/` に `UiTheme`・`PageBase`・`ModalBase`・`UiRoot`・`BusyIndicator`（骨格）・`SafeAreaFitter`・`WindowAspectKeeper`、`Common/Parts/` に部品の View の骨格、`Assets/Prefabs/Parts/` に 10 個の部品（`UiRoot.prefab` を含む）、テストの `PrefabContract` があること。タスク 1 の前に確かめ、無ければ止まって報告する。テストは `unity test --mode EditMode`（回し方は P1 タスク 5 の「テストの回し方」）で回す。**`unity test` が動かなければ、Editor の Test Runner（EditMode）を手動で回してもらい、確認できていないと報告する。止まらない。CLAUDE.md に足すのは動いたときだけ**（P1 の全計画共通の規則。CLAUDE.md に行が無いことは止まる理由にしない）
 - **前提 4**: P2 が done で、`Presentation/Title/TitlePage.cs`・`Presentation/Home/HomePage.cs`（`PageBase` の派生。3.9 のフィールド）と、`Assets/Prefabs/Screens/Title/TitlePage.prefab`・`Assets/Prefabs/Screens/Home/HomePage.prefab`（Addressables の `Screens` に、アドレス `TitlePage`・`HomePage`）があること。タスク 1 の前に確かめ、3.9 とフィールドの名前・型が違えば止まって報告する
 - **前提 5**: Unity 7（`7000.0.0a12`）の Editor が、この worktree の `client/uta` を開いていること（`unity status --until-ready`）。**Editor を開けない環境では、コンパイル・テスト・Play のどれも確かめられない**。そのときは「確認できていない」と書いてユーザーに実行を頼む（推測で「通った」と書かない）
-- **この計画で決めないこと**: ガチャ・所持一覧・編成・プロデュースの画面（2〜6 本目）。ホームの 4 つのボタンの行き先（2〜4 本目が `HomePresenter` の対応するメソッドの中身を書き換える）。`Produce` シーンの作り直し（4 本目）。モーダル（`PushModalAsync`）を実際に出して確かめるのは、最初に使う計画（2 本目のガチャの結果）。画面の Prefab と見た目（P2・P3）。Android・iOS の実機（順 7 の別項目）
+- **この計画で決めないこと**: ガチャ・所持一覧・編成・プロデュースの画面（2〜6 本目）。ホームの 3 つのボタンの動作（プロデュース・ガチャ・アイドル）の行き先（2〜4 本目が `HomePresenter` の対応するメソッドの中身を書き換える）。`Produce` シーンの作り直し（4 本目）。モーダル（`PushModalAsync`）を実際に出して確かめるのは、最初に使う計画（2 本目のガチャの結果）。画面の Prefab と見た目（P2・P3）。Android・iOS の実機（順 7 の別項目）
 - **Unity 7 の未確認**: 基盤の `ScreenNavigator`（Presenter 駆動。シーンのスコープの子スコープで Presenter を解決し、Addressables から Prefab を読む）は、P1 のスパイク（`PageContainer` + `AddressableAssetLoader` の Push）より先は動作未確認。タスク 4 の Play で確かめ、**止まる条件に当たったら止まって報告する**（勝手に別の手段へ変えない）
 
 ## 2. 触るファイル
@@ -68,6 +69,7 @@ spec: ../wiki/architecture/screen-design.md
 | 2 | 作成 | `Scripts/Infrastructure/MasterData/MasterGameData.cs` | `MemoryDatabase` → `IGameMaster`（3.6） |
 | 2 | 変更 | `Scripts/Infrastructure/Api/UtaErrors.cs` | 業務エラー 18 個を `ErrorAction.Stay` で足す（3.8） |
 | 1 | 作成 | `Tests/EditMode/Fakes/CallLog.cs`・`FakeScreenNavigator.cs`・`FakeDialogService.cs`・`FakeSceneNavigator.cs`・`StubDeviceAuthPort.cs`・`StubPlayerPort.cs` | テスト用の偽（3.3.8。2〜6 本目も使う） |
+| 3 | 作成 | `Tests/EditMode/Fakes/StubIdolMaster.cs` | 育成アイドルだけを返す `IGameMaster` の偽（3.3.8。`IGameMaster` はタスク 2 で作るので、タスク 3 で作る） |
 | 1・2 | 作成 | `Tests/EditMode/BusyIndicatorTests.cs`・`DialogServiceTests.cs`・`PageStackTests.cs`・`ActiveSceneUiTests.cs`・`MasterGameDataTests.cs`・`RefreshPlayerUseCaseTests.cs`・`PlayerCacheTests.cs` | EditMode のテスト（5章） |
 | 2 | 変更 | `Tests/EditMode/UtaErrorsTests.cs` | 登録の数と `Stay` の確認に直す（5章） |
 | 3 | 変更 | `Scripts/Presentation/Title/TitlePage.cs`・`Scripts/Presentation/Home/HomePage.cs` | P2 の骨格に `ITitleView`・`IHomeView` の実装を足す（3.7） |
@@ -77,6 +79,7 @@ spec: ../wiki/architecture/screen-design.md
 | 3 | 削除 | `Scripts/Presentation/Title/TitleView.cs` | legacy `Text` の仮の View |
 | 3 | 変更 | `Scripts/Presentation/Title/ConnectivityCheck.cs`・`Scripts/Application/Auth/SignInUseCase.cs` | コメントだけ直す（「画面の計画で消す」→ 診断の `TitleDiagnostics` が使う。3.7） |
 | 3 | 作成 | `Scripts/Presentation/Home/IHomeView.cs`・`HomeEntry.cs` | ホームの View の IF・入口（3.7） |
+| 3 | 作成 | `Scripts/Presentation/Home/ICharacterStage.cs`・`PlaceholderCharacterStage.cs` | キャラ表示のステージの IF と MVP の実装（3.7。決めたこと 17） |
 | 3 | 変更 | `Scripts/Presentation/Home/HomePresenter.cs`・`HomeLifetimeScope.cs` | 中身を全部置き換える（3.7） |
 | 3 | 削除 | `Scripts/Presentation/Home/HomeView.cs` | legacy `Text` の仮の View |
 | 4 | 削除 | `Scripts/Presentation/Startup/StartupView.cs` | IMGUI のマスタの失敗の表示（決めたこと 3。`Bootstrap` の `UiRoot` のダイアログに置き換える） |
@@ -89,7 +92,7 @@ spec: ../wiki/architecture/screen-design.md
 | 3 | 変更 | `Scripts/Editor/SceneBuilder.cs` | `Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を置く。`BuildProduce` と、それが使う legacy `Text` の補助は残す（3.10） |
 | 4 | 生成 | `Scenes/Bootstrap.unity`・`Title.unity`・`Home.unity` | `Uta/Create Scenes` で作り直す（`Produce.unity` も作り直されるが、中身は #24 のまま） |
 | 4 | 変更 | `client/uta/ProjectSettings/ProjectSettings.asset` | Windows のウィンドウと向き（タスク 4） |
-| 3・4 | 作成 | `Tests/EditMode/TitlePresenterTests.cs`・`TitleEntryTests.cs`・`HomePresenterTests.cs`・`HomeEntryTests.cs`・`ApiActivityBridgeTests.cs`・`ErrorDialogViewTests.cs`・`ErrorNavigatorTests.cs`・`BootstrapEntryTests.cs` | EditMode のテスト（5章） |
+| 3・4 | 作成 | `Tests/EditMode/TitlePresenterTests.cs`・`TitleEntryTests.cs`・`HomePresenterTests.cs`・`PlaceholderCharacterStageTests.cs`・`HomeEntryTests.cs`・`ApiActivityBridgeTests.cs`・`ErrorDialogViewTests.cs`・`ErrorNavigatorTests.cs`・`BootstrapEntryTests.cs` | EditMode のテスト（5章） |
 | 6 | 変更 | `uta_docs/wiki/architecture/screen-design.md` | 4・5・7.4・7.5・8章の古い記述、実装メモ（タスク 6） |
 | 6 | 変更 | `uta_docs/wiki/architecture/repository-layout.md` | 126 行の `ErrorDialogView`、277 行付近の USN の確認範囲（タスク 6） |
 | 6 | 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md` | 2章の表、3.3、4章（タスク 6） |
@@ -115,10 +118,11 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 | `IGameMaster`（`GetCardText`・`GetSupportAbilities` を含む）と読み取り用の型 | ルート | 3.4 |
 | `RefreshPlayerUseCase.ExecuteAsync` | ルート | 3.5 |
 | `PlayerCache.DiscardNoticeShown`・`MarkDiscardNoticeShown` | ルート | 3.5 |
-| `HomePresenter` のコンストラクター（2 本）と `OpenProduceAsync`・`ResumeProduceAsync`・`OpenGachaAsync`・`OpenOwnedAsync` | `Home` | 3.7 |
+| `HomePresenter` のコンストラクター（2 本）と `OpenProduceAsync`・`OpenGachaAsync`・`OpenOwnedAsync` | `Home` | 3.7 |
+| `ICharacterStage`・`PlaceholderCharacterStage`・`HomePage.CreateStage`（ホームのキャラ表示。3D に差し替える拡張点） | `Home` | 3.7 |
 | `BootstrapEntry.RegisterUseCases`（ユースケース・ゲートウェイを 1 行ずつ足す場所） | `Bootstrap` | 3.8 |
 | `UtaErrors.Create()`（登録済みの業務エラー） | `Infrastructure.Api` | 3.8 |
-| テスト用の偽 `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`・`StubDeviceAuthPort`・`StubPlayerPort` | `Tests/EditMode/Fakes` | 3.3.8 |
+| テスト用の偽 `CallLog`・`FakeScreenNavigator`・`FakeDialogService`・`FakeSceneNavigator`・`StubDeviceAuthPort`・`StubPlayerPort`・`StubIdolMaster` | `Tests/EditMode/Fakes` | 3.3.8 |
 | 画面を作る共通ルール | — | 3.3 |
 
 ### 3.1 asmdef の参照
@@ -354,6 +358,7 @@ Presenter は `IPresenter`（引数があれば `IScreenWithArgs<TArgs>`）を�
 
 ```csharp
 using Cysharp.Threading.Tasks;
+using Uta.Client.Application.Master;
 using Uta.Client.Application.Player;
 using Uta.Client.Presentation.Common;
 using UnityScreenNavigator;
@@ -365,22 +370,26 @@ namespace Uta.Client.Presentation.Home
     public sealed class HomePresenter : IPresenter
     {
         private readonly IHomeView view;
+        private readonly ICharacterStage stage;
         private readonly PlayerCache cache;
         private readonly DialogService dialogs;
+        private readonly IGameMaster master;
         private bool running;                              // 実行中フラグ。Presenter に 1 つ。全部のボタンの処理が共有する
         private bool disposed;
 
         [Inject]                                           // VContainer はこちらを使う（具象型のページを受ける）。[Inject] は IL2CPP のストリップも防ぐ
-        public HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs)
-            : this((IHomeView)view, cache, dialogs)        // キャストが要る（無いと自分自身を呼ぶ）
+        public HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs, IGameMaster master)
+            : this((IHomeView)view, view.CreateStage(master), cache, dialogs, master)   // キャストが要る（無いと自分自身を呼ぶ）。ステージは View から作る（3.7）
         {
         }
 
-        public HomePresenter(IHomeView view, PlayerCache cache, DialogService dialogs)   // EditMode のテストが偽の View で使う
+        public HomePresenter(IHomeView view, ICharacterStage stage, PlayerCache cache, DialogService dialogs, IGameMaster master)   // EditMode のテストが偽の View・偽のステージで使う
         {
             this.view = view;
+            this.stage = stage;
             this.cache = cache;
             this.dialogs = dialogs;
+            this.master = master;
         }
 
         public UniTask InitializeAsync()                   // ILifecycleHandler。画面が読み込まれた直後に 1 回
@@ -434,7 +443,7 @@ namespace Uta.Client.Presentation.Home
 ```
 
 決まり:
-1. **コンストラクターは 2 本**: `[Inject]` を付けた「具象型のページ（モーダル）を受ける」ものと、「`IXxxView` を受ける」もの。前者は `: this((IXxxView)view, ...)` で後者に渡す。Args・ほかの依存は両方で同じ順に受ける
+1. **コンストラクターは 2 本**: `[Inject]` を付けた「具象型のページ（モーダル）を受ける」ものと、「`IXxxView` を受ける」もの。前者は `: this((IXxxView)view, ...)` で後者に渡す。Args・ほかの依存は両方で同じ順に受ける。例外: ページから作る部品（ホームの `ICharacterStage`）は、後者だけが `IXxxView` の直後で受け、前者はページのメソッド（`view.CreateStage(master)`）で作って渡す
 2. **`[AssetAddress(nameof(XxxPage))]`** を必ず付ける。アドレスは Prefab の名前（= View の型名）。Addressables への登録は Prefab の計画（P2・P3）の生成スクリプトが行う（C# の計画は登録しない）
 3. **購読と最初の表示は `InitializeAsync`** で行う（コンストラクターでは View に触らない）。`InitializeAsync` で通信してよい（`async UniTask InitializeAsync()`。終わるまで画面は出ない）。画面が出たあとに一度だけ行うこと（お知らせのダイアログなど）は `DidPushEnter()` で行う
 4. **購読したイベントは `Dispose` で全部解く**。`Dispose` は `InitializeAsync` の前に呼ばれても安全に書く（未購読の `-=` は害がない）
@@ -458,13 +467,13 @@ public interface IHomeView
 public sealed class HomePage : PageBase, IHomeView
 {
     [SerializeField] private TMP_Text profileText;        // P2 の骨格のまま
-    [SerializeField] private ButtonView gachaButton;   // P2 の骨格のまま
+    [SerializeField] private ButtonView navGachaButton;   // P2 の骨格のまま
 
     public event Action GachaClicked;                     // ここから下をこの計画（C#）が足す
 
     private void Awake()
     {
-        gachaButton.Button.onClick.AddListener(() => GachaClicked?.Invoke());
+        navGachaButton.Button.onClick.AddListener(() => GachaClicked?.Invoke());
     }
 
     public void SetProfile(int level, int gachaCurrency)
@@ -592,6 +601,19 @@ public sealed class StubPlayerPort : IPlayerPort
     public Queue<PlayerSignUpResult> SignUpResults { get; }
     /// <summary>既定の成功で返すスナップショット。既定は Lv 1・Exp 0・Gold 0・SupportPoints 0・GachaCurrency 0・進行中なし・破棄なし・空のリスト 2 つ。</summary>
     public PlayerSnapshot Snapshot { get; set; }
+}
+```
+
+```csharp
+/// <summary>育成アイドルだけを返す IGameMaster の偽（タスク 3。HomePresenterTests・PlaceholderCharacterStageTests が使う）。2 本目（gacha）の FakeGameMaster とは別物で、gacha 以降もこのまま残す。</summary>
+public sealed class StubIdolMaster : IGameMaster
+{
+    public StubIdolMaster(params IdolInfo[] idols);   // Idols は渡された順のまま（IdolId の昇順で渡す）
+    /// <summary>名前とレア度だけを決めた IdolInfo。ほかは固定: plan Plan.Sense、maxHp 30、initial 0・0・0、ParamKind.Singing・Rhythm・Expression。</summary>
+    public static IdolInfo Idol(int idolId, string name, Rarity rarity);
+    // Idols: 渡された配列。GetIdol(idolId): IdolId が一致するもの。無ければ KeyNotFoundException("idol " + idolId)
+    // ほかのメンバー（SupportCards・GetSupportCard・GetSupportAbilities・Gachas・GetGacha・Scenarios・GetScenario・GetSupportMaxLevel・
+    //   GetSupportMaxLimitBreak・GetSupportLevelUpCost・GetCardText）は NotSupportedException("StubIdolMaster")
 }
 ```
 
@@ -833,42 +855,68 @@ public sealed class TitleLifetimeScope : LifetimeScope
 
 #### ホーム（`Uta.Client.Presentation.Home`）
 
+構成は screen-design 7.8・P2 の決めたこと 15（決めたこと 17）。ファイルは 1 型 1 ファイル（`IHomeView.cs`・`ICharacterStage.cs`・`PlaceholderCharacterStage.cs`・`HomePage.cs`・`HomePresenter.cs`・`HomeEntry.cs`）。
+
 ```csharp
 public interface IHomeView
 {
     void SetProfile(int level, int gachaCurrency);
     void SetResumeVisible(bool visible);
-    event Action ProduceClicked;
-    event Action ResumeClicked;
+    event Action ProduceClicked;   // 主ボタンとナビの「プロデュース」の両方
     event Action GachaClicked;
     event Action OwnedClicked;
 }
 
+/// <summary>ホームのキャラ表示のステージ。MVP は PlaceholderCharacterStage、3D は MVP 外の ModelCharacterStage（screen-design 7.8）。</summary>
+public interface ICharacterStage
+{
+    /// <summary>育成アイドル idolId を出す。</summary>
+    void ShowIdol(int idolId);
+    /// <summary>何も出さない（所持が 0 のとき）。</summary>
+    void Clear();
+}
+
+/// <summary>MVP の仮の枠。枠の文字（P2 の Stage/StageLabel）に育成アイドルの名前を出すだけ。RawImage には触らない。</summary>
+public sealed class PlaceholderCharacterStage : ICharacterStage
+{
+    public const string EmptyText = "キャラ表示";   // P2 の StageLabel の仮の文字と同じ
+    /// <summary>label・master が null なら ArgumentNullException（引数名 "label"・"master"）。</summary>
+    public PlaceholderCharacterStage(TMP_Text label, IGameMaster master);
+    public void ShowIdol(int idolId);   // label.text = master.GetIdol(idolId).Name（無ければ GetIdol の KeyNotFoundException がそのまま出る）
+    public void Clear();                // label.text = EmptyText
+}
+
 public sealed class HomePage : PageBase, IHomeView   // フィールドは P2 の骨格（3.9）
 {
-    // Awake: produceButton・resumeButton・gachaButton・ownedButton の Button.onClick で、それぞれ ProduceClicked・ResumeClicked・GachaClicked・OwnedClicked を起こす
+    // Awake: primaryButton と navProduceButton の Button.onClick で ProduceClicked、navGachaButton で GachaClicked、navOwnedButton で OwnedClicked を起こす
     // SetProfile: profileText.text = "プレイヤーLv " + level + "　ガチャ通貨 " + gachaCurrency.ToString("N0", CultureInfo.InvariantCulture)（間は全角の空白 1 つ。書式はページで組む）
-    // SetResumeVisible: resumePanel.SetActive(visible)
+    // SetResumeVisible: resumePanel.SetActive(visible); primaryButton.SetLabel(visible ? "再開" : "プロデュース");
+    /// <summary>キャラ表示のステージを作る（IHomeView には置かない。HomePresenter の [Inject] のコンストラクターだけが呼ぶ）。
+    /// MVP は new PlaceholderCharacterStage(stageLabel, master)。3D に替えるときは、ここだけを ModelCharacterStage（stageImage に RenderTexture を入れる）に差し替える。</summary>
+    public ICharacterStage CreateStage(IGameMaster master);
 }
 
 [AssetAddress(nameof(HomePage))]
 public sealed class HomePresenter : IPresenter
 {
-    [Inject] public HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs);   // : this((IHomeView)view, cache, dialogs)
-    public HomePresenter(IHomeView view, PlayerCache cache, DialogService dialogs);
-    public UniTask InitializeAsync();   // 4 つのイベントを購読し、Refresh()
+    [Inject] public HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs, IGameMaster master);   // : this((IHomeView)view, view.CreateStage(master), cache, dialogs, master)
+    public HomePresenter(IHomeView view, ICharacterStage stage, PlayerCache cache, DialogService dialogs, IGameMaster master);
+    public UniTask InitializeAsync();   // 3 つのイベントを購読し、Refresh()
     public void DidPushEnter();         // ShowDiscardNoticeIfNeededAsync().Forget()
     public void DidPopEnter();          // Refresh()
-    public void Dispose();              // disposed = true、4 つの購読を解く
+    public void Dispose();              // disposed = true、3 つの購読を解く
     /// <summary>cache.Current が null なら何もしない。Current.DiscardedProduce が true で cache.DiscardNoticeShown が false なら、
     /// cache.MarkDiscardNoticeShown() してから await dialogs.ShowInfoAsync("バージョンが変わったため、進行中のプロデュースは破棄されました。")。</summary>
     public UniTask ShowDiscardNoticeIfNeededAsync();
     public UniTask OpenProduceAsync();  // この計画: 実行中フラグ（3.3.2 の 5）の中で dialogs.ShowInfoAsync("準備中です。")。4 本目が書き換える
-    public UniTask ResumeProduceAsync();// 同上。4 本目（formation）が書き換える
     public UniTask OpenGachaAsync();    // 同上。2 本目が書き換える
     public UniTask OpenOwnedAsync();    // 同上。3 本目が書き換える
-    // Refresh(): var s = cache.Current; s が null なら何もしない。view.SetProfile(s.Level, s.GachaCurrency); view.SetResumeVisible(s.HasActiveProduce);
-    // ProduceClicked → OpenProduceAsync().Forget()、ResumeClicked → ResumeProduceAsync().Forget()、GachaClicked → OpenGachaAsync().Forget()、OwnedClicked → OpenOwnedAsync().Forget()
+    // Refresh(): var s = cache.Current; s が null なら何もしない。view.SetProfile(s.Level, s.GachaCurrency); view.SetResumeVisible(s.HasActiveProduce); RefreshStage(s);（この順）
+    // private void RefreshStage(PlayerSnapshot s): 下の選び方で選んだ育成アイドルがあれば stage.ShowIdol(idolId)、所持が 0 なら stage.Clear()
+    //   選び方: s.Idols を前から見て、master.GetIdol(owned.IdolId).Rarity を (int) にした値が今の最良より大きい、
+    //   または同じで owned.IdolId が今の最良より小さいなら、それを最良にする（最初の 1 つは無条件に最良）。
+    //   GetIdol の KeyNotFoundException は捕まえない（所持の IdolId はサーバーと同じマスタにある）
+    // ProduceClicked → OpenProduceAsync().Forget()、GachaClicked → OpenGachaAsync().Forget()、OwnedClicked → OpenOwnedAsync().Forget()
 }
 
 /// <summary>Home シーンの入口。</summary>
@@ -881,13 +929,16 @@ public sealed class HomeEntry : IStartable
 }
 ```
 
+- `PlaceholderCharacterStage`・`HomePage.CreateStage` は `using Uta.Client.Application.Master;`（`IGameMaster`）、`PlaceholderCharacterStage` は `using TMPro;` を書く。`HomePresenter` は `using Uta.Client.Application.Master;` を足す
+- `IGameMaster` はルートのスコープにある（3.8 の `RegisterInstance<IGameMaster>`）ので、`[Inject]` のコンストラクターで受けられる。ステージは DI に登録しない（ページごとに `HomePage.CreateStage` が作る）
+- ステージの選び直しは `Refresh()` の中（最初の表示と、上のページ（ガチャ・所持一覧）から戻ったとき）。ガチャで新しい育成アイドルを引いて戻ると、取り直したキャッシュで選び直す
 - 2〜4 本目は、`HomePresenter` のコンストラクター（2 本）の最後に依存を足し、対応するメソッドの中身を書き換える。`IScreenNavigator` を足すのは 2 本目（ガチャ）。3・4 本目は足された前提で、自分のユースケースだけを足す（計画は並行しない。[索引](2026-11-07-client-screens-index.md) 1章）
-- 叩き台の「プロデュース中: 週 7 / 16」は、`PlayerSnapshot` に週の情報が無いので出さない（[Uta案]。叩き台との差。文字は P2 の Prefab の固定の「プロデュース中」）
+- 「プロデュース中」の帯は、`PlayerSnapshot` に週の情報が無いので週を出さない（[Uta案]。文字は P2 の Prefab の固定の「プロデュース中」）
 - `HomeLifetimeScope`（`Uta.Client.Presentation`）: `[SerializeField] private UiRoot uiRoot;`、`Configure` は `SceneUiInstaller.Install(builder, uiRoot); builder.RegisterEntryPoint<HomeEntry>();`
 
 #### プロデュース
 
-- **変えない**（決めたこと 12）。`ProduceLifetimeScope`・`ProduceView`・`ProducePresenter`（#24 の仮の画面）と `Produce.unity` の形はそのまま。ホームの「プロデュース」「再開」は「準備中です。」なので、この計画の時点では `Produce` シーンへ移らない。4 本目（formation）が `Produce` シーンを作り直す（`UiRoot` を置き、`ProduceLifetimeScope` を `SceneUiInstaller.Install` と入口 `ProduceEntry` の形にし、`ProduceView`・`ProducePresenter` を消し、`SceneBuilder.BuildProduce` を `BuildHome` と同じ形にする）
+- **変えない**（決めたこと 12）。`ProduceLifetimeScope`・`ProduceView`・`ProducePresenter`（#24 の仮の画面）と `Produce.unity` の形はそのまま。ホームの「プロデュース」（主ボタン・ナビ）は「準備中です。」なので、この計画の時点では `Produce` シーンへ移らない。4 本目（formation）が `Produce` シーンを作り直す（`UiRoot` を置き、`ProduceLifetimeScope` を `SceneUiInstaller.Install` と入口 `ProduceEntry` の形にし、`ProduceView`・`ProducePresenter` を消し、`SceneBuilder.BuildProduce` を `BuildHome` と同じ形にする）
 
 ### 3.8 `Bootstrap` と `Infrastructure.Api`
 
@@ -962,11 +1013,13 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 | `TitlePage` | `ButtonView startButton` | `StartButton`（→ `Button`） | `StartClicked`・`SetStartInteractable` |
 | | `TMP_Text statusText` | `StatusText`（→ `Label`） | `SetStatus`（複数行。折り返しあり） |
 | `HomePage` | `TMP_Text profileText` | `ProfileText` | `SetProfile` |
+| | `RawImage stageImage` | `Stage` | 使わない（MVP。3D の `ModelCharacterStage` が使う） |
+| | `TMP_Text stageLabel` | `Stage/StageLabel` | `CreateStage`（`PlaceholderCharacterStage` に渡す） |
 | | `GameObject resumePanel` | `ResumePanel` | `SetResumeVisible` |
-| | `ButtonView resumeButton` | `ResumePanel/ResumeButton` | `ResumeClicked` |
-| | `ButtonView produceButton` | `ProduceButton` | `ProduceClicked` |
-| | `ButtonView gachaButton` | `GachaButton` | `GachaClicked` |
-| | `ButtonView ownedButton` | `OwnedButton` | `OwnedClicked` |
+| | `ButtonView primaryButton` | `PrimaryButton` | `ProduceClicked`・`SetResumeVisible`（ラベル） |
+| | `ButtonView navProduceButton` | `Nav/NavProduceButton` | `ProduceClicked` |
+| | `ButtonView navGachaButton` | `Nav/NavGachaButton` | `GachaClicked` |
+| | `ButtonView navOwnedButton` | `Nav/NavOwnedButton` | `OwnedClicked` |
 
 ### 3.10 `SceneBuilder`（`Uta.Client.Editor`）
 
@@ -1023,7 +1076,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
 
 #### タスク 3: タイトル・ホームの Presentation
 
-触る: `Presentation/Title/*`（`TitlePage.cs` は足す、`TitlePresenter.cs`・`TitleLifetimeScope.cs` は置き換え、`ITitleView.cs`・`TitleEntry.cs`・`TitleDiagnostics.cs`・`StartupLogs.cs` は作成、`TitleView.cs` は削除）、`Presentation/Home/*`（`HomePage.cs` は足す、`HomePresenter.cs`・`HomeLifetimeScope.cs` は置き換え、`IHomeView.cs`・`HomeEntry.cs` は作成、`HomeView.cs` は削除）、`Editor/SceneBuilder.cs`（3.10）、`Presentation/Title/ConnectivityCheck.cs`・`Application/Auth/SignInUseCase.cs`（コメントだけ）、`Tests/EditMode/TitlePresenterTests.cs`・`TitleEntryTests.cs`・`HomePresenterTests.cs`・`HomeEntryTests.cs`。
+触る: `Presentation/Title/*`（`TitlePage.cs` は足す、`TitlePresenter.cs`・`TitleLifetimeScope.cs` は置き換え、`ITitleView.cs`・`TitleEntry.cs`・`TitleDiagnostics.cs`・`StartupLogs.cs` は作成、`TitleView.cs` は削除）、`Presentation/Home/*`（`HomePage.cs` は足す、`HomePresenter.cs`・`HomeLifetimeScope.cs` は置き換え、`IHomeView.cs`・`ICharacterStage.cs`・`PlaceholderCharacterStage.cs`・`HomeEntry.cs` は作成、`HomeView.cs` は削除）、`Editor/SceneBuilder.cs`（3.10）、`Presentation/Title/ConnectivityCheck.cs`・`Application/Auth/SignInUseCase.cs`（コメントだけ）、`Tests/EditMode/Fakes/StubIdolMaster.cs`、`Tests/EditMode/TitlePresenterTests.cs`・`TitleEntryTests.cs`・`HomePresenterTests.cs`・`PlaceholderCharacterStageTests.cs`・`HomeEntryTests.cs`。
 
 手順:
 1. 3.7 のとおりに作る・置き換える・削除する（削除は `.cs` と `.meta` の両方）。3.7 のコメントの直しもする
@@ -1049,7 +1102,7 @@ P2 が作る骨格に、次のフィールドがあることを前提にする�
    1. `unity command editor.playmode start` → 数秒後 `unity command console get --tail 50 --level error --format json` にエラーが無い
    2. `unity command eval 'return UnityEngine.SceneManagement.SceneManager.GetActiveScene().name + ":" + UnityEngine.Object.FindFirstObjectByType<Uta.Client.Presentation.Common.UiRoot>().Pages.Pages.Count + ":" + (UnityEngine.Object.FindFirstObjectByType<Uta.Client.Presentation.Title.TitlePage>() != null);'` が `Title:1:True`
    3. `unity command eval 'UnityEngine.GameObject.Find("StartButton").GetComponent<UnityEngine.UI.Button>().onClick.Invoke(); return "ok";'` → 数秒後 `unity command console get --tail 50 --format json` に `[Uta] sign-in: ok` があり、2 と同じ式（`TitlePage` を `Uta.Client.Presentation.Home.HomePage` に変える）が `Home:1:True`
-   4. `unity command eval 'UnityEngine.GameObject.Find("GachaButton").GetComponent<UnityEngine.UI.Button>().onClick.Invoke(); return (UnityEngine.GameObject.Find("Dialog") != null).ToString();'` が `True`（「準備中です。」）→ `unity command eval 'UnityEngine.GameObject.Find("Button0").GetComponent<UnityEngine.UI.Button>().onClick.Invoke(); return "ok";'` → `unity command eval 'return (UnityEngine.GameObject.Find("Dialog") == null).ToString();'` が `True`（`Destroy` は次のフレームなので、1 回目が `False` なら 1 秒おいてもう一度）
+   4. `unity command eval 'UnityEngine.GameObject.Find("NavGachaButton").GetComponent<UnityEngine.UI.Button>().onClick.Invoke(); return (UnityEngine.GameObject.Find("Dialog") != null).ToString();'` が `True`（「準備中です。」）→ `unity command eval 'UnityEngine.GameObject.Find("Button0").GetComponent<UnityEngine.UI.Button>().onClick.Invoke(); return "ok";'` → `unity command eval 'return (UnityEngine.GameObject.Find("Dialog") == null).ToString();'` が `True`（`Destroy` は次のフレームなので、1 回目が `False` なら 1 秒おいてもう一度）
    5. `unity command editor.playmode stop`。見た目は 5章の手動の確認で見る
 
 止まる条件（当たったら、その時点のコンソールの出力を添えて止まって報告する。別の手段へ変えない）:
@@ -1142,16 +1195,22 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 | 3 | `TitleEntryTests.cs` | `StartAsync_Normal_PushesTitle` | `new TitleEntry(navigator, new StartupOptions(false), null)` → `log` が `"PushPage:TitlePresenter"` |
 | | | `StartAsync_QuitAfterCheck_Success_QuitsWithZero` | `var codes = new List<int>();`。`StubDeviceAuthPort`（既定）・`StubPlayerPort`（既定）で `SignInUseCase`・`EnterPlayerUseCase`（`PlayerCache` は新しいもの）を作り、`new TitleDiagnostics(signIn, enterPlayer, new ConnectivityCheck(signIn, enterPlayer), code => codes.Add(code))`。`new TitleEntry(navigator, new StartupOptions(true), diagnostics)` の `StartAsync()` を await → `codes` が `{ 0 }`、`log` に `"PushPage:"` で始まる記録が無い |
 | | | `StartAsync_QuitAfterCheck_SignInFails_QuitsWithOne` | 上と同じで、`EnsureSignedIn` に `() => throw new InvalidOperationException("x")` を 1 つ → `codes` が `{ 1 }`、`"PushPage:"` の記録が無い |
-| 3 | `HomePresenterTests.cs` | `InitializeAsync_ShowsProfileAndResume` | 偽の `IHomeView`。`PlayerCache` に Lv 12・ガチャ通貨 3250・`HasActiveProduce = true` → `log` が `"SetProfile:12,3250"`, `"SetResumeVisible:True"` |
+| 3 | `HomePresenterTests.cs` | （共通の組み立て） | 偽の `IHomeView`（`FakeHomeView`。3.3.7）と偽のステージ `FakeCharacterStage : ICharacterStage`（テストのファイルの中の `private sealed class`。同じ `CallLog` に `ShowIdol` → `"ShowIdol:" + idolId`、`Clear` → `"ClearStage"` を記録）。`new HomePresenter(view, stage, cache, dialogs, master)`。`master` は `new StubIdolMaster(...)`（ステージのテストのほかは育成アイドルなしの `new StubIdolMaster()`）。スナップショットの `Idols` は、指定が無ければ空 |
+| | | `InitializeAsync_ShowsProfileAndResume` | `PlayerCache` に Lv 12・ガチャ通貨 3250・`HasActiveProduce = true`・所持の育成アイドルなし → `log` が `"SetProfile:12,3250"`, `"SetResumeVisible:True"`, `"ClearStage"` |
+| | | `InitializeAsync_ShowsHighestRarityIdolOnStage` | `StubIdolMaster` に 1（SR）・2（SSR）・3（SSR）・4（R）、所持の順を 4・3・1・2（`OwnedIdol(id, 0, 0, 0)`）→ 最後の記録が `"ShowIdol:2"`（SSR の 2 と 3 のうち `IdolId` が小さい 2。所持の順に依らない） |
+| | | `InitializeAsync_SingleIdol_ShowsIt` | 1（N）だけ所持 → 最後の記録が `"ShowIdol:1"` |
+| | | `DidPopEnter_RepicksStage` | 所持なしで `InitializeAsync`（`"ClearStage"`）→ キャッシュを 3（SSR）所持のスナップショットに差し替えて `DidPopEnter()` → 最後の記録が `"ShowIdol:3"` |
 | | | `ProduceClicked_ShowsNotReady` | `InitializeAsync` のあと `RaiseProduceClicked()` → `InitializeAsync` の後の記録が `"Info:準備中です。"` だけ（4 本目が差し替える） |
-| | | `ResumeClicked_ShowsNotReady` | 同じく `RaiseResumeClicked()` → `"Info:準備中です。"` だけ（4 本目が差し替える） |
 | | | `GachaClicked_ShowsNotReady` | 同じく `RaiseGachaClicked()` → `"Info:準備中です。"` だけ（2 本目が差し替える） |
 | | | `OwnedClicked_ShowsNotReady` | 同じく `RaiseOwnedClicked()` → `"Info:準備中です。"` だけ（3 本目が差し替える） |
 | | | `DidPopEnter_RefreshesFromCache` | キャッシュを Lv 13 に差し替えて `DidPopEnter()` → `"SetProfile:13,..."` |
-| | | `Dispose_UnsubscribesEvents` | `Dispose()` のあと 4 つのイベントを起こしても、記録が 1 つも増えない（ボタンの行き先に依らない） |
+| | | `Dispose_UnsubscribesEvents` | `Dispose()` のあと 3 つのイベントを起こしても、記録が 1 つも増えない（ボタンの行き先に依らない） |
 | | | `OpenGachaAsync_WhileRunning_Ignored` | `FakeDialogService.InfoGate` に未完了の源を入れ、`OpenGachaAsync()` を 2 回呼ぶ → `"Info:"` は 1 回。源を完了させたあと、もう 1 回呼ぶと 2 回目が出る（実行中フラグが finally で戻る）。ガチャのボタンのテストなので、2 本目が `GachaClicked_ShowsNotReady` と一緒に差し替える |
 | | | `ShowDiscardNotice_Discarded_ShowsOnce` | `DiscardedProduce = true` のスナップショット → `ShowDiscardNoticeIfNeededAsync()` を 2 回 → `"Info:バージョンが変わったため、進行中のプロデュースは破棄されました。"` が 1 回、`cache.DiscardNoticeShown == true` |
 | | | `ShowDiscardNotice_NotDiscarded_ShowsNothing` | `DiscardedProduce = false` → 記録なし |
+| 3 | `PlaceholderCharacterStageTests.cs` | `ShowIdol_SetsIdolName` | `var go = new GameObject(); var label = go.AddComponent<TextMeshProUGUI>();`、`new PlaceholderCharacterStage(label, new StubIdolMaster(StubIdolMaster.Idol(2, "テストアイドル", Rarity.SSR)))` → `ShowIdol(2)` で `label.text == "テストアイドル"`。最後に `Object.DestroyImmediate(go)` |
+| | | `Clear_SetsEmptyText` | `ShowIdol(2)` のあと `Clear()` → `label.text == PlaceholderCharacterStage.EmptyText`（"キャラ表示"） |
+| | | `Constructor_Null_Throws` | `label` が null → `ArgumentNullException`（`ParamName == "label"`）、`master` が null → `ParamName == "master"` |
 | 3 | `HomeEntryTests.cs` | `StartAsync_NoPlayer_GoesTitle` | `cache.Current == null` → `log` が `"GoToTitle"` だけ |
 | | | `StartAsync_WithPlayer_PushesHome` | `Set` 済み → `"PushPage:HomePresenter"` だけ |
 | 4 | `ApiActivityBridgeTests.cs` | `Started_BeginsCurrentBusy` | `UiRoot` を `AddComponent` し、`busyIndicator` に `AddComponent<BusyIndicator>()` を `SerializedObject` で入れる → `Attach` → `OnActivityStarted()` で `IsBusy == true`、`OnActivityEnded()` で false |
@@ -1178,7 +1237,8 @@ Editor を閉じる・サーバーを起動する環境がなければ、確か�
 
 Play モード・手動（Editor、サーバー起動済み）:
 - 初回: 起動 → タイトル（「タップしてスタート」）→ タップ → 「接続中…」→ ホーム。プレイヤーLv とガチャ通貨が出る。2 回目（再起動）も同じ
-- ホームの「プロデュース」「ガチャ」「アイドル」「再開」（進行中のときだけ見える）を押すと「準備中です。」が出て、OK で閉じる
+- ホームの主ボタン（「プロデュース」。進行中は「再開」の表示で、帯「プロデュース中」も出る）と、下部のナビの「プロデュース」「ガチャ」「アイドル」を押すと「準備中です。」が出て、OK で閉じる
+- ホームの中央のステージ（色つきの枠）に、所持の育成アイドルのうちレア度が最も高いものの名前が出る（初回の初期付与に育成アイドルが無ければ「キャラ表示」のまま）
 - 通信中（サインインの間）は入力が効かない（`ApiActivityBridge`。サーバーを遅くする手段がなければ、確かめていないと報告する）
 - サーバーを止めてタップ → タイトルに「接続に失敗しました: …」が出て、もう一度タップできる（端末の認証は `ApiCore` を通らないので、共通エラーのダイアログは出ない）。サーバーを起動してからタップでホームに進む
 - 画面を縦長にしたとき、背景が全面に出てボタンが safe area の中にある。日本語が TMP（Noto Sans JP）で出る
