@@ -98,7 +98,7 @@ uta/
 1. ゲームの仕様（`systems/`・`overview/`）を書く、または更新する
 2. 実装設計書（`architecture/`）を書く、または更新する。何の正がどのページかは `architecture/README.md`
 3. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
-4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）
+4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、承認後に `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
 5. 実装設計書と実装計画を `requesting-design-review` でレビューに出す（上の表の回し方）。実装計画は、実装可能性の観点が「質問せずに書ける」と判定するまで直し、`status: ready` にする
 6. 計画のタスクごとに Sonnet のサブエージェントに実装させる（Agent ツールで `model: sonnet`）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
 7. `requesting-code-review` でコードレビューに出す
