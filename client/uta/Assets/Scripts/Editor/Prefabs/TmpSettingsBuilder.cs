@@ -26,14 +26,14 @@ namespace Uta.Client.Editor.Prefabs
                 settings = UnityEngine.Object.Instantiate(builtIn);
                 settings.name = "TMP Settings";
                 var created = new SerializedObject(settings);
-                created.FindProperty("m_IsBuiltInSettings").boolValue = false;
+                FindProperty(created, "m_IsBuiltInSettings").boolValue = false;
                 created.ApplyModifiedPropertiesWithoutUndo();
                 Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath));
                 AssetDatabase.CreateAsset(settings, SettingsPath);
             }
 
             var serialized = new SerializedObject(settings);
-            serialized.FindProperty("m_defaultFontAsset").objectReferenceValue = font;
+            FindProperty(serialized, "m_defaultFontAsset").objectReferenceValue = font;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
@@ -52,6 +52,16 @@ namespace Uta.Client.Editor.Prefabs
                     throw new InvalidOperationException("another TMP_Settings exists: " + path);
                 }
             }
+        }
+
+        private static SerializedProperty FindProperty(SerializedObject serialized, string propertyName)
+        {
+            var property = serialized.FindProperty(propertyName);
+            if (property == null)
+            {
+                throw new InvalidOperationException("TMP_Settings property not found: " + propertyName);
+            }
+            return property;
         }
     }
 }

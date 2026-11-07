@@ -32,9 +32,10 @@ namespace Uta.Client.Editor.Prefabs
             }
             finally
             {
-                PrefabBuildUtil.EndSession();
-                FontAssets.ClearDynamicData();
-                AssetDatabase.SaveAssets();
+                // 後片付けの失敗はログに出すだけにし、Build の元の例外を隠さない
+                RunCleanup(PrefabBuildUtil.EndSession);
+                RunCleanup(FontAssets.ClearDynamicData);
+                RunCleanup(AssetDatabase.SaveAssets);
             }
 
             var result = "built " + builders.Count;
@@ -45,13 +46,26 @@ namespace Uta.Client.Editor.Prefabs
         private static List<IPrefabBuilder> CollectBuilders()
         {
             var builders = new List<IPrefabBuilder>();
+            var editorAssembly = typeof(IPrefabBuilder).Assembly;
             foreach (var type in TypeCache.GetTypesDerivedFrom<IPrefabBuilder>())
             {
-                if (type.IsAbstract || type.IsInterface)
+                if (type.IsAbstract || type.IsInterface || type.ContainsGenericParameters)
                 {
                     continue;
                 }
-                builders.Add((IPrefabBuilder)Activator.CreateInstance(type));
+
+                // Uta.Client.Editor の型だけ（テストなどほかのアセンブリの実装は拾わない）
+                if (type.Assembly != editorAssembly)
+                {
+                    continue;
+                }
+
+                var constructor = type.GetConstructor(Type.EmptyTypes);
+                if (constructor == null)
+                {
+                    throw new InvalidOperationException("prefab builder has no public parameterless constructor: " + type.FullName);
+                }
+                builders.Add((IPrefabBuilder)constructor.Invoke(null));
             }
 
             var duplicate = builders.GroupBy(builder => builder.AssetPath, StringComparer.Ordinal).FirstOrDefault(group => group.Count() > 1);
@@ -64,6 +78,18 @@ namespace Uta.Client.Editor.Prefabs
                 .OrderBy(builder => builder.Order)
                 .ThenBy(builder => builder.AssetPath, StringComparer.Ordinal)
                 .ToList();
+        }
+
+        private static void RunCleanup(Action cleanup)
+        {
+            try
+            {
+                cleanup();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
 
         /// <summary>-batchmode -executeMethod 用。成功で Exit(0)、例外は Exit(1)。</summary>

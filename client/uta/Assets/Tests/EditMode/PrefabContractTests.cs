@@ -28,6 +28,62 @@ namespace Uta.Client.Infrastructure.Tests
             "Background", "Pages", "Modals", "Overlays", "Busy", "Dialogs", "EventSystem",
         };
 
+        // 根 Broken と子 Child。Child に存在しない GUID のスクリプトの MonoBehaviour を付ける
+        private const string BrokenPrefabYaml =
+            "%YAML 1.1\n" +
+            "%TAG !u! tag:unity3d.com,2011:\n" +
+            "--- !u!1 &100\n" +
+            "GameObject:\n" +
+            "  m_ObjectHideFlags: 0\n" +
+            "  serializedVersion: 6\n" +
+            "  m_Component:\n" +
+            "  - component: {fileID: 101}\n" +
+            "  m_Layer: 0\n" +
+            "  m_Name: Broken\n" +
+            "  m_TagString: Untagged\n" +
+            "  m_IsActive: 1\n" +
+            "--- !u!4 &101\n" +
+            "Transform:\n" +
+            "  m_ObjectHideFlags: 0\n" +
+            "  m_GameObject: {fileID: 100}\n" +
+            "  serializedVersion: 2\n" +
+            "  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}\n" +
+            "  m_LocalPosition: {x: 0, y: 0, z: 0}\n" +
+            "  m_LocalScale: {x: 1, y: 1, z: 1}\n" +
+            "  m_Children:\n" +
+            "  - {fileID: 201}\n" +
+            "  m_Father: {fileID: 0}\n" +
+            "--- !u!1 &200\n" +
+            "GameObject:\n" +
+            "  m_ObjectHideFlags: 0\n" +
+            "  serializedVersion: 6\n" +
+            "  m_Component:\n" +
+            "  - component: {fileID: 201}\n" +
+            "  - component: {fileID: 202}\n" +
+            "  m_Layer: 0\n" +
+            "  m_Name: Child\n" +
+            "  m_TagString: Untagged\n" +
+            "  m_IsActive: 1\n" +
+            "--- !u!4 &201\n" +
+            "Transform:\n" +
+            "  m_ObjectHideFlags: 0\n" +
+            "  m_GameObject: {fileID: 200}\n" +
+            "  serializedVersion: 2\n" +
+            "  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}\n" +
+            "  m_LocalPosition: {x: 0, y: 0, z: 0}\n" +
+            "  m_LocalScale: {x: 1, y: 1, z: 1}\n" +
+            "  m_Children: []\n" +
+            "  m_Father: {fileID: 101}\n" +
+            "--- !u!114 &202\n" +
+            "MonoBehaviour:\n" +
+            "  m_ObjectHideFlags: 0\n" +
+            "  m_GameObject: {fileID: 200}\n" +
+            "  m_Enabled: 1\n" +
+            "  m_EditorHideFlags: 0\n" +
+            "  m_Script: {fileID: 11500000, guid: 0123456789abcdef0123456789abcdef, type: 3}\n" +
+            "  m_Name: \n" +
+            "  m_EditorClassIdentifier: \n";
+
         [Test]
         public void AllPrefabs_SerializedReferences_AreAssigned()
         {
@@ -42,6 +98,29 @@ namespace Uta.Client.Infrastructure.Tests
             }
 
             Assert.That(errors, Is.Empty);
+        }
+
+        [Test]
+        public void CollectMissingReferences_MissingScript_IsReported()
+        {
+            // 存在しないスクリプトの GUID を参照する Prefab を一時フォルダに書き、読み込んで確かめる（終わったらフォルダごと消す）
+            var folder = AssetDatabase.GUIDToAssetPath(AssetDatabase.CreateFolder("Assets", "UtaTempMissingScriptTest"));
+            try
+            {
+                var path = folder + "/Broken.prefab";
+                File.WriteAllText(path, BrokenPrefabYaml);
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                Assert.IsNotNull(prefab, path);
+
+                var missing = PrefabContract.CollectMissingReferences(prefab);
+
+                Assert.That(missing, Is.EqualTo(new[] { "Broken/Child.<missing script>" }));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(folder);
+            }
         }
 
         [Test]

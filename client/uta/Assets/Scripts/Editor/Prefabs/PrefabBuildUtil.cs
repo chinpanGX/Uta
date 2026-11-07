@@ -136,6 +136,16 @@ namespace Uta.Client.Editor.Prefabs
             return component;
         }
 
+        private static Transform FindChild(Transform parent, string childName, string partName)
+        {
+            var child = parent.Find(childName);
+            if (child == null)
+            {
+                throw new InvalidOperationException("child " + childName + " not found on part: " + partName);
+            }
+            return child;
+        }
+
         // --- RectTransform ---
 
         public static void SetRect(RectTransform rect, RectSpec spec)
@@ -324,7 +334,7 @@ namespace Uta.Client.Editor.Prefabs
         public static ButtonView AddButtonPart(Transform parent, string name, string label, ButtonStyle style = ButtonStyle.Primary)
         {
             var view = InstantiatePart<ButtonView>(parent, "Button", name);
-            var labelText = view.transform.Find("Label").GetComponent<TMP_Text>();
+            var labelText = FindChild(view.transform, "Label", "Button").GetComponent<TMP_Text>();
             labelText.text = label;
             MarkModified(labelText);
             var image = view.GetComponent<Image>();
@@ -354,7 +364,7 @@ namespace Uta.Client.Editor.Prefabs
         public static HeaderView AddHeader(Transform parent, string title)
         {
             var view = InstantiatePart<HeaderView>(parent, "Header", "Header");
-            var titleText = view.transform.Find("TitleText").GetComponent<TMP_Text>();
+            var titleText = FindChild(view.transform, "TitleText", "Header").GetComponent<TMP_Text>();
             titleText.text = title;
             MarkModified(titleText);
             return view;
@@ -371,7 +381,7 @@ namespace Uta.Client.Editor.Prefabs
             for (var i = 0; i < tabNames.Length; i++)
             {
                 var tab = InstantiatePart<TabView>(bar.transform, "Tab", tabNames[i]);
-                var labelText = tab.transform.Find("Label").GetComponent<TMP_Text>();
+                var labelText = FindChild(tab.transform, "Label", "Tab").GetComponent<TMP_Text>();
                 labelText.text = labels[i];
                 MarkModified(labelText);
                 tabs[i] = tab;

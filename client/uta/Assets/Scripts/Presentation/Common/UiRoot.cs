@@ -70,10 +70,12 @@ namespace Uta.Client.Presentation.Common
                 return;
             }
 
-            assetLoader = new AddressableAssetLoader();
-            pageContainer.AssetLoader = assetLoader;
-            modalContainer.AssetLoader = assetLoader;
-            overlayContainer.Container.AssetLoader = assetLoader;
+            // 3 つに入れ終えてからフィールドに入れる（途中で例外が出たら、次の呼び出しでまた試す）
+            var loader = new AddressableAssetLoader();
+            pageContainer.AssetLoader = loader;
+            modalContainer.AssetLoader = loader;
+            overlayContainer.Container.AssetLoader = loader;
+            assetLoader = loader;
         }
     }
 }

@@ -35,10 +35,20 @@ namespace Uta.Client.Infrastructure.Tests
         /// prefab の子孫（非アクティブも含む）の Uta.Client.Presentation の MonoBehaviour について、
         /// 未設定（null）の ObjectReference を集める。USN の基底のフィールドと [OptionalReference] の付いたものは除く。
         /// 戻り値は "&lt;GameObject の階層のパス&gt;.&lt;型名&gt;.&lt;プロパティのパス&gt;" の一覧。
+        /// スクリプトが外れたコンポーネント（Missing Script）がある GameObject は "&lt;GameObject の階層のパス&gt;.&lt;missing script&gt;" を足す。
+        /// プロパティは HideInInspector のものも見る（Next）。Unity の側の項目（m_Script・m_GameObject など、C# のフィールドが無いもの）は除く。
         /// </summary>
         public static List<string> CollectMissingReferences(GameObject prefab)
         {
             var missing = new List<string>();
+            foreach (var transform in prefab.GetComponentsInChildren<Transform>(true))
+            {
+                if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) > 0)
+                {
+                    missing.Add(GetHierarchyPath(transform) + ".<missing script>");
+                }
+            }
+
             foreach (var behaviour in prefab.GetComponentsInChildren<MonoBehaviour>(true))
             {
                 if (behaviour == null)
@@ -54,7 +64,7 @@ namespace Uta.Client.Infrastructure.Tests
 
                 var serialized = new SerializedObject(behaviour);
                 var property = serialized.GetIterator();
-                while (property.NextVisible(true))
+                while (property.Next(true))
                 {
                     if (property.propertyType != SerializedPropertyType.ObjectReference)
                     {
@@ -75,17 +85,20 @@ namespace Uta.Client.Infrastructure.Tests
                     var dot = propertyPath.IndexOf('.');
                     var fieldName = dot < 0 ? propertyPath : propertyPath.Substring(0, dot);
                     var field = FindField(type, fieldName);
-                    if (field != null)
+                    if (field == null)
                     {
-                        if (field.DeclaringType.Assembly.GetName().Name != PresentationAssemblyName)
-                        {
-                            continue;
-                        }
+                        // Unity の側の項目（m_CorrespondingSourceObject・m_PrefabInstance など）。Next で見えるようになる
+                        continue;
+                    }
 
-                        if (field.IsDefined(typeof(OptionalReferenceAttribute), false))
-                        {
-                            continue;
-                        }
+                    if (field.DeclaringType.Assembly.GetName().Name != PresentationAssemblyName)
+                    {
+                        continue;
+                    }
+
+                    if (field.IsDefined(typeof(OptionalReferenceAttribute), false))
+                    {
+                        continue;
                     }
 
                     missing.Add(GetHierarchyPath(behaviour.transform) + "." + type.Name + "." + propertyPath);
