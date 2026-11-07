@@ -145,15 +145,15 @@ VolTech-MagicOnion（`external/VolTech-MagicOnion`）と同じ形にする。Vol
 
 - VolTech-MagicOnion は「Unity と共有するか」だけで 2 つのプロジェクトに分け、サーバー側の関心ごと（`Auth/`・`Status/`・`Transaction/`・`Logging/`・`Hosting/`）はフォルダで分けている。Uta が参照するのは公開 API だけ（3.1）
 
-### 3.1 共通基盤（`external/`）の扱い [決定。2026-10-31]
+### 3.1 共通基盤の扱い [決定。2026-10-31]
 
 **目指す形**: Uta の開発を通して共通基盤を整え、リリースして、別のアプリでもそのまま使える構造にする。Uta は共通基盤の最初の利用者で、Uta で要るものを共通基盤に足していく。
 
 - **固定はサブモジュールのポインタ（コミット）で行い、タグを待たない**。開発を速くするため。共通基盤を更新したら、Uta でポインタを上げる（[ADR 0005](../decisions/0005-foundation-submodule.md) の手順）
-- **Unity の `manifest.json` のコミットも一緒に上げる**。サブモジュールのポインタと揃える（[ADR 0019](../decisions/0019-foundation-unity-git-url.md)）。`VolTech-MagicOnion` がずれると、サーバーと Unity の `Abstractions` が食い違う
+- **Unity の `manifest.json` のコミットも一緒に上げる**。サブモジュールがあるもの（`VolTech-MagicOnion`・`MasterMemoryAddons`）はポインタと揃える。`Supplement`・`UnityScreenNavigator` の固定は `manifest.json` だけ（[ADR 0019](../decisions/0019-foundation-unity-git-url.md)）。`VolTech-MagicOnion` がずれると、サーバーと Unity の `Abstractions` が食い違う
 - **区切りでリリースする**: 完了条件 0（[game-spec.md](../overview/game-spec.md)。Unity から VolTech-MagicOnion の RPC が通る）が通ったときなど、共通基盤の機能が一区切りしたら、共通基盤側で版を出し（`release` スキル）、ポインタをそのタグのコミットに合わせる。その後もタグは必須にしない
 
-開発のルール（`external/` の 4 つすべてに当てはめる。主な対象は `VolTech-MagicOnion`）:
+開発のルール（共通基盤の 4 つすべてに当てはめる。主な対象は `VolTech-MagicOnion`）:
 
 1. **Uta 固有のものを共通基盤に入れない**。Uta の名前、ゲームのルール、マスタ、Uta のエラーの reason、Uta の DB のテーブルは Uta 側に置く。共通基盤は Uta を参照しない
 2. **足りない機能の置き場は「別のゲームでも同じものが要るか」で決める**。要るなら共通基盤に足す（Uta 側で回避の実装を書かない）。要らないなら Uta 側で、共通基盤の拡張点（`IPlayerResolver`、設定の `VoltechServerOptions` など）から差し込む。拡張点が足りなければ、拡張点を共通基盤に足す
@@ -355,7 +355,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 ### 10.6 クライアントのローカル保存
 
-- **共通基盤の Supplement（`external/Supplement`）の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](../../../external/Supplement/docs/features/messagepack-save-data.md)）
+- **共通基盤の Supplement の MessagePack 版のセーブデータ（`Supplement.MessagePack`、パッケージ `com.chinpangx.supplement.messagepack`）を使う**（2026-10-27 決定）。`IFileStorageService` / `SaveDataRepository` を MessagePack で読み書きし、AES で暗号化、HMAC-SHA256 で改ざん・破損を検知する（[Supplement の docs](https://github.com/chinpanGX/Supplement/blob/main/docs/features/messagepack-save-data.md)）
 - MessagePack は通信とマスタでも使うので、Supplement が参照する MessagePack の版を、MagicOnion・MasterMemory とそろえる（8章の要検証）
 - 端末の資格情報（`device_id`・`secretKey`）は、基盤の `EncryptedFileAccountStore` で保存する（2026-11-01 ユーザーの判断。Supplement.MessagePack は、ゲームのセーブデータ用）。ほかに何を保存するか（設定など）は、**実装するときに決める**
 

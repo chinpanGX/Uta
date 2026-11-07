@@ -5,9 +5,9 @@ Git サブモジュールで取り込んだ自作の共通基盤。Uta 以外の
 | サブモジュール | 中身 | そのリポジトリのルール |
 |---|---|---|
 | `external/VolTech-MagicOnion` | サーバー基盤（MagicOnion）、Unity と共有する `Abstractions` | `external/VolTech-MagicOnion/CLAUDE.md` |
-| `external/Supplement` | Unity 補助パッケージ（UPM） | `external/Supplement/CLAUDE.md` |
-| `external/UnityScreenNavigator` | 画面遷移（Haruma-K 版のフォーク） | `README.md` / `README_JA.md` |
 | `external/MasterMemoryAddons` | MasterMemory のアドオン（生成・検証・バイナリ） | `external/MasterMemoryAddons/CLAUDE.md` |
+
+`Supplement`・`UnityScreenNavigator` はサブモジュールではない。Unity の `manifest.json` の git URL のコミットで固定する（[ADR 0019](../../../../uta_docs/wiki/decisions/0019-foundation-unity-git-url.md)）。範囲は各リポジトリの古いコミット..新しいコミットで調べる。
 
 **そのサブモジュールの `CLAUDE.md`・docs が、このレイヤーのコーディング規約の正。** Uta の CLAUDE.md の規約と違うところは、サブモジュール側に従う。まず該当するサブモジュールのルールを読む。
 

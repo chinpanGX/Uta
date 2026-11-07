@@ -17,7 +17,10 @@ Unity の `manifest.json` は、共通基盤の 5 パッケージを `file:../..
 - `manifest.json` に書くコミットは、共通基盤の既定のブランチに入ったものにする
 - 同じリポジトリの `com.uta.shared.*` は `file:` のままにする
 
-[ADR 0005](0005-foundation-submodule.md) のうち、Unity のパッケージ参照方法だけをこの ADR で決める。サブモジュールでの取り込みは変えない。サーバー（`VolTech.Server`・`MasterMemory.Addons.Core`）・`shared/Uta.Shared.Contracts`・`masterdata/gen.ps1` が `external/` を参照しているため。
+[ADR 0005](0005-foundation-submodule.md) のうち、Unity のパッケージ参照方法はこの ADR で決める。あわせて、サブモジュールで取り込むものを次のとおりにする:
+
+- `Supplement`・`UnityScreenNavigator` はサブモジュールから外す。Uta から使うのは Unity だけなので、固定は `manifest.json` の 1 か所にする
+- `VolTech-MagicOnion`・`MasterMemoryAddons` はサブモジュールのまま残す。サーバー（`VolTech.Server`・`MasterMemory.Addons.Core`）・`shared/Uta.Shared.Contracts`・`masterdata/gen.ps1` が `external/` を参照しているため
 
 ## 理由
 
@@ -31,11 +34,12 @@ Unity の `manifest.json` は、共通基盤の 5 パッケージを `file:../..
 
 ## 影響・リスク
 
-- **固定が 2 か所になる**: サブモジュールのポインタと `manifest.json` のコミットを揃える。特に `VolTech-MagicOnion` の `Abstractions` はサーバーと Unity で同じものを使うので、ずれると RPC の型が食い違う
+- **`VolTech-MagicOnion`・`MasterMemoryAddons` は固定が 2 か所になる**: サブモジュールのポインタと `manifest.json` のコミットを揃える。特に `VolTech-MagicOnion` の `Abstractions` はサーバーと Unity で同じものを使うので、ずれると RPC の型が食い違う
 - 共通基盤を Unity で試すには、push してコミットを上げる。ローカルの変更はそのままでは Unity に入らない。試すときは、手元で `manifest.json` を一時的に `file:` に変える（コミットしない）
 - `Library/PackageCache` のパッケージは読み取り専用。編集は別の clone で行う
+- `Supplement`・`UnityScreenNavigator` のソースは checkout に無くなる。クラウドなど Unity の無い環境では、読むときに GitHub を見る
 
 ## 見直す条件
 
-- サブモジュールをやめて、サーバー側も NuGet などのパッケージ参照に変えるとき
+- 残り 2 つのサブモジュールもやめて、サーバー側を NuGet などのパッケージ参照に変えるとき
 - 共通基盤の並行開発で、push の手間が大きな負担になったとき

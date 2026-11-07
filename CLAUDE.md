@@ -156,7 +156,7 @@ uta/
 - **前提のタスク（未マージの PR）がある作業は、積み PR にする**: 前提のブランチから新しいブランチを切り（`git switch -c <新ブランチ> <前提ブランチ>`）、PR の base も前提のブランチにする（`gh pr create --base <前提ブランチ>`）。PR の本文に前提の PR を書く。前提の PR を先に main へマージしていき、後続の PR は base を main にリターゲットする（`gh pr edit --base main`）。リターゲットとマージはユーザーが進める。前提がない作業は main（または指定の base）に向ける
 - コミットメッセージは日本語。変更の記録を兼ねるので、1 行目に何を変えたか、本文に決めたこと・理由を書く（[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）。
 - 履歴は `git log -- uta_docs/wiki` などで引く
-- サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`Supplement`・`UnityScreenNavigator`・`MasterMemoryAddons`（`.gitmodules` が正）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
+- サーバー基盤と共通パッケージは別リポジトリを Git サブモジュールとして `external/` に取り込む（[ADR 0005](uta_docs/wiki/decisions/0005-foundation-submodule.md)、proposed）。登録済みは `VolTech-MagicOnion`・`MasterMemoryAddons`（`.gitmodules` が正）。`Supplement`・`UnityScreenNavigator` は Unity の git URL だけで参照する（[ADR 0019](uta_docs/wiki/decisions/0019-foundation-unity-git-url.md)）。開発は、サブモジュールの中でも別の clone でもよいが、**サブモジュール側を先に push してから Uta のポインタを更新する**
   - 共通基盤は Uta の開発を通して整え、別のアプリでも使える形でリリースする。Uta 固有のものを共通基盤に入れない。固定はコミット（タグを待たない）。ルールは [repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 3.1
   - clone: `git clone --recurse-submodules <Uta の URL>`（済みの clone では `git submodule update --init`）
   - サブモジュール内で作業する前にブランチを切る（`git switch -c <branch>`）。detached HEAD のまま commit しない
@@ -195,7 +195,7 @@ uta/
 | `client/` の実装の確認（コンパイル・Play・実機） | できない。ローカルで行う |
 | `/egm:*` | 使えない（`~/.claude` のプラグインは読まれない）。設計書のレビューは egm に頼らない |
 
-- 環境は `.claude/hooks/cloud-setup.sh` が整える（SessionStart。`CLAUDE_CODE_REMOTE=true` のときだけ動く）。入れるものは .NET 10 SDK・PowerShell、取り込むものはサブモジュール 4 つ。結果は `[cloud-setup]` の行で報告される。足りないものがあれば、確かめられなかったと明記して進める
+- 環境は `.claude/hooks/cloud-setup.sh` が整える（SessionStart。`CLAUDE_CODE_REMOTE=true` のときだけ動く）。入れるものは .NET 10 SDK・PowerShell、取り込むものはサブモジュール 2 つ。結果は `[cloud-setup]` の行で報告される。足りないものがあれば、確かめられなかったと明記して進める
 - セッションは新しい clone から始まる。ローカルの未コミット・未 push の変更は届かない。前の作業の続きは、そのブランチを選んで始める
 - 固定の worktree（`tools/worktree-pool.sh`）は使わない
 - **PR は `gh pr create` で作れない**（GraphQL が拒否される）。Web の画面の Create PR を使うか、`gh api repos/chinpanGX/Uta/pulls -f title=... -f body=... -f head=<ブランチ> -f base=<base>` を使う。`gh pr` のほかのコマンドも同じなので、`gh api` の REST に読み替える。積み PR のルールは同じ

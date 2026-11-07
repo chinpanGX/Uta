@@ -29,11 +29,11 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   } >> "$CLAUDE_ENV_FILE"
 fi
 
-# 2. サブモジュール。計画とレビューは client/ が使う分のコードも読むので、4 つとも取り込む。
+# 2. サブモジュール。計画とレビューは サーバーとマスタの生成が使う 2 つを取り込む。Supplement・UnityScreenNavigator は Unity の git URL だけで参照する（ADR 0019）。
 #    .gitmodules の SSH URL はクラウドで使えないので、この環境の git だけ HTTPS に読み替える（リポジトリはすべて公開）。
 git config --global url."https://github.com/".insteadOf "git@github.com:"
 missing=""
-for name in VolTech-MagicOnion MasterMemoryAddons Supplement UnityScreenNavigator; do
+for name in VolTech-MagicOnion MasterMemoryAddons; do
   git submodule update --init "external/$name" >/dev/null 2>&1 || missing="$missing $name"
 done
 
