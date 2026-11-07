@@ -19,7 +19,7 @@ spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 6. **抽選が成功したあとの取り直し（`RefreshPlayerUseCase`）の失敗は、成功として扱う**: 結果のモーダルを出し、通貨は `DrawResponse` の値で出す。追加のダイアログは出さない（foundation 3.3.5）
 7. **排出率は、レア別・種別（育成アイドル／サポートカード）の合計の % を先に出し、そのあとカードごとの %**（[gacha.md](../wiki/systems/gacha.md) 3.1。重みを合計してから切り捨てる）
 8. **結果はモーダル**。「もう一度」は Args の `Func<UniTask>`（ガチャのページの `DrawAsync`）で呼び戻す。モーダルを閉じてから、確認ダイアログからやり直す
-9. **ホームの「ガチャ」**: foundation の `HomePresenter` のコンストラクター（2 本）の最後に `IScreenNavigator` を足し、`OpenGachaAsync` をガチャのページを積む処理にする。ほかの 3 つのボタンは「準備中です。」のまま
+9. **ホームの「ガチャ」**: foundation の `HomePresenter` のコンストラクター（2 本）の最後に `IScreenNavigator` を足し、`OpenGachaAsync` をガチャのページを積む処理にする。ほかの 2 つ（プロデュース・アイドル）は「準備中です。」のまま
 10. **DI**: ゲートウェイとユースケースを `BootstrapEntry.RegisterUseCases`（ルートのスコープ）に 3 行足す。Presenter・ページは登録しない（基盤の `ScreenNavigator` が Push のたびに子スコープで解決する）。Addressables への登録は P2 の生成スクリプトが済ませている
 11. テスト用の `FakeGameMaster`（`IGameMaster` の偽）はこの計画で作る（3 本目以降も使う）。所持データの取り直しの偽は foundation の `StubPlayerPort` を使う
 12. **テストのダミー値は共通のヘルパー `GachaFixtures`（`Tests/EditMode/Support/`）に 1 か所で決める**: `IdolInfo`・`SupportCardInfo`・`GachaInfo`・`PlayerSnapshot`・`DrawResultDto` の、名前とレア度（DTO は枠・種別・ID・結果・かけら・強化pt）以外の引数の値はここだけに書く。ガチャのテストはこれを使い、これらの型を直接 `new` しない（5章）
@@ -474,7 +474,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 
 ### 3.5 ホームと Bootstrap
 
-- `HomePresenter`（foundation 3.7）: 2 本のコンストラクターの最後に `IScreenNavigator navigator` を足す（`[Inject]` の側は `HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs, IScreenNavigator navigator) : this((IHomeView)view, cache, dialogs, navigator)`）。フィールド `private readonly IScreenNavigator navigator;`。`OpenGachaAsync` の本体（実行中フラグの `try` の中）の `await dialogs.ShowInfoAsync("準備中です。");` を `await navigator.PushPageAsync<GachaPresenter>(playAnimation: false);` に置き換える（戻り値は使わない。`stack` は既定の true）。`using Uta.Client.Presentation.Gacha;` を足す（`using UnityScreenNavigator;` は foundation の時点である）。ほかの 3 つのメソッドは変えない（「準備中です。」のまま）。ガチャのページは `Home` シーンのスコープの `IScreenNavigator` で積まれ、`Home` の `UiRoot` の `PageContainer` に入る
+- `HomePresenter`（foundation 3.7）: 2 本のコンストラクターの最後に `IScreenNavigator navigator` を足す（`[Inject]` の側は `HomePresenter(HomePage view, PlayerCache cache, DialogService dialogs, IGameMaster master, IScreenNavigator navigator) : this((IHomeView)view, view.CreateStage(master), cache, dialogs, master, navigator)`、テスト用は `HomePresenter(IHomeView view, ICharacterStage stage, PlayerCache cache, DialogService dialogs, IGameMaster master, IScreenNavigator navigator)`。foundation 3.7。2026-11-07 にホームのキャラ表示のステージが足された）。フィールド `private readonly IScreenNavigator navigator;`。`OpenGachaAsync` の本体（実行中フラグの `try` の中）の `await dialogs.ShowInfoAsync("準備中です。");` を `await navigator.PushPageAsync<GachaPresenter>(playAnimation: false);` に置き換える（戻り値は使わない。`stack` は既定の true）。`using Uta.Client.Presentation.Gacha;` を足す（`using UnityScreenNavigator;` は foundation の時点である）。ほかの 2 つのメソッド（`OpenProduceAsync`・`OpenOwnedAsync`）は変えない（「準備中です。」のまま）。ガチャのページは `Home` シーンのスコープの `IScreenNavigator` で積まれ、`Home` の `UiRoot` の `PageContainer` に入る
 - `BootstrapEntry.RegisterUseCases`（foundation 3.8）の最後（`RefreshPlayerUseCase` の次）に、この順で 3 行足す:
   ```csharp
   builder.Register<GachaGateway>(Lifetime.Singleton).As<IGachaPort>();
@@ -533,7 +533,7 @@ public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
 6. 5章の `GachaPresenterTests` を作り、`HomePresenterTests` を直す。`unity recompile` → `unity test --mode EditMode`（P2 の `GachaPrefabTests`・P1 の `PrefabContractTests` も通り続けること）
 7. Play で確かめる（ローカルのサーバーを起動し、初期付与済みのプレイヤーで。CLAUDE.md「ローカルのサーバー」）。式の中の `Q` は `UnityEngine.Object.FindFirstObjectByType`、`B(name)` は `UnityEngine.GameObject.Find(name).GetComponent<UnityEngine.UI.Button>().onClick.Invoke()` の略で、実際には略さずに書く。遷移・`Destroy` は次のフレーム以降に反映されるので、期待と違えば 1 秒おいてもう一度評価する
    1. `unity command editor.playmode start` → foundation のタスク 4 の手順 5 の 2・3 と同じ操作でホームまで進める（`Home:1:True`）
-   2. `unity command eval 'B("GachaButton"); return "ok";'` → `unity command eval 'return Q<Uta.Client.Presentation.Common.UiRoot>().Pages.Pages.Count + ":" + (Q<Uta.Client.Presentation.Gacha.GachaPage>() != null);'` が `2:True`。`unity command console get --tail 50 --level error --format json` にエラーが無い（`IGachaService` の `GetGachasAsync` が通った）
+   2. `unity command eval 'B("NavGachaButton"); return "ok";'` → `unity command eval 'return Q<Uta.Client.Presentation.Common.UiRoot>().Pages.Pages.Count + ":" + (Q<Uta.Client.Presentation.Gacha.GachaPage>() != null);'` が `2:True`。`unity command console get --tail 50 --level error --format json` にエラーが無い（`IGachaService` の `GetGachasAsync` が通った）
    3. `unity command eval 'B("BackButton"); return "ok";'` → 2 の式が `1:False`（ガチャのページが閉じた）。`unity command console get --tail 50 --level error --format json` にエラーが無い
    4. `unity command editor.playmode stop`
 
@@ -698,8 +698,8 @@ namespace Uta.Client.Infrastructure.Tests
 | | `RetryAsync_PopsModalThenCallsRetry` | `Retry` は `() => { log.Add("Retry"); return UniTask.CompletedTask; }` → `"PopModal:GachaResultPresenter"`, `"Retry"` の順 |
 | | `RetryAsync_NullRetry_OnlyPops` | `"PopModal:GachaResultPresenter"` だけ |
 | | `CloseAsync_PopsModal` | `"PopModal:GachaResultPresenter"`、`"Retry"` が無い |
-| `HomePresenterTests.cs`（変更） | コンストラクター | 全部のテストで `new HomePresenter(view, cache, dialogs, navigator)`（`navigator` は同じ `CallLog` の `FakeScreenNavigator`） |
-| | `GachaClicked_ShowsNotReady` を `GachaClicked_PushesGachaPage` に差し替える | `InitializeAsync` のあと `RaiseGachaClicked()` → `InitializeAsync` の後の記録が `"PushPage:GachaPresenter"` だけ。ほかのボタンのテスト（`ProduceClicked_`・`ResumeClicked_`・`OwnedClicked_ShowsNotReady`）は変えない（foundation の決めたこと 16） |
+| `HomePresenterTests.cs`（変更） | コンストラクター | 全部のテストで `new HomePresenter(view, stage, cache, dialogs, master, navigator)`（`stage`・`master` は foundation のまま（`FakeCharacterStage`・`StubIdolMaster`）、`navigator` は同じ `CallLog` の `FakeScreenNavigator`） |
+| | `GachaClicked_ShowsNotReady` を `GachaClicked_PushesGachaPage` に差し替える | `InitializeAsync` のあと `RaiseGachaClicked()` → `InitializeAsync` の後の記録が `"PushPage:GachaPresenter"` だけ。ほかのボタンのテスト（`ProduceClicked_`・`OwnedClicked_ShowsNotReady`）とステージのテストは変えない（foundation の決めたこと 16） |
 | | `OpenGachaAsync_WhileRunning_Ignored` を `OpenProduceAsync_WhileRunning_Ignored` に直す | 中身は同じで、呼ぶメソッドを `OpenProduceAsync` にする（`OpenGachaAsync` はダイアログを出さなくなったため） |
 | | `OpenGachaAsync_PushesGachaPage`（足す） | `await presenter.OpenGachaAsync();` → `log` が `"PushPage:GachaPresenter"` だけ |
 

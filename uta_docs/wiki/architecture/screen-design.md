@@ -48,7 +48,7 @@ updated: 2026-11-07
 | 画面 | 種類 | 機能ID | 呼ぶ API（仮） | 主なマスタ |
 |---|---|---|---|---|
 | 起動・ロード | ページ | — | RegisterAsync（初回）、IssueTokenAsync、SignUpAsync（初回）、SignInAsync（4章）。マスタは同梱を読む（RPC にしない） | マスタのバイナリ |
-| ホーム | ページ | — | サインインで取った所持データ（キャッシュ）を表示。再開を押したら GetState（進行中かは起動時の `SignInAsync` で知る。[api-design.md](api-design.md) 1章） | — |
+| ホーム | ページ | — | サインインで取った所持データ（キャッシュ）を表示。「プロデュース」から再開を選んだら GetState（進行中かは起動時の `SignInAsync` で知る。[api-design.md](api-design.md) 1章） | — |
 | ガチャ（一覧） | ページ | GAC-01 | GetGachas | ガチャ、排出率 |
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
 | ガチャ（結果） | ページ／モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
@@ -178,6 +178,15 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 - Windows: 初期 540×960、ウィンドウモード、縦向きのみ。比率を 9:16 に保つ補正（`WindowAspectKeeper`）
 - 確かめ方は計画ごとに「EditMode のテスト／ Play モード／ Windows の IL2CPP のビルド／手動」のどれかを書く。Editor が開けない環境では、確かめていないと書く
 
+### 7.8 ホームの構成とキャラ表示のステージ（`ICharacterStage`）。MVP は仮の枠、3D は拡張点 [決定。2026-11-07。ユーザーの判断]
+
+- **ホームの構成**: 上部のステータス（プレイヤーLv・ガチャ通貨）、中央のキャラ表示のステージ、大きな主ボタン「プロデュース」（進行中のプロデュースがあるときは「再開」の表示）、下部のナビ（「プロデュース」「ガチャ」「アイドル」）。主ボタンとナビの「プロデュース」は同じ動作（進行中なら再開・放棄・やめるを選ぶ）。ホーム自体はナビのタブにしない。並べ方と作らないものは [screen-wireframes.md](../overview/screen-wireframes.md)「ホーム」が正。他のゲームのホーム画面の構造だけを参考にし、見た目の素材・文言は使わない（[ADR 0001](../decisions/0001-ip-policy.md)）
+- **ステージの Prefab**: ホームのページの子 `Stage` に `RawImage` を置き、その子に枠の文字 `StageLabel`（TMP）を置く。MVP の `RawImage` はテクスチャなしの色つきの枠（`UiTheme.Panel`）で、文字は「キャラ表示」。値は P2 の計画（[2026-11-07-client-prefabs-screens-a.md](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2）
+- **C# は `ICharacterStage` で隠す**（`Uta.Client.Presentation.Home`）: `void ShowIdol(int idolId)`（その育成アイドルを出す）と `void Clear()`（何も出さない）だけ。`HomePresenter` は `ICharacterStage` だけを知り、どう描くかを知らない
+- **MVP の実装は `PlaceholderCharacterStage`**: 枠の文字に育成アイドルの名前（`IGameMaster.GetIdol(idolId).Name`）を出すだけ。`Clear` は文字を「キャラ表示」に戻す。`RawImage` には触らない
+- **出す育成アイドルの選び方**（`HomePresenter` が決める）: 所持の育成アイドルのうち、レア度（`Rarity` の数値）が最も高いもの、同率なら `IdolId` が小さいもの。所持が 0 なら `Clear`。ホームを表示するたびに（最初の表示と、上のページから戻ったとき）選び直す
+- **拡張点（MVP 外）: `ModelCharacterStage`**: 専用のカメラが育成アイドルの 3D モデルを `RenderTexture` に描き、その `RenderTexture` を `Stage` の `RawImage.texture` に割り当てる実装。`ICharacterStage` を実装し、`HomePage` がステージを作るところ（C# の計画 [foundation](../../plans/2026-11-03-client-screens-foundation.md) 3.7 の `HomePage.CreateStage`）だけを差し替える。`HomePresenter`・Prefab の階層は変えない。モデル・カメラ・`RenderTexture` の置き場と寿命、読み込み（Addressables か）は作るときに決める。3D ライブの保留（[ADR 0003](../decisions/0003-defer-3d-live.md)）とは別の、ホームのキャラ表示の拡張点
+
 ## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
 
 Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（順 7 の画面の計画で使う。この章の時点では各シーンに最小の uGUI を置くだけ）。
@@ -186,7 +195,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 |---|---|---|
 | `Bootstrap` | 起動の起点（Build Settings の先頭）。マスタを読み、アプリ全体で共有するもの（ルートの DI スコープ）を作り、`Title` を読み込む。マスタの読み込みに失敗したら、エラーを表示して止まる（4章） | → `Title` |
 | `Title` | 「スタートをタップ」を待つ。タップしたら端末の登録・トークンの発行・サインアップ・サインイン（4章 2〜4）を行い、成功したら `Home` へ。失敗したら状態を表示し、もう一度タップできる | → `Home` |
-| `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ | → `Produce` |
+| `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ。ホームの構成とキャラ表示のステージは 7.8 | → `Produce` |
 | `Produce` | プロデュース。この章の時点では空（文字と `Home` へ戻るボタンだけ） | → `Home` |
 
 - **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
