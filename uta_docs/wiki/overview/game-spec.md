@@ -1,7 +1,7 @@
 ---
 title: ゲーム概要仕様
 status: draft
-updated: 2026-11-01
+updated: 2026-11-07
 ---
 
 # ゲーム概要仕様
@@ -79,8 +79,8 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 4 | 初期の所持品から編成し、プロデュースを最後まで進めて、評価・報酬・プレイヤー経験値を受け取れる | サーバーの結合テストで、最短シナリオ（下記）を RPC だけで最後まで進める（[produce.md](../systems/produce.md) 完了条件）。最短シナリオで通らない局面（授業・支給・休む・スキルカードの選択肢・中間試験・再挑戦・不合格での終了）は、`Uta.Shared.Domain` の単体テストで、初級のシナリオを操作列から回して確かめる（[produce-domain.md](../architecture/produce-domain.md) 7章） |
 | 5 | 途中で中断しても再開できる | 結合テストで途中に `GetStateAsync` を呼んで続ける。状態の再生は `Uta.Shared.Domain` の単体テスト（[produce-domain.md](../architecture/produce-domain.md) 7章） |
 | 6 | Windows のクライアントで、起動（`SignUpAsync` → `SignInAsync`）→ ガチャ → 強化 → 編成 → 最短シナリオを最後まで → 結果、を通す。初級の通しも 1 回 | 手動 |
-| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Shared.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 
+| 7 | Android の実機（IL2CPP）で、起動 → ログイン → ガチャ 1 回のスモークが通る。あわせて IL2CPP との計算の一致を確かめる | 手動。一致の確かめ方は [lesson-phases.md](../architecture/lesson-phases.md) 8章: 固定のシードと操作列で `Uta.Shared.Domain` を再生し、状態を .NET の結果と項目ごとに比べる。入口は Unity Test Runner の実機実行で、プレイヤー向けの画面は作らない |
 - iOS の実機ビルドは、Unity 7 の対応状況（[ADR 0006](../decisions/0006-adopt-unity-7-early.md)）次第の別の項目（`architecture/unity7-evaluation.md` に書く）
 - dev 環境（Cloud Run + Cloud SQL）へのデプロイは MVP の条件に含めない別の項目（[repository-layout.md](../architecture/repository-layout.md) 11章）。ローカルの `server/compose.yaml` の PostgreSQL は、条件 6・7 で手で動かすときに使う
 - **最短シナリオ**: 確認用に、3 週（週 1 レッスン → 週 2 仕上げレッスン → 週 3 最終試験）だけの週構成をマスタに置く。週構成はマスタで定義する（[produce.md](../systems/produce.md) 3.1）ので、コードは変わらない。編成の画面でシナリオを選べる（下の「画面」）ので、クライアントからも選べる
@@ -113,7 +113,7 @@ Uta 全体のゲームループと、システム（[プロデュース](../syst
 | 5a | **done**（2026-11-01）server/ のプレイヤー（サインアップ・サインイン。`players` の行の作成と全件取得。初期付与は 5 で足した。[計画](../../plans/2026-11-01-player-signup-signin.md)） | — | 1a（2 を待たない） |
 | 5 | **done**（2026-11-01）server/ のプレイヤー（初期付与）・ガチャ・強化（[初期付与](../../plans/2026-11-01-server-initial-grant.md)・[ガチャ](../../plans/2026-11-01-server-gacha.md)・[強化](../../plans/2026-11-01-server-support-upgrade.md)） | 1・2・3（レベル上げ・上限解放まで。性能への反映は 6） | 1、2、5a |
 | 6 | **done**（2026-11-03）server/ のプロデュース（[ProduceSnapshot](../../plans/2026-11-03-produce-snapshot.md)・[開始・保存](../../plans/2026-11-03-server-produce-start.md)・[操作・報酬](../../plans/2026-11-03-server-produce-play.md)） | 3 の「開始時の性能への反映」・4・5 | 4・5 |
-| 7 | client/ の画面（クライアントのサインアップ・サインイン呼び出しは、7 の前に別の計画で **done**（2026-11-03）。[計画](../../plans/2026-11-03-client-signup-signin.md)。画面は診断用の IMGUI のまま） | 6・7 | 1・6 |
+| 7 | client/ の画面（10 本の計画。全体の順番・関係・確認事項は [索引](../../plans/2026-11-07-client-screens-index.md)。クライアントのサインアップ・サインイン呼び出しは、7 の前に別の計画で **done**（2026-11-03）。[計画](../../plans/2026-11-03-client-signup-signin.md)）: [計画 0 カードの名前と説明文](../../plans/2026-11-03-masterdata-card-text.md) → [P1 共通部品](../../plans/2026-11-07-client-prefabs-common.md) → [P2 Title・Home・ガチャ・所持一覧の Prefab](../../plans/2026-11-07-client-prefabs-screens-a.md) → [foundation](../../plans/2026-11-03-client-screens-foundation.md) → [gacha](../../plans/2026-11-03-client-screens-gacha.md) → [owned](../../plans/2026-11-03-client-screens-owned.md) → [P3 編成・プロデュースの Prefab](../../plans/2026-11-07-client-prefabs-screens-b.md) → [formation](../../plans/2026-11-03-client-screens-formation.md) → [week](../../plans/2026-11-03-client-screens-week.md) → [lesson](../../plans/2026-11-03-client-screens-lesson.md) | 6（7 は画面を足したあとの別の項目。Android の実機で確かめる） | 1・6 |
 
 ### MVP の最小のコンテンツ
 

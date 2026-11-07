@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-07
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -112,8 +112,73 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 - レッスン・試験の画面は、`Uta.Shared.Domain` の効果エンジンで**使用可否の判定と予測値の表示**をする（PRD-04、PRD-08）。確定はサーバーの結果（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - クライアントはシードを持たないので、ドローなど乱数が絡む結果は予測しない。操作後は、サーバーのレスポンスで画面を確定させる
 - 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
+- **MVP のカードの使用可否はサーバーが判定して返す** [決定。2026-11-03。ユーザーの判断]: `LessonDto` に `UsableHand`（`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true）を足す（[server/produce-server.md](server/produce-server.md) 6章）。`LessonDto` から `LessonState` を復元するには持続効果の定義（`EffectDef`）などが足りず、クライアントだけでは判定できないため。ADR 0008 の「クライアントが判定」からは外れるが、確定はサーバー、表示のための判定もサーバーの値を使う、という向きは同じ。クライアントの予測（効果の見込み）は MVP では出さない（[lesson-domain-types.md](lesson-domain-types.md)）
 
-## 7. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
+## 7. MVP の画面の実装方針 [決定。2026-11-07]
+
+MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を作る実装計画（順 7。[索引](../../plans/2026-11-07-client-screens-index.md)）が共通して従う方針。型のシグネチャと Prefab の構造は各計画が持ち、このページは「なぜそうするか」と置き場を持つ。シーンの分け方は 8章。
+
+### 7.1 画面は Prefab で作る。Prefab は Editor のスクリプトで生成する [決定。2026-11-07。ユーザーの判断]
+
+- 画面（ページ・モーダル）と共通部品は **Prefab**。Prefab は Sonnet が YAML で手書きせず、**Unity Editor を unity-cli で動かして、C# の Editor スクリプト（`Scripts/Editor/Prefabs/`）で生成し、保存する**。生成された `.prefab`・`.meta` をコミットする。スクリプトは冪等（再実行すると同じ Prefab ができる）にする。Editor で手作業した修正は、生成スクリプトに戻す（戻さないと次の再生成で消える）
+- C# は GameObject を組み立てない。View は Prefab のルートに付く MonoBehaviour（`PageBase`／`ModalBase` を継承）で、子の参照を `[SerializeField]` で持つ。参照は生成スクリプトが `SerializedObject` で代入する。参照が欠けていないことは EditMode のテスト（`PrefabContractTests`: 全 Prefab を読み、必須の参照が `null` でないこと）で確かめる
+- Unity の Editor が開いていない環境では、Prefab の生成・確認はできない。計画のタスクは「確認できていない」と書き、ユーザーに実行を頼む（推測で「通った」と書かない）
+
+### 7.2 Prefab の読み込みは Addressables [決定。2026-11-07。ユーザーの判断]
+
+- 画面の Prefab は Addressables のグループ `Screens` に入れる。アドレスは Prefab の名前（例 `HomePage`）。登録は Editor のスクリプト（`AddressableAssetSettings` の API）が行う。`PageContainer`／`ModalContainer` の `AssetLoader` は USN の `AddressableAssetLoader`
+- **アドレス・グループ・ラベル・ロードと解放** [Uta案]: グループは `Screens` の 1 つ（MVP。画面数が増えたら機能ごとに分ける）。アドレスは Prefab の名前そのまま（`HomePage`、`GachaRatesModal`）で、Presenter の `[AssetAddress(nameof(HomePage))]` と同じ文字列。ラベルは付けない。ロードと解放は USN のコンテナー（`AddressableAssetLoader`）が Push／Pop で行い、Presenter・View は `Addressables` の API を呼ばない。リスト行などの共通部品の Prefab は Addressables に入れず、View の `[SerializeField]` で直接参照する（画面の Prefab と一緒にビルドされる）。Editor のスクリプトが、`Assets/Prefabs/Screens/` の Prefab を `Screens` グループにアドレス付きで登録する
+- 基盤の `IScreenNavigator`（Presenter 駆動。`[AssetAddress("HomePage")]` のキーがアドレスになる）をそのまま使う
+- プレイヤーのビルドの前に `AddressableAssetSettings.BuildPlayerContent()` を実行する（`BuildCommands` に足す）
+- **未確認**: Addressables 4.1.2 の Unity 7（`7000.0.0a12`）での動作（Editor の Play、Windows の IL2CPP、`BuildPlayerContent`）。計画の最初のタスクで確かめ、動かなければ止まって報告する（別の読み込み方法に勝手に変えない）
+
+### 7.3 文字は TextMeshPro + 日本語のフォントアセット [決定。2026-11-07。ユーザーの判断]
+
+- 文字は TextMeshPro。フォントは **Noto Sans JP（SIL Open Font License 1.1）**。フォントのアセットは**作成済み**（ブランチ `claude/noto-sans-jp-font`、コミット `a86f436`。2026-11-07 時点で main には未マージ。画面の Prefab の計画は積み PR で前提にする）: `client/uta/Assets/Fonts/NotoSansJP/` に静的な ttf（Regular・Bold）、`OFL.txt`（ライセンス文）、TMP の動的 SDF のフォントアセット `NotoSansJP-Regular SDF.asset`・`NotoSansJP-Bold SDF.asset`（Atlas Population Mode = Dynamic で全部の漢字を事前に焼かない。Multi Atlas、サンプリング 48、パディング 5、アトラス 1024、Clear Dynamic Data On Build 有効）。可変フォントは TMP の Dynamic が wght 軸を扱わないので使わない
+- 文字は Regular のアセット、**太字は Bold のアセット**を使う（TMP の疑似太字 `FontStyles.Bold` は使わない）
+- **フォントの読み込みはシリアライズ参照**: `TMP_Text.font` は生成スクリプトが Prefab に入れる参照で持つ。TMP の既定のフォントも Regular のアセット。フォントは Addressables に入れない（Addressables に入れるのは画面の Prefab だけ。フォントは Prefab・シーンから参照されてビルドに入る）
+- Editor で文字を描くと動的アセットのアトラスに字が足され `.asset` が変わる。Prefab の生成の最後に動的データを空に戻し、残った差分はコミットしない（コミットするアセットはアトラスが空）
+- [Uta案。確認待ち] Unity 7（uGUI 7.0.0）は TMP の Essential Resources の取り込みが無い（既定の設定・シェーダーがパッケージに同梱）。そのため取り込みはせず、プロジェクトの TMP Settings（`Assets/TextMesh Pro/Resources/TMP Settings.asset`）を Editor のスクリプトで作り（無ければ）、既定のフォントを Regular のアセットにする
+- 確かめてあること（フォントの作業。Editor）: `com.unity.ugui` 7.0.0 に TMPro の型がある、`Assets/` に `TextMesh Pro` フォルダが無くても `Shader.Find("TextMeshPro/Distance Field")` が見つかる、アセットのシェーダーは `TextMeshPro/Mobile/Distance Field`、日本語 15 文字がアトラスに載る。**未確認**: 実際の `TMP_Text` の表示、TMP Settings の既定のフォントの設定状況、プレイヤーのビルド・実機。Prefab の計画（P1）の最初のタスクのスパイクで確かめる
+- アプリ内のライセンス表示の画面は MVP では作らない（ストアに出すときに作る。ユーザーの確認待ち）
+
+### 7.4 Presentation の部品と置き場 [Uta案]
+
+| 要素 | 置き場 | 役割 |
+|---|---|---|
+| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く |
+| 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う |
+| View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
+| Presenter | 同上 | View と `Application` のユースケースをつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
+| ユースケース | `Application/<機能>/` | 通信は `I<機能>Port` 越し。`Presentation` は `Infrastructure` に触れない |
+| 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。ユースケース・ゲートウェイは Bootstrap のルートのスコープ |
+
+- **遷移**: ホーム（またはシーンの最初のページ）を底にする。局面ごとの切り替えは、いまのページを `Pop` してから次を `Push`（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではない）。ホームへ戻るときは上のページ・モーダルを全部 `Pop`
+- **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
+- **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品は `Uta` 接頭辞（`UtaButton`・`UtaLabel`）
+
+### 7.5 通信・状態・マスタの扱い [Uta案]
+
+- **所持データのキャッシュ**: `PlayerCache.Current`。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`RefreshPlayerUseCase`）。サーバーの確定値と食い違わせないため
+- **マスタ**: 画面が使うマスタの値は、`Application` の読み取り専用の IF `IGameMaster` と読み取り用の型で受ける。`Uta.MasterData` の型を `Application`・`Presentation` に出さない
+- **スキルカードの表示**: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類・消費・強化済みの印・説明文を出す。効果の予測値は出さない
+- **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler` を `BusyIndicator` につなぐ（進行中は全面の透明な Image で入力を止める）。画面は個別に包まない
+- **エラー**: 業務エラーのコードは `UtaErrors` に `Stay` で登録し、画面が文言を出す。「タイトルへ」「ホームへ」は `IErrorNavigator`（8章の `ISceneNavigator` を呼ぶ）
+- **カードの使用可否はサーバーが判定して返す**（6章の `UsableHand`）
+
+### 7.6 プロデュースの画面の流れ [Uta案]
+
+- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（最新の `ProduceStateView` と次の操作番号）を操作のたびに更新し、`ProduceFlow` が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業は別ページ。screen-wireframes のとおり授業・支給はページ）、`CardOffer` → スキルカード獲得（モーダル）、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
+- 試験が終わった応答の `ExamResult` は、次の局面の前に試験結果の画面で見せる
+- `PRODUCE_STALE_OPERATION` は `GetStateAsync` で取り直す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` はホームへ戻る
+- 授業・休むの結果は、操作の前後の状態の差で出す。ターン終了時の効果の 1 件ずつの表示は MVP から外す（応答に効果の記録が無い）
+
+### 7.7 ウィンドウ・確かめ方 [Uta案]
+
+- Windows: 初期 540×960、ウィンドウモード、縦向きのみ。比率を 9:16 に保つ補正（`WindowAspectKeeper`）
+- 確かめ方は計画ごとに「EditMode のテスト／ Play モード／ Windows の IL2CPP のビルド／手動」のどれかを書く。Editor が開けない環境では、確かめていないと書く
+
+## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
 
 Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（順 7 の画面の計画で使う。この章の時点では各シーンに最小の uGUI を置くだけ）。
 
@@ -124,13 +189,13 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 | `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ | → `Produce` |
 | `Produce` | プロデュース。この章の時点では空（文字と `Home` へ戻るボタンだけ） | → `Home` |
 
-- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの View・Presenter（と、そのシーンだけの診断の補助）だけを登録する。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
+- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
 - **シーンの遷移は `ISceneNavigator`**（Application のポート: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
 - **通信エラーの後の遷移**: `ApiCore` に `IErrorNavigator`（VolTech-MagicOnion）を渡す。`GoToTitleAsync` は `Title` の読み込み、`GoToHomeAsync` は `Home` の読み込み、`OpenStoreAsync` は未実装（ログだけ。強制アップデートは実装しないため。[repository-layout.md](repository-layout.md) 10.5）。実装は `ISceneNavigator` を呼ぶだけの小さなクラスで、`Bootstrap` に置く。`ReturnToTitle` で `Title` が読み込み直されると、通信中だった古い Presenter の続きが破棄された View に触らないよう、Presenter は View が破棄済みなら何もしない。診断（下記）のときはナビゲーターを渡さない
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
 - **Home に入ったとき `PlayerCache.Current` が無い**（サインインしていない）場合は、`Title` へ戻す
 - 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。画面の計画で、診断を別の入口に分ける [Uta案]
-- 最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする（手で組み立てを再現できるように）。文字は英語の組み込みフォント（`LegacyRuntime.ttf`）。日本語の文字・TextMeshPro・デザインは画面の計画（順 7）
+- 最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする（手で組み立てを再現できるように）。順 7 の画面の計画で、各シーンの最小の uGUI を 7章の Prefab に置き換える（日本語の文字は TextMeshPro + フォントアセット）
 - 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）
 
 ## 未決事項
