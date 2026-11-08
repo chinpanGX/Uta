@@ -15,8 +15,38 @@ MonoBehaviour:
   m_GroupName: Screens
   m_GUID: f34a6316fe9b11143a913f232f4e7aff
   m_SerializeEntries:
+  - m_GUID: 03d17cb8d81a41e46b812cd0b713ba63
+    m_Address: ClassPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 105dd5cd5cd551b409463c20ae83c63c
+    m_Address: WeekPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 14967c23f534d444684f93a454c8696c
+    m_Address: FormationPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1d191d4a5b7b69f46aabdda9b5dc99b4
+    m_Address: SupplyPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 25998d2fadd6146419e1fcef33025453
+    m_Address: ProduceBackdropPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 32f874e0601f5b64c84c00ecab12dbec
     m_Address: GachaRatesModal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6fffed28aa873114ea2f1506ef8254a3
+    m_Address: CardOfferModal
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
