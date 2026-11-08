@@ -48,5 +48,5 @@ public sealed class GachaService(ITransactions transactions, GetGachasUseCase ge
     }
 
     private static DrawResultDto ToDto(GachaResult x) => new DrawResultDto(
-        x.Slot, (ItemKind)(int)x.Kind, x.ItemId, (GachaOutcome)(int)x.Outcome, x.Shards, x.SupportPoints, x.SupportCardUid?.ToString() ?? "");
+        x.Slot, (ItemKind)(int)x.Kind, x.ItemId, (GachaOutcome)(int)x.ResultKind, x.Shards, x.SupportPoints, x.SupportCardUid?.ToString() ?? "");
 }
