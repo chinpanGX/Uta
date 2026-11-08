@@ -9,7 +9,7 @@ namespace Uta.Client.Application.Player
         /// サインインが PLAYER_NOT_CREATED なら、まだサインアップしていなければサインアップしてサインインし直す。
         /// サインアップの後も未作成なら InvalidOperationException("sign-in: player not created after sign-up")。
         /// 失敗は InvalidOperationException（"sign-up failed: " + 失敗の文字列、"sign-in failed: " + 失敗の文字列）。
-        /// 成功した応答は 3 つのリポジトリに書いてから返す。
+        /// 成功した応答は 3 つのリポジトリに書いてから返す。失敗したらリポジトリは変えない。
         /// </summary>
         UniTask<EnterPlayerResult> EnterAsync(bool afterRegistration);
 
