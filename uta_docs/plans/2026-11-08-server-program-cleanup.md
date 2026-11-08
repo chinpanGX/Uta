@@ -1,7 +1,7 @@
 ---
 title: 実装計画: サーバーの Program.cs の登録を並べ替え、DI の検査を常に有効にする
-status: draft
-updated: 2026-11-08
+status: ready
+updated: 2026-11-09
 spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/server-foundation.md
 ---
 
