@@ -36,14 +36,14 @@ updated: 2026-11-08
 5. シードを作って乱数を用意する(1章)
 6. 枠ごとに(1 から `Count` まで)、抽選する(10 連の 10 枠目は確定枠)→ [gacha.md](../../systems/gacha.md) 5章の処理 → 履歴に 1 行。完凸の判定は枠ごとに `EXISTS` で読んでよい(同じ要求の中で完凸は増えないので、まとめて読んでも結果は同じ。読み方は実装に任せる)。育成アイドルの所持(New か Duplicate か)は**枠ごとに読む**: 同じ 10 連の中で同じアイドルが 2 回出たら、2 回目はかけらになるため。まとめて読むと、主キーの違反かかけらの付け漏れになる
 7. 交換pt を `Count` だけ足す(`gacha_exchange_points` に行がなければ作る。`INSERT ... ON CONFLICT (player_id, gacha_id) DO UPDATE SET points = points + @n RETURNING points` で今の値を受け取る)
-8. Response を作る([api-design.md](../api-design.md) 1.1)
+8. Response を作る([api-design.md](../api-design.md) 1.1)。`Common` は基盤が入れる(通貨・触ったアイドルとサポートカードの変更後の値。[server-foundation.md](server-foundation.md) 共通レスポンス項目)
 
 `ExchangeAsync`(1 つのトランザクション):
 
 1. `GachaMasterId` がマスタになければ、または `CeilingItemOrder` が `GachaCeilingItem` になければ `GACHA_NOT_FOUND`
 2. 交換pt を減らす: `UPDATE gacha_exchange_points SET points = points - @c WHERE player_id = @id AND gacha_id = @g AND points >= @c`。0 行(行がない場合を含む)なら `GACHA_NOT_ENOUGH_POINTS`
 3. [gacha.md](../../systems/gacha.md) 5章の処理 → 履歴に 1 行([gacha.md](../../systems/gacha.md) 4章)
-4. Response を作る(`RETURNING points` で受けた残りの交換pt。結果の `Slot` は 0)
+4. Response を作る(`RETURNING points` で受けた残りの交換pt。結果の `Slot` は 0)。`Common` は `DrawAsync` と同じく基盤が入れる
 
 `GetGachasAsync`: マスタの `Gacha` を `GachaId` の昇順にすべて返す。交換pt の行がないガチャは 0 を返す。
 
@@ -58,6 +58,7 @@ updated: 2026-11-08
 3. 必要量(強化pt・ゴールド)を `SupportLevelCost` の行から合計する
 4. `UPDATE players SET support_points = support_points - @p, gold = gold - @g WHERE player_id = @id AND support_points >= @p AND gold >= @g` の 1 文で払う。0 行なら残高を読み直し、強化pt が足りなければ `SUPPORT_NOT_ENOUGH_POINTS`、そうでなければ `PLAYER_NOT_ENOUGH_GOLD`(強化pt を先に見る)
 5. 所持IDの行のレベルを目標にする
+6. `Common`(基盤が入れる): 強化したカード(`SupportCards`)と、減った強化pt・ゴールド(`HasBalance` が真)
 
 `LimitBreakAsync`(1 つのトランザクション。検証はこの順):
 
@@ -66,6 +67,7 @@ updated: 2026-11-08
 3. 素材を消す: `DELETE FROM player_support_cards WHERE support_card_uid = @m AND player_id = @id AND card_id = @c`。0 行(無い・他人の・別のカード)なら `SUPPORT_INVALID_MATERIAL`
 4. 解放する: `UPDATE player_support_cards SET limit_break = limit_break + 1 WHERE support_card_uid = @t AND player_id = @id AND limit_break < 4`。0 行なら `SUPPORT_MAX_LIMIT_BREAK`(トランザクションごと取り消すので、3 の削除も戻る)
 
+- `LimitBreakAsync` の `Common`(基盤が入れる): 解放したカードが `SupportCards` に、消した素材の ID が `RemovedSupportCardUniqueIds` に入る
 - 同時に同じ素材を使う要求が来ても、3・4 が 1 文の条件付きの更新なので、片方が 0 行になって失敗する。再送は `x-request-id` で冪等に扱う(VolTech-MagicOnion)
 
 - `request_id` に入れる `x-request-id` は、`Api` で `Context.CallContext.RequestHeaders.GetValue(ApiHeaders.RequestId)` で読み、Application に引数で渡す [決定。2026-10-31]。VolTech-MagicOnion の `RpcLogFilter` も同じ読み方をしている。`x-app-version` と同じ読み方([api-design.md](../api-design.md) 5章)。無い・形が違うときは、VolTech-MagicOnion の `Transactions` が本体を呼ぶ前に `INVALID_ARGUMENT` を返す(`Transactions.cs`)
