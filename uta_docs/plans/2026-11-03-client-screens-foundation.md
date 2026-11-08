@@ -171,6 +171,12 @@ public sealed class HomeEntry : IStartable
   ```
   本文の 6 行（`DeviceAuthGateway`・`PlayerGateway`・`PlayerCache`・`SignInUseCase`・`EnterPlayerUseCase`・`RefreshPlayerUseCase`）は無い
 - `ActiveSceneUi.Dialogs`・`SceneUiInstaller`・`ErrorDialogView` の `DialogService` は `DialogOpener`
+- **取り直しの中で遷移したら、外側はホームへ行かない**（2026-11-08。コードレビュー I1 をユーザーが「この PR で直す」と判断。決めたこと 11 に足す）: `ApiCore` は遷移を await してから例外を投げるので、取り直しの RPC のエラーでユーザーが「タイトルへ」を選んだあとにも、外側の `GoToHomeAsync` がホームを読み込んでいた（内側も「ホームへ」なら 2 回）。`ErrorNavigator` に `private int navigations;` を足す:
+  - `GoToTitleAsync`: `navigations++;` のあと `return scenes.GoToTitleAsync();`
+  - `GoToHomeAsync`: `refreshing` が false のとき、`var before = navigations;` を覚えてから取り直す（`refreshing`・`catch` のログ・`finally` は今のまま）。取り直しのあと `navigations != before` なら（取り直しの中で遷移済み）`return;`。それ以外（`refreshing` が true の再入を含む）は `navigations++;` のあと `await scenes.GoToHomeAsync();`
+  - `OpenStoreAsync` は数えない（シーンを読み込まない）
+  - テスト（`ErrorNavigatorTests`）: `_WhileRefreshing_SkipsRefresh` の期待を直す: `await first` のあとの `log` は `"Refresh"`, `"GoToHome"`（1 回。外側は内側の遷移を見て飛ばす）。最後の `GoToHomeAsync()` で `RefreshCount == 2` は今のまま（ログは `"Refresh"`, `"GoToHome"`, `"Refresh"`, `"GoToHome"`）。新しく `GoToHomeAsync_TitleDuringRefresh_StaysOnTitle`: `fake.RefreshResults.Enqueue(async () => { await navigator.GoToTitleAsync(); throw new InvalidOperationException("sign-in failed: x"); })` → `await navigator.GoToHomeAsync();` → `log` が `"Refresh"`, `"GoToTitle"` だけ（`FakeSceneNavigator` の `GoToTitleAsync` の記録名は既存のものに合わせる）
+  - wiki: `screen-design.md` 8章の `ErrorNavigator` の「ホームへ」の説明に「取り直しの中で別の遷移（タイトルへ・ホームへ）が起きたら、外側はホームを読み込まない [2026-11-08]」を足す
 
 ### R5. タスクの読み替え
 

@@ -13,6 +13,7 @@ namespace Uta.Client.Bootstrap
         private readonly ISceneNavigator scenes;
         private readonly IObjectResolver resolver;
         private bool refreshing;
+        private int navigations;
 
         // IPlayerUseCase をコンストラクターで受けない:
         // ApiClient のファクトリー → IErrorNavigator → IPlayerUseCase → IPlayerService → ApiClient の循環になるため
@@ -24,6 +25,7 @@ namespace Uta.Client.Bootstrap
 
         public UniTask GoToTitleAsync()
         {
+            navigations++;
             return scenes.GoToTitleAsync();
         }
 
@@ -31,6 +33,7 @@ namespace Uta.Client.Bootstrap
         {
             if (!refreshing)
             {
+                var before = navigations;
                 refreshing = true;
                 try
                 {
@@ -44,8 +47,14 @@ namespace Uta.Client.Bootstrap
                 {
                     refreshing = false;
                 }
+
+                if (navigations != before)
+                {
+                    return;
+                }
             }
 
+            navigations++;
             await scenes.GoToHomeAsync();
         }
 

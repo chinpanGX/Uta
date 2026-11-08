@@ -69,10 +69,28 @@ namespace Uta.Client.Tests
 
             gate.TrySetResult();
             await first;
-            CollectionAssert.AreEqual(new[] { "Refresh", "GoToHome", "GoToHome" }, log.Entries);
+            CollectionAssert.AreEqual(new[] { "Refresh", "GoToHome" }, log.Entries);
 
             await navigator.GoToHomeAsync();
             Assert.AreEqual(2, fake.RefreshCount);
+        });
+
+        [UnityTest]
+        public IEnumerator GoToHomeAsync_TitleDuringRefresh_StaysOnTitle() => UniTask.ToCoroutine(async () =>
+        {
+            var log = new CallLog();
+            var fake = new FakePlayerUseCase(log);
+            var navigator = Create(fake, log);
+            fake.RefreshResults.Enqueue(async () =>
+            {
+                await navigator.GoToTitleAsync();
+                throw new InvalidOperationException("sign-in failed: x");
+            });
+            LogAssert.Expect(UnityEngine.LogType.Warning, new Regex("refresh on go-to-home failed"));
+
+            await navigator.GoToHomeAsync();
+
+            CollectionAssert.AreEqual(new[] { "Refresh", "GoToTitle" }, log.Entries);
         });
 
         [UnityTest]
