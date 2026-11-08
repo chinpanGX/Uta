@@ -354,3 +354,4 @@ foundation・formation・gacha・owned の 4 本の、タイトル（`# 実装�
 |---|---|---|---|
 | 2(a) | 完了 | `752fb9e` | Uta.Client.MasterData・Domain の precompiledReferences に `MasterMemory.Annotations.dll`・`MessagePack.Annotations.dll` も要った（R1 の 2 つでは足りない）。後ろのアセンブリは旧い API のエラーで (c) までコンパイルされない |
 | 2(b) | 完了 | `3a9e78e` | なし（テストの実行は (c)） |
+| 2(c) | 完了 | `a497b11` | `FakeRpcErrors` はパッケージの `Runtime/Client/Testing`（計画は `Tests/EditMode`）。`new UnaryResult<T>(value)` で通った。`PlayerUseCaseTests` は `[UnityTest]` + `UniTask.ToCoroutine`（11 件。計画のケースに `Enter_NotCreatedTwice_Throws`・`Refresh_NotCreated_ThrowsAndKeepsRepositories` を足した）。`MasterCardCatalogTests` の読み込みのテストは `MasterDataLoaderTests` に同じものがあり、写さず消した。**テストを先に書いて失敗することの実測はしていない**（Editor が固まり、再起動の後に本実装が入った状態で回した）。EditMode は非同期の実行で 102 件成功。unity7-evaluation.md 4 章の `runSynchronously = true` のコマンドは `[UnityTest]` を走らせない（13 件が total=0） |
