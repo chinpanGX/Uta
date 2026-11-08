@@ -12,3 +12,4 @@
 - [2026-10-26-reference-structure-research.md](2026-10-26-reference-structure-research.md) — 参考作品の構造調査メモ
 - [2026-11-01-wiki-log.md](2026-11-01-wiki-log.md) — 2026-11-01 まで wiki に置いていた更新履歴（追記しない）
 - [2026-11-01-masterdata-unity-spike.md](2026-11-01-masterdata-unity-spike.md) — マスタを Unity に取り込む計画のための、アドオンのツールでの確認
+- [2026-11-08-naming-and-layers-decisions.md](2026-11-08-naming-and-layers-decisions.md) — 命名規則と層の中身（マスタの参照範囲、エンティティと Repository、クライアントの Application）の相談で決まったこと
