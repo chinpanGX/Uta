@@ -23,7 +23,7 @@ updated: 2026-11-08
 - **`ItemKind` の正はここ** [決定。2026-10-31]: `Nothing` = 0 / `Idol` = 1 / `SupportCard` = 2。マスタの enum(`masterdata/Definitions` の写し。[masterdata-pipeline.md](masterdata-pipeline.md) 2章)と DTO の enum(`Uta.Shared.Contracts`)は同じ名前・同じ数値で別に定義する。`Nothing` はマスタ・DTO・履歴のどこにも入れない(検証で弾く)
 - `Outcome`(New / Duplicate)はマスタで使わないので、正は [api-design.md](../api-design.md) 1.1(2026-11-01 にここから移した)
 - 区分: どれもクライアントで確率を表示するので Common(クライアントにも出す)。`DuplicateConversion` も、結果の画面で量を見せるので Common
-- 育成アイドルとサポートカードは**専用の参照列 2 つ**(`IdolId`・`SupportCardId`)で指し、存在は `[Exists]` で検証する [決定。2026-11-01。ユーザーの判断。それまでは 1 つの列 `ItemId` だった]。[masterdata-pipeline.md](masterdata-pipeline.md) 3章の「参照は専用の列＋`[Exists]`」の規約どおり。`ItemKind` に合う方だけを書き、もう一方は空欄。DTO の形(`ItemKind` + `ItemMasterId`)と履歴の形(`item_kind` + `item_id`)へは、サーバーの Infrastructure で `ItemKind` を見て読み替える
+- 育成アイドルとサポートカードは**専用の参照列 2 つ**(`IdolId`・`SupportCardId`)で指し、存在は `[Exists]` で検証する [決定。2026-11-01。ユーザーの判断。それまでは 1 つの列 `ItemId` だった]。[masterdata-pipeline.md](masterdata-pipeline.md) 3章の「参照は専用の列＋`[Exists]`」の規約どおり。`ItemKind` に合う方だけを書き、もう一方は空欄。DTO の形(`ItemKind` + `ItemMasterId`)と履歴の形(`item_kind` + `item_id`)へは、サーバーの Application(`GachaItemMapper`)で `ItemKind` を見て読み替える
 - 検証 [2026-11-01 に実装。行の検査は `IValidatable`、表をまたぐ検査はサーバーのテスト（`MasterDataInvariantTests`）]。`IValidatable`: `ItemKind` が `Nothing` でない、`ItemKind` に合う参照列だけが埋まっている(`Idol` なら `IdolId` だけ、`SupportCard` なら `SupportCardId` だけ)、重みが 1 以上、テーブルごとの重みの合計が `int.MaxValue` 以下(`RandomOps.WeightedIndex` の制約。`long` で足して比べる)、テーブルが空でない、確定枠のテーブルに R がない(参照先のマスタの `Rarity` を見る)。`GachaCeilingItem` にも同じ参照列の検証を掛ける
 
 ## 未決事項

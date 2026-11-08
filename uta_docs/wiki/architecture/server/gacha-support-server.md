@@ -25,7 +25,7 @@ updated: 2026-11-08
 | 所持品の書き込み | [gacha.md](../../systems/gacha.md) 5章の処理が書くのは次の 4 種だけ: 育成アイドルの行の追加(所持の ID `idol_uid` は ULID、トレーニング 0・覚醒 0・かけら 0)、かけらの加算、サポートカードの行の追加(所持ID は ULID、レベル 1、上限解放 0、入手日時)、`players.support_points` の加算。列名と型はサーバーの実装計画の DDL で決める |
 | `ExpectedCost` | 画面に出した価格と違う額を引かれないための保険(マスタの版はアプリのバージョンと同じなので、食い違うのはクライアントの不具合のとき) |
 
-サーバーはマスタを Infrastructure の `MemoryDatabase` から読む([repository-layout.md](../repository-layout.md) 4章)。`server/` と `masterdata/` はまだない(作るのはそれぞれの最初の実装計画)。
+サーバーはマスタを、UseCase が DI で受けた `MemoryDatabase` から読む([ADR 0020](../../decisions/0020-masterdata-referenced-outside-shared-domain.md))。表は今の主キーで引く(`FindBy…`・先頭のキーで絞る `FindRangeBy…`。`[SecondaryKey]` は足していない。2026-11-08。[計画](../../../plans/2026-11-08-server-masterdata-without-catalog.md))。マスタの品目(`ItemKind`・`IdolId`・`SupportCardId`)→ 付与する品目(`GrantedItemKind`・ID)の読み替えは Application の `GachaItemMapper`。
 
 `DrawAsync`(1 つのトランザクション):
 

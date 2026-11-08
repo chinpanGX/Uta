@@ -14,7 +14,7 @@ updated: 2026-11-08
 - 1 回の操作は 1 つのトランザクション(VolTech-MagicOnion の `RunAsync`)で行う。状態の保存・報酬・結果・冪等性の保存済みレスポンスは同じトランザクション。同じプレイヤーの要求は基盤が直列にする([api-design.md](../api-design.md) 3章)ので、`players` は明示的にロックしない
 - 保存の形は、`ProduceSnapshot`([produce-domain.md](../produce-domain.md) 6.1)から作る MessagePack(整数キー)。DTO は復元した `ProduceState` とエンジンの表示用の関数から作る([produce-domain.md](../produce-domain.md) 6章)
 - 乱数は 1 つのマスターシードから `RandomStreams.Create` で作るストリーム。サーバーは `IRandomStreamSource` を実装し、要求の終わりにストリームの状態を保存する(2章)
-- 層: `Api`(DTO ↔ コマンドの変換・ヘッダーの読み取り)、`Application`(ユースケース・Catalog の IF)、`Domain`(乱数ストリームの管理・プレイヤーLv の計算、リポジトリの IF とそのシグネチャの型)、`Infrastructure`(SQL・MessagePack・マスタの詰め替え)。依存は [repository-layout.md](../repository-layout.md) 3章・4章のとおり(Application は `Uta.Shared.Contracts` を参照しない)
+- 層: `Api`(DTO ↔ コマンドの変換・ヘッダーの読み取り)、`Application`(ユースケース。マスタは DI で受けた `MemoryDatabase` から直接引く。ADR 0020)、`Domain`(乱数ストリームの管理・プレイヤーLv の計算、リポジトリの IF とそのシグネチャの型)、`Infrastructure`(SQL・MessagePack・Shared.Domain の `ProduceCatalog` の組み立て)。依存は [repository-layout.md](../repository-layout.md) 3章・4章のとおり(Application は `Uta.Shared.Contracts` を参照しない)
 
 ## 2. 乱数 [決定。2026-11-03]
 
@@ -75,7 +75,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 
 終了(`Phase` が `Finished`)になった操作と同じトランザクションで、次を行う([produce.md](../../systems/produce.md) 6.1)。
 
-1. 報酬: `EvaluationRankReward`(マスタ。`ProduceRank` で引く。`IProduceRewardCatalog`)の行。ランクは `ProduceState.Result.Rank`
+1. 報酬: `EvaluationRankReward`(マスタ。`ProduceRank` で引く。`ProduceCompletion` が `MemoryDatabase` の `EvaluationRankRewardTable.FindByRank` で引く)の行。ランクは `ProduceState.Result.Rank`
 2. プレイヤーLv: `PlayerLevelRules.AddExp(level, exp, gain, requiredExps)`(`Uta.Server.Domain.Produce`)。`requiredExps[i]` は Lv `i+1` → `i+2` に要る経験値(マスタ `PlayerLevelExp` を `Level` の昇順に並べたもの)。最大Lv = `requiredExps.Count + 1`(99 行なら 100)。`exp` は今のレベルの中の経験値。`gain` が 0 以上のあいだ: 最大Lv なら終わり(経験値は増やさない)、`requiredExps[level - 1] - exp` に届くなら引いてレベルを 1 上げ `exp = 0` にして続ける、届かなければ `exp += gain` で終わり。最大Lv に達したとき `exp = 0`
 3. `players` の更新: `gacha_currency`・`gold`・`support_points` に報酬を加え、`level`・`exp` を 2 の結果にする(1 文の `UPDATE`)
 4. `produce_results` に 1 行(終わり方は完了、`exam_outcome` は `ProduceState.Result.Outcome`)
@@ -165,9 +165,9 @@ Response:
 |---|---|
 | `Uta.Shared.Contracts/Produce/` | `IProduceService`、Request・Response・DTO、enum 3 つ、`ProduceErrors` |
 | `Uta.Server/Api/` | `ProduceService`(`[UtaService]`)、`AppVersionHeader`、`ProduceResponseMapper`(`ProduceView` → `ProduceStateResponse` / `ProduceResultResponse`) |
-| `Uta.Server/Application/Produce/` | `ProduceVersions`、`IProduceRewardCatalog`、`IPlayerLevelCatalog`、`ProduceView`、`ProduceViewBuilder`、`ProduceCommandNormalizer`、`ProduceSessionDiscarder`、`StartProduceUseCase`、`GetProduceStateUseCase`、`AbandonProduceUseCase`、`ProduceOperationUseCase`、`ProduceCompletion` |
+| `Uta.Server/Application/Produce/` | `ProduceVersions`、`ProduceView`、`ProduceViewBuilder`、`ProduceCommandNormalizer`、`ProduceSessionDiscarder`、`StartProduceUseCase`、`GetProduceStateUseCase`、`AbandonProduceUseCase`、`ProduceOperationUseCase`、`ProduceCompletion` |
 | `Uta.Server/Domain/Produce/` | `RandomStreamState`、`SessionRandomStreams`、`PlayerLevelRules`、`ProduceSessionStatus`、`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`、`IProduceSessionRepository`、`ProduceReward`(2026-11-08。[ADR 0021](../../decisions/0021-domain-entities-and-repositories.md)) |
-| `Uta.Server/Infrastructure/` | `ProduceSessionRepository`、`Produce/ProduceStateBlobs.cs`(Blob の型)、`Produce/ProduceStateSerializer.cs`、`MasterData/MasterProduceCatalog.cs`(`ProduceMasterRows` の詰め替え)、`MasterData/MasterProduceRewardCatalog.cs`、`MasterData/MasterPlayerLevelCatalog.cs` |
+| `Uta.Server/Infrastructure/` | `ProduceSessionRepository`、`Produce/ProduceStateBlobs.cs`(Blob の型)、`Produce/ProduceStateSerializer.cs`、`MasterData/ProduceCatalogFactory.cs`(`ProduceMasterRows` の詰め替え。2026-11-08 に `MasterProduceCatalog` から改名)。報酬とプレイヤー Lv の必要経験値は `ProduceCompletion` がマスタから直接引く(2026-11-08 に `IProduceRewardCatalog`・`IPlayerLevelCatalog` をやめた) |
 
 ## 未決事項
 

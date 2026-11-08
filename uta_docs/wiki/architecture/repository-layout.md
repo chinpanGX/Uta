@@ -176,16 +176,16 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 
 | フォルダ（名前空間） | 参照してよいもの | 禁止 |
 |---|---|---|
-| `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain` | `Infrastructure` |
-| `Application` | `Domain`、`Uta.Shared.Domain`、`TxContext`（`VolTech.Server.Transaction`。リポジトリの IF の引数として受け渡す） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
-| `Domain` | `Uta.Shared.Domain`、`TxContext`（リポジトリの IF の引数。`Connection` に触れない。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
+| `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`） | `Infrastructure` |
+| `Application` | `Domain`、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、`TxContext`（`VolTech.Server.Transaction`。リポジトリの IF の引数として受け渡す） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
+| `Domain` | `Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、`TxContext`（リポジトリの IF の引数。`Connection` に触れない。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
 | `Infrastructure` | `Application`、`Domain`（リポジトリの IF を実装する）、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、例外として `PlayerDiffCollector.cs` の 1 ファイルだけ `Uta.Shared.Contracts`（下） | `Api` |
 
-`Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。これはサーバーの規則（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md) のサーバー側を実装する計画まで今のまま）。クライアントは下の「生成したマスタの置き場」。
+`Uta.MasterData` は Shared.Domain 以外のどの層から参照してもよい（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。2026-11-08 までは Infrastructure だけだった。[サーバー側の計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)）。`Uta.Shared.Domain` は参照しない（`ArchitectureTests.SharedDomain_DoesNotDependOnMasterData`）。使う側は `MemoryDatabase`（シングルトン）を DI で受ける。クライアントは下の「生成したマスタの置き場」。
 
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
 - **例外: `Infrastructure/PlayerDiffCollector.cs` は `Uta.Shared.Contracts` の DTO（`AppCommonDto`・`PlayerDiffDto`・`OwnedIdolDto`・`OwnedSupportCardDto`）を参照してよい** [決定。2026-11-08。ユーザーの判断]。基盤の `TxContext.GetCollector<T>` が具象型の完全一致を要求し、リポジトリ（Infrastructure）が書き込みの中で記録するため、コレクターを Infrastructure に置くしかない。この 1 ファイル以外では Infrastructure から DTO を参照しない。DTO への写し（2 行）は `Api/PlayerService.cs` の SignIn と重複させる（[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）
-- **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーでは生成物を参照してよいのは Infrastructure だけ。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
+- **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーの置き場（`Infrastructure/MasterData/`）は、参照してよい層を広げた後（ADR 0020。2026-11-08）も変えない。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
 - 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
 - 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする（層ごとに 1 件。型がまだ無い層のルールは空の集合で通るので、その層に最初の型が入る計画が「型が 1 つ以上ある」テストを足す）。動作の確認（2026-11-01）: NetArchTest.Rules 1.3.2 は .NET 10・xunit.v3（Microsoft.Testing.Platform）で動き、違反を検出できる
 - クライアントの `Application` の asmdef は **`noEngineReferences` を使わない**。UniTask を参照するため（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)・[ADR 0009](../decisions/0009-client-stack.md)）。UnityEngine の API を使わないことは、コードレビュー（[layers/client.md](../../../.claude/skills/requesting-code-review/layers/client.md)）で守る [決定。2026-10-31。2026-10-28 の「`true` にする」は ADR と食い違っていたので戻した]
