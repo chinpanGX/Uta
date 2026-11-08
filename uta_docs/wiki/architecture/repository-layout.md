@@ -59,7 +59,7 @@ uta/
 │  └─ Uta.Server/            # [決定] 1プロジェクト。フォルダで層を分ける
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
-│     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
+│     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）、エンティティとリポジトリの IF（ADR 0021）
 │     ├─ Infrastructure/     #   DB、マスタの読み込み（MasterDataLoader）
 │     │  └─ MasterData/      #   生成物（サーバー用）: Generated/ のソース、masterdata.bytes（埋め込みリソース）、masterdata.manifest.json（ADR 0013）
 │     └─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
@@ -115,7 +115,7 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 |---|---|
 | Shared.Domain | `shared/Uta.Shared.Domain`（テストは `shared/Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
 | Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO）。パッケージ名は `com.uta.shared.contracts` |
-| Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） |
+| Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`） |
 | Client.Domain | `client/uta/Assets/Scripts/Domain/`（asmdef・名前空間 `Uta.Client.Domain`。2026-11-08 に作った。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。所持データのエンティティとリポジトリの IF を置く。フォルダと名前空間は機能ごと（`Player/`・`Idol/`・`SupportCard/`、`Uta.Client.Domain.Player` など。Infrastructure のリポジトリの実装も同じ分け方。2026-11-08。ユーザーの判断） |
 
 | アセンブリ | 置き場 | 形式 | 参照してよいもの |
@@ -177,9 +177,9 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 | フォルダ（名前空間） | 参照してよいもの | 禁止 |
 |---|---|---|
 | `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain` | `Infrastructure` |
-| `Application` | `Domain`、`Uta.Shared.Domain`、`TxContext`（`VolTech.Server.Transaction`。ポートの引数に使う） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
-| `Domain` | `Uta.Shared.Domain` | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
-| `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、例外として `PlayerDiffCollector.cs` の 1 ファイルだけ `Uta.Shared.Contracts`（下） | `Api` |
+| `Application` | `Domain`、`Uta.Shared.Domain`、`TxContext`（`VolTech.Server.Transaction`。リポジトリの IF の引数として受け渡す） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
+| `Domain` | `Uta.Shared.Domain`、`TxContext`（リポジトリの IF の引数。`Connection` に触れない。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
+| `Infrastructure` | `Application`、`Domain`（リポジトリの IF を実装する）、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、例外として `PlayerDiffCollector.cs` の 1 ファイルだけ `Uta.Shared.Contracts`（下） | `Api` |
 
 `Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。これはサーバーの規則（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md) のサーバー側を実装する計画まで今のまま）。クライアントは下の「生成したマスタの置き場」。
 
@@ -245,7 +245,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | 種類 | 置き場 | 例 |
 |---|---|---|
 | 両側で一致させるルール | Shared.Domain（`shared/Uta.Shared.Domain`） | カード効果、ターン処理順、計算式、使用可否の判定 |
-| サーバー固有 | Server.Domain（`server/Uta.Server/Domain/`） | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与 |
+| サーバー固有 | Server.Domain（`server/Uta.Server/Domain/`） | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与、エンティティ・リポジトリの IF（[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） |
 | クライアント固有 | クライアントの `Application` / `Presentation`。所持データのエンティティとリポジトリの IF は Client.Domain（`Uta.Client.Domain`。2026-11-08。3章、[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | 表示用の整形、並び順、演出の制御、UI の状態、ローカル設定。所持データのキャッシュ（エンティティ・リポジトリ） |
 
 置き場の判断基準（上から順に当てはめる）:
