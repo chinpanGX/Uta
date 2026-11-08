@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーの起動の組み立てを ServerHost に移し、DI の検査を常に有効にする
-status: ready
+status: in-progress
 updated: 2026-11-09
 spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/server-foundation.md
 ---
@@ -378,4 +378,5 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ・メモ |
+|---|---|---|
