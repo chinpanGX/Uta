@@ -1,5 +1,5 @@
 ﻿using Uta.Server.Application.Common;
-using Uta.Server.Application.Player;
+using Uta.Server.Domain.Player;
 using Uta.Server.Domain.Produce;
 using Uta.Shared.Domain.Produce;
 using VolTech.Server.Transaction;

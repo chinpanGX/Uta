@@ -1,7 +1,9 @@
 ﻿using Uta.Server.Application.Common;
-using Uta.Server.Application.Idol;
 using Uta.Server.Application.Produce;
-using Uta.Server.Application.Support;
+using Uta.Server.Domain.Idol;
+using Uta.Server.Domain.Player;
+using Uta.Server.Domain.Produce;
+using Uta.Server.Domain.Support;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Player;
@@ -38,6 +40,6 @@ public sealed class SignInUseCase(
         }
 
         return new SignInResult(
-            player, await idols.ListAsync(tx, playerId), await supportCards.ListAsync(tx, playerId), hasActiveProduce, discardedProduce);
+            player, await idols.FindAllAsync(tx, playerId), await supportCards.FindAllAsync(tx, playerId), hasActiveProduce, discardedProduce);
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Dapper;
-using Uta.Server.Application.Idol;
+using Uta.Server.Domain.Idol;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Infrastructure;
@@ -40,7 +40,7 @@ public sealed class IdolRepository : IIdolRepository
         tx.GetCollector<PlayerDiffCollector>().TouchIdol(playerId, idolId);
     }
 
-    public async Task<IReadOnlyList<OwnedIdol>> ListAsync(TxContext tx, Ulid playerId)
+    public async Task<IReadOnlyList<IdolEntity>> FindAllAsync(TxContext tx, Ulid playerId)
     {
         var rows = await tx.Connection.QueryAsync<Row>(new CommandDefinition(
             "SELECT idol_uid AS UniqueId, idol_id AS MasterId, training AS Training, awakening AS Awakening, shards AS Shards " +
@@ -48,7 +48,7 @@ public sealed class IdolRepository : IIdolRepository
             new { playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return rows.Select(x => new OwnedIdol(Ulid.Parse(x.UniqueId), x.MasterId, x.Training, x.Awakening, x.Shards)).ToList();
+        return rows.Select(x => new IdolEntity(Ulid.Parse(x.UniqueId), x.MasterId, x.Training, x.Awakening, x.Shards)).ToList();
     }
 
     private sealed class Row

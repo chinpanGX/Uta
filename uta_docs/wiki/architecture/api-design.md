@@ -123,7 +123,7 @@ Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Resp
 | テーブル | 主キー | 主な列 | 元の仕様 |
 |---|---|---|---|
 | `players` | `player_id` | プレイヤーLv、経験値、ゴールド、サポート強化pt、ガチャ通貨、作成日時 | [produce.md](../systems/produce.md) 7、[gacha.md](../systems/gacha.md) |
-| `player_idols` | `player_id` + `idol_id` | `idol_uid`（所持の ID。ULID の `char(26)`、`NOT NULL`・`UNIQUE`。行を作るときにサーバーが採番する（`IdolRepository.TryInsertAsync` が `Ulid.NewUlid()` を入れ、Application の `OwnedIdol` は `UniqueId` に持つ）。2026-11-08 にマイグレーション 0007 で足し、既存の行は `created_at` の時刻 + 乱数の ULID の形で埋めた）、トレーニング段階、覚醒段階、かけら（所持している育成アイドルだけ行がある。信頼度は PRD-11 を作るときに足す） | [idol-support.md](../systems/idol-support.md) 1、[gacha.md](../systems/gacha.md) 5 |
+| `player_idols` | `player_id` + `idol_id` | `idol_uid`（所持の ID。ULID の `char(26)`、`NOT NULL`・`UNIQUE`。行を作るときにサーバーが採番する（`IdolRepository.TryInsertAsync` が `Ulid.NewUlid()` を入れ、Domain の `IdolEntity` は `UniqueId` に持つ）。2026-11-08 にマイグレーション 0007 で足し、既存の行は `created_at` の時刻 + 乱数の ULID の形で埋めた）、トレーニング段階、覚醒段階、かけら（所持している育成アイドルだけ行がある。信頼度は PRD-11 を作るときに足す） | [idol-support.md](../systems/idol-support.md) 1、[gacha.md](../systems/gacha.md) 5 |
 | `player_support_cards` | `support_card_uid`（所持ID。ULID） | `player_id`、`card_id`、レベル、上限解放回数、入手日時。同じカードを引くたびに1行増える（2026-10-31 決定） | [idol-support.md](../systems/idol-support.md) 2.2.1 |
 | `gacha_exchange_points` | `player_id` + `gacha_id` | 交換pt | [gacha.md](../systems/gacha.md) 4 |
 | `gacha_histories` | `history_id`（ULID） | カード 1 枚 = 1 行。`request_id`（`DrawAsync` 1 回の束）、`player_id`、`gacha_id`、`slot`（1〜10。交換は 0）、`gacha_table_id`、`item_kind`、`item_id`、`outcome`（新規 / 重複）、`shards`、`support_points`、日時 | [gacha.md](../systems/gacha.md) 6 |

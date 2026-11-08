@@ -1,6 +1,6 @@
 ﻿using Dapper;
-using Uta.Server.Application.Player;
-using Uta.Server.Application.Produce;
+using Uta.Server.Domain.Player;
+using Uta.Server.Domain.Produce;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Infrastructure;
@@ -17,7 +17,7 @@ public sealed class PlayerRepository : IPlayerRepository
         return affected == 1;
     }
 
-    public async Task<PlayerSnapshot?> FindAsync(TxContext tx, Ulid playerId)
+    public async Task<PlayerEntity?> FindAsync(TxContext tx, Ulid playerId)
     {
         var row = await tx.Connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
             "SELECT level AS Level, exp AS Exp, gold AS Gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency " +
@@ -25,7 +25,7 @@ public sealed class PlayerRepository : IPlayerRepository
             new { playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return row is null ? null : new PlayerSnapshot(row.Level, row.Exp, row.Gold, row.SupportPoints, row.GachaCurrency);
+        return row is null ? null : new PlayerEntity(row.Level, row.Exp, row.Gold, row.SupportPoints, row.GachaCurrency);
     }
 
     public async Task GrantCurrenciesAsync(TxContext tx, Ulid playerId, int gachaCurrency, int gold, int supportPoints)

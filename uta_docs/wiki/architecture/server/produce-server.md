@@ -14,7 +14,7 @@ updated: 2026-11-08
 - 1 回の操作は 1 つのトランザクション(VolTech-MagicOnion の `RunAsync`)で行う。状態の保存・報酬・結果・冪等性の保存済みレスポンスは同じトランザクション。同じプレイヤーの要求は基盤が直列にする([api-design.md](../api-design.md) 3章)ので、`players` は明示的にロックしない
 - 保存の形は、`ProduceSnapshot`([produce-domain.md](../produce-domain.md) 6.1)から作る MessagePack(整数キー)。DTO は復元した `ProduceState` とエンジンの表示用の関数から作る([produce-domain.md](../produce-domain.md) 6章)
 - 乱数は 1 つのマスターシードから `RandomStreams.Create` で作るストリーム。サーバーは `IRandomStreamSource` を実装し、要求の終わりにストリームの状態を保存する(2章)
-- 層: `Api`(DTO ↔ コマンドの変換・ヘッダーの読み取り)、`Application`(ユースケース・ポート)、`Domain`(乱数ストリームの管理・プレイヤーLv の計算)、`Infrastructure`(SQL・MessagePack・マスタの詰め替え)。依存は [repository-layout.md](../repository-layout.md) 3章・4章のとおり(Application は `Uta.Shared.Contracts` を参照しない)
+- 層: `Api`(DTO ↔ コマンドの変換・ヘッダーの読み取り)、`Application`(ユースケース・Catalog の IF)、`Domain`(乱数ストリームの管理・プレイヤーLv の計算、リポジトリの IF とそのシグネチャの型)、`Infrastructure`(SQL・MessagePack・マスタの詰め替え)。依存は [repository-layout.md](../repository-layout.md) 3章・4章のとおり(Application は `Uta.Shared.Contracts` を参照しない)
 
 ## 2. 乱数 [決定。2026-11-03]
 
@@ -165,8 +165,8 @@ Response:
 |---|---|
 | `Uta.Shared.Contracts/Produce/` | `IProduceService`、Request・Response・DTO、enum 3 つ、`ProduceErrors` |
 | `Uta.Server/Api/` | `ProduceService`(`[UtaService]`)、`AppVersionHeader`、`ProduceResponseMapper`(`ProduceView` → `ProduceStateResponse` / `ProduceResultResponse`) |
-| `Uta.Server/Application/Produce/` | `ProduceVersions`、`ProduceSessionStatus`、`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`、`IProduceSessionRepository`、`IProduceRewardCatalog`、`IPlayerLevelCatalog`、`ProduceView`、`ProduceViewBuilder`、`ProduceCommandNormalizer`、`ProduceSessionDiscarder`、`StartProduceUseCase`、`GetProduceStateUseCase`、`AbandonProduceUseCase`、`ProduceOperationUseCase`、`ProduceCompletion` |
-| `Uta.Server/Domain/Produce/` | `RandomStreamState`、`SessionRandomStreams`、`PlayerLevelRules` |
+| `Uta.Server/Application/Produce/` | `ProduceVersions`、`IProduceRewardCatalog`、`IPlayerLevelCatalog`、`ProduceView`、`ProduceViewBuilder`、`ProduceCommandNormalizer`、`ProduceSessionDiscarder`、`StartProduceUseCase`、`GetProduceStateUseCase`、`AbandonProduceUseCase`、`ProduceOperationUseCase`、`ProduceCompletion` |
+| `Uta.Server/Domain/Produce/` | `RandomStreamState`、`SessionRandomStreams`、`PlayerLevelRules`、`ProduceSessionStatus`、`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`、`IProduceSessionRepository`、`ProduceReward`(2026-11-08。[ADR 0021](../../decisions/0021-domain-entities-and-repositories.md)) |
 | `Uta.Server/Infrastructure/` | `ProduceSessionRepository`、`Produce/ProduceStateBlobs.cs`(Blob の型)、`Produce/ProduceStateSerializer.cs`、`MasterData/MasterProduceCatalog.cs`(`ProduceMasterRows` の詰め替え)、`MasterData/MasterProduceRewardCatalog.cs`、`MasterData/MasterPlayerLevelCatalog.cs` |
 
 ## 未決事項

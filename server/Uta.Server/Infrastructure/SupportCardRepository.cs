@@ -1,5 +1,4 @@
 ﻿using Dapper;
-using Uta.Server.Application.Support;
 using Uta.Server.Domain.Support;
 using VolTech.Server.Transaction;
 
@@ -26,7 +25,7 @@ public sealed class SupportCardRepository : ISupportCardRepository
             cancellationToken: tx.CancellationToken));
     }
 
-    public async Task<IReadOnlyList<OwnedSupportCard>> ListAsync(TxContext tx, Ulid playerId)
+    public async Task<IReadOnlyList<SupportCardEntity>> FindAllAsync(TxContext tx, Ulid playerId)
     {
         var rows = await tx.Connection.QueryAsync<Row>(new CommandDefinition(
             "SELECT support_card_uid AS UniqueId, card_id AS MasterId, level AS Level, limit_break AS LimitBreak " +
@@ -34,10 +33,10 @@ public sealed class SupportCardRepository : ISupportCardRepository
             new { playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return rows.Select(x => new OwnedSupportCard(Ulid.Parse(x.UniqueId), x.MasterId, x.Level, x.LimitBreak)).ToList();
+        return rows.Select(x => new SupportCardEntity(Ulid.Parse(x.UniqueId), x.MasterId, x.Level, x.LimitBreak)).ToList();
     }
 
-    public async Task<OwnedSupportCard?> FindAsync(TxContext tx, Ulid playerId, Ulid uid)
+    public async Task<SupportCardEntity?> FindAsync(TxContext tx, Ulid playerId, Ulid uid)
     {
         var row = await tx.Connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
             "SELECT support_card_uid AS UniqueId, card_id AS MasterId, level AS Level, limit_break AS LimitBreak " +
@@ -45,7 +44,7 @@ public sealed class SupportCardRepository : ISupportCardRepository
             new { uid = uid.ToString(), playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return row is null ? null : new OwnedSupportCard(Ulid.Parse(row.UniqueId), row.MasterId, row.Level, row.LimitBreak);
+        return row is null ? null : new SupportCardEntity(Ulid.Parse(row.UniqueId), row.MasterId, row.Level, row.LimitBreak);
     }
 
     public async Task UpdateLevelAsync(TxContext tx, Ulid playerId, Ulid uid, int level)

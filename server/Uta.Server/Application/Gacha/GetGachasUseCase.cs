@@ -1,4 +1,5 @@
-﻿using VolTech.Server.Transaction;
+﻿using Uta.Server.Domain.Gacha;
+using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Gacha;
 

@@ -1,7 +1,7 @@
-﻿using Uta.Server.Application.Produce;
+﻿using Uta.Server.Domain.Produce;
 using VolTech.Server.Transaction;
 
-namespace Uta.Server.Application.Player;
+namespace Uta.Server.Domain.Player;
 
 public interface IPlayerRepository
 {
@@ -9,7 +9,7 @@ public interface IPlayerRepository
     Task<bool> InsertIfAbsentAsync(TxContext tx, Ulid playerId);
 
     /// <summary>行が無ければ null。</summary>
-    Task<PlayerSnapshot?> FindAsync(TxContext tx, Ulid playerId);
+    Task<PlayerEntity?> FindAsync(TxContext tx, Ulid playerId);
 
     /// <summary>通貨を加算する（初期付与）。</summary>
     Task GrantCurrenciesAsync(TxContext tx, Ulid playerId, int gachaCurrency, int gold, int supportPoints);
@@ -25,5 +25,3 @@ public interface IPlayerRepository
     /// <summary>プロデュースの報酬を加え、Lv と経験値を上書きする（1 文）。</summary>
     Task GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int level, int exp);
 }
-
-public sealed record PlayerBalance(int SupportPoints, int Gold);

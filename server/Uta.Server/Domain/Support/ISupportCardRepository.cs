@@ -1,6 +1,6 @@
 ﻿using VolTech.Server.Transaction;
 
-namespace Uta.Server.Application.Support;
+namespace Uta.Server.Domain.Support;
 
 public interface ISupportCardRepository
 {
@@ -11,10 +11,10 @@ public interface ISupportCardRepository
     Task<bool> HasMaxLimitBreakAsync(TxContext tx, Ulid playerId, int cardId);
 
     /// <summary>support_card_uid の昇順。</summary>
-    Task<IReadOnlyList<OwnedSupportCard>> ListAsync(TxContext tx, Ulid playerId);
+    Task<IReadOnlyList<SupportCardEntity>> FindAllAsync(TxContext tx, Ulid playerId);
 
     /// <summary>自分の所持IDの行。無い・他人の行なら null。</summary>
-    Task<OwnedSupportCard?> FindAsync(TxContext tx, Ulid playerId, Ulid uid);
+    Task<SupportCardEntity?> FindAsync(TxContext tx, Ulid playerId, Ulid uid);
 
     Task UpdateLevelAsync(TxContext tx, Ulid playerId, Ulid uid, int level);
 

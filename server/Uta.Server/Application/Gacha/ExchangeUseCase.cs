@@ -1,4 +1,5 @@
 ﻿using Uta.Server.Application.Common;
+using Uta.Server.Domain.Gacha;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Gacha;
@@ -20,7 +21,7 @@ public sealed class ExchangeUseCase(IGachaCatalog catalog, IGachaRepository gach
 
         var item = gacha.CeilingItems.First(x => x.Order == ceilingItemOrder);
         var result = await granter.GrantAsync(tx, playerId, item.Kind, item.ItemId);
-        await gachas.AddHistoryAsync(tx, new GachaHistoryRow(
+        await gachas.AddHistoryAsync(tx, new GachaHistoryRecord(
             Ulid.NewUlid(), requestId, playerId, gachaId, 0, 0,
             (int)result.Kind, result.ItemId, (int)result.Outcome, result.Shards, result.SupportPoints));
 

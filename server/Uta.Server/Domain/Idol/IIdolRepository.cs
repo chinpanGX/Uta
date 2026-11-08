@@ -1,6 +1,6 @@
 ﻿using VolTech.Server.Transaction;
 
-namespace Uta.Server.Application.Idol;
+namespace Uta.Server.Domain.Idol;
 
 public interface IIdolRepository
 {
@@ -12,5 +12,5 @@ public interface IIdolRepository
     Task AddShardsAsync(TxContext tx, Ulid playerId, int idolId, int shards);
 
     /// <summary>idol_id の昇順。</summary>
-    Task<IReadOnlyList<OwnedIdol>> ListAsync(TxContext tx, Ulid playerId);
+    Task<IReadOnlyList<IdolEntity>> FindAllAsync(TxContext tx, Ulid playerId);
 }
