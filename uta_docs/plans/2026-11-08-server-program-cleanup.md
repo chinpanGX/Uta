@@ -10,11 +10,11 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 ## この計画で決めたこと
 
 - **前提**: [PR #51](https://github.com/chinpanGX/Uta/pull/51)（Catalog をやめた。ADR 0020 のサーバー側）は 2026-11-08 に main へマージ済み。計画のブランチは main から切った（積み PR にしない）。この計画は #51 の後の `server/Uta.Server/Program.cs`（`ICardCatalog`・`ProduceCatalog` の Factory 2 行が残り、ほかの Catalog の登録が無い形）を前提に書いた
-- **登録の並べ替え**（2026-11-08。下の「ユーザーの確認が要ること」1 の推奨）: `migrate` の分岐の後を、ホスト → マスタ → Infrastructure → 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー）→ 基盤 → ヘルスチェック の順に並べ、空行と見出しのコメントで区切る。並べ替えで動きは変わらない（同じ型の登録が 2 つ無く、`AddVoltechServer` の中の登録は `TryAdd`。テストの `ConfigureTestServices` は `Program.cs` の登録の後に流れる）。完成形は 3.1
+- **登録の並べ替え**（2026-11-08。ユーザーの判断。案は入れない（今の並びのまま）と比べ、新しい UseCase の置き場所が決まるほうを選んだ）: `migrate` の分岐の後を、ホスト → マスタ → Infrastructure → 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー）→ 基盤 → ヘルスチェック の順に並べ、空行と見出しのコメントで区切る。並べ替えで動きは変わらない（同じ型の登録が 2 つ無く、`AddVoltechServer` の中の登録は `TryAdd`。テストの `ConfigureTestServices` は `Program.cs` の登録の後に流れる）。完成形は 3.1
 - **`migrate` の分岐の位置は変えない**（接続文字列を読んだ直後、マスタの読み込みより前）。`migrate` はマスタも DI も使わない
 - **機能ごとの拡張メソッド（`AddProduce()` など）には分けない**。登録は 30 行ほどで、見出しのコメントで機能の区切りは読める。分けると、1 か所で読めた寿命の組み合わせ（シングルトンがスコープを抱えていないか）が 5 ファイルに散る。機能ごとの登録が 1 機能で 10 行を超えたら見直す
 - **`ProduceEngine` はプロデュースの区切りに置く**（Shared.Domain の育成の計算。マスタの区切りは `MemoryDatabase` と、マスタから Shared.Domain の型を組み立てる Factory の 2 行だけにする）。`ItemGranter` はガチャ、`ProduceSessionDiscarder` はプロデュースの区切りに置く（置き場のフォルダ `Application/Gacha/`・`Application/Produce/` に合わせる。サインインからも使うが、持ち主はフォルダで決める）。`IRandomSource`（`SecureRandomSource`）は実装が `Infrastructure/` にあるので Infrastructure の区切りに置く
-- **DI の検査を環境によらず有効にする**（2026-11-08。「ユーザーの確認が要ること」2 の推奨）: `builder.Host.UseDefaultServiceProvider(options => { options.ValidateScopes = true; options.ValidateOnBuild = true; })` をホストの区切りの先頭に足す。ASP.NET Core は Development のときだけ両方を有効にする（既定）。結合テストは `WebApplicationFactory` の既定の Development で動くので、**今の登録は既に両方の検査を通っている**（全結合テストが通っている）。足すことで変わるのは、Production（Cloud Run）でも登録漏れ・寿命の誤りが `builder.Build()` で止まること
+- **DI の検査を環境によらず有効にする**（2026-11-08。ユーザーの判断。`ValidateOnBuild` だけ（`ServiceProvider` は `ValidateScopes` のときだけスコープの検査をするので、シングルトンがスコープの型を抱える誤りを Production で見逃す）・入れない、と比べて選んだ。起動時に全登録を 1 回組み立てる分、起動が少し遅くなるが、登録は約 30 件で小さい（推測で、計っていない））: `builder.Host.UseDefaultServiceProvider(options => { options.ValidateScopes = true; options.ValidateOnBuild = true; })` をホストの区切りの先頭に足す。ASP.NET Core は Development のときだけ両方を有効にする（既定）。結合テストは `WebApplicationFactory` の既定の Development で動くので、**今の登録は既に両方の検査を通っている**（全結合テストが通っている）。足すことで変わるのは、Production（Cloud Run）でも登録漏れ・寿命の誤りが `builder.Build()` で止まること
 - **`ValidateOnBuild` で落ちないことの確かめ**（足す前に確かめたこと。2026-11-08）:
   - `AddVoltechServer`（VolTech-MagicOnion `11d9b06`、`src/VolTech.Server/Hosting/VoltechServerExtensions.cs`）が登録するのは、オプションと検証（`VoltechServerOptionsValidator`）・`TimeProvider.System`・`GameClock`・`ITransactions` → `Transactions` のシングルトンと、`AddGrpc()`・`AddMagicOnion()`。環境で登録を変える分岐は無い（`IsDevelopment` などは基盤の `src/` に無い）
   - `AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` は `CommonResponseRegistration` のインスタンスをシングルトンで登録するだけで、`PlayerDiffCollector` は DI に登録しない（`CommonResponseRegistration.CreateCollector` が `ActivatorUtilities.CreateInstance` でリクエストのスコープから作る）。`ValidateOnBuild` は登録された型しか見ないので、`PlayerDiffCollector` は検査の対象にならず、落ちない。`PlayerDiffCollector` の引数の解決は、今どおり実行時に `CommonResponseTests` が確かめる
@@ -25,13 +25,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 
 ## ユーザーの確認が要ること
 
-1. **登録の並べ替えを入れるか**
-   - 案 A（推奨）: 入れる。3.1 の順に並べ、見出しのコメントで区切る。動きは変わらない。失敗する条件: なし（同じ型を 2 回登録していないので、順序で解決が変わらない）
-   - 案 B: 入れない。今の並び（マスタの途中にログと Kestrel が挟まる）のまま。失敗する条件: 新しい UseCase を足すたびに置き場所が決まらず、1 列の末尾に積まれていく
-2. **DI の検査（`ValidateScopes`・`ValidateOnBuild`）を Production でも有効にするか**
-   - 案 A（推奨）: 両方を環境によらず有効にする。起動時に全登録を 1 回組み立てる分、起動が少し遅くなる（登録は約 30 件なので小さい。推測で、計っていない）。`ValidateScopes` はルートからスコープの型を解決したときにも例外にする（Development と同じ動き）。失敗する条件: 実行時にしか作らない型（`PlayerDiffCollector`・MagicOnion のサービス）の登録漏れは、今どおり実行時まで分からない
-   - 案 B: `ValidateOnBuild` だけ有効にする。失敗する条件: `ValidateScopes` が無いと `ValidateOnBuild` はシングルトンがスコープの型を抱えていることを検査しない（`ServiceProvider` は `ValidateScopes` のときだけスコープの検査をする）ので、寿命の誤りは Production で見逃す
-   - 案 C: 入れない。失敗する条件: Development を通らない登録（今は無い）が Production だけで壊れる
+なし（並べ替えと DI の検査の 2 つは、2026-11-08 にユーザーが「入れる」「両方を常に有効」と決めた。上の [決定] に移した）。
 
 ## 1. 目的と前提
 
@@ -215,7 +209,7 @@ Production の Cloud Run での起動は、この計画では確かめない（�
 
 ## 6. 未決事項
 
-なし（「ユーザーの確認が要ること」の答えをもらったら、「この計画で決めたこと」へ移す）。
+なし。
 
 ## 7. 実装メモ
 
