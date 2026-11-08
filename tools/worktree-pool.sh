@@ -89,7 +89,11 @@ case "${1:-}" in
       esac
     done < <(git -C "$root" worktree list --porcelain; echo)
 
-    for i in "${!wts[@]}"; do
+    # メインのチェックアウトは最後に回す（ほかの worktree が main を開いていると main に移れないため）
+    order=()
+    for i in "${!wts[@]}"; do [ "${wts[$i]}" = "$root" ] || order+=("$i"); done
+    for i in "${!wts[@]}"; do [ "${wts[$i]}" = "$root" ] && order+=("$i"); done
+    for i in "${order[@]}"; do
       wt="${wts[$i]}"; br="${brs[$i]}"
       if [ "$wt" = "$root" ]; then
         # メインのチェックアウト: マージ済みのブランチにいたら main に移る
@@ -101,6 +105,12 @@ case "${1:-}" in
       elif [[ "$wt" == "$pool"/* && "${wt#"$pool"/}" =~ ^[0-9]+$ ]]; then
         # 固定の worktree: origin/main に戻して空ける
         if [ -z "$br" ]; then echo "空き: $wt"; continue; fi
+        if [ "$br" = main ]; then
+          # main を開いたままだと、ほかの場所で main に移れない。detached HEAD に戻す
+          if dirty "$wt"; then skip_dirty "$wt" main; continue; fi
+          act git -C "$wt" switch -q --detach origin/main
+          continue
+        fi
         is_merged "$br" || { echo "作業中: $wt ($br)"; continue; }
         if dirty "$wt"; then skip_dirty "$wt" "$br"; continue; fi
         act git -C "$wt" switch -q --detach origin/main
@@ -114,6 +124,10 @@ case "${1:-}" in
         fi
         if dirty "$wt"; then skip_dirty "$wt" "${br:-HEAD}"; continue; fi
         if act git -C "$root" worktree remove "$wt"; then
+          [ -n "$br" ] && act git -C "$root" branch -D "$br"
+        elif ! git -C "$root" worktree list --porcelain | grep -qxF "worktree $wt"; then
+          # 登録は消えたが、フォルダが使われていて消し切れなかった（Windows でほかのプロセスが開いているときなど）
+          echo "フォルダが残った: $wt（ほかのプロセスが開いているかもしれない。閉じてから手で消す）" >&2
           [ -n "$br" ] && act git -C "$root" branch -D "$br"
         else
           echo "消せなかった: $wt（ロックされているかもしれない。git worktree list で見る）" >&2
