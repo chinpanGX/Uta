@@ -267,7 +267,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 
 ### 画面 1/6（土台・タイトル・ホーム。2026-11-08。[計画](../../plans/2026-11-03-client-screens-foundation.md)）
 
-- **確かめた範囲**: Editor の Play で `Bootstrap` → `Title` → `Home` の遷移（基盤の `ScreenNavigator` がシーンのスコープからページを積む）。Windows の IL2CPP とプレイヤーでの確認は、進行役が別に回す（このメモには含めていない）。見た目（日本語の表示・ウィンドウの大きさ）の手動確認は未
+- **確かめた範囲**: Editor の Play で `Bootstrap` → `Title` → `Home` の遷移（基盤の `ScreenNavigator` がシーンのスコープからページを積む）。Windows の IL2CPP のビルドと診断モード（`-uta-quit-after-check` の終了コード 0）、引数なしの起動でのタイトル → ホーム → 「準備中です。」と 540×960 のウィンドウ（ユーザーが手で確かめた。2026-11-08）
 - **計画とのズレ**:
   - `FakePlayerUseCase` はタスク 1 でなくタスク 2 で作った（`DiscardNoticeState`・`MarkDiscardNoticeShown` が入るのがタスク 2 のため）
   - `ApiClient.Create` の `activityHandler` 引数は `errorHandler` の直後に置いた
