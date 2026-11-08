@@ -17,12 +17,12 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 - **DI の検査を環境によらず有効にする**（2026-11-08。ユーザーの判断。`ValidateOnBuild` だけ（`ServiceProvider` は `ValidateScopes` のときだけスコープの検査をするので、シングルトンがスコープの型を抱える誤りを Production で見逃す）・入れない、と比べて選んだ。起動時に全登録の依存の解決を 1 回調べる分、起動が少し遅くなる。登録の総数はフレームワークを含めて数百だが、`ValidateOnBuild` はインスタンスを作らず依存の解決だけを調べるので、影響は小さい（計っていない））: `builder.Host.UseDefaultServiceProvider(options => { options.ValidateScopes = true; options.ValidateOnBuild = true; })` をホストの区切りの先頭に足す。ASP.NET Core は環境名が Development のときだけ両方を有効にする（既定）。ここで言う Production は ASP.NET Core の環境名で、`ASPNETCORE_ENVIRONMENT` を設定しないときの既定値。Cloud Run の環境（[ADR 0011](../wiki/decisions/0011-deploy-google-cloud.md)・repository-layout.md 11.1 の呼び方では dev。本番は分けない）には `ASPNETCORE_ENVIRONMENT` を設定する記述が wiki に無いので、環境名は Production になる。結合テストは `WebApplicationFactory` の既定の Development で動くので、**今の登録は既に両方の検査を通っている**。今日の登録の誤りはテストで止まるので、足すことで増えるのは次の 3 つ:
   1. 実行時の `ValidateScopes`: ルートの `IServiceProvider` からスコープの型を解決する誤りが、Development 以外でも「黙って抱え込む」から「例外で止まる」に変わる。今の Uta のコードと基盤（`AuthFilter`・`CommonResponseRegistration` はリクエストの `ServiceProvider` を使う）にルートから解決する経路は無く、RPC の経路は結合テストで同じ検査を通っているので、Cloud Run で新たに例外になる経路は無い
   2. 将来、環境で分岐する登録（`builder.Environment.IsDevelopment()` など）を足したとき、Development 以外だけの登録も `builder.Build()` で検査される
-  3. テストを回さずにデプロイしたとき、登録漏れ・寿命の誤りが起動で止まる（要求の途中で落ちない）
+  3. テストを回さずにデプロイしたとき、DI に登録した型の依存の漏れ・寿命の誤りが起動で止まる（要求の途中で落ちない）。DI に登録しない MagicOnion のサービスが使う型（新しい UseCase の `AddScoped` の書き忘れなど）は、今どおり最初の要求で落ちる
 - **`ValidateOnBuild` で落ちないことの確かめ**（足す前に確かめたこと。2026-11-08）:
   - `AddVoltechServer`（VolTech-MagicOnion `11d9b06`、`src/VolTech.Server/Hosting/VoltechServerExtensions.cs`）が登録するのは、オプションと検証（`VoltechServerOptionsValidator`）・`TimeProvider.System`・`GameClock`・`ITransactions` → `Transactions` のシングルトンと、`AddGrpc()`・`AddMagicOnion()`。環境で登録を変える分岐は無い（`IsDevelopment` などは基盤の `src/` に無い）
   - `AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` は `CommonResponseRegistration` のインスタンスをシングルトンで登録するだけで、`PlayerDiffCollector` は DI に登録しない（`CommonResponseRegistration.CreateCollector` が `ActivatorUtilities.CreateInstance` でリクエストのスコープから作る）。`ValidateOnBuild` は登録された型しか見ないので、`PlayerDiffCollector` は検査の対象にならず、落ちない。`PlayerDiffCollector` の引数の解決は、今どおり実行時に `CommonResponseTests` が確かめる
   - MagicOnion のサービスとフィルターも DI に登録されない（MagicOnion がリクエストごとに作る）ので、同じく対象外
-  - よって、`UtaServerFactory` が Development で `builder.Build()` を通っていること（`ValidateOnBuild` は登録された全記述子を見るので、テストが叩く RPC の範囲には関係ない）が、Production で `ValidateOnBuild` が落ちないことの根拠になる。成り立つ前提は、テストが置き換える登録が `TimeProvider`・`IRandomSource` のインスタンスの 2 つだけで、Production の記述子の解決を変えないこと（`UtaServerFactory.ConfigureWebHost`）。実装では、タスク 2 の全テストと、Production で検査が効くことのテスト（5章）で確かめる
+  - よって、`UtaServerFactory` が Development で `builder.Build()` を通っていること（`ValidateOnBuild` は登録された全記述子を見るので、テストが叩く RPC の範囲には関係ない）が、Production で `ValidateOnBuild` が落ちないことの根拠になる。成り立つ前提は、テストが変える登録が Production の記述子の解決を変えないこと。`UtaServerFactory.ConfigureWebHost` が変えるのは 3 つ: `TimeProvider`・`IRandomSource` はインスタンスで置き換えるだけ、`ConfigureLogging(logging => logging.ClearProviders())` はログのプロバイダー（ZLogger のコンソール）の記述子を外す。よって ZLogger のプロバイダーの登録だけは結合テストで検査されないので、タスク 2 で環境名 Production のまま `dotnet run` で起動し、`builder.Build()` を通ることを確かめる。実装では、タスク 2 の全テストと、Production で検査が効くことのテスト（5章）で確かめる
 - **検査が Production で効くことをテストで固定する**（5章）。既存の結合テストは Development で動くので、`UseDefaultServiceProvider` の行を消しても全部通ってしまい、この変更を守れない。Production で、スコープの型を抱えたシングルトンを足すと起動が失敗することを 1 件だけ確かめる
 - **wiki**: [repository-layout.md](../wiki/architecture/repository-layout.md) 12章「サーバーの骨組み」の `Program.cs` の行に、登録の並び順と DI の検査を書き足す（タスク 3）。[server-foundation.md](../wiki/architecture/server/server-foundation.md) は `Program.cs` の骨組みを 12章に任せているので直さない
 - **後に続く計画**（2026-11-09。ユーザーの判断）: 同じブランチの [サーバーの改名の計画](2026-11-09-server-naming-renames.md) を、この計画の実装の後に、同じセッション・同じブランチで実装する。この計画は今の名前（`ProduceViewBuilder`・`UtaDatabase`・`UtaServerFactory`）のまま書き、改名は後の計画が行う
@@ -194,6 +194,12 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
   - `dotnet build Uta.slnx`（警告 0・エラー 0）
   - `dotnet test --project server/Uta.Server.Tests` がすべて通り、`Build_ProductionWithSingletonCapturingScoped_Throws` が通る
   - 追加のテストが設定を守っていることを 1 回だけ確かめる: `UseDefaultServiceProvider` の文を一時的に消すと `Build_ProductionWithSingletonCapturingScoped_Throws` が落ちること（Production では既定で検査しないため、`production.Server` が例外を投げない）。確かめたら戻す。結果を実装メモに書く
+  - 環境名 Production でローカルに起動できることを 1 回だけ確かめる（ZLogger のプロバイダーを含む全登録が検査を通る。DB には接続しないので、接続文字列はダミーでよい）。Bash で次を実行し、出力に `Now listening on` が出ることを確かめる（20 秒で `timeout` が止める。終了コード 124 は想定どおり）。出なかったら出力を実装メモに書いて止まる:
+
+    ```bash
+    ASPNETCORE_ENVIRONMENT=Production ConnectionStrings__Default='Host=localhost;Database=uta' timeout 20 dotnet run --project server/Uta.Server --no-launch-profile
+    ```
+
 - 止まる条件: `WithWebHostBuilder` の `UseEnvironment` が `Program.cs` の環境に届かず、`UseDefaultServiceProvider` の文を消しても `Build_ProductionWithSingletonCapturingScoped_Throws` が通ってしまうとき。テストの書き方を変えずに止まって報告する
 
 ### タスク 3: wiki に書く
