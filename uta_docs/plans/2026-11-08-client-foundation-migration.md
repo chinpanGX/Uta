@@ -213,6 +213,37 @@ public static class PlayerMapper
 
 **確かめ方**: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（Docker）、Unity の `unity recompile`（エラー 0）と EditMode のテスト（非同期）、Editor の Play でアカウント無しから `sign-in: ok`（ローカルの DB にマイグレーション 0007 を流してから）。
 
+### R9. Contracts とサーバーの型の ID の名前を揃える（2026-11-08。ユーザーの判断。R8 より後に決めた。食い違えばこの節が正）
+
+**規則**: リクエスト・レスポンスの名前はクライアントとサーバーで統一する。DB の列名は今のまま（C# では Dapper の `AS` で写す）。
+1. DTO（またはサーバーの型）がそのものを表すときは `UniqueId`（サーバーが採番する ULID。`string`、サーバーの型では `Ulid`）・`MasterId`（マスタの `int`）
+2. ほかのものを指すときは `<名詞>UniqueId`・`<名詞>MasterId`（配列は `…UniqueIds`）
+3. `PlayerId` はそのまま。プロデュースの中で振る番号（`InstanceId`・`CardInstanceId`）は ULID でもマスタの ID でもないので変えない
+4. MessagePack の `[Key(n)]` の番号は変えない（プロパティ名とコンストラクターの引数名だけを変える）
+
+**改名の一覧**（`shared/Uta.Shared.Contracts`）:
+| 型 | 今 | 新 |
+|---|---|---|
+| `OwnedIdolDto` | `IdolId`・`IdolUid` | `MasterId`・`UniqueId` |
+| `OwnedSupportCardDto` | `SupportCardUid`・`CardId` | `UniqueId`・`MasterId` |
+| `DrawResultDto` | `ItemId`・`SupportCardUid` | `ItemMasterId`・`SupportCardUniqueId` |
+| `DrawRequest`・`ExchangeRequest`・`GachaStatusDto` | `GachaId` | `GachaMasterId` |
+| `LevelUpRequest` | `SupportCardUid` | `SupportCardUniqueId` |
+| `LimitBreakRequest` | `SupportCardUid`・`MaterialUid` | `SupportCardUniqueId`・`MaterialUniqueId` |
+| `StartProduceRequest` | `IdolId`・`SupportCardUids`・`RentalCandidateId`・`ScenarioId` | `IdolMasterId`・`SupportCardUniqueIds`・`RentalCandidateMasterId`・`ScenarioMasterId` |
+| `ProduceStateResponse` | `ScenarioId`・`IdolId` | `ScenarioMasterId`・`IdolMasterId` |
+| `DeckCardDto` | `CardId` | `CardMasterId` |
+
+コンストラクターの引数名も同じ規則（camelCase）。IService の RPC の引数に同じ ID があれば同じ規則で直す。
+
+**サーバー**: DTO を作る・読む側を直す。サーバーの型のうち所持品を表すもの `OwnedIdol(Ulid Uid, int IdolId, …)` → `OwnedIdol(Ulid UniqueId, int MasterId, …)`、`OwnedSupportCard(Ulid Uid, int CardId, …)` → `OwnedSupportCard(Ulid UniqueId, int MasterId, …)`（Dapper の `AS` も合わせる）。それ以外のサーバーの内部の型・UseCase の引数・ローカル変数・DB の列は**変えない**（この節の範囲は Contracts と所持品の 2 つの型。サーバーの内部の命名は ADR 0021 のサーバー側の計画で揃える）。テストはコンパイルが通るように直し、振る舞いは変えない。
+
+**クライアント**: `PlayerMapper` と EditMode のテスト（`FakePlayerService`・`PlayerUseCaseTests`・`PlayerMapperTests` の応答の組み立て）を新しい名前に合わせる。
+
+**wiki と計画**: `api-design.md` ほか wiki の DTO の項目名、`naming.md` に規則 1〜4、ready の画面の計画（foundation・formation・gacha・owned・week・lesson と共通レスポンス）は本文を書き換えず、「基盤 11d9b06 への読み替え」の節（無ければ先頭の読み替えの節）に「DTO の ID の名前は移行計画の R9 の表に読み替える」の 1 行を足す。
+
+**確かめ方**: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（件数が R8 の後の 294 と同じ）、`unity recompile`（エラー 0）、EditMode のテスト（非同期。103 件）。
+
 ## 0. 決まっていること
 
 ユーザーが推奨どおりに了承した（2026-11-08）。
