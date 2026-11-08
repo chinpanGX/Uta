@@ -24,7 +24,7 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
     {
         this.randomSource = randomSource;
         this.configureServices = configureServices;
-        // Program.cs が builder.Configuration から読むので、環境変数で渡す（ConfigureAppConfiguration は間に合わない）。
+        // ServerHost が builder.Configuration から読むので、環境変数で渡す（ConfigureAppConfiguration は間に合わない）。
         // 環境変数は user-secrets より優先されるので、開発機のローカル DB には落ちない。コンストラクタで渡すので、フィクスチャの初期化前には作れない
         Environment.SetEnvironmentVariable(ConnectionStringVariable, postgres.ConnectionString);
         Time = new FakeTimeProvider(now ?? new DateTimeOffset(2026, 11, 1, 3, 0, 0, TimeSpan.Zero));
