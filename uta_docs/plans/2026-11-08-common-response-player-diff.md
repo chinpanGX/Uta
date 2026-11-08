@@ -13,6 +13,7 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 
 - **本文のうち `PlayerDiffData`・`PlayerCache`（`PlayerCache.Apply`・`PlayerCacheApplyTests`・「`PlayerCache` は 82 行目で登録済み」を含む）を書いている記述はすべて無効**（0 章 6、1 章の「`PlayerCache` に反映する」、2 章の表の `PlayerDiffData.cs`（作成）・`PlayerCache.cs`（変更）の行と `PlayerCacheApplyTests.cs`、3 章の `PlayerDiffData`・`PlayerCache.Apply` のコードと「`Apply`:」の段落、タスク 3 の手順とテストの一覧）。反映先はクライアントの Domain のリポジトリ 3 つで、置き換え・追加・除く・冪等の規則は下の `ApplyAsync` に移った。`PlayerCommonApplier.cs`（作成）・`PlayerCommonApplierTests.cs`・`AppCommonSerializationTests.cs`（作成）の行は有効
 - **0 章 9（`RefreshPlayerUseCase` は残す）**: `IPlayerUseCase.RefreshAsync` と読む。安全網として残す意味は同じ
+- **0 章の「順番」の「foundation（順 4）より前に `main` へ入れる」**: 「P1 の実装ブランチを切る前に `main` へ入れる」と読む（積み PR の連鎖に入るのは P1 を切った時点の `main` だけ。[索引の読み替えの節](2026-11-07-client-screens-index.md)）
 - `PlayerCommonApplier`（`Infrastructure/Player/PlayerCommonApplier.cs`。naming.md 9章の `Applier`）:
   ```csharp
   public sealed class PlayerCommonApplier : ICommonResponseApplier<AppCommon>
