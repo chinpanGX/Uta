@@ -1,6 +1,7 @@
 ﻿using System;
 using Grpc.Net.Client;
 using Uta.Shared.Contracts.Common;
+using Uta.Shared.Contracts.Gacha;
 using Uta.Shared.Contracts.Player;
 using VolTech.Client;
 using VolTech.Client.Auth;
@@ -24,10 +25,12 @@ namespace Uta.Client.Infrastructure.Api
 
         public IPlayerService Player { get; }
 
+        public IGachaService Gacha { get; }
+
         /// <summary>ApiCore がトークンを捨てた（Invalidate を呼んだ）回数。再認証の再送の診断用。</summary>
         public int TokenInvalidationCount => counting.InvalidationCount;
 
-        private ApiClient(GrpcChannel channel, IDeviceService deviceClient, ApiCoreOptions options, string accountFilePath, string keySource, DeviceTokenProvider tokenProvider, CountingTokenProvider counting, IPlayerService player)
+        private ApiClient(GrpcChannel channel, IDeviceService deviceClient, ApiCoreOptions options, string accountFilePath, string keySource, DeviceTokenProvider tokenProvider, CountingTokenProvider counting, IPlayerService player, IGachaService gacha)
         {
             this.counting = counting;
             this.channel = channel;
@@ -37,6 +40,7 @@ namespace Uta.Client.Infrastructure.Api
             DeviceClient = deviceClient;
             TokenProvider = tokenProvider;
             Player = player;
+            Gacha = gacha;
         }
 
         /// <param name="errorHandler">アプリの共通エラーハンドラー（Bootstrap が DefaultCommonErrorHandler を渡す）</param>
@@ -63,7 +67,8 @@ namespace Uta.Client.Infrastructure.Api
 
             var core = builder.Build();
             var playerClient = core.CreateClient<IPlayerService>();
-            return new ApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, playerClient);
+            var gachaClient = core.CreateClient<IGachaService>();
+            return new ApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, playerClient, gachaClient);
         }
 
         /// <summary>同じ端末のアカウントのファイルを読む、もう 1 つの DeviceTokenProvider（診断で、メインの持つトークンをサーバーで無効にするために使う）。</summary>
