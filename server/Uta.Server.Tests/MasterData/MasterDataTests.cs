@@ -48,6 +48,43 @@ public class MasterDataTests
         Assert.Equal(14, Db.ConditionTable.Count);
     }
 
+    [Fact]
+    public void Cards_NameIsNotBlank()
+    {
+        foreach (var card in Db.CardTable.All)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(card.Name), $"card {card.CardId} の Name が空");
+        }
+    }
+
+    [Fact]
+    public void Cards_NamesAreDistinct()
+    {
+        Assert.Equal(36, Db.CardTable.All.Select(x => x.Name).Distinct().Count());
+    }
+
+    [Fact]
+    public void CardFaces_DescriptionIsNotBlank()
+    {
+        Assert.Equal(72, Db.CardFaceTable.Count);
+        foreach (var face in Db.CardFaceTable.All)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(face.Description), $"cardFace {face.CardId} {face.Face} の Description が空");
+        }
+    }
+
+    [Fact]
+    public void CardTexts_SpotCheck()
+    {
+        Assert.Equal("まっすぐ一声", Db.CardTable.FindByCardId(1).Name);
+        Assert.Equal("パラメータ+9", Db.CardFaceTable.FindByCardIdAndFace((1, CardFaceKind.Normal)).Description);
+        Assert.Equal("パラメータ+14", Db.CardFaceTable.FindByCardIdAndFace((1, CardFaceKind.Enhanced)).Description);
+        Assert.Equal("波に乗るサビ", Db.CardTable.FindByCardId(104).Name);
+        Assert.Equal("好調2ターン以上のとき使用可。パラメータ+10（好調の効果2倍）", Db.CardFaceTable.FindByCardIdAndFace((104, CardFaceKind.Normal)).Description);
+        Assert.Equal("響きあう想い", Db.CardTable.FindByCardId(215).Name);
+        Assert.Equal("好印象+6、好印象の170%分パラメータ上昇", Db.CardFaceTable.FindByCardIdAndFace((215, CardFaceKind.Enhanced)).Description);
+    }
+
     [Theory]
     [InlineData(EffectOp.GainParam, 26, 329)]
     [InlineData(EffectOp.GainParamByImpression, 6, 840)]

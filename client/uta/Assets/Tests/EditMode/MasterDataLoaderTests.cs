@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
@@ -52,6 +53,23 @@ namespace Uta.Client.Tests
             Assert.AreEqual(21, db.GachaTableEntryTable.Count, "GachaTableEntryTable");
             Assert.AreEqual(2, db.GachaCeilingItemTable.Count, "GachaCeilingItemTable");
             Assert.AreEqual(6, db.DuplicateConversionTable.Count, "DuplicateConversionTable");
+        }
+
+        [Test]
+        public void Load_Bundled_CardTextsAreNotBlank()
+        {
+            var db = MasterDataLoader.Load(ReadBundled());
+
+            var blankNames = db.CardTable.All.Where(x => string.IsNullOrWhiteSpace(x.Name)).Select(x => x.CardId).ToList();
+            CollectionAssert.IsEmpty(blankNames, "Name が空の CardId");
+
+            var blankDescriptions = db.CardFaceTable.All
+                .Where(x => string.IsNullOrWhiteSpace(x.Description))
+                .Select(x => x.CardId + ":" + x.Face)
+                .ToList();
+            CollectionAssert.IsEmpty(blankDescriptions, "Description が空の面");
+
+            Assert.AreEqual("まっすぐ一声", db.CardTable.FindByCardId(1).Name);
         }
 
         [Test]

@@ -221,7 +221,7 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 ## 未決事項
 
-- 表示名を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` が Common にある
+- 表示名・説明文を `[ClientOnly]` の列に分けるか。今は各テーブルの `Name` と `CardFace.Description` が Common にある
 - Android（`jar:file://` の `UnityWebRequest`）・iOS の実機でのマスタ読み込み。Windows の Editor と Windows の IL2CPP のプレイヤーでは確認済み（[実装メモ](#実装メモ)）
 - Addressables へ移る時期と、古いスキーマのバイナリをどれだけ残すか
 - ゲーム仕様の変更時の運用（定義の変更でスキーマ ID が変わる → 古いアプリとの互換）
