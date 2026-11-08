@@ -6,7 +6,9 @@ updated: 2026-11-08
 
 # 命名規則（型の名前の付け方）
 
-C# の型の名前を、役割ごとに決める。書式（大文字・小文字、`_` の有無、波括弧）は [CLAUDE.md](../../../CLAUDE.md) の「C# コーディング規約」と `.editorconfig` が正。決めた経緯は [raw の記録](../../raw/2026-11-08-naming-remaining-decisions.md)（と同じ日の 2 本）。
+C# の型の名前を、役割ごとに決める。書式（大文字・小文字、`_` の有無、波括弧）は [CLAUDE.md](../../../CLAUDE.md) の「C# コーディング規約」と `.editorconfig` が正。
+
+決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
 
 印: [ADR 案] は proposed の ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。ADR が accepted になるまでは、今のコードと、ほかのページ（[repository-layout.md](repository-layout.md)・[screen-design.md](screen-design.md)）の書き方が正。
 
@@ -20,7 +22,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 - **`Request` は通信の入力（Contracts）だけ**。UseCase の入力は引数で受け、入力の型を作らない（Contracts の `LevelUpRequest` などと同じ名前の型ができるのを避けるため）
 - **結果は `Result`**。`Outcome` は使わない
 - **Shared.Domain のエンジンへの操作の入力は `Command`**（`LessonCommand`・`ProduceCommand`）
-- **表にない役割は、役割を表す名詞を接尾辞にする**（`ProduceCommandNormalizer`、`ProduceStateSerializer`、`CountingTokenProvider`、`PlayerCommonApplier`、`SceneNavigator`、`SecureRandomSource`）。新しい役割の名前を作るときは、同じ接尾辞の既存の型が同じ役割かを確かめる
+- **表にない役割は、役割を表す名詞を接尾辞にする**。使ってよい接尾辞と意味は 9章。新しい接尾辞を作る前に、9章の語で言えないかを確かめる
 
 ### 2. 層をまたぐ型
 
@@ -32,17 +34,17 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | リポジトリの実装 | `<名詞>Repository` | `PlayerRepository` | Infrastructure |
 | UseCase の IF（クライアント） [ADR 案] | `I<機能>UseCase`。機能ごとに 1 つ（Contracts の `I<機能>Service` と同じ単位） | `IGachaUseCase` | クライアントの Application（ADR 0022） |
 | UseCase の具象（サーバー） | `<動詞><名詞>UseCase`。1 つの操作に 1 つ | `DrawUseCase` | サーバーの Application |
-| 結果の値 | `<操作>Result`（操作の戻り値）、`<名詞>Result`（戻り値の中の 1 件分） | `DrawResult`、`GachaResult` | 返すメソッドの層（UseCase の戻り値は Application、ルールの戻り値は Domain・Shared.Domain） |
-| 結果の種類（enum） | `<分類する Result の名前>Kind` | `GachaResultKind`（`GachaResult` の新規・重複）、`ExamResultKind` | 同上 |
-| ある時点の値の写し | `<名詞>Snapshot` | `ProduceSnapshot` | Shared.Domain |
-| 状態（class） | `<機能>State` | `LessonState` | Shared.Domain |
-| 段階・状態の区分（enum） | `<名詞>Status` | `ProduceSessionStatus` | 使う層 |
+| UseCase の共通の戻り値（クライアント） [ADR 案] | `UseCaseResult<T>`（業務エラーの reason を Presenter に渡す） | — | クライアントの Application |
+| 結果の値 | `<操作>Result`（操作の戻り値）、`<名詞>Result`（戻り値の中の 1 件分） | `DrawResult`、`GachaResult`、`ProduceEndResult` | 返すメソッドの層（UseCase の戻り値は Application、ルールの戻り値は Domain・Shared.Domain） |
+| 結果の種類（enum） | `<何の結果か>ResultKind`。親の `Result` の型が無くてもよい | `GachaResultKind`（ガチャの 1 枠が新規か重複か）、`ExamResultKind`、`UseCheckResultKind` | 同上 |
+| ある時点の値の写し | `<名詞>Snapshot` | `ProduceSnapshot` | 使う層 |
+| 状態（class・record） | `<名詞>State` | `LessonState`、`RandomStreamState` | 使う層 |
+| 保存される進行の段階（enum） | `<名詞>Status` | `ProduceSessionStatus` | 使う層 |
 | それ以外の分類（enum） | `<名詞>Kind` | `ItemKind`、`CostKind` | 使う層 |
-| まとめた値 | `<名詞>Summary`: 表示や結果のために、いくつかの値を読み取り専用にまとめたもの。状態でも結果そのものでもない | `ProduceEndSummary`、`ClassOptionSummary` | 使う層 |
 
 - リポジトリの名前は、エンティティ名から `Entity` を除いたもの
-- 結果の種類の enum が、どの `Result` も持たない操作の戻り値（`UseCheckResultKind` のように、enum だけを返す判定）は、`<操作>ResultKind` にする
-- 順位・ランクなど、上の区分に当たらない enum は 1章の「表にない役割」に従う（`ProduceRank`）
+- enum の区分の優先: 操作の結果を表すなら `ResultKind`、保存される進行の段階なら `Status`、それ以外の分類なら `Kind`
+- **既にある enum で、上の区分に当たらないものは名前を変えない**。用語集の語・ゲームの語そのもの（`Plan`・`Rarity`・`ProduceRank`）、ゲームの局面（`ProducePhase`・`LessonPhase`。用語集の「局面」）、理由（`LessonEndReason`）、検査の結果（`FormationCheck`）、種類（`CardType`・`SupportType`）、エラー（`UseCaseError`）。新しく作る enum は、上の区分か、この行の語（`Phase`・`Reason`）から選ぶ。`Type` は新しく使わない（`Kind` にする）
 
 ### 3. 通信（`Uta.Shared.Contracts`）
 
@@ -65,6 +67,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 定義の集まり | `I<名詞>Catalog` / `<名詞>Catalog` | `ICardCatalog` / `CardCatalog` |
 | 組み立て済みの定義 | `<名詞>Definition` | `CardDefinition` |
 | マスタの行と同じ列を持つ入力 | `<名詞>Row` | `CardRow` |
+| 選べるものの 1 つ | 接尾辞なしの名詞 | `ClassOption`、`WeekChoice` |
 
 - `Row` は組み立てる前の行（マスタの列そのまま）、`Definition` は組み立てた後（グループの解決・入れ子の組み立て済み）
 - enum の値の名前は [lesson-enums.md](lesson-enums.md) の「命名の規則」が正
@@ -74,8 +77,10 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 種類 | 名前 | 例 |
 |---|---|---|
 | MagicOnion のサービスの実装 | `<機能>Service` | `GachaService` |
-| サーバー固有のルール | `<機能>Rules`、役割の名前 | `SupportRules`、`GachaPicker` |
-| DB の 1 行の写し | `<名詞>Record` | `ProduceSessionRecord` |
+| サーバー固有のルール | `<機能>Rules`、役割の名前（9章） | `SupportRules`、`GachaPicker` |
+| DB の 1 行の写し（エンティティにしないもの） | `<名詞>Record` | `GachaHistoryRecord` |
+
+- DB の 1 行の写しをエンティティにするか `Record` にするかは、ADR 0021 を実装する計画で型ごとに決める（未決事項）
 
 ### 6. クライアントの Presentation
 
@@ -84,11 +89,11 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 画面（Prefab のルート） | `<画面>Page` / `<画面>Modal`（Prefab 名と同じ） | `HomePage`、`GachaResultModal` |
 | Presenter が見る画面の IF | `I<画面>View`（`<画面>` は `Page`・`Modal` を除いた名前） | `IHomeView`、`IGachaResultView` |
 | 部品 | `<名詞>View`（Prefab 名 + `View`） | `ButtonView` |
-| 行 | `<名詞>RowView`（Prefab 名は `<名詞>Row`） | `DeckCardRowView` |
+| 行 | `<名詞>RowView`。Prefab 名は `<名詞>Row`。いくつかの行の Prefab が 1 つの View を使うときは、View の名前を共通の名詞にする | `DeckCardRowView`、`GachaLineRowView`（Prefab は `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow`） |
 | Presenter | `<画面>Presenter` | `HomePresenter` |
 | 前の画面から受け取る情報 | `<画面>Args` | `SupportDetailArgs` |
 | View に渡す表示用の値 | 受け取る View の名前 + `Dto`（画面の IF は `I` を除く） | `OwnedRowViewDto`、`WeekViewDto` |
-| 表示用の値を作る役 | `<画面>DtoFactory`（画面ごとに 1 つ）。複数の画面で使う行は `<行>DtoFactory`（`SkillCardRowDtoFactory`）を作り、画面の Factory から呼ぶ | `WeekDtoFactory` |
+| 表示用の値を作る役 | `<画面>DtoFactory`（画面ごとに 1 つ）。複数の画面で使う行は、行の View の名前から `View` を除いた `<行>DtoFactory` を作り、画面の Factory から呼ぶ | `WeekDtoFactory`、`SkillCardRowDtoFactory` |
 | シーンの DI | `<シーン>LifetimeScope` | `HomeLifetimeScope` |
 
 - Prefab と子の GameObject の名前は [screen-design.md](screen-design.md) 7.4
@@ -97,15 +102,32 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 | 役 | 名前 | 線引き | 例 |
 |---|---|---|---|
-| 1 対 1 の変換 | `<名詞>Mapper` | 1 つの入力を、別の形の 1 つに写す（DTO ↔ エンティティ、結果 → レスポンス）。両側で使う | `ProduceResponseMapper` |
-| 組み立て | `<名詞>Factory` | 複数の入力から 1 つの値を組み立てる。I/O をしない | `ProduceStateResultFactory`、`CardCatalogFactory`、`ExamTurnFactory`、`WeekDtoFactory` |
+| 1 対 1 の変換 | `<対象>Mapper` | 変換元が 1 つ（マスタを引くだけなら 1 つと数える）で、別の形の 1 つに写す（DTO ↔ エンティティ、結果 → レスポンス）。`<対象>` は扱う業務の名詞で、変換の向きはメソッド名（`ToEntity`・`ToResponse`）で表す。両側で使う | `ProduceResponseMapper`、`PlayerMapper` |
+| 組み立て | `<名詞>Factory` | 変換元が 2 つ以上、または計算を伴って 1 つの値を組み立てる。ファイル・ネットワークの I/O をしない（DI で受けたリポジトリ・マスタを読むのはよい） | `ProduceStateResultFactory`、`CardCatalogFactory`、`ExamTurnFactory`、`WeekDtoFactory` |
 | 読み込み | `<名詞>Loader` | ファイル・リソース・ネットワークから読む（I/O がある） | `MasterDataLoader` |
-| Editor の生成 | `<名詞>Builder` | Editor のスクリプトがアセット（Prefab・シーン・設定）を作る。Editor 専用 | `SceneBuilder`、`TmpSettingsBuilder` |
+| Editor の生成 | `<名詞>Builder` | Editor のスクリプトがアセット（Prefab・シーン・設定）を作る。Editor 専用。型の中の private の組み立て役（`CardCatalog` の入れ子の `Builder`）は対象外 | `SceneBuilder`、`TmpSettingsBuilder` |
 
 ### 8. テスト
 
 - テストのクラスは `<対象>Tests`。メソッドは `Method_Condition_Result` を許す（CLAUDE.md）
+- テストの偽物は `Fake<IF の名前から I を除いたもの>`（`FakeGachaService`、`FakeGachaUseCase`）
 - クライアントのテストのアセンブリは `Uta.Client.Tests.EditMode`
+
+### 9. 補助の役割の接尾辞
+
+1章の「表にない役割」で使う語。今のコードにあるもの。
+
+| 接尾辞 | 意味 | 例 |
+|---|---|---|
+| `Provider` | 基盤・ライブラリの IF に合わせて値を供給する | `CountingTokenProvider` |
+| `Source` | 値の出どころ（乱数など） | `SecureRandomSource`、`IRandomStreamSource` |
+| `Applier` | 受け取った値を、リポジトリなどに反映する | `PlayerCommonApplier` |
+| `Normalizer` | 入力を決まった形に直す | `ProduceCommandNormalizer` |
+| `Serializer` | バイト列との変換 | `ProduceStateSerializer` |
+| `Resolver` | ID などから対象を引き当てる | `PlayerResolver` |
+| `Navigator` | 画面・シーンの遷移 | `SceneNavigator`、`ErrorNavigator` |
+| `Executor` / `Evaluator` | Shared.Domain の効果を実行する / 条件を評価する | `EffectExecutor`、`ConditionEvaluator` |
+| `Picker` / `Granter` | 候補から選ぶ / 所持品を付与する | `GachaPicker`、`ItemGranter` |
 
 ## 今のコードとの差（改名の対象）
 
@@ -113,32 +135,35 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 | 今 | 新 | 根拠 |
 |---|---|---|
-| Contracts の `GachaOutcome` | `GachaResultKind` | 1章。正は [api-design.md](api-design.md) 1.1 なので、そこも直す |
-| Shared.Domain の `ExamOutcome`、クライアントの `PlayerSignInOutcome`、サーバーの `GrantOutcome` | `ExamResultKind`・`PlayerSignInResultKind`・`GrantResultKind` | 1章・2章 |
+| Contracts の `GachaOutcome` | `GachaResultKind` | 1章・2章。正は [api-design.md](api-design.md) 1.1 なので、そこも直す |
+| Shared.Domain の `ExamOutcome`、クライアントの `PlayerSignInOutcome`、サーバーの `GrantOutcome` | `ExamResultKind`・`PlayerSignInResultKind`・`GrantResultKind` | 2章 |
 | Shared.Domain の enum の `UseCheckResult`・`LessonApplyResult`・`ProduceApplyResult` | `UseCheckResultKind`・`LessonApplyResultKind`・`ProduceApplyResultKind` | 2章 |
 | プロパティ名の `Outcome`・`ExamOutcome`（`DrawResultDto.Outcome`、`ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない |
-| クライアントの `AccountState`（enum） | `AccountStatus` | 2章（`State` は class） |
+| クライアントの `AccountState`（enum） | `AccountStatus` | 2章（`State` は class・record） |
+| サーバーの `GachaStatus`（record。`GetGachasUseCase` の戻り値の 1 件分） | `<名詞>Result` の形の名前（`GachaResult` は使用済みなので、触る実装計画で決める） | 2章（`Status` は enum） |
 | サーバーの `ProduceView`・`ProduceViewBuilder` | `ProduceStateResult`・`ProduceStateResultFactory` | 1章（`View` はクライアントだけ）・7章 |
-| Shared.Domain の `ClassOptionView`（`ProduceEngine.GetClassOptions` の戻り値） | `ClassOptionSummary` | 1章・2章。サーバーとクライアントの利用箇所も直す |
-| サーバーの `GachaHistoryRow` | `GachaHistoryRecord` | 5章 |
-| `UtaServiceAttribute`・`UtaDatabase`・`UtaApiClient`・`UtaErrors`・`UtaMagicOnionClientInitializer`、テストの `UtaServerFactory` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`・`ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`、`ServerFactory`・`Services_HaveGameServiceFilterAttribute` | 1章 |
+| サーバーの `ProduceEndSummary` | `ProduceEndResult` | 2章 |
+| Shared.Domain の `ClassOptionView`（`ProduceEngine.GetClassOptions` の戻り値） | `ClassOption` | 1章・4章。サーバーとクライアントの利用箇所も直す |
+| サーバーの `GachaHistoryRow` | `GachaHistoryRecord`（エンティティにしないとき） | 5章 |
+| `UtaServiceAttribute`・`UtaDatabase`・`UtaApiClient`・`UtaErrors`・`UtaMagicOnionClientInitializer`、テストの `UtaServerFactory`・`UtaErrorsTests` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`・`ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`、`ServerFactory`・`ErrorDefinitionsTests`・`Services_HaveGameServiceFilterAttribute` | 1章 |
 | `MasterCardCatalog`・`MasterProduceCatalog`（static の組み立て役） | `CardCatalogFactory`・`ProduceCatalogFactory` | 7章 |
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
-| 計画にある `CardSummaryBuilder` | `CardSummaryFactory` | 7章 |
+| 計画にある `CardSummaryBuilder`（Application） | 作らない。行の `SkillCardRowDtoFactory` が、マスタを直接読んで作る | 6章、ADR 0020 |
 | クライアントの `GachaLineRow` | `GachaLineRowView` | 6章 |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
 | サーバーの `I<名詞>Catalog`・`Master<名詞>Catalog`・`GachaDefinition` など | やめる [ADR 案] | ADR 0020 |
 | `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot`（サーバー・クライアント） | `IdolEntity`・`SupportCardEntity`・`PlayerEntity` [ADR 案] | 2章、ADR 0021 |
-| クライアントの `PlayerCache` | `IPlayerRepository` の実装 [ADR 案] | ADR 0021 |
+| クライアントの `PlayerCache` | `IPlayerRepository` の実装と、UI の状態の型 [ADR 案] | ADR 0021 |
 | クライアントの `IPlayerPort`・`IDeviceAuthPort`・`PlayerGateway`・`DeviceAuthGateway`・`EnterPlayerUseCase`・`SignInUseCase` と、その結果の型（`PlayerSignInResult` など） | UseCase の IF と Infrastructure の具象 [ADR 案] | ADR 0022 |
+| 計画にある `PortResult<T>` | `UseCaseResult<T>` [ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 | `Uta.Client.Infrastructure.Tests.EditMode` | `Uta.Client.Tests.EditMode` | 8章 |
 
-- `ApiClient`・`MagicOnionClientInitializer` は、VolTech-MagicOnion・MagicOnion に同じ名前の型があるかを、実装のときにコンパイルで確かめる
+- `ApiClient`・`MagicOnionClientInitializer` は、VolTech-MagicOnion・MagicOnion に同じ名前の型があるかを、実装のときにコンパイルで確かめる。`ErrorDefinitions` は基盤の `ErrorDefinition`（1 件の定義）と 1 文字違いなので、使う場所で取り違えないよう、実装の計画で使い方の例を書く
 - `PlayerApi` は [基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md) が消す
 
 ## 未決事項
 
 - クライアントの UseCase の具象の名前（IF と対にして `<機能>UseCase` にする案）。ADR 0022 を実装する計画で決める
-- サーバーの `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord` をエンティティにするか、どの名前にするか。ADR 0021 を実装する計画で決める
+- サーバーの `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow` を、エンティティにするか `Record` にするか。ADR 0021 を実装する計画で決める

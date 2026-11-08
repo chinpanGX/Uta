@@ -6,7 +6,9 @@ updated: 2026-11-08
 
 # ADR 0021: 各側の Domain にエンティティとリポジトリの IF を置く
 
-[repository-layout.md](../architecture/repository-layout.md) の層の決定のうち、Domain の責務（4章の表の Domain の行）、クライアントの Domain の層を作らないこと（3章の Client.Domain の行、6.1 の「Client.Domain は今は作らない」）、サーバーの依存の向き（3章の表の Domain の行）を置き換える。[ADR 0008](0008-shared-domain-and-onion.md) の「共通の型を各側のエンティティが包む（合成）」は変えず、そのエンティティの置き場と名前を決める。
+[repository-layout.md](../architecture/repository-layout.md) の層の決定のうち、Domain の責務（4章の表の Domain の行）、クライアントの Domain の層を作らないこと（3章の Client.Domain の行、6.1 の「Client.Domain は今は作らない」）、サーバーの依存の向き（3章の表の Domain・Infrastructure の行）を置き換える。[ADR 0008](0008-shared-domain-and-onion.md) の「共通の型を各側のエンティティが包む（合成）」は変えず、そのエンティティの置き場と名前を決める。
+
+決定はどれも 2026-11-08 にユーザーが決めた（経緯は [raw の記録](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation の記録](../../raw/2026-11-08-presentation-rules-decisions.md) と、設計書のレビューでの判断を書いたコミットのメッセージ）。
 
 ## 状況
 
@@ -26,21 +28,23 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 
 ### クライアント
 
-- **Domain の層を asmdef `Uta.Client.Domain` で作る**（`Assets/Scripts/Domain/`）。参照するのは `Uta.Shared.Domain`・`Uta.Client.MasterData`（[ADR 0020](0020-masterdata-referenced-outside-shared-domain.md)）・UniTask。参照されるのは Application・Infrastructure・Presentation・Bootstrap
-- **リポジトリはエンティティごとに分け、処理は取得・Upsert・Remove だけ**。保存先はローカル（メモリのキャッシュ・セーブデータ）。サーバーとの通信はリポジトリに書かない
+- **Domain の層を asmdef `Uta.Client.Domain` で作る**（`Assets/Scripts/Domain/`）。参照するのは `Uta.Shared.Domain` と `Uta.Client.MasterData`（[ADR 0020](0020-masterdata-referenced-outside-shared-domain.md)）だけ。参照されるのは Application・Infrastructure・Presentation・Bootstrap・テスト
+- **リポジトリの IF は同期にする**（UniTask を参照しない）。今の保存先はメモリのキャッシュだけで、非同期にする理由が無い。同期なら、読む側が書き込みの途中の値を見ることもない。非同期が要る保存先（セーブデータなど）は、Infrastructure が起動時に読み込んでからリポジトリに入れる
+- **リポジトリはエンティティごとに分け、処理は取得・Upsert・Remove・全件の置き換え（`ReplaceAll`）だけ**。保存先はローカル（メモリのキャッシュ）。サーバーとの通信はリポジトリに書かない。`ReplaceAll` はサインインで全件を取り直したときに使う（サーバーで消えたものもキャッシュから消える）
 - **リポジトリの IF は、読み取り専用と書き込みに分ける**（.NET の `IReadOnlyList<T>` / `IList<T>` と同じ形）
   - `IReadOnly<名詞>Repository`: 取得だけ
-  - `I<名詞>Repository : IReadOnly<名詞>Repository`: Upsert・Remove を足す
+  - `I<名詞>Repository : IReadOnly<名詞>Repository`: Upsert・Remove・`ReplaceAll` を足す
   - 名前はエンティティ名から `Entity` を除いたもの
   - 実装は 1 つのクラスで、DI には両方の IF で登録する（同じインスタンス）
-  - 書き込まない使い手（表示用の Dto を作る Factory など）には `IReadOnly<名詞>Repository` を渡す
-- **UI の状態はエンティティに入れない**。今の計画で `PlayerCache` に入る予定の UI の状態（`DiscardNoticeShown` など）は、Application の状態の型に置く（型の名前は実装計画で決める）
+  - 分ける目的は、層として書き込みを禁じたい使い手（Presentation の DtoFactory）に、書けない型を渡すこと。Presentation には `IReadOnly<名詞>Repository` だけを渡す
+- **UI の状態はエンティティに入れない**。今の計画で `PlayerCache` に入る予定の UI の状態（`DiscardNoticeShown` など）と、プロデュース中の状態（計画の `ProduceSession`）は、Application の状態の型に置く（型の名前は実装計画で決める）
 
 ### サーバー
 
 - **リポジトリの IF を Application から Domain に移し、メソッドは今の SQL の形のまま**にする。条件付きの更新（`TrySpend…`・`TryLimitBreakAsync`）、楽観ロック（`TryUpdateAsync`。[ADR 0010](0010-database.md)）、加算、追記（ガチャ履歴・プロデュース結果）は、1 文の SQL で正しさを守っているので、取得・Upsert・Remove の形に揃えない
 - リポジトリはテーブルの単位のまま（`IGachaRepository` のように、エンティティを持たないものも残す）
-- **読み取り専用の IF は今は作らない**。書き込まない使い手が現れたら、クライアントと同じ形で分ける
+- **IF のシグネチャに出る型は、すべて IF と一緒に Domain に移す**。今 Application にあるもの: `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot`（エンティティに改名）、`PlayerBalance`・`ProduceReward`・`ProduceSessionStatus`・`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow`。移さないと、アーキテクチャテスト（Domain は Application を参照しない）が落ちる
+- **読み取り専用の IF は作らない**。分ける目的（Presentation に書けない型を渡す）に当たる使い手が、サーバーにはいない。共通レスポンスの `PlayerDiffCollector` はリポジトリを読むだけだが、Infrastructure の型で、その層はもともと書き込みもする
 - **Domain が `TxContext`（`VolTech.Server.Transaction`）を参照してよい**（リポジトリの IF の引数に使うため）。Domain の型は `TxContext` を IF の引数として受け渡すだけにし、`TxContext.Connection` に触れない（触れるのは Infrastructure だけ。コードレビューで守る）
 
 ## 理由
@@ -57,18 +61,27 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 - 案C: エンティティに接尾辞を付けない（`Player`・`Idol`）。短いが、DTO・マスタの行の型と見分けにくい
 - 案D: サーバーも取得・Upsert・Remove に揃える。両側の形は揃うが、上の理由で採らない
 - 案E: サーバーのリポジトリの IF は Application に残す（Domain が `TxContext` を見ない）。依存の表は今のままで済むが、両側でエンティティとリポジトリの置き場が揃わない
+- 案F: クライアントは `PlayerEntity` が所持の一覧を持つ集約にして、リポジトリを 1 組にする。全件の置き換えは自然に書けるが、アイドル 1 人・カード 1 枚の Upsert が集約全体の書き換えになる
+- 案G: クライアントのリポジトリの IF を非同期（UniTask）にする。将来の非同期の保存先にそのまま対応できるが、読む側がすべて await になり、書き込みの途中を読まれうる
 
 ## 影響・リスク
 
-- サーバー: エンティティにあたる型とリポジトリの IF を Application から Domain に移し、名前を変える。[repository-layout.md](../architecture/repository-layout.md) 3章の依存の表（Domain の「参照してよいもの」に `TxContext` と生成したマスタ、Infrastructure の行の「Application のポートを実装する」）を直す。アーキテクチャテストの禁止の列は変わらない（`TxContext` の参照は禁止に入っていない）
-- サーバー: `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow` をエンティティにするか、どの名前にするかは、移す実装計画で決める（未決）
-- クライアント: `Uta.Client.Domain` の asmdef を足し、[repository-layout.md](../architecture/repository-layout.md) 3章の asmdef の表と、6.1・[glossary.md](../glossary.md) の Client.Domain の「今は作らない」を直す
-- **共通レスポンスの player_diff（`PlayerDiff`）はエンティティではない**。`PlayerDiff` は Contracts の DTO で、操作の RPC（ガチャ・強化・プロデュースの完了など）の結果を、個々のレスポンスの項目から拾わず、1 つの共通の処理（`PlayerCommonApplier`）でクライアントのリポジトリに反映するための入れ物。反映の処理が DTO をエンティティに直し、各リポジトリに Upsert・Remove する。サインインは今どおり全件を置き換え、`RefreshPlayerUseCase` も安全網として残す（[共通レスポンスの計画](../../plans/2026-11-08-common-response-player-diff.md) 0章 4・9）
+- サーバー: 上の型を Application から Domain に移し、名前を変える。直すページ:
+  - [repository-layout.md](../architecture/repository-layout.md) 3章の依存の表（Domain の「参照してよいもの」に `TxContext` と生成したマスタ、Infrastructure の行の「Application のポートを実装する」）。アーキテクチャテストの禁止の列は変わらない（`TxContext` の参照は禁止に入っていない）
+  - [produce-server.md](../architecture/server/produce-server.md)・[gacha-support-server.md](../architecture/server/gacha-support-server.md) の、型の置き場の表（`Uta.Server/Application/…` の行）
+  - [server-foundation.md](../architecture/server/server-foundation.md) の、リポジトリの IF の置き場の記述
+- サーバー: `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow` をエンティティにするか（`<名詞>Entity` にするか、DB の 1 行の写しの `<名詞>Record` にするか）は、移す実装計画で決める（未決）。Domain に移すことは決まり
+- クライアント: `Uta.Client.Domain` の asmdef を足す。直すページ:
+  - [repository-layout.md](../architecture/repository-layout.md) 2章の木、3章の asmdef の表と Client.Domain の行、4章の表の Domain の行、6.1 の「Client.Domain は今は作らない」
+  - [glossary.md](../glossary.md) の Server.Domain・Client.Domain・ポートの項。エンティティ・リポジトリの項を足す
+  - [screen-design.md](../architecture/screen-design.md) 7.5 の `PlayerCache.Current`
+- **共通レスポンスの player_diff（`PlayerDiff`）はエンティティではない**。`PlayerDiff` は Contracts の DTO で、操作の RPC（ガチャ・強化・プロデュースの完了など）の結果を、個々のレスポンスの項目から拾わず、1 つの共通の処理（`PlayerCommonApplier`）でクライアントのリポジトリに反映するための入れ物。反映の処理が DTO をエンティティに直し、各リポジトリに Upsert・Remove する。サインインは今どおり全件を置き換え（`ReplaceAll`）、`RefreshPlayerUseCase` も安全網として残す（[共通レスポンスの計画](../../plans/2026-11-08-common-response-player-diff.md) 0章 4・9）
 - 共通レスポンスの計画は次のように読み替える: Application の `PlayerDiffData` と `PlayerCache.Apply` は作らない。`PlayerCommonApplier` が `IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository` に書く。サーバー側（`PlayerDiffCollector` の `Touch…` を呼ぶ位置と引数）は、リポジトリの IF の置き場が変わるだけで中身は変わらない
-- ready のクライアントの画面の計画（`PlayerCache` を受ける形）を読み替える。[produce-server.md](../architecture/server/produce-server.md)・[gacha-support-server.md](../architecture/server/gacha-support-server.md)・[api-design.md](../architecture/api-design.md) の型の名前も、改名のときに直す
+- ready のクライアントの画面の計画（`PlayerCache` を受ける形）を読み替える。[api-design.md](../architecture/api-design.md) の型の名前も、改名のときに直す
 
 ## 見直す条件
 
 - クライアントのリポジトリの IF が大きくなり、読み取りと書き込みの 2 つでは足りなくなったとき
 - クライアントの Domain の層が薄すぎて、層を分ける手間に見合わないと分かったとき
+- クライアントに非同期でしか読めない保存先が増え、起動時の読み込みで済まなくなったとき（IF を非同期にする）
 - サーバーの Domain が `TxContext.Connection` に触れるコードが出てきたとき（IF を Application に戻す）
