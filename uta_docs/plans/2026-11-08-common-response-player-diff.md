@@ -259,3 +259,43 @@ public sealed class PlayerCommonApplier : ICommonResponseApplier<AppCommon>
 - shared M1: `PlayerDiff`・`AppCommon` が naming.md 3章の `<名詞>Dto` に合っていない（読み替えの節は `PlayerDiffDto` と書いている）。改名するか naming.md に例外として書くかは決めていない。M3: `api-design.md` 95 行目の記述が型と合わない。M4: 用語集に「共通レスポンス項目」「player_diff」が無い
 - client M1〜M6: 詰め替えの前にプレイヤーを書く順、`PlayerDiff` → `PlayerEntity` の詰め替えが Mapper に無い、`ApiClient.Create` の `commonApplier` のコメントと null 判定、テストが `UniTask` を捨てている、往復テストが入れ子の項目を一部しか見ない、用語集
 - 方針の確認（server の「判断しなかったこと」）: `BuildAsync` が例外を投げると本体ごと `INTERNAL` でロールバックし、同じ `x-request-id` の再送も毎回失敗する（fail-closed）。計画と `server-foundation.md` のとおりにしたが、ログを出して `Common` を null にし `RefreshAsync` に任せる案もある
+
+## 7. 実装の後の改名と分割（ユーザーの判断 2026-11-08。PR #47 の中で行う。この節が読み替えの節と本文より優先）
+
+**決めたこと**: Contracts の型を naming.md 3章の `<名詞>Dto` に合わせる。クライアントの反映を、共通レスポンスを受ける役と、player_diff をリポジトリに反映する役の 2 つに分ける（`<反映するもの>Applier`。後でバッジ・通知の Applier を足せる形）。
+
+**タスク 6（shared＋server＋client＋docs）**
+
+1. 改名（MessagePack の `[Key(n)]` の番号は変えない。ファイル名も変え、Unity の `.meta` は `git mv` で GUID ごと移す）:
+   - `shared/Uta.Shared.Contracts/Common/AppCommon.cs` → `AppCommonDto.cs`、型 `AppCommon` → `AppCommonDto`
+   - `shared/Uta.Shared.Contracts/Common/PlayerDiff.cs` → `PlayerDiffDto.cs`、型 `PlayerDiff` → `PlayerDiffDto`（プロパティ名 `AppCommonDto.PlayerDiff` とコンストラクターの引数 `playerDiff` はそのまま）
+   - 参照するところ（5 つのレスポンスの `IApiResponse<AppCommonDto>`・`Common` の型、`PlayerDiffCollector`、`Program.cs` の `AddCommonResponse<AppCommonDto, PlayerDiffCollector>()`、`CommonResponseTests`、クライアントのコードとテスト）をすべて直す。`AppCommonSerializationTests` は `AppCommonDtoSerializationTests`（ファイル名も。テストのメソッド名 `AppCommon_RoundTripsThroughMessagePack` は `AppCommonDto_RoundTripsThroughMessagePack`）
+   - サーバーの `PlayerDiffCollector` の名前は変えない
+2. クライアントの分割（`PlayerCommonApplier.cs` と `PlayerCommonApplierTests.cs` は消す。`.meta` は `git mv` で新しいファイルに移す）:
+   - `client/uta/Assets/Scripts/Infrastructure/Player/PlayerDiffApplier.cs`（名前空間 `Uta.Client.Infrastructure.Player`）:
+     ```csharp
+     /// <summary>player_diff をリポジトリ 3 つに反映する。同じ差分を 2 回当てても結果は変わらない。同期で、間で await しない（ADR 0021 の前提）。</summary>
+     public sealed class PlayerDiffApplier
+     {
+         public PlayerDiffApplier(IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards);
+         /// <summary>diff は null でない（null の判定は呼ぶ側）。中身は今の PlayerCommonApplier.ApplyAsync の 1〜5 と同じ（players.Find() が null なら InvalidOperationException、HasBalance、Idols、SupportCards、RemovedSupportCardUniqueIds。null の配列は空）。</summary>
+         public void Apply(PlayerDiffDto diff);
+     }
+     ```
+     `ICommonResponseApplier` は実装しない。`using` に UniTask・`VolTech.Client` は要らない
+   - `client/uta/Assets/Scripts/Infrastructure/Api/CommonResponseApplier.cs`（名前空間 `Uta.Client.Infrastructure.Api`。`ApiClient.cs` と同じフォルダ）:
+     ```csharp
+     /// <summary>共通レスポンスを受け、項目ごとの Applier に渡す。今は player_diff だけ。</summary>
+     public sealed class CommonResponseApplier : ICommonResponseApplier<AppCommonDto>
+     {
+         public CommonResponseApplier(PlayerDiffApplier playerDiffApplier);
+         /// <summary>common が null か common.PlayerDiff が null なら何もしない。それ以外は playerDiffApplier.Apply(common.PlayerDiff)。戻り値は UniTask.CompletedTask。</summary>
+         public UniTask ApplyAsync(AppCommonDto common);
+     }
+     ```
+     Infrastructure の Api から Player を参照してよい（同じ asmdef）
+   - `ApiClient.Create` の最後の引数の型を `ICommonResponseApplier<AppCommonDto>` にする。`BootstrapEntry` は `builder.Register<PlayerDiffApplier>(Lifetime.Singleton);` と `builder.Register<CommonResponseApplier>(Lifetime.Singleton);` を今の `PlayerCommonApplier` の行の位置に置き、`ApiClient.Create` に `resolver.Resolve<CommonResponseApplier>()` を渡す
+   - テスト（EditMode）: `PlayerDiffApplierTests.cs`（今の `PlayerCommonApplierTests` の 9 本を `Apply_…` に直す。`_DoesNothing_WhenPlayerDiffNull` はここから外す）と `CommonResponseApplierTests.cs`（2 本: `ApplyAsync_AppliesPlayerDiff`（本物のリポジトリと本物の `PlayerDiffApplier` で、残高が変わる）、`ApplyAsync_DoesNothing_WhenCommonOrPlayerDiffNull`（`null` と `new AppCommonDto(null)` の両方。リポジトリが空のまま＝サインイン前でも例外にならない））。偽物を作らない
+3. docs: wiki の `AppCommon`・`PlayerDiff`（型の名前のとき）・`PlayerCommonApplier` を新しい名前に直す（`api-design.md`・`repository-layout.md`・`screen-design.md`・`server/server-foundation.md`・`server/produce-server.md`・`unity7-evaluation.md`・`naming.md`）。`naming.md` 9章の `Applier` の行の例は `PlayerDiffApplier`・`CommonResponseApplier` にし、148 行目の「`PlayerCommonApplier` は計画にある型（まだコードに無い）」の行は消す。ADR（`decisions/`）は書き換えない。`uta_docs/plans/` のほかの計画（foundation・index ほか）は触らない
+- 終わりの確かめ: `dotnet build Uta.slnx` が警告 0・エラー 0、`dotnet test --project server/Uta.Server.Tests` が通る、`unity recompile --format json` がエラー 0、EditMode のテストが通る（121 件の見込み: 120 − 1 + 2）、`python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0。`grep -rn "PlayerCommonApplier\|\bAppCommon\b\|\bPlayerDiff\b" shared server client/uta/Assets uta_docs/wiki/architecture --include=*.cs --include=*.md`（bin・obj を除く）で型名として残っていない
+| 6 | 完了 | （この行のコミット） | 改名（`AppCommonDto`・`PlayerDiffDto`）と分割（`CommonResponseApplier` → `PlayerDiffApplier`）。サーバーの 2 ファイルは並行の作業で作業ツリーから失われたので、進行役がやり直した。ビルド警告 0、サーバー 302 件・EditMode 121 件成功 |

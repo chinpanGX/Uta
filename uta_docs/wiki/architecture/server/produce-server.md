@@ -145,7 +145,7 @@ Response:
 
 | 型 | フィールド(宣言順) |
 |---|---|
-| `ProduceStateResponse` | `OperationNumber`、`Phase`(`ProducePhase`)、`ScenarioMasterId`、`IdolMasterId`、`Week`、`Singing`、`Rhythm`、`Expression`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Deck`(`DeckCardDto[]`)、`WeekActions`(`WeekActionDto[]`)、`ClassOptions`(`ClassOptionDto[]`)、`CardChoiceMasterIds`(`int[]`)、`Lesson`(`LessonDto`。無ければ `null`)、`ExamResult`(`ExamResultDto`。無ければ `null`)、`Result`(`ProduceResultResponse`。無ければ `null`)、`Common`(`AppCommon`。基盤が入れる。変わったものが無ければ `null`。[server-foundation.md](server-foundation.md) 共通レスポンス項目) |
+| `ProduceStateResponse` | `OperationNumber`、`Phase`(`ProducePhase`)、`ScenarioMasterId`、`IdolMasterId`、`Week`、`Singing`、`Rhythm`、`Expression`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Deck`(`DeckCardDto[]`)、`WeekActions`(`WeekActionDto[]`)、`ClassOptions`(`ClassOptionDto[]`)、`CardChoiceMasterIds`(`int[]`)、`Lesson`(`LessonDto`。無ければ `null`)、`ExamResult`(`ExamResultDto`。無ければ `null`)、`Result`(`ProduceResultResponse`。無ければ `null`)、`Common`(`AppCommonDto`。基盤が入れる。変わったものが無ければ `null`。[server-foundation.md](server-foundation.md) 共通レスポンス項目) |
 | `DeckCardDto` | `InstanceId`、`CardMasterId`、`Enhanced`(`bool`)。`Deck` は `InstanceId` の昇順 |
 | `WeekActionDto` | `SlotIndex`、`Kind`(`WeekChoiceKind`)、`Selectable`(`bool`)。`GetWeekChoices` の結果をそのまま |
 | `ClassOptionDto` | `Index`、`HpCost`、`Param`(`ParamKind`)、`ParamGain`、`GivesCard`(`bool`)、`Selectable`(`bool`)。`GetClassOptions` の結果をそのまま |

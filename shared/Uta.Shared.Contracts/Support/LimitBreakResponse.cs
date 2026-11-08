@@ -5,7 +5,7 @@ using VolTech.Server.Abstractions;
 namespace Uta.Shared.Contracts.Support
 {
     [MessagePackObject]
-    public sealed class LimitBreakResponse : IApiResponse<AppCommon>
+    public sealed class LimitBreakResponse : IApiResponse<AppCommonDto>
     {
         [SerializationConstructor]
         public LimitBreakResponse(int limitBreak, int maxLevel)
@@ -24,6 +24,6 @@ namespace Uta.Shared.Contracts.Support
 
         /// <summary>共通レスポンス項目。基盤が入れる。</summary>
         [Key(2)]
-        public AppCommon Common { get; set; }
+        public AppCommonDto Common { get; set; }
     }
 }

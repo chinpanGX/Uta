@@ -3,16 +3,16 @@
 namespace Uta.Shared.Contracts.Common
 {
     [MessagePackObject]
-    public sealed class AppCommon
+    public sealed class AppCommonDto
     {
         [SerializationConstructor]
-        public AppCommon(PlayerDiff playerDiff)
+        public AppCommonDto(PlayerDiffDto playerDiff)
         {
             PlayerDiff = playerDiff;
         }
 
         /// <summary>null なら変化なし。</summary>
         [Key(0)]
-        public PlayerDiff PlayerDiff { get; }
+        public PlayerDiffDto PlayerDiff { get; }
     }
 }

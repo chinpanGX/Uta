@@ -1,39 +1,32 @@
 ﻿using System;
-using Cysharp.Threading.Tasks;
 using Uta.Client.Domain.Idol;
 using Uta.Client.Domain.Player;
 using Uta.Client.Domain.SupportCard;
 using Uta.Shared.Contracts.Common;
-using VolTech.Client;
 
 namespace Uta.Client.Infrastructure.Player
 {
-    /// <summary>Common の player_diff をリポジトリ 3 つに反映する。同じ差分を 2 回当てても結果は変わらない。間で await しない。</summary>
-    public sealed class PlayerCommonApplier : ICommonResponseApplier<AppCommon>
+    /// <summary>player_diff をリポジトリ 3 つに反映する。同じ差分を 2 回当てても結果は変わらない。同期で、間で await しない（ADR 0021 の前提）。</summary>
+    public sealed class PlayerDiffApplier
     {
         private readonly IPlayerRepository players;
         private readonly IIdolRepository idols;
         private readonly ISupportCardRepository supportCards;
 
-        public PlayerCommonApplier(IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards)
+        public PlayerDiffApplier(IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards)
         {
             this.players = players;
             this.idols = idols;
             this.supportCards = supportCards;
         }
 
-        public UniTask ApplyAsync(AppCommon common)
+        /// <summary>diff は null でない（null の判定は呼ぶ側）。</summary>
+        public void Apply(PlayerDiffDto diff)
         {
-            var diff = common?.PlayerDiff;
-            if (diff == null)
-            {
-                return UniTask.CompletedTask;
-            }
-
             var current = players.Find();
             if (current == null)
             {
-                throw new InvalidOperationException("サインイン前に Common が届いた");
+                throw new InvalidOperationException("サインイン前に player_diff が届いた");
             }
 
             if (diff.HasBalance)
@@ -52,8 +45,6 @@ namespace Uta.Client.Infrastructure.Player
                     supportCards.Remove(uniqueId);
                 }
             }
-
-            return UniTask.CompletedTask;
         }
     }
 }
