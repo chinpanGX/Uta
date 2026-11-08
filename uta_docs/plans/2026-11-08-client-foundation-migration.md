@@ -7,6 +7,185 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 
 # 実装計画: クライアントを共通基盤の新しい呼び方（11d9b06）に移す
 
+## ADR 0020〜0022・naming.md への読み替え（案。ADR 0020〜0022 は proposed のまま、この計画で実装し、この計画の PR で 3 本まとめて accepted を判断する。この節が本文と食い違ったら、この節が正）
+
+2026-11-08。proposed の [ADR 0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)（マスタの参照）・[ADR 0021](../wiki/decisions/0021-domain-entities-and-repositories.md)（Domain のエンティティとリポジトリ）・[ADR 0022](../wiki/decisions/0022-client-external-concretes-in-infrastructure.md)（Infrastructure の具象と UseCase の IF）と [naming.md](../wiki/architecture/naming.md) の形に読み替える。**この計画は、ADR 0022 の「accepted にする条件」を確かめる計画でもある**（ユーザーの判断 2026-11-08）: Player（サインアップ・サインイン）を Application の `IPlayerUseCase` と Infrastructure の具象 `PlayerUseCase` に移し、偽の `IPlayerService` で今の `EnterPlayerUseCaseTests` の場合分けを手順のテストとして書く（R5）。**ADR の状態**（ユーザーの判断 2026-11-08）: 3 本とも proposed のままこの計画を実装し、この計画の PR で 3 本まとめて accepted にするかを判断する（ADR 0022 の「accepted の前に進めてよいこと」は読み替えの節を書くことまでなので、この計画の実装はそこから外れる。ADR 0020・0021 には accepted の前に実装してよいかの記述が無い。どちらも ADR 側の穴として親のセッションに報告した）。**採らないと判断したら、同じ PR で、ADR に由来する部分を本文の形に戻す**: R1 の asmdef の追加と生成物の移動（生成物は Infrastructure に戻す）、R2（エンティティ・リポジトリ → `PlayerCache`・`PlayerSnapshot`・`OwnedIdol`・`OwnedSupportCard`）、R3〜R5 の UseCase の IF・具象・偽・テスト（→ `IPlayerPort`・`IDeviceAuthPort`・`PlayerGateway`・`DeviceAuthGateway`・`EnterPlayerUseCase`・`SignInUseCase` と本文 6 章のテスト）、R4 の登録。**naming.md に由来する改名（`ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`・`CardCatalogFactory`・テストの asmdef `Uta.Client.Tests.EditMode` と名前空間 `Uta.Client.Tests`）と、`MasterDataLoader` で `MemoryDatabase` を読む形は戻さない**（ユーザーの判断 2026-11-08。foundation・共通レスポンスの読み替えの節はこの名前を前提にしている）。画面の計画にも当てはまる共通の読み替えは [foundation の計画](2026-11-03-client-screens-foundation.md) の同名の節の R0 の対応表が正。「基盤 11d9b06 への読み替え」の節（タスク 4 で画面の計画に足す）とこの節の優先は、この節 > 11d9b06 の節 > 本文（11d9b06 の節の `UtaApiClient`・ゲートウェイは、この節の `ApiClient`・Infrastructure の具象と読む）。
+
+ADR の中で未決だったものの決め方（この計画で決めた。2026-11-08。ユーザーの判断）: クライアントの UseCase の具象の名前は IF と対にした `<機能>UseCase`（`PlayerUseCase`・`DeviceAuthUseCase`。naming.md の未決事項）。リポジトリの取得のメソッド名は `Find`（1 件。無ければ null）と `FindAll`（全件）。**サーバーのリポジトリ（`FindAsync`・`ListAsync`）も同じ役割の名前に揃える（`FindAsync`・`FindAllAsync`）**ことをユーザーが求めた。サーバーの改名は ADR 0021 のサーバー側を実装する計画で行う（この計画ではしない。naming.md への追記は親のセッション）。
+
+### R1. 層と asmdef（ADR 0020・0021）
+
+- asmdef を 2 つ足す:
+  - `Uta.Client.MasterData`（`Assets/Scripts/MasterData/Uta.Client.MasterData.asmdef`）: 今の `Infrastructure/MasterData/Generated/`・`MasterDataAssembly.cs`・`IsExternalInit.cs` を `Assets/Scripts/MasterData/` に移す（`git mv`。`.meta` ごと。生成物は動かすだけで再生成しない）。`rootNamespace` は `Uta.MasterData`、`references` は空、`overrideReferences: true`、`precompiledReferences` は `MasterMemory.dll`・`MessagePack.dll`（`MasterMemory.Annotations.dll` が要るかはコンパイルで確かめる。要れば足す）、`autoReferenced: false`。`masterdata/masterdata.yaml` の client の `source` を `../client/uta/Assets/Scripts/MasterData/Generated` に変える
+  - `Uta.Client.Domain`（`Assets/Scripts/Domain/Uta.Client.Domain.asmdef`）: `rootNamespace` は `Uta.Client.Domain`、`references` は `Uta.Shared.Domain`・`Uta.Client.MasterData`、`overrideReferences: true`、`precompiledReferences` は `Uta.Client.MasterData` と同じ、`autoReferenced: false`
+- 参照を足す: `Uta.Client.Application`・`Uta.Client.Infrastructure`・`Uta.Client.Presentation`・`Uta.Client.Bootstrap`・テストの asmdef の `references` の最後に `"Uta.Client.Domain"`, `"Uta.Client.MasterData"`。`overrideReferences: true` の asmdef（Application・Presentation。テストは既にある）は `precompiledReferences` に `"MasterMemory.dll"`, `"MessagePack.dll"` を足す。`Infrastructure` の `MasterMemory.Addons.Core` の参照は今のまま（`MasterDataLoader` が使う）
+- `MasterCardCatalog`（Infrastructure）は `CardCatalogFactory` に改名する（naming.md 7章。テストも `CardCatalogFactoryTests`。置き場は `Infrastructure/MasterData/` のまま）
+- テストの asmdef を `Uta.Client.Tests.EditMode`（ファイル名も。`rootNamespace` は `Uta.Client.Tests`）に改名し、既存のテストの名前空間 `Uta.Client.Infrastructure.Tests` を `Uta.Client.Tests` に直す（naming.md 8章）
+
+### R2. Domain（`Uta.Client.Domain`。ADR 0021）
+
+`Domain/Player/` → 名前空間 `Uta.Client.Domain.Player`。1 ファイル 1 型。C# 9（`client/` の `.editorconfig`）。
+
+```csharp
+public sealed class PlayerEntity   // 今の PlayerSnapshot から所持の一覧を除いたもの
+{
+    public PlayerEntity(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce);
+    public int Level { get; } public int Exp { get; } public int Gold { get; } public int SupportPoints { get; } public int GachaCurrency { get; }
+    public bool HasActiveProduce { get; } public bool DiscardedProduce { get; }
+}
+public sealed class IdolEntity   // 今の OwnedIdol と同じ
+{
+    public IdolEntity(int idolId, int training, int awakening, int shards);
+    public int IdolId { get; } public int Training { get; } public int Awakening { get; } public int Shards { get; }
+}
+public sealed class SupportCardEntity   // 今の OwnedSupportCard と同じ
+{
+    public SupportCardEntity(string supportCardUid, int cardId, int level, int limitBreak);   // supportCardUid が null なら ArgumentNullException
+    public string SupportCardUid { get; } public int CardId { get; } public int Level { get; } public int LimitBreak { get; }
+}
+
+public interface IReadOnlyPlayerRepository { PlayerEntity Find(); }                                    // 無ければ null
+public interface IPlayerRepository : IReadOnlyPlayerRepository { void Upsert(PlayerEntity player); }  // null なら ArgumentNullException
+
+public interface IReadOnlyIdolRepository
+{
+    IReadOnlyList<IdolEntity> FindAll();   // IdolId の昇順。0 件は空
+    IdolEntity Find(int idolId);           // 無ければ null
+}
+public interface IIdolRepository : IReadOnlyIdolRepository
+{
+    void Upsert(IdolEntity idol);                        // IdolId が同じものを置き換え、無ければ足す。null なら ArgumentNullException
+    void ReplaceAll(IReadOnlyList<IdolEntity> idols);    // 全部入れ替える。null なら ArgumentNullException
+}
+
+public interface IReadOnlySupportCardRepository
+{
+    IReadOnlyList<SupportCardEntity> FindAll();   // 入れた順（サインインの応答の順。Upsert で足したものは末尾）
+    SupportCardEntity Find(string uid);           // 無ければ null
+}
+public interface ISupportCardRepository : IReadOnlySupportCardRepository
+{
+    void Upsert(SupportCardEntity card);     // SupportCardUid が同じものを置き換え、無ければ末尾に足す
+    void Remove(string uid);                 // 無ければ何もしない
+    void ReplaceAll(IReadOnlyList<SupportCardEntity> cards);
+}
+```
+
+- `FindAll` は呼ぶたびに新しい `List<T>` を返す（呼び手が持ち続けても、あとの Upsert で変わらない）
+- `IPlayerRepository` に `Remove`・`ReplaceAll` は無い（1 人分。ADR 0021「使うものだけ」）
+- 実装は Infrastructure の `Infrastructure/Player/PlayerRepository.cs`・`IdolRepository.cs`・`SupportCardRepository.cs`（名前空間 `Uta.Client.Infrastructure.Player`。メモリ: フィールド 1 つ、または `List<T>` 1 つ）。DI は 3 つとも `builder.Register<PlayerRepository>(Lifetime.Singleton).As<IPlayerRepository>().As<IReadOnlyPlayerRepository>();` の形（同じインスタンスを 2 つの IF で登録する）
+- `PlayerCache`・`PlayerSnapshot`・`OwnedIdol`・`OwnedSupportCard` は削除する（`.meta` ごと）。`PlayerCache` に foundation が足す予定の UI の状態（知らせ済みの印）は foundation の読み替えの `DiscardNoticeState`
+
+### R3. Application（ADR 0022）
+
+`Application/Auth/IDeviceAuthUseCase.cs`、`Application/Player/IPlayerUseCase.cs`・`EnterPlayerResult.cs`（既存を直す）。`Application/Auth/AccountState.cs` は削除する（`IDeviceAuthPort` が無くなると Application で使う側が無い。`DeviceAuthUseCase` は基盤の `AccountStatus`（`VolTech.Client`）を直接見る。naming.md の `AccountState` → `AccountStatus` の改名は、基盤の同名の型とぶつかるので行わない: 親のセッションへの報告に挙げた）。
+
+```csharp
+public interface IDeviceAuthUseCase   // 今の SignInUseCase + IDeviceAuthPort。Contracts に相手が無い機能（ADR 0022）
+{
+    /// <summary>端末の認証（今の SignInUseCase.ExecuteAsync + DeviceAuthGateway.GetAccountStateAsync／EnsureSignedInAsync）。
+    /// provider.GetAccountStatusAsync() が Corrupted なら InvalidOperationException("account corrupted")、知らない値なら InvalidOperationException("unknown account status: " + status)。
+    /// provider.GetTokenAsync() を待ち、状態が NotRegistered だったなら true（初めて登録した）。</summary>
+    UniTask<bool> SignInAsync();
+    UniTask ReissueTokenAsync();
+    // 診断（ConnectivityCheck）が使う 3 つ。使い手が TitleDiagnostics の 1 つだけなので、画面の IF と分けない
+    UniTask<bool> CanReceiveServerErrorAsync();
+    UniTask InvalidateServerSideTokenAsync();
+    int TokenInvalidationCount { get; }
+}
+
+public interface IPlayerUseCase
+{
+    /// <summary>
+    /// 今の EnterPlayerUseCase.ExecuteAsync の手順そのまま: afterRegistration ならサインアップ → サインイン。サインインが PLAYER_NOT_CREATED なら
+    /// （まだサインアップしていなければ）サインアップしてサインインし直す。サインアップの後も未作成なら InvalidOperationException("sign-in: player not created after sign-up")。
+    /// 失敗は InvalidOperationException（"sign-up failed: " + 失敗の文字列、"sign-in failed: " + 失敗の文字列）。
+    /// 成功した応答は 3 つのリポジトリに書いて（下の Apply）から返す。
+    /// </summary>
+    UniTask<EnterPlayerResult> EnterAsync(bool afterRegistration);
+    /// <summary>
+    /// サインインで所持データを取り直す（foundation の計画の RefreshPlayerUseCase の役）。成功で 3 つのリポジトリを置き換える。
+    /// 失敗は InvalidOperationException（"sign-in failed: " + 失敗の文字列。未作成は "sign-in failed: player not created"）。リポジトリは変えない。
+    /// </summary>
+    UniTask RefreshAsync();
+}
+
+public sealed class EnterPlayerResult
+{
+    // PlayerSnapshot をやめ、ログ（foundation の StartupLogs.SignIn）が使う値だけ持つ
+    public EnterPlayerResult(bool signedUp, bool created, PlayerEntity player, int idolCount, int supportCardCount);
+}
+```
+
+- `PlayerSignInResult`・`PlayerSignUpResult`・`PlayerSignInOutcome`・`IPlayerPort`・`IDeviceAuthPort`・`EnterPlayerUseCase`・`SignInUseCase` は削除する（サインインの 3 分岐は `PlayerUseCase` の private に閉じる。naming.md の `PlayerSignInOutcome` → `PlayerSignInResultKind` の改名は、型が無くなるので要らない）
+- foundation の計画の `RefreshPlayerUseCase` は作らない（`IPlayerUseCase.RefreshAsync` がその役）
+- `UseCaseResult<T>`（naming.md 2章）はこの計画では作らない（Player は例外で返す。Presenter が reason で文言を分ける操作が出たときだけ、その計画が作る: foundation の読み替えの節 R0）
+
+### R4. Infrastructure（ADR 0022）
+
+```csharp
+// Infrastructure/Auth/DeviceAuthUseCase.cs（今の DeviceAuthGateway の中身。コンストラクターは ApiClient を受けるまま）
+public sealed class DeviceAuthUseCase : IDeviceAuthUseCase
+
+// Infrastructure/Player/PlayerUseCase.cs
+public sealed class PlayerUseCase : IPlayerUseCase
+{
+    public PlayerUseCase(IPlayerService player, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards);
+}
+
+// Infrastructure/Player/PlayerMapper.cs（DTO → エンティティ。static の純粋な関数。naming.md 7章の Mapper。ADR 0022 のテストの規約「詰め替えは static に分ける」）
+public static class PlayerMapper
+{
+    public static PlayerEntity ToPlayerEntity(SignInResponse response);                        // 7 つのスカラー
+    public static IdolEntity ToIdolEntity(OwnedIdolDto dto);
+    public static SupportCardEntity ToSupportCardEntity(OwnedSupportCardDto dto);
+    public static List<IdolEntity> ToIdolEntities(OwnedIdolDto[] dtos);                        // null は空
+    public static List<SupportCardEntity> ToSupportCardEntities(OwnedSupportCardDto[] dtos);  // null は空
+}
+```
+
+- `PlayerUseCase` の private の手順: `SignUpAsync()` は `await player.SignUpAsync().ToResult()`、`SignInAsync()` は `await player.WithHandledCodes(PlayerErrors.NotCreated).SignInAsync().ToResult()`（本文 4 章の呼び方。`result.ErrorCode == PlayerErrors.NotCreated` を未作成とする。失敗の文字列は `result.Error.ToString()`）。成功した `SignInResponse` は `Apply(response)`: `players.Upsert(PlayerMapper.ToPlayerEntity(r))` → `idols.ReplaceAll(PlayerMapper.ToIdolEntities(r.Idols))` → `supportCards.ReplaceAll(PlayerMapper.ToSupportCardEntities(r.SupportCards))` の順で、間で `await` しない（ADR 0021 の前提）。`EnterAsync` の戻り値は `new EnterPlayerResult(signedUp, created, PlayerMapper.ToPlayerEntity(r), r.Idols?.Length ?? 0, r.SupportCards?.Length ?? 0)`
+- `PlayerGateway`・`DeviceAuthGateway` は削除する（`PlayerGateway.ToSnapshot` は `PlayerMapper` に移る）。本文 3 章の `PlayerGateway.cs`（変更）と 4 章の `PlayerGateway` のコードは `PlayerUseCase` のものとして読み、**本文どおりに `PlayerGateway` を一度直してから消す、という手順は踏まない**（R6 の順）
+- `MasterCardCatalog.LoadFromStreamingAssetsAsync`（I/O を伴う）は、改名先の `CardCatalogFactory` に残さない（naming.md 7章: Factory は I/O をしない）。`BootstrapEntry.RunAsync` は `var db = await MasterDataLoader.LoadFromStreamingAssetsAsync(); var cardCatalog = CardCatalogFactory.Create(db);` にし（`MasterDataLoader` は既にある。`Infrastructure/MasterDataLoader.cs`）、`db` をそのまま `RegisterInstance` する。`MasterCardCatalogTests` に `LoadFromStreamingAssetsAsync` のテストがあれば `MasterDataLoaderTests` の読み方（`Load(File.ReadAllBytes(...))`）に写し、`CardCatalogFactoryTests` は `Create(db)` だけを見る
+- #24 の仮の画面 `HomePresenter`（`Presentation/Home/HomePresenter.cs`。`PlayerCache.Current` を表示に使っている。foundation が置き換える）は、`PlayerCache` の引数と `cache.Current` を読む行を消し、表示を固定の文（`"ホーム（仮）"` など、今の文のうちプレイヤーの値を含まない部分）にする。Presenter にリポジトリを渡さない（ADR 0022「Presenter が受けるのは Application の公開の型と DtoFactory だけ」。DtoFactory は foundation が作る）。ボタンの遷移（`Produce` へ）は変えない
+- 改名（naming.md「今のコードとの差」のうち、この計画が触るファイル）: `UtaApiClient` → `ApiClient`、`UtaErrors` → `ErrorDefinitions`、`UtaMagicOnionClientInitializer` → `MagicOnionClientInitializer`、テストの `UtaErrorsTests` → `ErrorDefinitionsTests`（`AccountState` は改名せず削除する: R3）。`ApiClient`・`MagicOnionClientInitializer` が基盤・MagicOnion の型とぶつかって `using` で解決できなければ止まって報告する（naming.md）。`ErrorDefinitions` は基盤の `ErrorDefinition`（1 件の定義）と 1 文字違い: 使うのは `new ErrorPolicyProvider(ErrorDefinitions.Create())` の 1 か所だけ
+- `BootstrapEntry` の登録（本文 4 章の `IPlayerService` の登録に続けて）。今の `PlayerCache`・`SignInUseCase`・`EnterPlayerUseCase`・`PlayerGateway`・`DeviceAuthGateway` の登録は消す。`MemoryDatabase` は `builder.RegisterInstance(db);` で登録する（ADR 0020。`ICardCatalog` の登録は今のまま）:
+  ```csharp
+  builder.Register<PlayerRepository>(Lifetime.Singleton).As<IPlayerRepository>().As<IReadOnlyPlayerRepository>();
+  builder.Register<IdolRepository>(Lifetime.Singleton).As<IIdolRepository>().As<IReadOnlyIdolRepository>();
+  builder.Register<SupportCardRepository>(Lifetime.Singleton).As<ISupportCardRepository>().As<IReadOnlySupportCardRepository>();
+  builder.Register<DeviceAuthUseCase>(Lifetime.Singleton).As<IDeviceAuthUseCase>();
+  builder.Register<PlayerUseCase>(Lifetime.Singleton).As<IPlayerUseCase>();
+  ```
+- #24 の仮の画面 `TitlePresenter`・`ConnectivityCheck`（foundation が置き換えるまで残る）は、`SignInUseCase`・`EnterPlayerUseCase` の代わりに `IDeviceAuthUseCase`・`IPlayerUseCase` を受ける形に直す（手順・ログの行は変えない）。読み替え: `signIn.ExecuteAsync()` → `deviceAuth.SignInAsync()`、`enterPlayer.ExecuteAsync(registered)` → `player.EnterAsync(registered)`、`signIn.ReissueAsync()`／`CanReceiveServerErrorAsync()`／`InvalidateServerSideTokenAsync()`／`TokenInvalidationCount` → `deviceAuth` の同名のメンバー（`ReissueAsync` は `ReissueTokenAsync`）、ログの `entered.Snapshot.Level`・`Exp`・`Gold`・`SupportPoints`・`GachaCurrency`・`HasActiveProduce`・`DiscardedProduce` → `entered.Player.〜`、`entered.Snapshot.Idols.Count`・`SupportCards.Count` → `entered.IdolCount`・`entered.SupportCardCount`。`entered.SignedUp`・`Created` はそのまま
+
+### R5. テスト（ADR 0022 の規約。**accepted の条件を確かめる**）
+
+- `Tests/EditMode/Fakes/FakePlayerService.cs`（public。`IPlayerService` の偽。本文 5 章タスク 2 の private の偽をここに移す）: `Queue<Func<UnaryResult<SignUpResponse>>> SignUpResults`・`Queue<Func<UnaryResult<SignInResponse>>> SignInResults`（メソッドは `Dequeue()()` をそのまま返す。空なら `InvalidOperationException("FakePlayerService: no result")`）、呼び出しの記録 `List<string> Calls`（`"SignUp"`・`"SignIn"`）。積み方の補助（同じクラスの static）: `Ok<T>(T value)` → `() => new UnaryResult<T>(value)`、`Fail<T>(ErrorCode code)` → `() => FakeRpcErrors.ApiFailureResult<T>(code)`（基盤の `UnaryResult<T>` に `T` を受けるコンストラクターが無ければ `new UnaryResult<T>(UniTask.FromResult(value).AsTask())`。コンパイルで確かめる）。`IService<IPlayerService>` の 5 メンバーの実装は本文タスク 2 のとおり（`WithHeaders` は `this`）
+- **止まる条件**: 基盤の `FakeRpcErrors`（VolTech-MagicOnion の Unity パッケージの `Tests/EditMode`）がテストの asmdef から参照できない（テスト用のアセンブリが `testables` に無い、型が `internal`、パッケージに無い）とき。手元で実在を確かめられていない（`Library/PackageCache` が無い）。使えなければ、同じ形の失敗の `UnaryResult<T>`（`RpcException` を投げる `Task<T>` を包む）を `FakePlayerService` の中に作れるかを調べて止まって報告する（ADR 0022 の条件に直結するので、勝手に別の方法へ変えない）
+- `FakeDeviceService` は作らない（`DeviceAuthUseCase` は基盤の `DeviceTokenProvider` 越しで、偽の `IDeviceService` では手順を再現できない。今と同じく EditMode でテストせず、タスク 5 の診断で確かめる）
+- `PlayerUseCaseTests.cs`（`EnterPlayerUseCaseTests` を置き換える。**ADR 0022 の条件のテスト**）: 既存の `EnterPlayerUseCaseTests` の各ケースを、偽の `IPlayerPort` の代わりに `FakePlayerService` で同じ場合分けにする（成功は `Ok(new SignInResponse(...))`／`Ok(new SignUpResponse(created))`、未作成は `Fail<SignInResponse>(PlayerErrors.NotCreated)`、ほかの失敗は `Fail<T>(PlayerErrors.NotEnoughGold)`（`PlayerErrors` にある別のコードなら何でもよい））。少なくとも: 登録直後（サインアップ → サインイン。`Calls` が `"SignUp"`, `"SignIn"`）、保存ありの起動（`"SignIn"` だけ）、未作成 → サインアップ → サインイン（`"SignIn"`, `"SignUp"`, `"SignIn"`）、サインアップ後も未作成で例外、サインアップ失敗で例外、サインイン失敗で例外、`Enter_Success_ReplacesRepositories`（3 つのリポジトリの中身が応答と一致）、`Refresh_Success_ReplacesRepositories`、`Refresh_Failed_ThrowsAndKeepsRepositories`。例外のメッセージは `result.Error.ToString()` を含むので完全一致で比べず、`StringAssert.StartsWith("sign-in failed: ", e.Message)`（サインアップは `"sign-up failed: "`）で比べる。リポジトリは本物（R2 のメモリ実装）。`SignInResponse`・`SignUpResponse` の組み立ては、テストのファイルの中の `private static` の補助（`SignIn(int level = 1, OwnedIdolDto[] idols = null, ...)`。引数の並びは `shared/Uta.Shared.Contracts/Player/` のコンストラクターのとおり）に 1 か所で書く
+- `PlayerMapperTests.cs`: `PlayerGatewayTests` の `ToSnapshot` の 2 本を `ToPlayerEntity`・`ToIdolEntities`・`ToSupportCardEntities` に写す（null の配列は空）。本文 6 章の `PlayerGatewayTests` の 4 本は `PlayerUseCaseTests` の経路に含める（`SignIn_ReturnsNotCreated_WhenPlayerNotCreated` は「未作成 → サインアップ」の経路）
+- `PlayerRepositoryTests.cs`・`IdolRepositoryTests.cs`・`SupportCardRepositoryTests.cs`: `Upsert` の置き換えと追加、`Remove`（無ければ何もしない）、`ReplaceAll`、`Find` の null、`FindAll` が新しいリストを返すこと、`FindAll` の順
+- 手順のテストの重さ（`IService<T>` のメンバー・基盤のエラーの表し方・DTO の形への結合）が受け入れられるかは、この PR でユーザーが判断する（ADR 0022）。書けない・重すぎると判断したら、この節を使わず本文の形で実装し、ADR 0022 を案A に戻す提案を PR の本文に書く
+
+### R6. タスクの読み替え
+
+- タスク 2 は本文のタスク 2（API 層の移行）と R1〜R5 を 1 つにまとめる。**順は次のとおり**（各段の終わりで `unity recompile --format json` がエラー 0。(a)・(b) の時点では本文の旧い API のコンパイルエラー（`ApiServiceBase` など）はまだ残っていてよいが、新しく出るエラーが無いこと）:
+  - (a) asmdef の追加と生成物の移動・改名（R1。`Uta.MasterData` の名前空間は変わらないので `Infrastructure` の `using Uta.MasterData;` はそのまま通る）
+  - (b) Domain の型と Infrastructure のリポジトリとそのテスト（R2）
+  - (c) 本文のタスク 2（`ServiceClientFactory`・`ApiClient`・`PlayerApi` の削除・テストの asmdef の DLL）と R3〜R5 を同時に行う。**`PlayerGateway` は本文のとおりに直さず、`PlayerUseCase` として書く**。ADR 0022「具象を移す前にテストを書く」は、この段の中で `IPlayerUseCase`・`PlayerUseCase`（中身は `NotImplementedException`）・`FakePlayerService`・`PlayerUseCaseTests` を先に書いてテストが失敗することを確かめ、そのあと `PlayerUseCase` の中身を `EnterPlayerUseCase`・`PlayerGateway` から移す、という順で満たす。この段の終わりで EditMode のテストが全部通る
+  - 触るファイル（本文 3 章の表に足す・読み替える）: 作成 `Assets/Scripts/MasterData/Uta.Client.MasterData.asmdef`・`Assets/Scripts/Domain/Uta.Client.Domain.asmdef`・`Domain/Player/*.cs`（9 ファイル）・`Infrastructure/Player/PlayerRepository.cs`・`IdolRepository.cs`・`SupportCardRepository.cs`・`PlayerUseCase.cs`・`PlayerMapper.cs`・`Infrastructure/Auth/DeviceAuthUseCase.cs`・`Application/Auth/IDeviceAuthUseCase.cs`・`Application/Player/IPlayerUseCase.cs`・`Tests/EditMode/Fakes/FakePlayerService.cs`・`Tests/EditMode/PlayerUseCaseTests.cs`・`PlayerMapperTests.cs`・`PlayerRepositoryTests.cs`・`IdolRepositoryTests.cs`・`SupportCardRepositoryTests.cs`。移動 `Infrastructure/MasterData/Generated/`・`MasterDataAssembly.cs`・`IsExternalInit.cs` → `Assets/Scripts/MasterData/`。改名 `UtaApiClient.cs`・`UtaErrors.cs`・`UtaMagicOnionClientInitializer.cs`・`MasterCardCatalog.cs`・`Tests/EditMode/UtaErrorsTests.cs`・`MasterCardCatalogTests.cs`・`Uta.Client.Infrastructure.Tests.EditMode.asmdef`。変更 `Application/Player/EnterPlayerResult.cs`・5 つの asmdef・`Bootstrap/BootstrapEntry.cs`・`Presentation/Title/TitlePresenter.cs`・`ConnectivityCheck.cs`・`Presentation/Home/HomePresenter.cs`・`masterdata/masterdata.yaml`。削除 `PlayerCache.cs`・`PlayerSnapshot.cs`・`OwnedIdol.cs`・`OwnedSupportCard.cs`・`PlayerSignInResult.cs`・`PlayerSignUpResult.cs`・`PlayerSignInOutcome.cs`・`IPlayerPort.cs`・`EnterPlayerUseCase.cs`・`Application/Auth/IDeviceAuthPort.cs`・`SignInUseCase.cs`・`AccountState.cs`・`Infrastructure/Player/PlayerGateway.cs`・`Infrastructure/Auth/DeviceAuthGateway.cs`・`Infrastructure/Api/PlayerApi.cs`・`Tests/EditMode/EnterPlayerUseCaseTests.cs`・`PlayerGatewayTests.cs`（`.meta` ごと）
+- タスク 3（wiki）に足す: `api-design.md` 1 章「クライアントの実装」を `PlayerUseCase`（`IPlayerService` を直接呼び、`PlayerMapper` で詰め替え、リポジトリに書く）の形に。ADR 0020〜0022 の「accepted にしたら直すもの」のうち、この計画の範囲を直す: `repository-layout.md` 2 章の木・3 章の asmdef の表と「`Uta.MasterData` を参照してよいのは Infrastructure だけ」「生成したマスタの置き場」・4 章の表（Domain・Application・Infrastructure の行の禁止の列と責務）・5 章の `IsExternalInit` の置き場・6.1「Client.Domain は今は作らない」、`masterdata-pipeline.md` のクライアントの生成物の置き場と「`MemoryDatabase` 自体は DI に登録しない」（245 行付近）、`screen-design.md` 6 章（「`Application` のユースケース越しに」→ UseCase の IF 越しに）・7.4（ユースケースの行「通信は `I<機能>Port` 越し」、組み立ての行「ゲートウェイ」）・7.5（「所持データのキャッシュ」の行を `IPlayerRepository`・`IPlayerUseCase.RefreshAsync` の形に書き直す。「マスタ」の行を ADR 0020 の形に）・8 章 204 行付近（ルートのスコープの登録: `PlayerCache` → リポジトリ）・105・169 行付近の `PlayerCache`、`lesson-domain-types.md` 124 行付近の `PlayerCache`、`glossary.md` の Client.Domain の項（`Uta.Client.Domain` を作ったこと）・エンティティ・リポジトリの項を足し、「ポート」の項は「クライアントでは使わない（Application の UseCase の IF と Infrastructure の具象。ADR 0022）。サーバーは ADR 0021 のサーバー側を実装するまで、Application が定義するリポジトリの IF を指す」と書き分ける（Server.Domain の項は、サーバーのコードを変える ADR 0021 のサーバー側の計画で直す）、`.claude/skills/requesting-code-review/layers/client.md` の「ポートで定義しているか」「マスタの生成物が Infrastructure に留まっているか」（ADR 0020・0022 の線引きに）と、足す項目「DtoFactory が `IReadOnly…` だけを受けているか」（ADR 0021）「Presenter が業務の操作と読み取りのために受けるのは Application の公開の型と DtoFactory だけか」（ADR 0022）、`screen-design.md` に ADR 0022「影響・リスク」のテストの規約（`Fake<機能>Service`・`Fake<機能>UseCase`・詰め替えの static の `Mapper`）を 7.4 の下に節として足す。改名・削除した型（`UtaApiClient`・`UtaErrors`・`UtaMagicOnionClientInitializer`・`MasterCardCatalog`・`PlayerGateway`・`PlayerCache`・`PlayerSnapshot`・`EnterPlayerUseCase`・`SignInUseCase`・`IPlayerPort`・`IDeviceAuthPort`）は `uta_docs/wiki/architecture`・`uta_docs/wiki/systems`・`glossary.md` を Grep し、**クライアントについて書いている行だけ**を同じ変更で直す（naming.md「今のコードとの差」の規則。サーバーに残る同名の型（`MasterCardCatalog`・`PlayerSnapshot` のサーバー側）の記述と、`decisions/` の ADR の本文は直さない。ADR・naming.md は親のセッションが直す）。naming.md の「今のコードとの差」から直した行を消す。`screen-design.md` 7.8 の `IGameMaster` は foundation の計画が直す（foundation の読み替えの節 R5）。ADR 0020〜0022 の `status` は、ユーザーが PR で判断してから変える（実装担当は変えない）
+- タスク 4 の「基盤 11d9b06 への読み替え」の節は本文どおり足す（この節とは別。両方が要る）。索引への行は、本文の「順 0 は P1 より前に main へ入れる」と共通レスポンスの「順 4 の前でも後でもよい」を、どちらも「**P1 の実装ブランチを切る前に main へ入れる**」と書き、共通レスポンスも「MVP の後の計画」の箇条書きではなく 1 章の表の行（順 0 の次）にする（[索引の読み替えの節](2026-11-07-client-screens-index.md)に合わせる。共通レスポンスの計画の 0 章「foundation（順 4）より前」も同じ意味に読む）
+- タスク 5 の確認の手順は変わらない（`TitleDiagnostics` はまだ無いので #24 の診断の経路。ログの行は同じ）
+- 6 章の「既存の `EnterPlayerUseCaseTests`・`UtaErrorsTests`・`MasterCardCatalogTests` は変えず」は、`PlayerUseCaseTests`・`ErrorDefinitionsTests`・`CardCatalogFactoryTests` に置き換わる・改名されると読む
+
+### R7. 確かめること・前提
+
+- リポジトリの読み書きはメインスレッドだけ（ADR 0021 の前提）。`PlayerUseCase` は `await … .ToResult()` のあとに書く。基盤の `UnaryResult` の継続がメインスレッドに戻るかは確かめていないので、**タスク 5 の診断で確かめる**: `PlayerUseCase.Apply` の先頭に `Debug.Log("[Uta] player apply thread=" + System.Threading.Thread.CurrentThread.ManagedThreadId)` を一時的に入れ、`Uta.exe -batchmode -nographics -uta-quit-after-check` のログで `1`（Unity のメインスレッド）であることを見てから、そのログを消してコミットする。`1` でなければ止まって報告する（リポジトリの同期の前提が崩れるので、勝手に `UniTask.SwitchToMainThread` などを足さない）。基盤が `ICommonResponseApplier` を呼ぶスレッドは[共通レスポンスの計画](2026-11-08-common-response-player-diff.md)の読み替えの節と gacha の計画で確かめる
+- `MemoryDatabase` を Inject する形（ADR 0020）は、`BootstrapEntry` が `MasterDataLoader.LoadFromStreamingAssetsAsync()` で読み終えてから `LifetimeScope.Create` する今の順のままで満たせる（R4）。`Uta.Client.MasterData` の `precompiledReferences` に要る DLL は、この計画のコンパイルで確かめる（ADR 0020）
+
 ## 0. 決まっていること
 
 ユーザーが推奨どおりに了承した（2026-11-08）。

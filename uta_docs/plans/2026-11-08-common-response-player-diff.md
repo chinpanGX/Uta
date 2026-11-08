@@ -7,6 +7,37 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 
 # 実装計画: 共通レスポンス項目（player_diff）
 
+## ADR 0020〜0022・naming.md への読み替え（案。実装は順 0（基盤移行の計画）の PR で ADR 0020〜0022 の accepted が決まってから。この節が本文と食い違ったら、この節が正）
+
+2026-11-08。[ADR 0021](../wiki/decisions/0021-domain-entities-and-repositories.md)「影響・リスク」の共通レスポンスの読み替えを、この計画に書き下ろしたもの。前提: [基盤移行の計画](2026-11-08-client-foundation-migration.md)の読み替えの節（R2〜R4: `PlayerEntity`・`IdolEntity`・`SupportCardEntity`、`IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository` とそのメモリ実装、`PlayerMapper`、`IPlayerUseCase.RefreshAsync`、`ApiClient` の改名）が実装済み。画面の計画にも当てはまる共通の対応表は [foundation の計画](2026-11-03-client-screens-foundation.md) の同名の節の R0。
+
+- **本文のうち `PlayerDiffData`・`PlayerCache`（`PlayerCache.Apply`・`PlayerCacheApplyTests`・「`PlayerCache` は 82 行目で登録済み」を含む）を書いている記述はすべて無効**（0 章 6、1 章の「`PlayerCache` に反映する」、2 章の表の `PlayerDiffData.cs`（作成）・`PlayerCache.cs`（変更）の行と `PlayerCacheApplyTests.cs`、3 章の `PlayerDiffData`・`PlayerCache.Apply` のコードと「`Apply`:」の段落、タスク 3 の手順とテストの一覧）。反映先はクライアントの Domain のリポジトリ 3 つで、置き換え・追加・除く・冪等の規則は下の `ApplyAsync` に移った。`PlayerCommonApplier.cs`（作成）・`PlayerCommonApplierTests.cs`・`AppCommonSerializationTests.cs`（作成）の行は有効
+- **0 章 9（`RefreshPlayerUseCase` は残す）**: `IPlayerUseCase.RefreshAsync` と読む。安全網として残す意味は同じ
+- **0 章の「順番」の「foundation（順 4）より前に `main` へ入れる」**: 「P1 の実装ブランチを切る前に `main` へ入れる」と読む（積み PR の連鎖に入るのは P1 を切った時点の `main` だけ。[索引の読み替えの節](2026-11-07-client-screens-index.md)）
+- `PlayerCommonApplier`（`Infrastructure/Player/PlayerCommonApplier.cs`。naming.md 9章の `Applier`）:
+  ```csharp
+  public sealed class PlayerCommonApplier : ICommonResponseApplier<AppCommon>
+  {
+      public PlayerCommonApplier(IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards);
+      /// <summary>
+      /// common が null か common.PlayerDiff が null なら何もしない。それ以外は次の順（間で await しない: ADR 0021 の前提）:
+      /// 1. var current = players.Find(); null なら InvalidOperationException（サインイン前に Common が届くのは不具合。基盤が CLIENT_ERROR にする）
+      /// 2. diff.HasBalance なら players.Upsert(new PlayerEntity(diff.Level, diff.Exp, diff.Gold, diff.SupportPoints, diff.GachaCurrency, current.HasActiveProduce, current.DiscardedProduce))
+      ///    （HasActiveProduce・DiscardedProduce はサインインの値のまま据え置き）。偽なら players に触らない
+      /// 3. diff.Idols（null は空）の各 DTO を PlayerMapper.ToIdolEntity で直して idols.Upsert
+      /// 4. diff.SupportCards（null は空）を PlayerMapper.ToSupportCardEntity で直して supportCards.Upsert
+      /// 5. diff.RemovedSupportCardUids（null は空）を supportCards.Remove
+      /// 同じ差分を 2 回当てても結果が変わらない。戻り値は UniTask.CompletedTask。
+      /// </summary>
+      public UniTask ApplyAsync(AppCommon common);
+  }
+  ```
+- 2 章の `UtaApiClient.cs` は `ApiClient.cs`（移行計画で改名済み）。`Create` の最後の引数に `ICommonResponseApplier<AppCommon> commonApplier` を足すのは本文のまま。`BootstrapEntry` の `builder.Register<PlayerCommonApplier>(Lifetime.Singleton);` は、移行計画の R4 の 5 行（リポジトリ・`DeviceAuthUseCase`・`PlayerUseCase`。`LifetimeScope.Create` のラムダの中に直書き）の次の行に足す（`RegisterUseCases` はまだ無い。foundation の計画が作るときに、この行も `RegisterUseCases` へ移す: foundation の読み替えの節 R4）。本文の行番号（70〜78・82 行目）は移行計画の後で変わるので、`ApiClient.Create(...)` の呼び出しを名前で探す。`PlayerCommonApplier.cs` の `using` は `Cysharp.Threading.Tasks; Uta.Client.Domain.Player; Uta.Shared.Contracts.Common; VolTech.Client;`
+- サーバー側（タスク 1・2）は変わらない。2 章の `server/Uta.Server/Application/Support/ISupportCardRepository.cs`・`PlayerDiffCollector` のコンストラクターが受ける `IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository` は、ADR 0021 のサーバーの移行（別の計画）が済んでいれば `server/Uta.Server/Domain/` の下にある。実装時点のパスと名前空間を Grep で探して使う（IF の中身の変更は同じ）
+- タスク 3 の手順は次に読み替える: `PlayerCommonApplier`・`ApiClient.Create` の引数・`BootstrapEntry` の配線を上のとおりに書き、EditMode のテストは `PlayerCommonApplierTests` の 9 本と `AppCommon_RoundTripsThroughMessagePack`（本文のまま）。9 本: `ApplyAsync_ReplacesBalance_WhenHasBalance`／`_KeepsBalance_WhenNoBalance`／`_KeepsProduceFlags`（`HasActiveProduce`・`DiscardedProduce` が据え置き）／`_UpsertsIdolAndSupportCard`（同じ ID は置き換え、無ければ追加）／`_RemovesSupportCard`／`_IsIdempotent`／`_Throws_WhenNotSignedIn`（`players.Find()` が null）／`_TreatsNullArraysAsEmpty`／`_DoesNothing_WhenPlayerDiffNull`。リポジトリは本物（移行計画のメモリ実装）を使い、偽物を作らない。終わりの確かめ（`unity recompile` がエラー 0、EditMode のテストが通る）は本文のまま
+- **確かめること（ADR 0021 の前提）**: 基盤が `ICommonResponseApplier.ApplyAsync` を呼ぶスレッドがメインスレッドであること。ADR 0021 は「共通レスポンスの計画で確かめる」としているが、`Common` を返す RPC（ガチャほか）をクライアントが呼ぶのは gacha の計画からなので、この計画では実行して確かめられない。この計画では **(1)** 基盤のソース（`client/uta/Library/PackageCache/com.chinpangx.voltech.magiconion@<ハッシュ>/Runtime/Client/` の `ApiCore`・共通レスポンスの適用の箇所）を読み、`ApplyAsync` を `await` の継続（Unity の `SynchronizationContext`）で呼んでいるか、別のスレッドに移していないかを確かめて `unity7-evaluation.md` 3.3 に 1 行で記録し（タスク 5）、**(2)** 実行での確認は gacha の計画に申し送る（`ApplyAsync` の先頭に `Debug.Log` で `System.Threading.Thread.CurrentThread.ManagedThreadId` を一度出し、Unity のメインスレッド（1）であることを Play で見てログを消す。索引の読み替えの節の申し送りに書いた）。(1) で別のスレッドに移していると分かったら、止まって報告する（リポジトリの同期の前提が崩れるため、勝手に直さない）。ADR 0021 32 行目の「共通レスポンスの計画で確かめる」は、この (1)+(2) に読み替える（親のセッションへの報告に挙げた）
+- タスク 4 の wiki: `screen-design.md` 7.5「所持データのキャッシュ」の行は移行計画のタスク 3 が `IPlayerRepository`・`IPlayerUseCase.RefreshAsync` の形に書き直す。この計画はその行に「`Common` の player_diff が先にリポジトリへ反映される（`PlayerCommonApplier`）。`RefreshAsync` は安全網」と 1 文足す
+
 ## 0. 決まっていること（ユーザーが推奨どおりに了承した。2026-11-08）
 
 ユーザーが「共通レスポンスも採る」と決めた（2026-11-08）。基盤の仕様は VolTech-MagicOnion の `docs/spec/common-response.md`・`docs/guide/server.md`「共通レスポンス項目」。次は、その上での Uta の決め方。
