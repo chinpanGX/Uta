@@ -93,7 +93,7 @@ updated: 2026-11-08
 1. マスタ [決定。2026-11-01。ユーザーの判断: [計画](../../plans/2026-11-01-masterdata-client-use.md) 7章]: 通信が要らないので**認証の前**に、アプリに同梱したバイナリ（StreamingAssets）を `MasterDataBinary.Read` で読む。あとで Addressables によるダウンロードに移る（[masterdata-pipeline.md](master/masterdata-pipeline.md) 6章）。読めなければ（`SchemaMismatch` を含む）リトライせず、エラーを表示して止まり、認証には進まない（同梱のバイナリは再試行しても同じ結果になる）。`SchemaMismatch` でアプリの更新を促すのは、Addressables に移ったあと
 2. 認証: 端末に保存が無ければ端末の登録（`RegisterAsync`）、そのあとトークンの発行（`IssueTokenAsync`）（どちらも `IDeviceService`）。無効・期限切れは1回だけ取り直して再送する（VolTech-MagicOnion の仕様）
 3. （サーバーの状態の判定は無い）強制アップデートとメンテナンスは実装しない（[repository-layout.md](repository-layout.md) 10.5）。VolTech-MagicOnion のクライアントは `UPDATE_REQUIRED`・`MAINTENANCE` の受け口を持つが、サーバーは返さないので、Uta の画面は作らない
-4. サインアップ・サインイン [決定。2026-11-01。ユーザーの判断。`SyncAsync` を分けた]: 端末の登録をした直後（初回）は `IPlayerService.SignUpAsync`（プレイヤーの作成と初期付与）を呼び、そのあと `SignInAsync`（所持データの全件取得とバージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）を呼ぶ。保存ありの起動は `SignInAsync` だけ。`SignInAsync` が `PLAYER_NOT_CREATED` を返したら、`SignUpAsync` を呼んでから `SignInAsync` をやり直す [決定。2026-11-01。ユーザーの判断]。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる。受け取った所持データはクライアントがキャッシュする（`PlayerCache`）。実装の経路は [api-design.md](api-design.md) 1章「クライアントの実装」。`Title` の最小の uGUI に状態を出し、成功したら `Home` へ進む（7章）。診断用の IMGUI（`ErrorDialogView`、マスタの失敗の `StartupView`）が残る。画面の作り込みは順 7 [2026-11-03]
+4. サインアップ・サインイン [決定。2026-11-01。ユーザーの判断。`SyncAsync` を分けた]: 端末の登録をした直後（初回）は `IPlayerService.SignUpAsync`（プレイヤーの作成と初期付与）を呼び、そのあと `SignInAsync`（所持データの全件取得とバージョン違いのプロデュースの破棄。[api-design.md](api-design.md) 1章・5章）を呼ぶ。保存ありの起動は `SignInAsync` だけ。`SignInAsync` が `PLAYER_NOT_CREATED` を返したら、`SignUpAsync` を呼んでから `SignInAsync` をやり直す [決定。2026-11-01。ユーザーの判断]。プロデュースを破棄したと返ってきたら、ホームでダイアログを出して知らせる。受け取った所持データはクライアントがキャッシュする（Domain のリポジトリ `IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository`。2026-11-08。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。実装の経路は [api-design.md](api-design.md) 1章「クライアントの実装」。`Title` の最小の uGUI に状態を出し、成功したら `Home` へ進む（7章）。診断用の IMGUI（`ErrorDialogView`、マスタの失敗の `StartupView`）が残る。画面の作り込みは順 7 [2026-11-03]
 5. ホームへ遷移する
 
 シーンとの対応 [決定。2026-11-03。ユーザーの判断。7章]: 手順 1 は Bootstrap シーン、手順 2〜4 は **Title シーンでスタートをタップしたとき**、手順 5 は Home シーンの読み込み。マスタの読み込みはタップの前（Bootstrap）に済ませる。
@@ -102,7 +102,7 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 
 ## 5. 通信とエラーの画面側の扱い [Uta案]
 
-- VolTech-MagicOnion のクライアント（`ApiCore`: 順番待ち、再認証、進行中通知、エラーハンドラー）を使う（組み立ては `UtaApiClient`。ナビゲーターは `ErrorNavigator`（7章）、進行中通知は未接続で、エラーハンドラーは `DefaultCommonErrorHandler` と診断用の `ErrorDialogView`。画面の計画で作り直す。2026-11-03）。画面は `ErrorPolicy` に従って、再試行・ダイアログ・タイトルへ戻る、を出し分ける（VolTech-MagicOnion の設計書「クライアント側」）
+- VolTech-MagicOnion のクライアント（`ApiCore`: 順番待ち、再認証、進行中通知、エラーハンドラー）を使う（組み立ては `ApiClient`。ナビゲーターは `ErrorNavigator`（7章）、進行中通知は未接続で、エラーハンドラーは `DefaultCommonErrorHandler` と診断用の `ErrorDialogView`。画面の計画で作り直す。2026-11-03）。画面は `ErrorPolicy` に従って、再試行・ダイアログ・タイトルへ戻る、を出し分ける（VolTech-MagicOnion の設計書「クライアント側」）
 - 通信中は入力を受け付けない表示（ブロッカー）を出す。進行中通知の受け口は VolTech-MagicOnion のものを使う
 - 通信の失敗後の再送は、同じ `x-request-id` で行う。画面側で独自の重複防止はしない
 - **日付の更新（12:00 JST）をまたいだとき** [決定。2026-10-31。ユーザーの判断]: VolTech-MagicOnion は日付が変わったあとの RPC に `DATE_CHANGED` を返し、既定の動作はタイトルへ戻る。MVP はこれを受け入れ、変えない。プロデュース中でも状態はサーバーに残っているので、起動の流れ（4章）からホームの「再開」で続ける（[api-design.md](api-design.md) 1章 `SignInAsync`）。ただし `DATE_CHANGED` を受けたあとのサインインは、全件を取り直す
@@ -111,7 +111,7 @@ Addressables に移ったあとの、更新確認のタイミングは未決。
 
 - レッスン・試験の画面は、`Uta.Shared.Domain` の効果エンジンで**使用可否の判定と予測値の表示**をする（PRD-04、PRD-08）。確定はサーバーの結果（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）
 - クライアントはシードを持たないので、ドローなど乱数が絡む結果は予測しない。操作後は、サーバーのレスポンスで画面を確定させる
-- 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` のユースケース越しに判定・予測の結果を受け取る
+- 画面（Presenter）は `Uta.Shared.Domain` を直接呼ばず、`Application` の UseCase の IF（`I<機能>UseCase`。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）越しに判定・予測の結果を受け取る
 - **MVP のカードの使用可否はサーバーが判定して返す** [決定。2026-11-03。ユーザーの判断]: `LessonDto` に `UsableHand`（`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true）を足す（[server/produce-server.md](server/produce-server.md) 6章）。`LessonDto` から `LessonState` を復元するには持続効果の定義（`EffectDef`）などが足りず、クライアントだけでは判定できないため。ADR 0008 の「クライアントが判定」からは外れるが、確定はサーバー、表示のための判定もサーバーの値を使う、という向きは同じ。クライアントの予測（効果の見込み）は MVP では出さない（[lesson-domain-types.md](lesson-domain-types.md)）
 
 ## 7. MVP の画面の実装方針 [決定。2026-11-07]
@@ -152,21 +152,31 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 | Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く。共通部品は 10 個: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`・`BusyBlocker`・`UiRoot`（[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) 3.4）。画面の Prefab だけを Addressables の `Screens` に登録する。部品は画面の Prefab にネストし、`UiRoot` はシーンに置く（どちらも登録しない）。画面の Prefab: `Title/TitlePage`・`Home/HomePage`・`Gacha/GachaPage`・`GachaRatesModal`・`GachaResultModal`・`Owned/OwnedPage`・`SupportDetailPage`（[P2 の計画](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2。フィールドと子の対応は同 3.3）。行の Prefab（`Parts/`。登録しない）: `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow` |
 | 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う。入口は `PrefabBuildCommands`（メニュー `Uta/Prefabs/Build All`、`unity command eval` から呼ぶ `BuildAll()`）。生成クラスは `IPrefabBuilder` を実装すれば Build All に入る（`TypeCache` で集め、`Order` の順に作る） |
 | View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
-| Presenter | 同上 | View と `Application` のユースケースをつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
-| ユースケース | `Application/<機能>/` | 通信は `I<機能>Port` 越し。`Presentation` は `Infrastructure` に触れない |
-| 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。ユースケース・ゲートウェイは Bootstrap のルートのスコープ |
+| Presenter | 同上 | View と `Application` の UseCase の IF をつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
+| UseCase | IF は `Application/<機能>/`、具象は `Infrastructure/<機能>/` | Application に UseCase の IF `I<機能>UseCase` とその出力の型を置き、外部に触れる具象 `<機能>UseCase` は Infrastructure に置く（`I<機能>Service` を直接呼び、DTO を static の `<名詞>Mapper` で詰め替え、リポジトリに書く。通信のポート・ゲートウェイは作らない。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)。例: `IPlayerUseCase`・`PlayerUseCase`）。`Presentation` は `Infrastructure` に触れない |
+| 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。UseCase の具象（IF で登録）・リポジトリ（書き込みと読み取り専用の 2 つの IF で同じインスタンス）は Bootstrap のルートのスコープ |
 
 - **遷移**: ホーム（またはシーンの最初のページ）を底にする。局面ごとの切り替えは、いまのページを `Pop` してから次を `Push`（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではない）。ホームへ戻るときは上のページ・モーダルを全部 `Pop`
 - **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
 - **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品の Prefab も接頭辞を付けず、役割の名前にする（`Button`・`Label`・`Panel`。View の型は Prefab 名 + `View`: `ButtonView`）。部品に `Uta` 接頭辞は付けない [決定。2026-11-07。ユーザーの判断]
 
+#### 7.4.1 テストの偽物と詰め替えの規約 [[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md) の「影響・リスク」。proposed。2026-11-08]
+
+UseCase の具象を Infrastructure に置くと、手順のテストが MagicOnion の `IService<T>` のメンバー・基盤のエラーの表し方・DTO の形の 3 つに結合する。重さを抑えるため、次の形にそろえる。
+
+- **偽のサービスは機能ごとに 1 つ（`Fake<機能>Service`）**。テストのアセンブリ（`Uta.Client.Tests.EditMode`）の `Tests/EditMode/Fakes/` に public で置いて使い回す。返す値の Queue と、呼び出しの記録を持つ。`IService<T>` の `With…` は `this` を返す（`WithHandledCodes` の実体が `WithHeaders` を呼ぶため）。`WithHost` だけ `NotSupportedException`。失敗は基盤の `FakeRpcErrors.ApiFailureResult<T>`（VolTech-MagicOnion の Unity パッケージの `Runtime/Client/Testing`）で作った `UnaryResult<T>` を返し、偽物のメソッドから同期で例外を投げない。実例: `FakePlayerService`（`SignUpResults`・`SignInResults` の Queue、`Calls`、積み方の補助 `Ok<T>`・`Fail<T>`）
+- **Presenter のテストの偽物は `Fake<機能>UseCase`**。同じくテストのアセンブリに置く。返す値の Queue の要素は `Func<UniTask<T>>` にし、本物の具象が行う副作用（状態の型・リポジトリへの書き込み）と例外は、テストが積む `Func` の中で再現する。偽そのものは状態の型・リポジトリに書かない。例外: 状態の型に書くだけのメソッド（`IProduceUseCase.MarkExamResultShown()` など）は、偽が受けた状態の型に書いてよい
+- **DTO → Application・Domain の型の詰め替えは、static の純粋な関数（`<名詞>Mapper`）に分け**、詰め替えのテストを手順のテストと別に持つ。実例: `PlayerMapper` と `PlayerMapperTests`、手順は `PlayerUseCaseTests`（リポジトリは本物のメモリの実装を使う）
+- 非同期の手順のテストは `[UnityTest]` と `UniTask.ToCoroutine` で書く（`PlayerUseCaseTests`）。回すときは `runSynchronously` を付けない（付けると `[UnityTest]` が走らない。[unity7-evaluation.md](unity7-evaluation.md) 4章）
+- 偽物は `ApiCore` を通らないので、`WithHandledCodes` に載せたコードを `ApiCore` が共通ハンドラーに回さないことは、手順のテストでは確かめない（基盤のテストと、実機相当の確認で見る）
+
 ### 7.5 通信・状態・マスタの扱い [Uta案]
 
-- **所持データのキャッシュ**: `PlayerCache.Current`。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`RefreshPlayerUseCase`）。サーバーの確定値と食い違わせないため
-- **マスタ**: 画面が使うマスタの値は、`Application` の読み取り専用の IF `IGameMaster` と読み取り用の型で受ける。`Uta.MasterData` の型を `Application`・`Presentation` に出さない
+- **所持データのキャッシュ**: Domain のリポジトリ（`IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository`。読むだけの使い手には `IReadOnly<名詞>Repository` を渡す。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。サインインの応答で `IPlayerUseCase` の具象が 3 つとも置き換える（プレイヤーは `Upsert`、アイドル・サポートカードは `ReplaceAll`）。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`IPlayerUseCase.RefreshAsync`）。サーバーの確定値と食い違わせないため
+- **マスタ**: 画面が使うマスタの値は、`MemoryDatabase`（`Uta.MasterData`。ルートのスコープにシングルトンで登録してある）を直接読む。Presentation でマスタを読むのは表示用の値を作る DtoFactory で、マスタの値でゲームのルールを計算しない（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。`IGameMaster` は作らない）
 - **スキルカードの表示**: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類・消費・強化済みの印・説明文を出す。効果の予測値は出さない
 - **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler` を `BusyIndicator` につなぐ（進行中は全面の透明な Image で入力を止める）。画面は個別に包まない
-- **エラー**: 業務エラーのコードは `UtaErrors` に `Stay` で登録し、画面が文言を出す。「タイトルへ」「ホームへ」は `IErrorNavigator`（8章の `ISceneNavigator` を呼ぶ）
+- **エラー**: 業務エラーのコードは `ErrorDefinitions` に `Stay` で登録し、画面が文言を出す。「タイトルへ」「ホームへ」は `IErrorNavigator`（8章の `ISceneNavigator` を呼ぶ）
 - **カードの使用可否はサーバーが判定して返す**（6章の `UsableHand`）
 
 ### 7.6 プロデュースの画面の流れ [Uta案]
@@ -201,11 +211,11 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 | `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ。ホームの構成とキャラ表示のステージは 7.8 | → `Produce` |
 | `Produce` | プロデュース。この章の時点では空（文字と `Home` へ戻るボタンだけ） | → `Home` |
 
-- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`UtaApiClient`）・`PlayerCache`・マスタ（`ICardCatalog`）・共通エラーハンドラー・**すべてのユースケース**・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
-- **シーンの遷移は `ISceneNavigator`**（Application のポート: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
+- **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`ApiClient`・`IPlayerService`）・所持データのリポジトリ（3 つ）・マスタ（`MemoryDatabase`・`ICardCatalog`）・共通エラーハンドラー・**すべての UseCase の具象**（IF で登録）・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
+- **シーンの遷移は `ISceneNavigator`**（Application の IF: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
 - **通信エラーの後の遷移**: `ApiCore` に `IErrorNavigator`（VolTech-MagicOnion）を渡す。`GoToTitleAsync` は `Title` の読み込み、`GoToHomeAsync` は `Home` の読み込み、`OpenStoreAsync` は未実装（ログだけ。強制アップデートは実装しないため。[repository-layout.md](repository-layout.md) 10.5）。実装は `ISceneNavigator` を呼ぶだけの小さなクラスで、`Bootstrap` に置く。`ReturnToTitle` で `Title` が読み込み直されると、通信中だった古い Presenter の続きが破棄された View に触らないよう、Presenter は View が破棄済みなら何もしない。診断（下記）のときはナビゲーターを渡さない
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
-- **Home に入ったとき `PlayerCache.Current` が無い**（サインインしていない）場合は、`Title` へ戻す
+- **Home に入ったとき所持データが無い**（`IReadOnlyPlayerRepository.Find()` が null。サインインしていない）場合は、`Title` へ戻す。2026-11-08 から、#24 の仮の `HomePresenter` はこの確かめをしない（固定の文を出すだけ。画面の計画の `HomePresenter` で作り直す）
 - 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。画面の計画で、診断を別の入口に分ける [Uta案]
 - 最小の uGUI は、Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする（手で組み立てを再現できるように）。順 7 の画面の計画で、各シーンの最小の uGUI を 7章の Prefab に置き換える（日本語の文字は TextMeshPro + フォントアセット）
 - 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）

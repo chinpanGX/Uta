@@ -1,7 +1,7 @@
 ---
 title: マスタデータの定義・生成・配信（実装設計書 マスター設計編）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # マスタデータの定義・生成・配信（実装設計書 マスター設計編）
@@ -33,7 +33,7 @@ updated: 2026-11-03
 ```
 masterdata/Definitions/<系>/<型名>.cs … 全列入りの定義（正本）
         │  code-gen
-        ├──▶ client/uta/Assets/Scripts/Infrastructure/MasterData/Generated/ クライアント用ソース（ServerOnly を除く）
+        ├──▶ client/uta/Assets/Scripts/MasterData/Generated/ クライアント用ソース（ServerOnly を除く。asmdef `Uta.Client.MasterData`）
         └──▶ server/Uta.Server/Infrastructure/MasterData/Generated/ サーバー用ソース（ClientOnly を除く）
                    │  各プロジェクトで MasterMemory の Source Generator が MemoryDatabase を生成
 
@@ -59,7 +59,7 @@ masterdata/csv/*.csv               … スプレッドシートから書き出�
 - enum は C# で定義し、CSV に書く名前を `[InputName]` で付ける（名称は仮称。[glossary.md](../../glossary.md)、[ADR 0001](../../decisions/0001-ip-policy.md)）
 - **マスタの列の enum は `masterdata/Definitions` に写しを置く** [決定。2026-10-31。ユーザーの判断]: `master-gen` は `Uta.Shared.Domain` を参照できず、CSV で使う enum はすべてのメンバーに `[InputName]` が要るため（アドオンの docs）。写しは `Uta.Shared.Domain`・`Uta.Shared.Contracts` の enum と**同じ名前・同じ数値**にする（名前・数値の正は、レッスンの enum は [lesson-enums.md](../lesson-enums.md)、ほかはその列を持つ `*-tables.md`）。各側の Infrastructure が数値のまま変換する（`(Uta.Shared.Domain.Rarity)(int)row.Rarity`）。ずれはサーバーのテストで、写しと元の enum の名前と数値をすべて比べて見つける（リフレクションはテストの中だけで使う）
 - 検証は属性で書く: `[Unique]`、`[Exists(typeof(T))]`（空欄を許すなら `AllowEmpty = true`）。違反は `master-gen` が「ファイル 行 列」で報告する。生成ソースには残らない
-- Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要（Uta では `Uta.Client.Infrastructure` に置く。[repository-layout.md](../repository-layout.md) 5章）
+- Unity に入るソースとしての注意: `namespace` はブロック形式、`required` 不可、`record struct` 不可、nullable 不可、`init` は `IsExternalInit` が必要（Uta では `Uta.Client.MasterData` に置く。2026-11-08 に `Uta.Client.Infrastructure` から移した。[repository-layout.md](../repository-layout.md) 5章）
 - **生成ソースの名前空間は定義の名前空間のまま**出る（出力先の `namespace` は `MasterDataSchema.cs` にだけ効く）。`MemoryDatabase` の名前空間は、サーバー側の `Infrastructure/MasterData/MasterDataAssembly.cs` に `[assembly: MasterMemoryGeneratorOptions(Namespace = "Uta.MasterData")]` を置いて `Uta.MasterData` にそろえる [決定。2026-11-01]。付けないと `RootNamespace` に出る
 - **検証の置き場** [決定。2026-11-01]: 自分の行の列だけで決まる検査は、行のクラスの `IValidatable<T>`（明示的実装）。表をまたぐ検査（ほかの表を読む、`[Exists]` で書けない）はサーバーのテスト（`MasterDataInvariantTests`）。例外として、`Effect` の入れ子の深さは `IValidatable` の `CallOnce()` で `Effect` の全行を読んで検査する。`IValidatable` の違反は `master-gen` が主キー付きで報告し、バイナリを書かない [確認]
 - 空欄は型の既定値（`0` / `false` / `""` / enum の 0）。主キーの空欄はエラー
@@ -157,7 +157,7 @@ outputs:
     binary: ../server/Uta.Server/Infrastructure/MasterData/masterdata.bytes   # コミットする。埋め込みリソース
   - name: unity
     target: client
-    source: ../client/uta/Assets/Scripts/Infrastructure/MasterData/Generated
+    source: ../client/uta/Assets/Scripts/MasterData/Generated
     namespace: Uta.MasterData
     binary: ../client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes   # 同梱。コミットする
     encrypt: true
@@ -242,7 +242,8 @@ Uta で MasterMemoryAddons を使って見つかった改善は、ここに書�
 
 - MasterMemory は NuGetForUnity（`Assets/packages.config`、3.0.4）。Source Generator は Unity 7 で動き、`Uta.MasterData.MemoryDatabase` が生成される（`MasterDataAssembly.cs` で名前空間を指定）。`MasterMemory.Addons.Core` は、アドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて `file:` で参照する（アドオンの `main` に取り込み済み）
 - クライアント用の出力は 30 テーブル（`EvaluationRankReward` を除く）。`encrypt: true`
-- 読み込みは `Uta.Client.Infrastructure.MasterDataLoader`（`Load(byte[])`、`LoadFromStreamingAssetsAsync`。全プラットフォームで `UnityWebRequest`）。`MemoryDatabase` 自体は DI に登録しない。カードは `MasterCardCatalog`（詰め替え）を `BootstrapEntry`（Bootstrap シーン）が認証の前に読み、`ICardCatalog` として登録する（[計画](../../../plans/2026-11-01-masterdata-client-use.md)。読めなければ表示して止まる）。カード以外の変換を足すときは、`MemoryDatabase` を一度だけ読んで共有する形に直す
+- 読み込みは `Uta.Client.Infrastructure.MasterDataLoader`（`Load(byte[])`、`LoadFromStreamingAssetsAsync`。全プラットフォームで `UnityWebRequest`）。`BootstrapEntry`（Bootstrap シーン）が認証の前に `MasterDataLoader.LoadFromStreamingAssetsAsync()` で読み、カードは `CardCatalogFactory.Create(db)`（詰め替えだけで I/O をしない。2026-11-08 に `MasterCardCatalog` から改名し、読み込みを `MasterDataLoader` に分けた）で作って `ICardCatalog` として登録する（[計画](../../../plans/2026-11-01-masterdata-client-use.md)。読めなければ表示して止まる）
+- **`MemoryDatabase` はルートの `LifetimeScope` にシングルトンで登録する**（`builder.RegisterInstance(db)`。2026-11-08。[ADR 0020](../../decisions/0020-masterdata-referenced-outside-shared-domain.md)（proposed。[基盤移行の計画](../../../plans/2026-11-08-client-foundation-migration.md)の PR で accepted を判断する）。それまでは「`MemoryDatabase` 自体は DI に登録しない」だった）。使うクラスは Inject で受ける。生成物は asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`。生成ソース・`MasterDataAssembly.cs`・`IsExternalInit.cs`）にあり、Shared.Domain 以外の層から参照してよい
 - Unity のテスト: `client/uta/Assets/Tests/EditMode`（Unity Test Framework 1.9.0）。実行は `unity test --mode EditMode`（同じプロジェクトを開いた Editor があると使えない。先に `unity close .`）
 - Windows の IL2CPP のプレイヤー（`BuildCommands.BuildWindowsIl2Cpp`）で、`MasterDataLoader.LoadFromStreamingAssetsAsync` が同梱のバイナリを読めた（card=36・gacha=1・effect=129。一時の確認用スクリプトで実行し、コミットしていない）。生成済みの `MessagePackGeneratedResolver` にはマスタの型のフォーマッターが無い（`GetFormatter` が `null`）が、実行できたので、MasterMemory の生成物が自前のフォーマッターを持つか、型が AOT で扱える形になっている。理由は未調査
 - アドオンを Uta のツリーの中で `dotnet build`・`dotnet test` すると、Uta の `Directory.Packages.props`（版の一括管理）と `global.json`（テストランナー）が効いて失敗する。ビルドは `-p:ManagePackageVersionsCentrally=false`、テストはツリーの外にコピーして実行する

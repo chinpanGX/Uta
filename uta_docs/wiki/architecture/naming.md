@@ -149,17 +149,16 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 今 | 新 | 根拠 |
 |---|---|---|
 | Contracts の `GachaOutcome` | `GachaResultKind` | 1章・2章。正は [api-design.md](api-design.md) 1.1 なので、そこも直す |
-| Shared.Domain の `ExamOutcome`、クライアントの `PlayerSignInOutcome`、サーバーの `GrantOutcome` | `ExamResultKind`・`PlayerSignInResultKind`・`GrantResultKind` | 2章 |
+| Shared.Domain の `ExamOutcome`、サーバーの `GrantOutcome` | `ExamResultKind`・`GrantResultKind` | 2章 |
 | Shared.Domain の enum の `UseCheckResult`・`LessonApplyResult`・`ProduceApplyResult` | `UseCheckResultKind`・`LessonApplyResultKind`・`ProduceApplyResultKind` | 2章 |
 | プロパティ名の `Outcome`・`ExamOutcome`（`DrawResultDto.Outcome`、`ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない |
-| クライアントの `AccountState`（enum） | 削除する（`IDeviceAuthPort` が無くなると使う側が無い。`AccountStatus` に改名すると基盤の `VolTech.Client` の `AccountStatus` と衝突するので改名しない）[ADR 案] | 2章、ADR 0022。基盤移行の計画 |
 | サーバーの `GachaStatus`（record。`GetGachasUseCase` の戻り値の 1 件分） | `<名詞>Result` の形の名前（`GachaResult` は使用済みなので、触る実装計画で決める） | 2章（`Status` は enum） |
 | サーバーの `ProduceView`・`ProduceViewBuilder` | `ProduceStateResult`・`ProduceStateResultFactory` | 1章（`View` はクライアントだけ）・7章 |
 | サーバーの `ProduceEndSummary` | `ProduceEndResult` | 2章 |
 | Shared.Domain の `ClassOptionView`（`ProduceEngine.GetClassOptions` の戻り値） | `ClassOption` | 1章・4章。サーバーとクライアントの利用箇所も直す |
 | サーバーの `GachaHistoryRow` | `GachaHistoryRecord`（エンティティにしないとき） | 5章 |
-| `UtaServiceAttribute`・`UtaDatabase`・`UtaApiClient`・`UtaErrors`・`UtaMagicOnionClientInitializer`、テストの `UtaServerFactory`・`UtaErrorsTests` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`・`ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`、`ServerFactory`・`ErrorDefinitionsTests`・`Services_HaveGameServiceFilterAttribute` | 1章 |
-| `MasterCardCatalog`・`MasterProduceCatalog`（static の組み立て役） | `CardCatalogFactory`・`ProduceCatalogFactory` | 7章 |
+| `UtaServiceAttribute`・`UtaDatabase`、テストの `UtaServerFactory` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`、`ServerFactory`・`Services_HaveGameServiceFilterAttribute` | 1章 |
+| サーバーの `MasterCardCatalog`・`MasterProduceCatalog`（static の組み立て役） | `CardCatalogFactory`・`ProduceCatalogFactory` | 7章 |
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
 | 計画にある `OwnedListBuilder`・`DialogService` | `OwnedListFactory`・`DialogOpener` | 7章・9章（`Builder` は Editor、`Service` は通信） |
@@ -173,15 +172,9 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
 | サーバーの `I<名詞>Catalog`・`Master<名詞>Catalog`・`GachaDefinition` など | やめる [ADR 案] | ADR 0020 |
-| `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot`（サーバー・クライアント） | `IdolEntity`・`SupportCardEntity`・`PlayerEntity` [ADR 案] | 2章、ADR 0021 |
-| クライアントの `PlayerCache` | `IPlayerRepository` の実装と、UI の状態の型 [ADR 案] | ADR 0021 |
-| クライアントの `IPlayerPort`・`IDeviceAuthPort`・`PlayerGateway`・`DeviceAuthGateway`・`EnterPlayerUseCase`・`SignInUseCase` と、その結果の型（`PlayerSignInResult` など） | UseCase の IF と Infrastructure の具象 [ADR 案] | ADR 0022 |
+| サーバーの `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot` | `IdolEntity`・`SupportCardEntity`・`PlayerEntity` [ADR 案] | 2章、ADR 0021 |
 | 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
-| `Uta.Client.Infrastructure.Tests.EditMode` | `Uta.Client.Tests.EditMode` | 8章 |
-
-- `ApiClient`・`MagicOnionClientInitializer` は、VolTech-MagicOnion・MagicOnion に同じ名前の型があるかを、実装のときにコンパイルで確かめる。`ErrorDefinitions` は基盤の `ErrorDefinition`（1 件の定義）と 1 文字違いなので、使う場所で取り違えないよう、実装の計画で使い方の例を書く
-- `PlayerApi` は [基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md) が消す
 
 ## 未決事項
 

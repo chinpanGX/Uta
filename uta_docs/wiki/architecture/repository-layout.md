@@ -67,9 +67,10 @@ uta/
    ├─ Directory.Build.props  # [決定] 上の階層の設定を Unity の csproj に効かせない（2.1）
    └─ uta/                   # [決定] Unity プロジェクトのルート
       └─ Assets/Scripts/     # [決定] 層ごとに asmdef（3章）（作成済み）
-         ├─ Application/     #   ユースケース、ポート
-         ├─ Infrastructure/  #   API 呼び出し、マスタ、ローカル保存
-         │  └─ MasterData/Generated/   生成物（作成済み。2026-11-01。クライアント用のソース。バイナリは Assets/StreamingAssets/MasterData/。ADR 0013）
+         ├─ MasterData/      #   生成したマスタ（asmdef Uta.Client.MasterData。2026-11-08 に Infrastructure から移した。ADR 0020）: Generated/ のクライアント用のソース、MasterDataAssembly.cs、IsExternalInit.cs。バイナリは Assets/StreamingAssets/MasterData/（ADR 0013）
+         ├─ Domain/          #   エンティティ、リポジトリの IF（asmdef Uta.Client.Domain。2026-11-08。ADR 0021）
+         ├─ Application/     #   UseCase の IF とその出力の型、外部に触れない具象（ADR 0022）
+         ├─ Infrastructure/  #   外部に触れる具象: UseCase の具象、API 呼び出し、マスタの読み込み、リポジトリの実装、ローカル保存（ADR 0022）
          ├─ Presentation/    #   View、Presenter
          ├─ Bootstrap/       #   Composition Root
          └─ Editor/          #   Unity のビルドのコマンド（Editor 専用）
@@ -109,17 +110,22 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 | Shared.Domain | `shared/Uta.Shared.Domain`（テストは `shared/Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
 | Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO）。パッケージ名は `com.uta.shared.contracts` |
 | Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） |
-| Client.Domain | なし。呼び名だけ用意する。クライアント固有の知識は今は `Application` / `Presentation` に置き（6.1）、層を作るときに `Uta.Client.Domain` にする |
+| Client.Domain | `client/uta/Assets/Scripts/Domain/`（asmdef・名前空間 `Uta.Client.Domain`。2026-11-08 に作った。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。所持データのエンティティとリポジトリの IF を置く |
 
 | アセンブリ | 置き場 | 形式 | 参照してよいもの |
 |---|---|---|---|
 | `Uta.Shared.Domain` | `shared/Uta.Shared.Domain` | netstandard2.1、C# 9 | なし（BCL のみ） |
 | `Uta.Shared.Contracts` | `shared/Uta.Shared.Contracts` | netstandard2.1、C# 9 | `Uta.Shared.Domain`、VolTech-MagicOnion の `VolTech.Server.Abstractions`、MagicOnion / MessagePack |
 | `Uta.Server` | `server/Uta.Server` | net10.0 | `Uta.Shared.Domain`、`Uta.Shared.Contracts`、`VolTech.Server`（下の表）、生成したマスタ |
-| `Uta.Client.Application` | `Assets/Scripts/Application` | asmdef | `Uta.Shared.Domain`、`UniTask` |
-| `Uta.Client.Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Uta.Client.Application`、`Uta.Shared.Domain`、`Uta.Shared.Contracts`、VolTech-MagicOnion のクライアント、MasterMemory と生成物、`Supplement` |
-| `Uta.Client.Presentation` | `Assets/Scripts/Presentation` | asmdef | `Uta.Client.Application`、`Uta.Shared.Domain`、`UnityScreenNavigator`、`UniTask`、`VContainer`（`[Inject]` と各シーンの `LifetimeScope`）、`UnityEngine.UI`（uGUI。[screen-design.md](screen-design.md) 7章）、`Unity.TextMeshPro`（TMP。screen-design 7.3） |
+| `Uta.Client.MasterData` | `Assets/Scripts/MasterData` | asmdef（ルート名前空間は `Uta.MasterData`） | MasterMemory・MessagePack の DLL だけ（`precompiledReferences`） |
+| `Uta.Client.Domain` | `Assets/Scripts/Domain` | asmdef | `Uta.Shared.Domain`、`Uta.Client.MasterData` |
+| `Uta.Client.Application` | `Assets/Scripts/Application` | asmdef | `Uta.Shared.Domain`、`UniTask`、`Uta.Client.Domain`、`Uta.Client.MasterData` |
+| `Uta.Client.Infrastructure` | `Assets/Scripts/Infrastructure` | asmdef | `Uta.Client.Application`、`Uta.Shared.Domain`、`Uta.Shared.Contracts`、VolTech-MagicOnion のクライアント、`MasterMemory.Addons.Core`、`Uta.Client.Domain`、`Uta.Client.MasterData`、`Supplement` |
+| `Uta.Client.Presentation` | `Assets/Scripts/Presentation` | asmdef | `Uta.Client.Application`、`Uta.Client.Domain`、`Uta.Client.MasterData`、`Uta.Shared.Domain`、`UnityScreenNavigator`、`UniTask`、`VContainer`（`[Inject]` と各シーンの `LifetimeScope`）、`UnityEngine.UI`（uGUI。[screen-design.md](screen-design.md) 7章）、`Unity.TextMeshPro`（TMP。screen-design 7.3） |
 | `Uta.Client.Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて（DI のスコープを組む。`VContainer`） |
+| `Uta.Client.Tests.EditMode` | `Assets/Tests/EditMode` | asmdef（Editor だけ。ルート名前空間は `Uta.Client.Tests`。2026-11-08 に `Uta.Client.Infrastructure.Tests.EditMode` から改名した） | クライアントの各層と、テストに要るもの（NUnit・Test Framework・Editor） |
+
+- **`Uta.Client.MasterData`・`Uta.Client.Domain` の asmdef** [2026-11-08。[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)。どちらも proposed で、[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR で accepted を判断する]: どちらも `overrideReferences: true`・`autoReferenced: false` で、`precompiledReferences` は `MasterMemory.dll`・`MasterMemory.Annotations.dll`・`MessagePack.dll`・`MessagePack.Annotations.dll`（Annotations の 2 つも要った。コンパイルで確かめた）。`overrideReferences: true` の Application・Presentation は `MasterMemory.dll`・`MessagePack.dll` を足す。`overrideReferences: false` の Infrastructure・Bootstrap は DLL が暗黙に参照されるので足さない
 
 - 診断用の `ErrorDialogView`（`IErrorDialogView` の IMGUI 実装）は `Bootstrap` に置く [2026-11-03]: `Presentation` の参照先に VolTech-MagicOnion のクライアントが無く、`IErrorDialogView` の実装に要るため。画面の計画で作り直すとき、`Presentation` に移すなら上の表に参照を足す
 - `VContainer` を参照してよいのは `Bootstrap` と `Presentation` だけ [決定。2026-11-01。ユーザーの判断]。`Application`・`Infrastructure` はコンストラクタで受け取るだけにし、`VContainer` を知らない
@@ -169,10 +175,10 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 | `Domain` | `Uta.Shared.Domain` | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
 | `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`） | `Api` |
 
-`Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。
+`Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。これはサーバーの規則（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md) のサーバー側を実装する計画まで今のまま）。クライアントは下の「生成したマスタの置き場」。
 
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
-- **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`、クライアントは `Assets/Scripts/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。生成物を参照してよいのは Infrastructure だけ
+- **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーでは生成物を参照してよいのは Infrastructure だけ。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。proposed）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
 - 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
 - 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする（層ごとに 1 件。型がまだ無い層のルールは空の集合で通るので、その層に最初の型が入る計画が「型が 1 つ以上ある」テストを足す）。動作の確認（2026-11-01）: NetArchTest.Rules 1.3.2 は .NET 10・xunit.v3（Microsoft.Testing.Platform）で動き、違反を検出できる
 - クライアントの `Application` の asmdef は **`noEngineReferences` を使わない**。UniTask を参照するため（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)・[ADR 0009](../decisions/0009-client-stack.md)）。UnityEngine の API を使わないことは、コードレビュー（[layers/client.md](../../../.claude/skills/requesting-code-review/layers/client.md)）で守る [決定。2026-10-31。2026-10-28 の「`true` にする」は ADR と食い違っていたので戻した]
@@ -184,14 +190,15 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 
 | 層 | 責務 | 禁止 |
 |---|---|---|
-| Domain | ゲームルール（計算式、状態遷移、検証）、値オブジェクト、enum、ID 型 | UnityEngine、MasterMemory とその生成物、MagicOnion、MessagePack、DB、`float` / `double` |
-| Application | ユースケース。外部とのやりとりは**ポート（インターフェース）**で定義する。UniTask は使ってよい | UnityEngine の API（コードレビューで守る。3章）、Infrastructure・Presentation・`Uta.Shared.Contracts` への参照 |
-| Infrastructure | ポートの実装（API 呼び出し、マスタ読み込み、ローカル保存）。DTO ↔ Domain のマッピングはここで行う | Presentation への参照 |
-| Presentation | View（表示）と Presenter（Application を呼ぶ） | Infrastructure・`Uta.Shared.Contracts`（通信 DTO）への参照 |
+| Domain（`Uta.Client.Domain`） | エンティティ（`<名詞>Entity`）とリポジトリの IF（`IReadOnly<名詞>Repository`・`I<名詞>Repository`。同期）。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md) | `Uta.Shared.Domain`・`Uta.Client.MasterData` 以外への参照（Application・Infrastructure・Presentation、`Uta.Shared.Contracts`、MagicOnion、UniTask、DB）、UnityEngine の API（コードレビューで守る）、`float` / `double` |
+| Application | UseCase の IF（`I<機能>UseCase`）とその出力の型、外部に触れない具象（計算・ルール・状態の型）。UseCase でない IF（`ISceneNavigator` など。実装は Bootstrap）も置く。UniTask は使ってよい。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md) | UnityEngine の API（コードレビューで守る。3章）、Infrastructure・Presentation・`Uta.Shared.Contracts` への参照 |
+| Infrastructure | **外部に触れる具象**（`Uta.Shared.Contracts`・共通基盤のクライアント・保存の API・マスタの読み込みを直接使うもの）: UseCase の具象（`<機能>UseCase`。`I<機能>Service` を直接呼ぶ）、マスタの読み込み、リポジトリの実装（`<名詞>Repository`。メモリ）、ローカル保存。DTO → Domain・Application の型の詰め替えはここで行う（static の `<名詞>Mapper`）。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md) | Presentation への参照 |
+| Presentation | View（表示）と Presenter（Application の UseCase の IF を呼ぶ） | Infrastructure・`Uta.Shared.Contracts`（通信 DTO）への参照 |
 | Bootstrap | 起動、DI の組み立て（Composition Root）。すべてを参照してよい | — |
 
 - **クライアントの DTO ↔ Domain のマッピングは Infrastructure に閉じる** [決定。[ADR 0008](../decisions/0008-shared-domain-and-onion.md)]。サーバーは `Api` で行う（3章）。この 4章の表はクライアントの層 [決定。2026-11-01。ユーザーの判断]。DTO は enum とプリミティブ型で組み、マッピングを薄く保つ
-- マスタの生成物（`MemoryDatabase`）は Infrastructure に置き、Application へは**ポート越しに必要な値だけ**を渡す。`Domain` / `Application` をマスタの形式から独立させるため
+- 上の表の Domain・Application・Infrastructure の行は、2026-11-08 に [ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)〜[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)（proposed。[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR で accepted を判断する。採らなければ ADR 0022 の「採らないと判断したら」のとおり戻す）の形にした。それまでは、Application がユースケースの具象と通信のポート（`I<機能>Port`）を持ち、Infrastructure のゲートウェイがポートを実装していた
+- マスタの生成物（`MemoryDatabase`）は `Uta.Client.MasterData` に置き、Shared.Domain 以外の層から参照してよい。`MemoryDatabase` はルートの `LifetimeScope` にシングルトンで登録し、使うクラスが Inject で受ける。Presentation ではマスタを表示にだけ使う（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。2026-11-08 まで「Infrastructure に置き、Application へはポート越しに必要な値だけを渡す」だった）
 - **マスタの行 → `Uta.Shared.Domain` の型の組み立て** [決定。2026-10-31]: 生成クラスはクライアント用・サーバー用で別なので、両側の Infrastructure に読み込みのコードが要る（二重になるのは受け入れる）。Infrastructure は**行の値をそのまま `Uta.Shared.Domain` の行の型（効果・条件の 1 行と同じ列を持つ型）の配列に詰めて渡すだけ**にし、グループ ID の解決と入れ子（`EffectDef` の子）の組み立ては `Uta.Shared.Domain` の関数 1 つで行う。両側で組み立てが食い違わないようにするため（[lesson-enums.md](lesson-enums.md)）
 
 ## 5. Shared（`shared/`）のコードの制約 [決定／一部 Uta案]
@@ -208,7 +215,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 - **乱数は `IRandom` を注入し、決定的な疑似乱数 `xoshiro256**`** を使う（10.3）。`System.Random` は使わない（[lesson-card.md](../systems/lesson-card.md) 13章）。シードの生成はサーバー
 - `[ServerOnly]` の列に依存するルールは `Domain` に入れない。必要な値は引数で受け取る
 - **`init`・`record`・`required`・nullable の注釈は `shared/` で使わない** [決定。2026-10-31。[lesson-domain-types.md](lesson-domain-types.md) と同じ]。コンストラクタと読み取り専用プロパティで書く。理由: `init` は netstandard2.1 では `IsExternalInit` の定義（polyfill）が要り、Shared に置くと、それを参照するアセンブリごとに定義の重複を気にすることになるため。nullable の値型（`int?`）は使ってよい
-- **マスタの生成ソースは `init` を使う**（アドオンの規約。`{ get; init; }`。[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章）。Shared の規約とは別で、生成ソースは Shared に入らない（2章）。Unity 側の生成ソースは `Uta.Client.Infrastructure` に入るので、**`Uta.Client.Infrastructure` に `internal` の `System.Runtime.CompilerServices.IsExternalInit` を 1 つ置く**（アドオンの `samples/Client/IsExternalInit.cs` と同じ）[決定。2026-10-31]。サーバー（net10.0）には要らない
+- **マスタの生成ソースは `init` を使う**（アドオンの規約。`{ get; init; }`。[masterdata-pipeline.md](master/masterdata-pipeline.md) 2章）。Shared の規約とは別で、生成ソースは Shared に入らない（2章）。Unity 側の生成ソースは `Uta.Client.MasterData` に入るので、**`Uta.Client.MasterData` に `internal` の `System.Runtime.CompilerServices.IsExternalInit` を 1 つ置く**（`Assets/Scripts/MasterData/IsExternalInit.cs`。アドオンの `samples/Client/IsExternalInit.cs` と同じ）[決定。2026-10-31。置き場は 2026-11-08 に `Uta.Client.Infrastructure` から移した。[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)]。サーバー（net10.0）には要らない
 
 ## 6. Shared.Domain の範囲 [決定]
 
@@ -232,7 +239,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 |---|---|---|
 | 両側で一致させるルール | Shared.Domain（`shared/Uta.Shared.Domain`） | カード効果、ターン処理順、計算式、使用可否の判定 |
 | サーバー固有 | Server.Domain（`server/Uta.Server/Domain/`） | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与 |
-| クライアント固有 | クライアントの `Application` / `Presentation`（Client.Domain は今は作らない。3章） | 表示用の整形、並び順、演出の制御、UI の状態、ローカル設定 |
+| クライアント固有 | クライアントの `Application` / `Presentation`。所持データのエンティティとリポジトリの IF は Client.Domain（`Uta.Client.Domain`。2026-11-08。3章、[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | 表示用の整形、並び順、演出の制御、UI の状態、ローカル設定。所持データのキャッシュ（エンティティ・リポジトリ） |
 
 置き場の判断基準（上から順に当てはめる）:
 
