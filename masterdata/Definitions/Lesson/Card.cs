@@ -1,4 +1,5 @@
 ﻿using MasterMemory;
+using MasterMemory.Addons;
 using MessagePack;
 
 namespace Uta.MasterData
@@ -8,6 +9,9 @@ namespace Uta.MasterData
     {
         [PrimaryKey]
         public int CardId { get; init; }
+
+        [Unique]
+        public string Name { get; init; } = "";
 
         public Plan Plan { get; init; }
 
@@ -25,6 +29,7 @@ namespace Uta.MasterData
 
         void IValidatable<Card>.Validate(IValidator<Card> validator)
         {
+            validator.Validate(x => !string.IsNullOrWhiteSpace(x.Name), "card: Name が空");
             validator.Validate(x => x.Plan != Plan.Nothing, "card: Plan が Nothing");
             validator.Validate(x => x.Type != CardType.Nothing, "card: Type が Nothing");
             validator.Validate(x => x.Rarity != Rarity.Nothing, "card: Rarity が Nothing");
