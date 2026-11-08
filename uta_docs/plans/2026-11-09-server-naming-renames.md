@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーだけで閉じる型の改名（naming.md の差の表のサーバーの行）
-status: ready
+status: in-progress
 updated: 2026-11-09
 spec: ../wiki/architecture/naming.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/architecture/server/produce-server.md
 ---
@@ -271,4 +271,5 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ・メモ |
+|---|---|---|
