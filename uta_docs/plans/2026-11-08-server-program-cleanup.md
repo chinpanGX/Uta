@@ -380,3 +380,4 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 
 | タスク | コミット | ズレ・メモ |
 |---|---|---|
+| 1 | ccf564d | なし。WebApplicationFactory<Program> は ServerHost 経由でも動いた（結合テスト 308 件成功） |
