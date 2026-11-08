@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 3/3 編成・プロデュース
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -360,7 +360,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 階層 | コンポーネントと値 |
 |---|---|
 | `FormationSlotRow` | RectTransform 全面（レイアウト任せ）。Image `Panel`、raycastTarget false。LE h 130（`flexibleHeight: 0` も付ける。伸ばす H が true の HLG は指定しないと 1 を返し、親の VLG の余りを吸う）。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、`MiddleLeft`、制御 W/H true/true、伸ばす W/H false/true。`FormationSlotRowView`（labelText、selectButton、clearButton） |
-| ├ `LabelText` | → `Label` TMP 32/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "枠: （空）"。LE `flexibleWidth: 1` |
+| ├ `LabelText` | → `Label` TMP 32/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "枠: （空）"。LE `preferredWidth: 0, flexibleWidth: 1`（`preferredWidth: 0` が無いと、長い文字の preferredWidth が固定幅のボタンを縮める） |
 | ├ `SelectButton` | → `Button` Primary "選ぶ"。LE `minHeight: 110, preferredHeight: 110, preferredWidth: 180, flexibleWidth: 0` |
 | └ `ClearButton` | → `Button` Secondary "外す"。LE は `SelectButton` と同じ |
 
@@ -409,7 +409,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　　├ `SlotList` | `ProduceLayout.AddRuntimeList(main, "SlotList", 16)`（名前は Runtime だが、ここでは生成時に子を置く） |
 | 　　│└ `Slot0`〜`Slot4` | → `FormationSlotRow`（`InstantiatePart<FormationSlotRowView>`）。`LabelText` の text を "枠1: （空）"〜"枠5: （空）" にオーバーライド |
 | 　　├ `ScenarioRow` | `AddChild` + HLG `new LayoutSpec(16, 0, 0, 0, 0, MiddleLeft, true, true, false, true)` + LE h 130（`SetLayout(minHeight: 130f, preferredHeight: 130f, flexibleHeight: 0f)`。伸ばす H が true の HLG は `flexibleHeight` を指定しないと 1 を返し、親の VLG の余りを吸う） |
-| 　　│├ `ScenarioText` | → `Label` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "シナリオ: なし"。LE `flexibleWidth: 1` |
+| 　　│├ `ScenarioText` | → `Label` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "シナリオ: なし"。LE `preferredWidth: 0, flexibleWidth: 1`（理由は `LabelText` と同じ） |
 | 　　│└ `ChangeScenarioButton` | → `Button` Secondary "変更"。LE w 200 |
 | 　　├ `Spacer` | `ScreenLayout.AddFlexibleSpacer(main, "Spacer")` |
 | 　　└ `StartButton` | → `Button` Primary "プロデュース開始" |
@@ -671,6 +671,11 @@ C# の計画はこの表が正。子のパスは Prefab のルートからの相
 | `LessonPage_TurnTextIsFirstInMain` | `LessonPage` の `Body/Header` の子の名前が順に `BackButton`・`TitleText`・`RightSlot`（ヘッダーに子を足していない）。`Body/Main` の子の名前が順に `TurnText`・`ProgressText`・`StatusText`・`LastResultText`・`PilesButton`・`HandScroll`・`SkipButton` |
 | `FormationPage_HasFiveSlotsInOrder` | `FormationPage` の `SerializedObject` の `slots` の `arraySize` が 5、要素 `i` の GameObject の名前が `"Slot" + i` |
 | `RowPrefabFields_ReferencePartAssets` | 次のフィールドの `objectReferenceValue` がアセット（`AssetDatabase.GetAssetPath` が次のパス）: `WeekPage.actionButtonPrefab`・`ClassPage.optionButtonPrefab` → `Assets/Prefabs/Parts/Button.prefab`、`CardOfferModal.cardRowPrefab`・`LessonPage.handRowPrefab` → `SkillCardRow.prefab`、`DeckListModal.sectionHeaderPrefab` → `DeckSectionHeaderRow.prefab`、`DeckListModal.cardRowPrefab` → `DeckCardRow.prefab`、`ExamResultPage.rankingRowPrefab` → `ExamRankingRow.prefab`（ネストしたインスタンスを指していないこと） |
+| `XxxPage_FieldsPointToChildren`（`FormationPage`・`ProduceBackdropPage`・`WeekPage`・`ClassPage`・`SupplyPage`・`CardOfferModal`・`LessonPage`・`DeckListModal`・`ExamResultPage`・`ProduceResultPage` の 10 本） | 4章の表の View のフィールドが、表の子を指す（`ScreenPrefabAssert.FieldIsChild`）。`FormationPage.slots[i]` は `Body/Main/SlotList/Slot<i>` |
+| `FormationSlotRow_FieldsPointToChildren`・`SkillCardRow_FieldsPointToChildren`・`ExamRankingRow_FieldsPointToChildren` | 行の View のフィールドが、表の子を指す。`SkillCardRowView.button`・`background`、`ExamRankingRowView.background` はルートの Button・Image |
+| `DeckRows_TextIsOwnTmp` | `DeckSectionHeaderRowView.headerText`・`DeckCardRowView.text` がルート自身の TMP |
+| `PagesWithoutBackTarget_HaveNoHeader` | `ExamResultPage`・`ProduceResultPage`・`ProduceBackdropPage` に `Body/Header` が無い（決めたこと 4） |
+| `HeaderTitle_IsLeftAlignedWithoutBackButton` | `WeekPage`・`LessonPage` の `Body/Header/TitleText` の alignment が `MidlineLeft` |
 | `RuntimeLists_AreEmpty` | `WeekPage` の `ActionList`、`ClassPage` の `OptionList`、`CardOfferModal` の `CardList`、`LessonPage`・`DeckListModal`・`ExamResultPage` のスクロールの `Content` の子が 0 個 |
 
 **`Find` するパスの一覧**（`ProduceScreens_HaveNamedChildren` にこのまま書く。4章の表から取った。範囲は展開し、1 セルに 2 本あるものは分けた。行の Prefab の子も同じテストで確かめる）:
@@ -793,4 +798,6 @@ Editor でしか確かめられないもの（自動のテストにしない）:
 
 ## 7. 未決事項
 
-なし。ユーザーの確認は全件了承済み（2026-11-07）。formation・week・lesson（C#）の計画は、この計画の 3.2・4章のフィールドと行の View を使う形に直してある。
+**手動の確認が未了（ユーザーの作業）**: タスク 5 の手順 4 の目視（10 個の画面と 5 個の行を Prefab モードで開いて配置を見る）、PNG に描かれなかった文字（`CardOfferModal`・`DeckListModal` の `TitleText`、`SkillCardRow` の `TitleText`・`CostsText`）の原因の確認、`◀`・`＜` の字形の確認は、まだ行っていない。`status: done` は、自動のテストと生成の完了を指す。結果は [screen-design.md](../wiki/architecture/screen-design.md) の実装メモにも同じく未了と書いてある。
+
+ほかに未決事項はない。ユーザーの確認は全件了承済み（2026-11-07）。formation・week・lesson（C#）の計画は、この計画の 3.2・4章のフィールドと行の View を使う形に直してある。

@@ -242,3 +242,15 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 - **壊したときの確かめ**: `HomePage` の `Body/Main/Nav/NavGachaButton` を改名して保存すると、`HomePrefabTests` に絞ったテスト（`groupNames`。2 件だけが走った）で `HomePage_FieldsPointToChildren` だけが失敗し、失敗の文に `navGachaButton` と `Body/Main/Nav/NavGachaButton` が入った。改名は `HomePage.prefab` の中の `m_Name` のオーバーライドとして保存され、`Button.prefab` は変わらなかった。`BuildAll()` で戻すと全件が通った
 - **計画とのズレ**:
   - **伸ばす H が true の HLG は、`flexibleHeight` を指定しないと 1 を返す**。そのため、行（`Nav`・`DrawRow` など）と部品 `Header`・`TabBar` が、親の VLG の余りを `Stage`・`Main` などと分け合って高くなった（例: `GachaPage` の `Header` が 720）。`ScreenLayout.AddRow` と、部品の `HeaderBuilder`・`TabBarBuilder` で `flexibleHeight: 0` を明示した（部品の変更は P1 の範囲の外）。P3 の計画で、高さを固定する HLG の行を作るときは同じようにする
+
+### Prefab 3/3（編成・プロデュース。2026-11-08。[P3 の計画](../../plans/2026-11-07-client-prefabs-screens-b.md)）
+
+- **作ったもの**: 画面 10（`FormationPage`（`Screens/Formation/`）、`ProduceBackdropPage`・`WeekPage`・`ClassPage`・`SupplyPage`・`CardOfferModal`・`LessonPage`・`DeckListModal`・`ExamResultPage`・`ProduceResultPage`（`Screens/Produce/`）。Addressables の `Screens` に登録）と行 5（`FormationSlotRow`・`SkillCardRow`・`DeckSectionHeaderRow`・`DeckCardRow`・`ExamRankingRow`（`Parts/`。登録しない））。View はフィールドだけ（メソッドと `IXxxView` の実装は formation・week・lesson の C# の計画）。生成の補助は P2 の `ScreenLayout` を使い、P3 だけが使うもの（戻るの無いヘッダー・メニューのボタン・実行時に並べる一覧の入れ物）を `ProduceLayout` に置いた
+- **プロデュースのメニュー（[≡]）は Prefab を作らない**。P1 の `Dialog`（`DialogService.ChooseAsync`）で出す。[≡] のボタンだけを `WeekPage`・`LessonPage` のヘッダーの `RightSlot` に置いた（両画面はヘッダーの `BackButton` を非アクティブにし、`TitleText` を左寄せにした）
+- **手札とスキルカード獲得の選択肢は、行 `SkillCardRow` を共有する**（どちらも名前・消費・説明文・タップで同じ形）
+- **確かめた範囲**: `BuildAll()` が `built 35`（P2 の 20 + 行 5 + 画面 10）。`Screens` のエントリは 7 → 17。EditMode のテストは、Editor を開いたまま `TestRunnerApi` で 63/63（`ProducePrefabTests` 8/8）が通った。壊す確かめとして、`WeekPage` のヘッダーを戻るありにし `menuButton` の参照を外して生成すると、`PrefabContractTests`（参照の null）と `ProducePrefabTests`（`BackButton` の `activeSelf`）の 2 件が落ちた
+- **見た目**: P2 と同じく、プレビューのシーンで 1080×1920 の Canvas に置いて PNG に描いて見た（画面 10 と行 `FormationSlotRow`・`SkillCardRow`）。配置は計画の表どおりで、日本語と `≡` は豆腐にならなかった。ただし **`CardOfferModal`・`DeckListModal` の `TitleText` と、`SkillCardRow` の `TitleText`・`CostsText` が PNG に描かれなかった**。どれも、それまでの画面に無かった字（獲得・名・消費・「・」など）を含む。動的フォントのアトラスに字を足した直後に描いたためと推測する（確かめていない）。描画の途中で Editor が落ち（クラッシュのフォルダは空で、原因は分からない）、残りの行 3 個の PNG と矩形の大きさの出力は取れなかった。`◀`・`＜` の字形と、Prefab モードで開いて見る手動の確認（計画 タスク 5 の手順 4）はしていない
+- **再生成の差分**（計画 タスク 5）: 2 回目の `BuildAll()` で、`FormationSlotRow`・`FormationPage`・`OwnedPage` に、ネストした部品のインスタンスの fileID の付け直しと並び替えだけの差分が出た（fileID を伏せて並べ替えると同じ）。`FormationPage` が参照する `FormationSlotRow` の fileID は、付け直しの前後で同じだった。`Screens.asset` に差分は出なかった。`NotoSansJP-Regular SDF.asset` には、P1 から続く `_ScaleRatioA`・`_ScaleRatioC` の差分が出た（計画は「差分が無いこと」としていたが、既知の差分として戻した）
+- **計画とのズレ**:
+  - 行の View（`FormationSlotRowView` など 5 つ）に、P2 の `GachaLineRow` にならって `[DisallowMultipleComponent]` を付けた（画面の View には付けない。P2 と同じ）
+  - `unity command` は、同じ PC で別のプロジェクトの Editor が開いていると、`--project-path` を付けないとそちらに送られることがあった（1 回、テストが別のプロジェクトで走った）。`unity command --project-path <client/uta の絶対パス> ...` で送る
