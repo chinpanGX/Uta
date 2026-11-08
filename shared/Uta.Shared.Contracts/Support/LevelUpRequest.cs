@@ -6,14 +6,14 @@ namespace Uta.Shared.Contracts.Support
     public sealed class LevelUpRequest
     {
         [SerializationConstructor]
-        public LevelUpRequest(string supportCardUid, int targetLevel)
+        public LevelUpRequest(string supportCardUniqueId, int targetLevel)
         {
-            SupportCardUid = supportCardUid;
+            SupportCardUniqueId = supportCardUniqueId;
             TargetLevel = targetLevel;
         }
 
         [Key(0)]
-        public string SupportCardUid { get; }
+        public string SupportCardUniqueId { get; }
 
         [Key(1)]
         public int TargetLevel { get; }

@@ -70,7 +70,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
         Assert.Equal(2500, response.GachaCurrency);
         Assert.False(response.HasActiveProduce);
         Assert.False(response.DiscardedProduce);
-        Assert.Equal(new[] { 1, 2 }, response.Idols.Select(x => x.IdolId).ToArray());
+        Assert.Equal(new[] { 1, 2 }, response.Idols.Select(x => x.MasterId).ToArray());
         Assert.All(response.Idols, x =>
         {
             Assert.Equal(0, x.Training);
@@ -78,14 +78,46 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
             Assert.Equal(0, x.Shards);
         });
         Assert.Equal(5, response.SupportCards.Length);
-        Assert.Equal(new[] { 1, 2, 3, 4, 5 }.ToHashSet(), response.SupportCards.Select(x => x.CardId).ToHashSet());
+        Assert.Equal(new[] { 1, 2, 3, 4, 5 }.ToHashSet(), response.SupportCards.Select(x => x.MasterId).ToHashSet());
         Assert.All(response.SupportCards, x =>
         {
             Assert.Equal(1, x.Level);
             Assert.Equal(0, x.LimitBreak);
-            Assert.Equal(26, x.SupportCardUid.Length);
+            Assert.Equal(26, x.UniqueId.Length);
         });
-        Assert.Equal(5, response.SupportCards.Select(x => x.SupportCardUid).Distinct().Count());
+        Assert.Equal(5, response.SupportCards.Select(x => x.UniqueId).Distinct().Count());
+        Assert.Equal(26, response.PlayerId.Length);
+        Assert.Equal(player.PlayerId, response.PlayerId);
+        Assert.All(response.Idols, x => Assert.Equal(26, x.UniqueId.Length));
+        Assert.Equal(2, response.Idols.Select(x => x.UniqueId).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task SignIn_Twice_ReturnsSameIdolUniqueIds()
+    {
+        await using var factory = new UtaServerFactory(postgres);
+        using var channel = factory.CreateGrpcChannel();
+        var player = await PlayerClient.CreateAsync(channel);
+
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+        var first = await player.CallAsync(service => service.SignInAsync(), "req-2");
+        var second = await player.CallAsync(service => service.SignInAsync(), "req-3");
+
+        Assert.Equal(
+            first.Idols.Select(x => (x.MasterId, x.UniqueId)).ToArray(),
+            second.Idols.Select(x => (x.MasterId, x.UniqueId)).ToArray());
+    }
+
+    [Fact]
+    public async Task Migration_PlayerIdolUid_IsNotNullAndUnique()
+    {
+        var notNull = await postgres.QueryScalarAsync<long>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'player_idols' AND column_name = 'idol_uid' AND is_nullable = 'NO'");
+        var unique = await postgres.QueryScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE tablename = 'player_idols' AND indexdef LIKE 'CREATE UNIQUE INDEX%(idol_uid)%'");
+
+        Assert.Equal(1L, notNull);
+        Assert.Equal(1L, unique);
     }
 
     [Fact]

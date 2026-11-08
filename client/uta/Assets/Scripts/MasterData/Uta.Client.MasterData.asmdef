@@ -1,0 +1,19 @@
+{
+    "name": "Uta.Client.MasterData",
+    "rootNamespace": "Uta.MasterData",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "MasterMemory.dll",
+        "MasterMemory.Annotations.dll",
+        "MessagePack.dll",
+        "MessagePack.Annotations.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

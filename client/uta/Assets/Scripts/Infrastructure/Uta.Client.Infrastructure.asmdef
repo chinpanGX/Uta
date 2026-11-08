@@ -8,7 +8,9 @@
         "VolTech.Server.Abstractions",
         "VolTech.MagicOnion.Client",
         "UniTask",
-        "MasterMemory.Addons.Core"
+        "MasterMemory.Addons.Core",
+        "Uta.Client.Domain",
+        "Uta.Client.MasterData"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

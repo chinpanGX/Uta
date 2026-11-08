@@ -1,0 +1,22 @@
+{
+    "name": "Uta.Client.Domain",
+    "rootNamespace": "Uta.Client.Domain",
+    "references": [
+        "Uta.Shared.Domain",
+        "Uta.Client.MasterData"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "MasterMemory.dll",
+        "MasterMemory.Annotations.dll",
+        "MessagePack.dll",
+        "MessagePack.Annotations.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

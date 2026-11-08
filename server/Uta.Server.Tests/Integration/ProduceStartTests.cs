@@ -50,8 +50,8 @@ public class ProduceStartTests(PostgresFixture postgres)
         Assert.Equal(ProducePhase.WeekSelect, response.Phase);
         Assert.Equal(1, response.Week);
         Assert.Equal(0, response.OperationNumber);
-        Assert.Equal(1, response.ScenarioId);
-        Assert.Equal(1, response.IdolId);
+        Assert.Equal(1, response.ScenarioMasterId);
+        Assert.Equal(1, response.IdolMasterId);
         Assert.Equal(30, response.Hp);
         Assert.Equal(30, response.MaxHp);
         Assert.Equal(30, response.Singing);
@@ -128,7 +128,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         var (factory, channel, player, signIn) = await StartAsync(postgres);
         await using var _ = factory;
         using var __ = channel;
-        var uids = signIn.SupportCards.Select(x => x.SupportCardUid).Append(Ulid.NewUlid().ToString()).ToArray();
+        var uids = signIn.SupportCards.Select(x => x.UniqueId).Append(Ulid.NewUlid().ToString()).ToArray();
 
         await AssertInvalidFormationAsync(player, 1, uids);
     }
@@ -153,7 +153,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         await other.CallAsync(service => service.SignUpAsync(), "req-1");
         var otherSignIn = await other.CallAsync(service => service.SignInAsync(), "req-2");
 
-        await AssertInvalidFormationAsync(player, 1, [otherSignIn.SupportCards[0].SupportCardUid]);
+        await AssertInvalidFormationAsync(player, 1, [otherSignIn.SupportCards[0].UniqueId]);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         var (factory, channel, player, signIn) = await StartAsync(postgres);
         await using var _ = factory;
         using var __ = channel;
-        var uid = signIn.SupportCards[0].SupportCardUid;
+        var uid = signIn.SupportCards[0].UniqueId;
 
         await AssertInvalidFormationAsync(player, 1, [uid, uid]);
     }
@@ -173,7 +173,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         var (factory, channel, player, signIn) = await StartAsync(postgres);
         await using var _ = factory;
         using var __ = channel;
-        var uid = signIn.SupportCards.First(x => x.CardId == 1).SupportCardUid;
+        var uid = signIn.SupportCards.First(x => x.MasterId == 1).UniqueId;
         var other = await AddCardAsync(player, 1);
 
         await AssertInvalidFormationAsync(player, 1, [uid, other]);
@@ -233,7 +233,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         var (factory, channel, player, signIn) = await StartAsync(postgres);
         await using var _ = factory;
         using var __ = channel;
-        var uid = signIn.SupportCards.First(x => x.CardId == 1).SupportCardUid;
+        var uid = signIn.SupportCards.First(x => x.MasterId == 1).UniqueId;
 
         var first = await StartProduceAsync(player, "req-3", uids: [uid]);
         Assert.Equal(30 + ProduceFormulas.AbilityValue(3, 20, 1, 40), first.Singing);

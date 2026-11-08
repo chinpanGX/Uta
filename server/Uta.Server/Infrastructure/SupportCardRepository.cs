@@ -28,23 +28,23 @@ public sealed class SupportCardRepository : ISupportCardRepository
     public async Task<IReadOnlyList<OwnedSupportCard>> ListAsync(TxContext tx, Ulid playerId)
     {
         var rows = await tx.Connection.QueryAsync<Row>(new CommandDefinition(
-            "SELECT support_card_uid AS Uid, card_id AS CardId, level AS Level, limit_break AS LimitBreak " +
+            "SELECT support_card_uid AS UniqueId, card_id AS MasterId, level AS Level, limit_break AS LimitBreak " +
             "FROM player_support_cards WHERE player_id = @playerId ORDER BY support_card_uid",
             new { playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return rows.Select(x => new OwnedSupportCard(Ulid.Parse(x.Uid), x.CardId, x.Level, x.LimitBreak)).ToList();
+        return rows.Select(x => new OwnedSupportCard(Ulid.Parse(x.UniqueId), x.MasterId, x.Level, x.LimitBreak)).ToList();
     }
 
     public async Task<OwnedSupportCard?> FindAsync(TxContext tx, Ulid playerId, Ulid uid)
     {
         var row = await tx.Connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
-            "SELECT support_card_uid AS Uid, card_id AS CardId, level AS Level, limit_break AS LimitBreak " +
+            "SELECT support_card_uid AS UniqueId, card_id AS MasterId, level AS Level, limit_break AS LimitBreak " +
             "FROM player_support_cards WHERE support_card_uid = @uid AND player_id = @playerId",
             new { uid = uid.ToString(), playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return row is null ? null : new OwnedSupportCard(Ulid.Parse(row.Uid), row.CardId, row.Level, row.LimitBreak);
+        return row is null ? null : new OwnedSupportCard(Ulid.Parse(row.UniqueId), row.MasterId, row.Level, row.LimitBreak);
     }
 
     public async Task UpdateLevelAsync(TxContext tx, Ulid uid, int level)
@@ -79,8 +79,8 @@ public sealed class SupportCardRepository : ISupportCardRepository
 
     private sealed class Row
     {
-        public string Uid { get; set; } = "";
-        public int CardId { get; set; }
+        public string UniqueId { get; set; } = "";
+        public int MasterId { get; set; }
         public int Level { get; set; }
         public int LimitBreak { get; set; }
     }

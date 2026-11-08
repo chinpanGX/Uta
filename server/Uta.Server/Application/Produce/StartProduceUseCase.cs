@@ -54,7 +54,7 @@ public sealed class StartProduceUseCase(
             owned.Add(card);
         }
 
-        var cardIds = owned.Select(x => x.CardId).ToList();
+        var cardIds = owned.Select(x => x.MasterId).ToList();
         if (FormationValidator.Validate(catalog, idolId, cardIds) != FormationCheck.Ok)
         {
             throw new UseCaseException(UseCaseError.ProduceInvalidFormation, "invalid formation");
@@ -79,7 +79,7 @@ public sealed class StartProduceUseCase(
 
         var player = await players.FindAsync(tx, playerId) ?? throw new InvalidOperationException("player not found");
         var input = new ProduceStartInput(
-            scenarioId, idolId, player.Level, owned.Select(x => new SupportCardInput(x.CardId, x.Level, x.LimitBreak)).ToList());
+            scenarioId, idolId, player.Level, owned.Select(x => new SupportCardInput(x.MasterId, x.Level, x.LimitBreak)).ToList());
 
         var seed = randomSource.Create().NextUInt64();
         var streams = new SessionRandomStreams(seed, []);

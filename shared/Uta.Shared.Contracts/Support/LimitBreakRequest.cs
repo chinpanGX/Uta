@@ -6,18 +6,18 @@ namespace Uta.Shared.Contracts.Support
     public sealed class LimitBreakRequest
     {
         [SerializationConstructor]
-        public LimitBreakRequest(string supportCardUid, string materialUid)
+        public LimitBreakRequest(string supportCardUniqueId, string materialUniqueId)
         {
-            SupportCardUid = supportCardUid;
-            MaterialUid = materialUid;
+            SupportCardUniqueId = supportCardUniqueId;
+            MaterialUniqueId = materialUniqueId;
         }
 
         /// <summary>解放するカードの所持ID。</summary>
         [Key(0)]
-        public string SupportCardUid { get; }
+        public string SupportCardUniqueId { get; }
 
         /// <summary>素材の所持ID。</summary>
         [Key(1)]
-        public string MaterialUid { get; }
+        public string MaterialUniqueId { get; }
     }
 }

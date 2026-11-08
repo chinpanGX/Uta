@@ -7,7 +7,7 @@ using UnityEngine;
 using Uta.Client.Presentation.Formation;
 using Uta.Client.Presentation.Produce;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>
     /// 編成・プロデュースの画面と行の Prefab の確かめ（P3 の計画 6章）。

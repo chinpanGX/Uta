@@ -31,7 +31,7 @@ public sealed class GachaService(ITransactions transactions, GetGachasUseCase ge
         var requestId = Context.CallContext.RequestHeaders.GetValue(ApiHeaders.RequestId)!;   // 無い・形が違うときは Transactions が本体の前に INVALID_ARGUMENT を返す
         return await transactions.RunAsync(Context, async tx =>
         {
-            var result = await draw.ExecuteAsync(tx, playerId, requestId, request.GachaId, request.Count, request.ExpectedCost);
+            var result = await draw.ExecuteAsync(tx, playerId, requestId, request.GachaMasterId, request.Count, request.ExpectedCost);
             return new DrawResponse(result.Results.Select(ToDto).ToArray(), result.GachaCurrency, result.ExchangePoints);
         });
     }
@@ -42,7 +42,7 @@ public sealed class GachaService(ITransactions transactions, GetGachasUseCase ge
         var requestId = Context.CallContext.RequestHeaders.GetValue(ApiHeaders.RequestId)!;
         return await transactions.RunAsync(Context, async tx =>
         {
-            var result = await exchange.ExecuteAsync(tx, playerId, requestId, request.GachaId, request.CeilingItemOrder);
+            var result = await exchange.ExecuteAsync(tx, playerId, requestId, request.GachaMasterId, request.CeilingItemOrder);
             return new ExchangeResponse(ToDto(result.Result), result.ExchangePoints);
         });
     }

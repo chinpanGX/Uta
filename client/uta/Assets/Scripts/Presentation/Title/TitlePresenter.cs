@@ -12,19 +12,19 @@ namespace Uta.Client.Presentation.Title
     public sealed class TitlePresenter : IStartable, IDisposable
     {
         private readonly TitleView view;
-        private readonly SignInUseCase deviceSignIn;
-        private readonly EnterPlayerUseCase enterPlayer;
+        private readonly IDeviceAuthUseCase deviceAuth;
+        private readonly IPlayerUseCase player;
         private readonly ConnectivityCheck connectivityCheck;
         private readonly ISceneNavigator navigator;
         private readonly StartupOptions options;
         private bool running;
         private bool disposed;
 
-        public TitlePresenter(TitleView view, SignInUseCase deviceSignIn, EnterPlayerUseCase enterPlayer, ConnectivityCheck connectivityCheck, ISceneNavigator navigator, StartupOptions options)
+        public TitlePresenter(TitleView view, IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ConnectivityCheck connectivityCheck, ISceneNavigator navigator, StartupOptions options)
         {
             this.view = view;
-            this.deviceSignIn = deviceSignIn;
-            this.enterPlayer = enterPlayer;
+            this.deviceAuth = deviceAuth;
+            this.player = player;
             this.connectivityCheck = connectivityCheck;
             this.navigator = navigator;
             this.options = options;
@@ -68,20 +68,20 @@ namespace Uta.Client.Presentation.Title
             try
             {
                 Log("startup: start");
-                var registered = await deviceSignIn.ExecuteAsync();
+                var registered = await deviceAuth.SignInAsync();
                 if (disposed || view == null)
                 {
                     return;
                 }
                 Log(registered ? "device: registered" : "device: token issued");
-                var entered = await enterPlayer.ExecuteAsync(registered);
+                var entered = await player.EnterAsync(registered);
                 if (disposed || view == null)
                 {
                     return;
                 }
                 Log("sign-up: " + (!entered.SignedUp ? "skipped" : entered.Created ? "created" : "already exists"));
-                var s = entered.Snapshot;
-                Log("sign-in: ok level=" + s.Level + " exp=" + s.Exp + " gold=" + s.Gold + " supportPoints=" + s.SupportPoints + " gachaCurrency=" + s.GachaCurrency + " idols=" + s.Idols.Count + " supportCards=" + s.SupportCards.Count + " hasActiveProduce=" + s.HasActiveProduce + " discardedProduce=" + s.DiscardedProduce);
+                var s = entered.Player;
+                Log("sign-in: ok level=" + s.Level + " exp=" + s.Exp + " gold=" + s.Gold + " supportPoints=" + s.SupportPoints + " gachaCurrency=" + s.GachaCurrency + " idols=" + entered.IdolCount + " supportCards=" + entered.SupportCardCount + " hasActiveProduce=" + s.HasActiveProduce + " discardedProduce=" + s.DiscardedProduce);
 
                 if (diagnostic)
                 {

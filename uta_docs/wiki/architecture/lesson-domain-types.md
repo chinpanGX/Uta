@@ -1,7 +1,7 @@
 ---
 title: レッスンの Shared.Domain の型（Uta.Shared.Domain）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # レッスンの Shared.Domain の型（Uta.Shared.Domain）
@@ -121,7 +121,7 @@ updated: 2026-11-03
 - （2026-11-03 に解決）`LessonState` を保存の形へ写す型は `Uta.Shared.Domain` の `LessonSnapshot`（[produce-domain.md](produce-domain.md) 6.1）。MessagePack の形への変換はサーバーの `Infrastructure`
 
 - 表示用のイベント列
-- ~~マスタの行を受け取る型と、グループ ID を解決して `CardDefinition` を組み立てる関数~~: 2026-11-01 に実装した。行の型は `CardRow`・`CardFaceRow`・`CardCostRow`・`EffectRow`・`ConditionRow`（`CardRows.cs`）、組み立ては `CardCatalog.Create`（`CardCatalog.cs`。`ICardCatalog` の実装。問題があれば `InvalidOperationException`、`CardDefinitionValidator` も通す）。サーバーの詰め替えは `server/Uta.Server/Infrastructure/MasterData/MasterCardCatalog.cs`。クライアント側の詰め替えは `client/uta/Assets/Scripts/Infrastructure/MasterData/MasterCardCatalog.cs`（2026-11-01 に実装。起動時に `BootstrapEntry` が読み、`ICardCatalog` として登録する: [計画](../../plans/2026-11-01-masterdata-client-use.md)）
+- ~~マスタの行を受け取る型と、グループ ID を解決して `CardDefinition` を組み立てる関数~~: 2026-11-01 に実装した。行の型は `CardRow`・`CardFaceRow`・`CardCostRow`・`EffectRow`・`ConditionRow`（`CardRows.cs`）、組み立ては `CardCatalog.Create`（`CardCatalog.cs`。`ICardCatalog` の実装。問題があれば `InvalidOperationException`、`CardDefinitionValidator` も通す）。サーバーの詰め替えは `server/Uta.Server/Infrastructure/MasterData/MasterCardCatalog.cs`。クライアント側の詰め替えは `client/uta/Assets/Scripts/Infrastructure/MasterData/CardCatalogFactory.cs`（2026-11-01 に `MasterCardCatalog` として実装し、2026-11-08 に改名した。起動時に `BootstrapEntry` が `MasterDataLoader` で読んだ `MemoryDatabase` から `CardCatalogFactory.Create(db)` で作り、`ICardCatalog` として登録する: [計画](../../plans/2026-11-01-masterdata-client-use.md)、[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)）
 
 ## 実装メモ
 

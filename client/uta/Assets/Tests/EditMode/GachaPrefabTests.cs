@@ -3,7 +3,7 @@ using TMPro;
 using UnityEditor;
 using Uta.Client.Presentation.Gacha;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>ガチャの画面と行の Prefab の View のフィールドと子の対応（P2 の計画 3.3）。</summary>
     public sealed class GachaPrefabTests

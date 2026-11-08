@@ -6,10 +6,10 @@ namespace Uta.Shared.Contracts.Produce
     public sealed class DeckCardDto
     {
         [SerializationConstructor]
-        public DeckCardDto(int instanceId, int cardId, bool enhanced)
+        public DeckCardDto(int instanceId, int cardMasterId, bool enhanced)
         {
             InstanceId = instanceId;
-            CardId = cardId;
+            CardMasterId = cardMasterId;
             Enhanced = enhanced;
         }
 
@@ -17,7 +17,7 @@ namespace Uta.Shared.Contracts.Produce
         public int InstanceId { get; }
 
         [Key(1)]
-        public int CardId { get; }
+        public int CardMasterId { get; }
 
         [Key(2)]
         public bool Enhanced { get; }

@@ -11,7 +11,7 @@ using UnityScreenNavigator.Runtime.Core.Modal;
 using Uta.Client.Editor.Prefabs;
 using Uta.Client.Presentation.Common;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>Assets/Prefabs の下の Prefab の契約（参照の設定・部品・UiRoot の層・Addressables・TMP Settings）。</summary>
     public sealed class PrefabContractTests

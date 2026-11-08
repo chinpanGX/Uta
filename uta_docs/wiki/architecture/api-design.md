@@ -1,7 +1,7 @@
 ---
 title: サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
@@ -50,12 +50,12 @@ updated: 2026-11-03
 - **サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）** [決定。2026-11-01。ユーザーの判断。2026-10-31 の `SyncAsync` を二つに分けた]: 起動時に 1 回呼ぶ RPC の役割は、サーバーから所持データなどを一括で取る「サインイン」なので、プレイヤーの作成（サインアップ）と分ける。VolTech-MagicOnion も、サインアップ（プレイヤー作成）とサインイン（全件取得）をアプリが作る RPC として想定し、「サインアップ済みかは端末に保存せず、サインインの結果で判断する」としている。用語は [glossary.md](../glossary.md)。流れは [screen-design.md](screen-design.md) 4章: 端末に保存なし → 端末の登録（`RegisterAsync`）→ トークンの発行（`IssueTokenAsync`）→ サインアップ → サインイン。保存あり → トークンの発行 → サインイン。どちらも起動フローでホームに入る前に呼ぶ
   - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[決定。2026-11-01。ユーザーの判断]。「独自の重複防止を作らない」（冒頭）の例外で、サインアップは作成の RPC なので、別の `x-request-id` で再び来ても何もしない。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[決定。2026-11-01。ユーザーの判断]
   - **`SignInAsync`**: 起動の流れで呼ぶ（起動時に 1 回。タイトルへ戻ったあと、未作成のときのサインアップの後にも呼び直す）。副作用のある「起動時の処理」と全件取得をまとめる。クライアントは受け取った所持データをキャッシュする。Request なし
-    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル `Idols`・サポートカード `SupportCards` は `[Key(7)]`・`[Key(8)]` の配列で返す。2026-11-01 実装）[決定。2026-11-01。ユーザーの判断]。DTO の一覧は配列にする（`IReadOnlyList<T>` は IL2CPP での MessagePack が未確認）。MessagePack の `[Key]` は後ろに足せる
+    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル `Idols`・サポートカード `SupportCards` は `[Key(7)]`・`[Key(8)]` の配列で返す。2026-11-01 実装）[決定。2026-11-01。ユーザーの判断]。プレイヤーの ID `PlayerId`（`string`。`player_id` の ULID）は `[Key(9)]`（2026-11-08 に足した。既存のキーは変えない）。所持の育成アイドル `OwnedIdolDto` は `MasterId`（`int`。マスタの育成アイドルの ID）・`Training`・`Awakening`・`Shards`（`[Key(0)]`〜`[Key(3)]`）と、所持の ID `UniqueId`（`string`。`player_idols.idol_uid` の ULID。`[Key(4)]`。2026-11-08）を持つ。サポートカード `OwnedSupportCardDto` は所持ID `UniqueId`（`string`）とマスタのカードの ID `MasterId`（`int`）を持つ。クライアントはこれらの ULID をエンティティの `UniqueId` にする（[naming.md](naming.md) 2章）[決定。2026-11-08。ユーザーの判断]。DTO の ID の名前は [naming.md](naming.md) 2章の「Contracts の ID」の規則による（2026-11-08 に `IdolId`・`IdolUid`・`SupportCardUid`・`CardId` などから改めた。`[Key]` の番号は変えていない）[決定。2026-11-08。ユーザーの判断]。DTO の一覧は配列にする（`IReadOnlyList<T>` は IL2CPP での MessagePack が未確認）。MessagePack の `[Key]` は後ろに足せる
     - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
     - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
     - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
     - Response（`SignInResponse`）[決定。2026-11-01。`SyncResponse` の項目を引き継ぐ]: 所持データのほか、進行中のプロデュースがあるか（`HasActiveProduce`。破棄した後の値）と、このサインインでプロデュースを破棄したか（`DiscardedProduce`）を返す。ホームは、起動時（[screen-design.md](screen-design.md) 4章）に受け取ったこの値で「再開」とダイアログを出し分ける。再開を押したら `GetStateAsync` で状態を取る。起動した後は、クライアントが自分の操作で持ち替える（`StartAsync` が通れば有り、終了・放棄で無し）。ホームに戻るたびにサーバーへ聞き直さない
-  - **クライアントの実装** [2026-11-03]: `PlayerApi`（`ApiServiceBase<IPlayerService>`）が `ApiCore` 経由で呼び、`PlayerGateway` が DTO を Application の型（`PlayerSnapshot`）に詰め替え、`EnterPlayerUseCase` が呼び順（初回は `SignUpAsync` → `SignInAsync`、保存ありは `SignInAsync` から。`PLAYER_NOT_CREATED` なら `SignUpAsync` → `SignInAsync`。2 回続けて未作成なら失敗）を持ち、結果を `PlayerCache` に入れる。計画: [2026-11-03-client-signup-signin.md](../../plans/2026-11-03-client-signup-signin.md)
+  - **クライアントの実装** [2026-11-03。2026-11-08 に共通基盤 11d9b06 の呼び方と ADR 0020〜0022 の形に移した]: Infrastructure の `PlayerUseCase`（Application の `IPlayerUseCase` の具象。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が、`ApiClient.Player`（`ApiCore.CreateClient<IPlayerService>()` が作る共有インターフェース。`BootstrapEntry` が `IPlayerService` として登録する）を直接呼ぶ（`await player.WithHandledCodes(PlayerErrors.NotCreated).SignInAsync().ToResult()` の形）。`EnterAsync` が呼び順（初回は `SignUpAsync` → `SignInAsync`、保存ありは `SignInAsync` から。`PLAYER_NOT_CREATED` なら `SignUpAsync` → `SignInAsync`。サインアップの後も未作成なら失敗）を持ち、失敗は `InvalidOperationException` にする。成功した `SignInResponse` は `PlayerMapper`（static の詰め替え）で Domain のエンティティ（`PlayerEntity`・`IdolEntity`・`SupportCardEntity`。ID は `SignInResponse.PlayerId` と DTO の `UniqueId` をエンティティの `UniqueId` に、DTO の `MasterId` を `MasterId` に写す）に直し、リポジトリ（`IPlayerRepository` に `Upsert`、`IIdolRepository`・`ISupportCardRepository` は `Clear()` のあと `Upsert(IReadOnlyList<T>)`。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）に書く（3 つの詰め替えを先に済ませてから、間で `await` せずに 3 つを続けて書く。詰め替えの例外で書きかけにならないように。失敗したときはリポジトリを変えない）。サインインでの取り直しは `RefreshAsync`。計画: [2026-11-03-client-signup-signin.md](../../plans/2026-11-03-client-signup-signin.md)、[2026-11-08-client-foundation-migration.md](../../plans/2026-11-08-client-foundation-migration.md)
   - **プレイヤー未作成のとき**: `SignInAsync` は `PLAYER_NOT_CREATED` を返す（`SignUpAsync` 以外の Uta の RPC の共通の扱い。[server-foundation.md](server/server-foundation.md)）[決定。2026-11-01。ユーザーの判断]。クライアントはそれを受けたら `SignUpAsync` を呼び、あらためて `SignInAsync` を呼ぶ。サインアップの途中で通信が切れた後の再起動（端末には保存あり）も、この経路で直る
   - `GetPlayerAsync` は作らない（サインインが全件を返し、クライアントがキャッシュするため。必要になったら足す）[決定。2026-11-01。ユーザーの判断]
   - ガチャの交換pt の変換は持たない（MVP のガチャは期間を持たない。[gacha.md](../systems/gacha.md) 4章）
@@ -78,17 +78,17 @@ updated: 2026-11-03
 
 | RPC | Request | Response |
 |---|---|---|
-| `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
-| `DrawAsync` | `GachaId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUid`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
+| `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaMasterId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
+| `DrawAsync` | `GachaMasterId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemMasterId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUniqueId`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
-| `ExchangeAsync` | `GachaId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
+| `ExchangeAsync` | `GachaMasterId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
 
 ### 1.2 サポートカードの DTO [決定。2026-10-31]
 
 | RPC | Request | Response |
 |---|---|---|
-| `LevelUpAsync` | `SupportCardUid`（`string`）、`TargetLevel`（`int`） | `Level`、`SupportPoints`（残り）、`Gold`（残り） |
-| `LimitBreakAsync` | `SupportCardUid`（解放する）、`MaterialUid`（素材） | `LimitBreak`（回数）、`MaxLevel` |
+| `LevelUpAsync` | `SupportCardUniqueId`（`string`）、`TargetLevel`（`int`） | `Level`、`SupportPoints`（残り）、`Gold`（残り） |
+| `LimitBreakAsync` | `SupportCardUniqueId`（解放する）、`MaterialUniqueId`（素材） | `LimitBreak`（回数）、`MaxLevel` |
 
 ### 1.3 プロデュースの DTO [決定。2026-11-03]
 
@@ -119,7 +119,7 @@ Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Resp
 | テーブル | 主キー | 主な列 | 元の仕様 |
 |---|---|---|---|
 | `players` | `player_id` | プレイヤーLv、経験値、ゴールド、サポート強化pt、ガチャ通貨、作成日時 | [produce.md](../systems/produce.md) 7、[gacha.md](../systems/gacha.md) |
-| `player_idols` | `player_id` + `idol_id` | トレーニング段階、覚醒段階、かけら（所持している育成アイドルだけ行がある。信頼度は PRD-11 を作るときに足す） | [idol-support.md](../systems/idol-support.md) 1、[gacha.md](../systems/gacha.md) 5 |
+| `player_idols` | `player_id` + `idol_id` | `idol_uid`（所持の ID。ULID の `char(26)`、`NOT NULL`・`UNIQUE`。行を作るときにサーバーが採番する（`IdolRepository.TryInsertAsync` が `Ulid.NewUlid()` を入れ、Application の `OwnedIdol` は `UniqueId` に持つ）。2026-11-08 にマイグレーション 0007 で足し、既存の行は `created_at` の時刻 + 乱数の ULID の形で埋めた）、トレーニング段階、覚醒段階、かけら（所持している育成アイドルだけ行がある。信頼度は PRD-11 を作るときに足す） | [idol-support.md](../systems/idol-support.md) 1、[gacha.md](../systems/gacha.md) 5 |
 | `player_support_cards` | `support_card_uid`（所持ID。ULID） | `player_id`、`card_id`、レベル、上限解放回数、入手日時。同じカードを引くたびに1行増える（2026-10-31 決定） | [idol-support.md](../systems/idol-support.md) 2.2.1 |
 | `gacha_exchange_points` | `player_id` + `gacha_id` | 交換pt | [gacha.md](../systems/gacha.md) 4 |
 | `gacha_histories` | `history_id`（ULID） | カード 1 枚 = 1 行。`request_id`（`DrawAsync` 1 回の束）、`player_id`、`gacha_id`、`slot`（1〜10。交換は 0）、`gacha_table_id`、`item_kind`、`item_id`、`outcome`（新規 / 重複）、`shards`、`support_points`、日時 | [gacha.md](../systems/gacha.md) 6 |

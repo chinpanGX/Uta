@@ -11,32 +11,32 @@ namespace Uta.Client.Presentation.Title
     /// </summary>
     public sealed class ConnectivityCheck
     {
-        private readonly SignInUseCase signIn;
-        private readonly EnterPlayerUseCase enterPlayer;
+        private readonly IDeviceAuthUseCase deviceAuth;
+        private readonly IPlayerUseCase player;
 
-        public ConnectivityCheck(SignInUseCase signIn, EnterPlayerUseCase enterPlayer)
+        public ConnectivityCheck(IDeviceAuthUseCase deviceAuth, IPlayerUseCase player)
         {
-            this.signIn = signIn;
-            this.enterPlayer = enterPlayer;
+            this.deviceAuth = deviceAuth;
+            this.player = player;
         }
 
         /// <returns>全部通れば true。server error delivery が届かなければ false。それ以外の失敗は例外のまま投げる</returns>
         public async UniTask<bool> RunAsync(Action<string> log)
         {
-            await signIn.ReissueAsync();
+            await deviceAuth.ReissueTokenAsync();
             log("reissue: ok");
 
-            var before = signIn.TokenInvalidationCount;
-            await signIn.InvalidateServerSideTokenAsync();
-            await enterPlayer.ExecuteAsync(false);
-            if (signIn.TokenInvalidationCount <= before)
+            var before = deviceAuth.TokenInvalidationCount;
+            await deviceAuth.InvalidateServerSideTokenAsync();
+            await player.EnterAsync(false);
+            if (deviceAuth.TokenInvalidationCount <= before)
             {
                 throw new InvalidOperationException("reauth retry: not observed");
             }
 
-            log("reauth retry: ok (invalidations=" + (signIn.TokenInvalidationCount - before) + ")");
+            log("reauth retry: ok (invalidations=" + (deviceAuth.TokenInvalidationCount - before) + ")");
 
-            if (await signIn.CanReceiveServerErrorAsync())
+            if (await deviceAuth.CanReceiveServerErrorAsync())
             {
                 log("server error delivery: ok");
                 log("connectivity check: OK");

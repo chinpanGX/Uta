@@ -1,0 +1,45 @@
+{
+    "name": "Uta.Client.Tests.EditMode",
+    "rootNamespace": "Uta.Client.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Uta.Client.Infrastructure",
+        "Uta.Client.Application",
+        "Uta.Shared.Contracts",
+        "VolTech.Server.Abstractions",
+        "VolTech.MagicOnion.Client",
+        "Uta.Shared.Domain",
+        "UniTask",
+        "Uta.Client.Presentation",
+        "Uta.Client.Editor",
+        "UnityScreenNavigator",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.Addressables",
+        "Unity.Addressables.Editor",
+        "Uta.Client.Domain",
+        "Uta.Client.MasterData"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "MasterMemory.dll",
+        "MasterMemory.Annotations.dll",
+        "MessagePack.dll",
+        "MagicOnion.Abstractions.dll",
+        "MagicOnion.Client.dll",
+        "Grpc.Core.Api.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

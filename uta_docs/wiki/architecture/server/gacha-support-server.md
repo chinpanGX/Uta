@@ -1,7 +1,7 @@
 ---
 title: ガチャ・サポートカードのサーバー処理
 status: draft
-updated: 2026-11-01
+updated: 2026-11-08
 ---
 
 # ガチャ・サポートカードのサーバー処理
@@ -22,7 +22,7 @@ updated: 2026-11-01
 |---|---|
 | 抽選結果の記録 | **カード 1 枚 = 1 行**。`DrawAsync` 1 回の行は `request_id`(`x-request-id`)で束ねる。列は [api-design.md](../api-design.md) 3章 |
 | 同時実行 | 同じプレイヤーの要求は、VolTech-MagicOnion の `last_responses` のロックで直列になる([api-design.md](../api-design.md) 3章)。`players` は明示的にロックしない。`DrawAsync` は通貨の減算 `UPDATE players SET gacha_currency = gacha_currency - @cost WHERE player_id = @id AND gacha_currency >= @cost`(更新が 0 行なら `GACHA_NOT_ENOUGH_CURRENCY`)を最初に行う。直列なので、重複の判定([gacha.md](../../systems/gacha.md) 5章)はその後に読めば正しい。抽選・所持品・履歴・冪等性の保存済みレスポンスは同じトランザクションで書く |
-| 所持品の書き込み | [gacha.md](../../systems/gacha.md) 5章の処理が書くのは次の 4 種だけ: 育成アイドルの行の追加(トレーニング 0・覚醒 0・かけら 0)、かけらの加算、サポートカードの行の追加(所持ID は ULID、レベル 1、上限解放 0、入手日時)、`players.support_points` の加算。列名と型はサーバーの実装計画の DDL で決める |
+| 所持品の書き込み | [gacha.md](../../systems/gacha.md) 5章の処理が書くのは次の 4 種だけ: 育成アイドルの行の追加(所持の ID `idol_uid` は ULID、トレーニング 0・覚醒 0・かけら 0)、かけらの加算、サポートカードの行の追加(所持ID は ULID、レベル 1、上限解放 0、入手日時)、`players.support_points` の加算。列名と型はサーバーの実装計画の DDL で決める |
 | `ExpectedCost` | 画面に出した価格と違う額を引かれないための保険(マスタの版はアプリのバージョンと同じなので、食い違うのはクライアントの不具合のとき) |
 
 サーバーはマスタを Infrastructure の `MemoryDatabase` から読む([repository-layout.md](../repository-layout.md) 4章)。`server/` と `masterdata/` はまだない(作るのはそれぞれの最初の実装計画)。
@@ -30,7 +30,7 @@ updated: 2026-11-01
 `DrawAsync`(1 つのトランザクション):
 
 1. `Count` が 1 か 10 でなければ `GACHA_INVALID_COUNT`
-2. `GachaId` がマスタになければ `GACHA_NOT_FOUND`
+2. `GachaMasterId` がマスタになければ `GACHA_NOT_FOUND`
 3. 価格を決める(`Count` が 1 なら `SingleCost`、10 なら `TenCost`)。`ExpectedCost` と違えば `GACHA_COST_MISMATCH`
 4. 通貨を減らす(下の「同時実行」の SQL に `RETURNING gacha_currency` を付け、残りを受け取る)。0 行なら `GACHA_NOT_ENOUGH_CURRENCY`
 5. シードを作って乱数を用意する(1章)
@@ -40,7 +40,7 @@ updated: 2026-11-01
 
 `ExchangeAsync`(1 つのトランザクション):
 
-1. `GachaId` がマスタになければ、または `CeilingItemOrder` が `GachaCeilingItem` になければ `GACHA_NOT_FOUND`
+1. `GachaMasterId` がマスタになければ、または `CeilingItemOrder` が `GachaCeilingItem` になければ `GACHA_NOT_FOUND`
 2. 交換pt を減らす: `UPDATE gacha_exchange_points SET points = points - @c WHERE player_id = @id AND gacha_id = @g AND points >= @c`。0 行(行がない場合を含む)なら `GACHA_NOT_ENOUGH_POINTS`
 3. [gacha.md](../../systems/gacha.md) 5章の処理 → 履歴に 1 行([gacha.md](../../systems/gacha.md) 4章)
 4. Response を作る(`RETURNING points` で受けた残りの交換pt。結果の `Slot` は 0)

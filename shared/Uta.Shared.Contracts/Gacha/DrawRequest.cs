@@ -6,15 +6,15 @@ namespace Uta.Shared.Contracts.Gacha
     public sealed class DrawRequest
     {
         [SerializationConstructor]
-        public DrawRequest(int gachaId, int count, int expectedCost)
+        public DrawRequest(int gachaMasterId, int count, int expectedCost)
         {
-            GachaId = gachaId;
+            GachaMasterId = gachaMasterId;
             Count = count;
             ExpectedCost = expectedCost;
         }
 
         [Key(0)]
-        public int GachaId { get; }
+        public int GachaMasterId { get; }
 
         /// <summary>1 か 10。</summary>
         [Key(1)]

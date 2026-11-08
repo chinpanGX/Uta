@@ -6,16 +6,17 @@ namespace Uta.Shared.Contracts.Player
     public sealed class OwnedIdolDto
     {
         [SerializationConstructor]
-        public OwnedIdolDto(int idolId, int training, int awakening, int shards)
+        public OwnedIdolDto(int masterId, int training, int awakening, int shards, string uniqueId)
         {
-            IdolId = idolId;
+            MasterId = masterId;
             Training = training;
             Awakening = awakening;
             Shards = shards;
+            UniqueId = uniqueId;
         }
 
         [Key(0)]
-        public int IdolId { get; }
+        public int MasterId { get; }
 
         [Key(1)]
         public int Training { get; }
@@ -25,5 +26,8 @@ namespace Uta.Shared.Contracts.Player
 
         [Key(3)]
         public int Shards { get; }
+
+        [Key(4)]
+        public string UniqueId { get; }
     }
 }

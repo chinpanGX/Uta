@@ -8,13 +8,18 @@
         "VContainer",
         "UnityEngine.UI",
         "UnityScreenNavigator",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Uta.Client.Domain",
+        "Uta.Client.MasterData"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
-    "precompiledReferences": [],
+    "precompiledReferences": [
+        "MasterMemory.dll",
+        "MessagePack.dll"
+    ],
     "autoReferenced": false,
     "defineConstraints": [],
     "versionDefines": [],

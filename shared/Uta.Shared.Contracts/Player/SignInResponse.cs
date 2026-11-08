@@ -6,7 +6,7 @@ namespace Uta.Shared.Contracts.Player
     public sealed class SignInResponse
     {
         [SerializationConstructor]
-        public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards)
+        public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string playerId)
         {
             Level = level;
             Exp = exp;
@@ -17,6 +17,7 @@ namespace Uta.Shared.Contracts.Player
             DiscardedProduce = discardedProduce;
             Idols = idols;
             SupportCards = supportCards;
+            PlayerId = playerId;
         }
 
         [Key(0)]
@@ -48,5 +49,8 @@ namespace Uta.Shared.Contracts.Player
 
         [Key(8)]
         public OwnedSupportCardDto[] SupportCards { get; }
+
+        [Key(9)]
+        public string PlayerId { get; }
     }
 }

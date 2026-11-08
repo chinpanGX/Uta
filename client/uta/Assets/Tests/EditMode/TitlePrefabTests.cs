@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 using Uta.Client.Presentation.Title;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>TitlePage の Prefab の View のフィールドと子の対応（P2 の計画 3.3）。</summary>
     public sealed class TitlePrefabTests

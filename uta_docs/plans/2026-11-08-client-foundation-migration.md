@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントを共通基盤の新しい呼び方（11d9b06）に移す
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/screen-design.md
 ---
@@ -186,6 +186,76 @@ public static class PlayerMapper
 - リポジトリの読み書きはメインスレッドだけ（ADR 0021 の前提）。`PlayerUseCase` は `await … .ToResult()` のあとに書く。基盤の `UnaryResult` の継続がメインスレッドに戻るかは確かめていないので、**タスク 5 の診断で確かめる**: `PlayerUseCase.Apply` の先頭に `Debug.Log("[Uta] player apply thread=" + System.Threading.Thread.CurrentThread.ManagedThreadId)` を一時的に入れ、`Uta.exe -batchmode -nographics -uta-quit-after-check` のログで `1`（Unity のメインスレッド）であることを見てから、そのログを消してコミットする。`1` でなければ止まって報告する（リポジトリの同期の前提が崩れるので、勝手に `UniTask.SwitchToMainThread` などを足さない）。基盤が `ICommonResponseApplier` を呼ぶスレッドは[共通レスポンスの計画](2026-11-08-common-response-player-diff.md)の読み替えの節と gacha の計画で確かめる
 - `MemoryDatabase` を Inject する形（ADR 0020）は、`BootstrapEntry` が `MasterDataLoader.LoadFromStreamingAssetsAsync()` で読み終えてから `LifetimeScope.Create` する今の順のままで満たせる（R4）。`Uta.Client.MasterData` の `precompiledReferences` に要る DLL は、この計画のコンパイルで確かめる（ADR 0020）
 
+### R8. Entity の ID と機能ごとのフォルダ（2026-11-08。PR #44 のコードの確認でユーザーが求めた。この節が R1〜R7 より優先）
+
+**決まっていること**（ユーザーの判断）: Entity は、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの int の ID を `MasterId`（`int`）として持つ。フォルダと名前空間は、Domain・Infrastructure とも機能ごと（`Player`・`Idol`・`SupportCard`）に分ける。この変更も #44 に入れる。
+
+**サーバー**（アイドルの行に ULID が無いので足す。Player の ID は今ある `player_id`）:
+- `server/Uta.Server/Migrations/0007_add_player_idol_uid.sql`（作成。埋め込みリソースの登録は既存の 0001〜0006 と同じ形）: `player_idols` に `idol_uid char(26)` を足し、既存の行を ULID の形の値（`created_at` のミリ秒を先頭 10 文字、乱数 16 文字。Crockford の base32 `0123456789ABCDEFGHJKMNPQRSTVWXYZ`）で埋めてから `NOT NULL` と `UNIQUE` にする。埋めるのは `pg_temp` の一時関数（`CREATE FUNCTION pg_temp.uta_ulid(ts timestamptz) RETURNS text … LANGUAGE plpgsql`）。主キー `(player_id, idol_id)` は変えない
+- `Application/Idol/OwnedIdol.cs`: `OwnedIdol(Ulid Uid, int IdolId, int Training, int Awakening, int Shards)`（`OwnedSupportCard(Ulid Uid, …)` と同じ形）
+- `Infrastructure/IdolRepository.cs`: `TryInsertAsync` は `idol_uid` に `Ulid.NewUlid().ToString()` を入れる（IF のシグネチャは変えない。`ON CONFLICT DO NOTHING` で入らなかったときは捨てる）。`ListAsync` は `idol_uid` も読む（`Ulid.Parse`。サポートカードの `ListAsync` の読み方に合わせる）
+- `shared/Uta.Shared.Contracts/Player/OwnedIdolDto.cs`: 末尾に `[Key(4)] public string IdolUid { get; }`、コンストラクターの最後の引数 `string idolUid`。`SignInResponse.cs`: 末尾に `[Key(9)] public string PlayerId { get; }`、コンストラクターの最後の引数 `string playerId`（キーは足すだけで、既存の番号は変えない）
+- `Api/PlayerService.cs`: `new OwnedIdolDto(x.IdolId, x.Training, x.Awakening, x.Shards, x.Uid.ToString())`、`SignInResponse` の最後に `playerId.ToString()`
+- テスト（`server/Uta.Server.Tests`）: サインインの結合テストで、`PlayerId` が 26 文字でサーバーの `player_id` と一致すること、各アイドルの `IdolUid` が 26 文字で互いに違うことを足す。`player_idols.idol_uid` が `NOT NULL`・`UNIQUE` であること。ほかの結合テストは、コンパイルが通るように直すだけ
+
+**クライアント**（`Uta.Client.Domain`・`Uta.Client.Infrastructure`）:
+- フォルダと名前空間: `Domain/Player/`（`PlayerEntity`・`IPlayerRepository`・`IReadOnlyPlayerRepository`。`Uta.Client.Domain.Player`）、`Domain/Idol/`（`IdolEntity`・`IIdolRepository`・`IReadOnlyIdolRepository`。`Uta.Client.Domain.Idol`）、`Domain/SupportCard/`（`SupportCardEntity`・`ISupportCardRepository`・`IReadOnlySupportCardRepository`。`Uta.Client.Domain.SupportCard`）。`Infrastructure/Idol/IdolRepository.cs`（`Uta.Client.Infrastructure.Idol`）・`Infrastructure/SupportCard/SupportCardRepository.cs`（`Uta.Client.Infrastructure.SupportCard`）。`PlayerRepository`・`PlayerUseCase`・`PlayerMapper` は `Infrastructure/Player/` のまま（`PlayerMapper` はサインインの応答の詰め替えなので Player に置く）。移動は `git mv`（`.meta` ごと）。名前空間 `…Idol` と生成したマスタの型 `Uta.MasterData.Idol` がぶつかってコンパイルできないところは、型の側を `Uta.MasterData.Idol` と名前空間付きで書く
+- Entity:
+  - `PlayerEntity(string uniqueId, int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce)`。`UniqueId` を足す
+  - `IdolEntity(string uniqueId, int masterId, int training, int awakening, int shards)`。`IdolId` → `MasterId`
+  - `SupportCardEntity(string uniqueId, int masterId, int level, int limitBreak)`。`SupportCardUid` → `UniqueId`、`CardId` → `MasterId`
+  - 3 つとも `uniqueId` が null なら `ArgumentNullException`
+- リポジトリ: 1 件を引く・置き換える・消すのは `UniqueId` で行う。`IReadOnlyIdolRepository.Find(string uniqueId)`（`Find(int idolId)` はやめる）、`FindAll` は `MasterId` の昇順。`IIdolRepository.Upsert` は `UniqueId` が同じものを置き換える。`ISupportCardRepository` は引数名だけ `uniqueId` に（`Find`・`Remove`）。`IPlayerRepository` は変えない
+- `PlayerMapper`: `ToPlayerEntity` は `response.PlayerId`、`ToIdolEntity` は `dto.IdolUid`・`dto.IdolId`、`ToSupportCardEntity` は `dto.SupportCardUid`・`dto.CardId`
+- テスト（`client/uta/Assets/Tests/EditMode`）: 今のテストを新しいシグネチャに合わせる。`IdolRepositoryTests` の置き換え・`Find` は `UniqueId` で、`FindAll` の順は `MasterId`。`PlayerMapperTests` で `UniqueId`・`MasterId` の写しを確かめる。`PlayerUseCaseTests` の応答の組み立て（`private static` の補助）に ID を足す。テストのファイルは移さない
+
+**wiki**: `api-design.md`（`SignInResponse`・`OwnedIdolDto` の項目）、サーバーの表の説明（`player_idols`）、`screen-design.md`・`glossary.md` のエンティティの項（`UniqueId`・`MasterId`）、`repository-layout.md` 2 章の木、`naming.md`（`UniqueId`・`MasterId` の命名を足す）を直す。
+
+**確かめ方**: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（Docker）、Unity の `unity recompile`（エラー 0）と EditMode のテスト（非同期）、Editor の Play でアカウント無しから `sign-in: ok`（ローカルの DB にマイグレーション 0007 を流してから）。
+
+### R9. Contracts とサーバーの型の ID の名前を揃える（2026-11-08。ユーザーの判断。R8 より後に決めた。食い違えばこの節が正）
+
+**規則**: リクエスト・レスポンスの名前はクライアントとサーバーで統一する。DB の列名は今のまま（C# では Dapper の `AS` で写す）。
+1. DTO（またはサーバーの型）がそのものを表すときは `UniqueId`（サーバーが採番する ULID。`string`、サーバーの型では `Ulid`）・`MasterId`（マスタの `int`）
+2. ほかのものを指すときは `<名詞>UniqueId`・`<名詞>MasterId`（配列は `…UniqueIds`）
+3. `PlayerId` はそのまま。プロデュースの中で振る番号（`InstanceId`・`CardInstanceId`）は ULID でもマスタの ID でもないので変えない
+4. MessagePack の `[Key(n)]` の番号は変えない（プロパティ名とコンストラクターの引数名だけを変える）
+
+**改名の一覧**（`shared/Uta.Shared.Contracts`）:
+| 型 | 今 | 新 |
+|---|---|---|
+| `OwnedIdolDto` | `IdolId`・`IdolUid` | `MasterId`・`UniqueId` |
+| `OwnedSupportCardDto` | `SupportCardUid`・`CardId` | `UniqueId`・`MasterId` |
+| `DrawResultDto` | `ItemId`・`SupportCardUid` | `ItemMasterId`・`SupportCardUniqueId` |
+| `DrawRequest`・`ExchangeRequest`・`GachaStatusDto` | `GachaId` | `GachaMasterId` |
+| `LevelUpRequest` | `SupportCardUid` | `SupportCardUniqueId` |
+| `LimitBreakRequest` | `SupportCardUid`・`MaterialUid` | `SupportCardUniqueId`・`MaterialUniqueId` |
+| `StartProduceRequest` | `IdolId`・`SupportCardUids`・`RentalCandidateId`・`ScenarioId` | `IdolMasterId`・`SupportCardUniqueIds`・`RentalCandidateMasterId`・`ScenarioMasterId` |
+| `ProduceStateResponse` | `ScenarioId`・`IdolId`・`CardOffers` | `ScenarioMasterId`・`IdolMasterId`・`CardChoiceMasterIds`（`CardOffers` はレビューの後にユーザーが決めた。「カードの選択肢」のカードのマスタ ID の配列） |
+| `DeckCardDto` | `CardId` | `CardMasterId` |
+
+コンストラクターの引数名も同じ規則（camelCase）。IService の RPC の引数に同じ ID があれば同じ規則で直す。
+
+**サーバー**: DTO を作る・読む側を直す。サーバーの型のうち所持品を表すもの `OwnedIdol(Ulid Uid, int IdolId, …)` → `OwnedIdol(Ulid UniqueId, int MasterId, …)`、`OwnedSupportCard(Ulid Uid, int CardId, …)` → `OwnedSupportCard(Ulid UniqueId, int MasterId, …)`（Dapper の `AS` も合わせる）。それ以外のサーバーの内部の型・UseCase の引数・ローカル変数・DB の列は**変えない**（この節の範囲は Contracts と所持品の 2 つの型。サーバーの内部の命名は ADR 0021 のサーバー側の計画で揃える）。テストはコンパイルが通るように直し、振る舞いは変えない。
+
+**クライアント**: `PlayerMapper` と EditMode のテスト（`FakePlayerService`・`PlayerUseCaseTests`・`PlayerMapperTests` の応答の組み立て）を新しい名前に合わせる。
+
+**wiki と計画**: `api-design.md` ほか wiki の DTO の項目名、`naming.md` に規則 1〜4、ready の画面の計画（foundation・formation・gacha・owned・week・lesson と共通レスポンス）は本文を書き換えず、「基盤 11d9b06 への読み替え」の節（無ければ先頭の読み替えの節）に「DTO の ID の名前は移行計画の R9 の表に読み替える」の 1 行を足す。
+
+**確かめ方**: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（件数が R8 の後の 294 と同じ）、`unity recompile`（エラー 0）、EditMode のテスト（非同期。103 件）。
+
+### R10. `ReplaceAll` をやめ、`Clear` と `Upsert` のオーバーロードにする（2026-11-08。ユーザーの判断。R2・R8 より優先）
+
+`ReplaceAll` は「一致するものを全部置き換える（まとめて Upsert）」とも読めて、「渡さなかった行は消える」が名前から読めない。そこで 2 つの操作に分ける。
+
+- `IIdolRepository`・`ISupportCardRepository` の `ReplaceAll(IReadOnlyList<T>)` を消し、次の 2 つにする:
+  - `void Clear();` 全部消す
+  - `void Upsert(IReadOnlyList<T> items);` 1 件の `Upsert(T)` と同じ規則（`UniqueId` が同じものを置き換え、無ければ足す。サポートカードは末尾に足す）を渡した順に行う。`items` が null、または要素に null があれば `ArgumentNullException`（1 件も変えない: 先に全要素を確かめてから書く）
+- `IPlayerRepository` は変えない（1 人分なので `Clear` も要らない。ADR 0021「使うものだけ」）
+- `PlayerUseCase.Apply`: 詰め替えを先に済ませ（R4 のレビューの M1 の形のまま）、`players.Upsert(p)` → `idols.Clear()` → `idols.Upsert(i)` → `supportCards.Clear()` → `supportCards.Upsert(s)` を間で `await` せずに続けて呼ぶ
+- テスト: `ReplaceAll` のテストを `Clear` と `Upsert(list)` のテストにする（`Clear` で空になる／`Upsert(list)` が既存の同じ `UniqueId` を置き換え、ほかは残す／null の配列・null の要素で何も変えずに例外／サポートカードの順）。`PlayerUseCaseTests` の「応答で置き換わる」テストで、応答に無い行が消えることを確かめる
+- wiki と計画: `api-design.md`・`screen-design.md`・`naming.md` の `ReplaceAll` を直す。ADR 0021 は本文を書き換えず、先頭の accepted の注記に「リポジトリのメソッドの名前は naming.md が正。`ReplaceAll` は `Clear` と `Upsert(IReadOnlyList<T>)` にした（2026-11-08）」を足す。foundation・formation・共通レスポンスの計画の読み替えの節に「`ReplaceAll` は R10 の `Clear` + `Upsert(list)` に読み替える」を足す
+
 ## 0. 決まっていること
 
 ユーザーが推奨どおりに了承した（2026-11-08）。
@@ -347,3 +417,18 @@ foundation・formation・gacha・owned の 4 本の、タイトル（`# 実装�
 ## 7. 未決事項
 
 なし（0 章の了承を反映した）。
+
+## 8. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
+| 2(a) | 完了 | `752fb9e` | Uta.Client.MasterData・Domain の precompiledReferences に `MasterMemory.Annotations.dll`・`MessagePack.Annotations.dll` も要った（R1 の 2 つでは足りない）。後ろのアセンブリは旧い API のエラーで (c) までコンパイルされない |
+| 2(b) | 完了 | `3a9e78e` | なし（テストの実行は (c)） |
+| 2(c) | 完了 | `a497b11` | `FakeRpcErrors` はパッケージの `Runtime/Client/Testing`（計画は `Tests/EditMode`）。`new UnaryResult<T>(value)` で通った。`PlayerUseCaseTests` は `[UnityTest]` + `UniTask.ToCoroutine`（11 件。計画のケースに `Enter_NotCreatedTwice_Throws`・`Refresh_NotCreated_ThrowsAndKeepsRepositories` を足した）。`MasterCardCatalogTests` の読み込みのテストは `MasterDataLoaderTests` に同じものがあり、写さず消した。テストを先に書いて失敗することは、この段では実測できなかった（Editor が固まった）。レビューの後に、中身を一時的に `NotImplementedException` にして実測した（下の「レビュー」の行）。EditMode は非同期の実行で 102 件成功。unity7-evaluation.md 4 章の `runSynchronously = true` のコマンドは `[UnityTest]` を走らせない（13 件が total=0） |
+| 3・4 | 完了 | （wiki のコミット） | 索引の積み PR の base（foundation・P3・formation の行）と計画 0 の状態の食い違い、共通レスポンスの計画 16 行目の古い順番の記述は、意味が変わるので直していない |
+| 5 | 一部 | （記録のコミット） | **IL2CPP のビルドはしない**（ユーザーの判断 2026-11-08。exe は必須ではない）。代わりに Editor の Play で ①②③ を確かめた（通った）。R7 のスレッドは `ManagedThreadId=2` で、Editor のメインスレッドの ID も 2 だった（計画の「1」は Unity のメインスレッドの意味。メインスレッドで動いている）。④再送・Monitor は未確認。ローカルの DB は `down -v` で作り直した（main のチェックアウトの `server/.env` のパスワードと user-secrets が違ったので、この worktree の `.env` を user-secrets に合わせた） |
+| レビュー | 完了 | `99fd2c2`・`d4d00a7` | client 1 回目: Important 2（`Enter_Failed_ThrowsAndKeepsRepositories` が移っていない／テストを先に書いて失敗することの実測が無い）を直した。実測: `PlayerUseCase` を一時的に `NotImplementedException` にすると `PlayerUseCaseTests` 12 件すべて失敗、ほか 91 件は成功。Minor M1〜M5 も直した（`Apply` は詰め替えを先に済ませてから書く、など）。M6（`Uta.Client.Domain`・`MasterData` の asmdef を `noEngineReferences: true` にできるか）は任意のため見送り。shared: Minor 1（ADR 0022 の「採らないと判断したら」に yaml の `source` を戻すことが無い。ADR は親のセッションが直す） |
+| R8 | 完了 | （R8 のコミット 3 つ） | ユーザーの判断で追加。マイグレーション 0007 の埋め戻しはローカルの DB の 2 行で確かめた（時刻の部分が `created_at` と一致）。サーバー 294 件・EditMode 103 件成功 |
+| R9 | 完了 | `84e799f` | ユーザーの判断で追加。表どおり（差分なし）。クライアントのテストは位置引数で DTO を組んでいて変更不要だった。week・lesson の計画には読み替えの節が無かったので、同じ見出しの節を新しく作って 1 行だけ入れた |
+| R8・R9 のレビュー | 完了 | `1d93a8c` | server・shared は指摘 Minor だけ、client は Important 2（テストで UniqueId と MasterId が同じ値／後続の計画に R8 の読み替えが無い）を直した。`CardOffers` → `CardChoiceMasterIds`、`x-app-version` は互換な DTO の変更では上げない（どちらもユーザーの判断）。Editor の Play で、0007 で埋めた既存のアカウントの `sign-in: ok` を確かめた。R8 の確かめ方の「アカウント無しから」は回していない（既存のアカウントのサインインで、埋め戻した ID を含む応答が通ることを確かめた）。サーバー 295 件・EditMode 106 件成功。未対応の Minor: 0007 の埋め戻しの自動テスト、名前空間 `…Idol` とマスタの型 `Uta.MasterData.Idol` の衝突の規則 |
+| R10 | 完了 | （R10 のコミット） | ユーザーの判断で追加。`Upsert(null)` が 2 つのオーバーロードで曖昧になるので、テストは `(IdolEntity)null` とキャストした。EditMode 110 件成功。R10 は小さい API の変更なので、コードレビューに出し直していない |
