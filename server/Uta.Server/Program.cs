@@ -46,8 +46,8 @@ if (args.Length > 0 && args[0] == "migrate")
 }
 
 builder.Services.AddSingleton(MasterDataLoader.Load());
-builder.Services.AddSingleton<ICardCatalog>(sp => MasterCardCatalog.Create(sp.GetRequiredService<MemoryDatabase>()));
-builder.Services.AddSingleton(sp => MasterProduceCatalog.Create(sp.GetRequiredService<MemoryDatabase>(), sp.GetRequiredService<ICardCatalog>()));
+builder.Services.AddSingleton<ICardCatalog>(sp => CardCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>()));
+builder.Services.AddSingleton(sp => ProduceCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>(), sp.GetRequiredService<ICardCatalog>()));
 builder.Services.AddSingleton<ProduceEngine>();
 builder.Logging.ClearProviders();
 builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());

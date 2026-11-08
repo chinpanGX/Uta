@@ -12,7 +12,7 @@ namespace Uta.Server.Tests.MasterData;
 /// </summary>
 public class TestCardsMatchMasterTests
 {
-    private static readonly CardCatalog MasterCatalog = MasterCardCatalog.Create(MasterDataLoader.Load());
+    private static readonly CardCatalog MasterCatalog = CardCatalogFactory.Create(MasterDataLoader.Load());
 
     private static readonly IReadOnlyList<CardDefinition> TestCards = Phase1Cards.All()
         .Concat(Phase2Cards.All())

@@ -306,7 +306,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         Assert.NotNull(bytes);
         var data = ProduceStateSerializer.Deserialize(bytes);
         var master = MasterDataLoader.Load();
-        var catalog = MasterProduceCatalog.Create(master, MasterCardCatalog.Create(master));
+        var catalog = ProduceCatalogFactory.Create(master, CardCatalogFactory.Create(master));
         var engine = new ProduceEngine(catalog);
 
         var saved = data.Snapshot.ToState(catalog);

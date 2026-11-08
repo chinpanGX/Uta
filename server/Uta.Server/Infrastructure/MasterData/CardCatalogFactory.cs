@@ -6,7 +6,7 @@ namespace Uta.Server.Infrastructure;
 /// マスタの行を Shared.Domain の行の型に詰めて CardCatalog を作る。
 /// グループの解決と組み立ては CardCatalog.Create が行う（repository-layout.md 4章）。
 /// </summary>
-public static class MasterCardCatalog
+public static class CardCatalogFactory
 {
     public static CardCatalog Create(Uta.MasterData.MemoryDatabase db)
     {
