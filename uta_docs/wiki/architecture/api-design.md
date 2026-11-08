@@ -1,7 +1,7 @@
 ---
 title: サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # サービスIF・プレイヤーデータ・ゲームルール（実装設計書 API設計編）
@@ -50,7 +50,7 @@ updated: 2026-11-08
 - **サインアップ（`SignUpAsync`）とサインイン（`SignInAsync`）** [決定。2026-11-01。ユーザーの判断。2026-10-31 の `SyncAsync` を二つに分けた]: 起動時に 1 回呼ぶ RPC の役割は、サーバーから所持データなどを一括で取る「サインイン」なので、プレイヤーの作成（サインアップ）と分ける。VolTech-MagicOnion も、サインアップ（プレイヤー作成）とサインイン（全件取得）をアプリが作る RPC として想定し、「サインアップ済みかは端末に保存せず、サインインの結果で判断する」としている。用語は [glossary.md](../glossary.md)。流れは [screen-design.md](screen-design.md) 4章: 端末に保存なし → 端末の登録（`RegisterAsync`）→ トークンの発行（`IssueTokenAsync`）→ サインアップ → サインイン。保存あり → トークンの発行 → サインイン。どちらも起動フローでホームに入る前に呼ぶ
   - **`SignUpAsync`**: プレイヤーがまだいなければ作り、初期の所持品（中身と量の正は [game-spec.md](../overview/game-spec.md) の「初期の所持品」。育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt）を付与する。**2 回目以降は何もしない**（通信が切れても、やり直せる）[決定。2026-11-01。ユーザーの判断]。「独自の重複防止を作らない」（冒頭）の例外で、サインアップは作成の RPC なので、別の `x-request-id` で再び来ても何もしない。Request なし。Response（`SignUpResponse`）は `Created`（`bool`。今回作ったか）[決定。2026-11-01。ユーザーの判断]
   - **`SignInAsync`**: 起動の流れで呼ぶ（起動時に 1 回。タイトルへ戻ったあと、未作成のときのサインアップの後にも呼び直す）。副作用のある「起動時の処理」と全件取得をまとめる。クライアントは受け取った所持データをキャッシュする。Request なし
-    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（Lv・経験値・ゴールド・サポート強化pt・ガチャ通貨。所持の育成アイドル `Idols`・サポートカード `SupportCards` は `[Key(7)]`・`[Key(8)]` の配列で返す。2026-11-01 実装）[決定。2026-11-01。ユーザーの判断]。プレイヤーの ID `PlayerId`（`string`。`player_id` の ULID）は `[Key(9)]`（2026-11-08 に足した。既存のキーは変えない）。所持の育成アイドル `OwnedIdolDto` は `MasterId`（`int`。マスタの育成アイドルの ID）・`Training`・`Awakening`・`Shards`（`[Key(0)]`〜`[Key(3)]`）と、所持の ID `UniqueId`（`string`。`player_idols.idol_uid` の ULID。`[Key(4)]`。2026-11-08）を持つ。サポートカード `OwnedSupportCardDto` は所持ID `UniqueId`（`string`）とマスタのカードの ID `MasterId`（`int`）を持つ。クライアントはこれらの ULID をエンティティの `UniqueId` にする（[naming.md](naming.md) 2章）[決定。2026-11-08。ユーザーの判断]。DTO の ID の名前は [naming.md](naming.md) 2章の「Contracts の ID」の規則による（2026-11-08 に `IdolId`・`IdolUid`・`SupportCardUid`・`CardId` などから改めた。`[Key]` の番号は変えていない）[決定。2026-11-08。ユーザーの判断]。DTO の一覧は配列にする（`IReadOnlyList<T>` は IL2CPP での MessagePack が未確認）。MessagePack の `[Key]` は後ろに足せる
+    - 所持データなどを全件返す。`SignInResponse` が項目を直接持つ（経験値の累計・ゴールド・サポート強化pt・ガチャ通貨。2026-11-09 に Lv を消した: プレイヤーは経験値の累計だけを持ち、クライアントが Lv を求める。[produce-server.md](server/produce-server.md) 4.1。所持の育成アイドル `Idols`・サポートカード `SupportCards` は配列で返す。2026-11-01 実装）[決定。2026-11-01。ユーザーの判断]。プレイヤーの ID `PlayerId`（`string`。`player_id` の ULID）は 2026-11-08 に最後のキーに足した。2026-11-09 に `Level` を消し、後ろのキーを 1 つずつ詰める（`Exp` が `[Key(0)]`、`Idols`・`SupportCards` が `[Key(6)]`・`[Key(7)]`、`PlayerId` が `[Key(8)]`。リリース前で互換を持たない。[produce-server.md](server/produce-server.md) 4.1）。所持の育成アイドル `OwnedIdolDto` は `MasterId`（`int`。マスタの育成アイドルの ID）・`Training`・`Awakening`・`Shards`（`[Key(0)]`〜`[Key(3)]`）と、所持の ID `UniqueId`（`string`。`player_idols.idol_uid` の ULID。`[Key(4)]`。2026-11-08）を持つ。サポートカード `OwnedSupportCardDto` は所持ID `UniqueId`（`string`）とマスタのカードの ID `MasterId`（`int`）を持つ。クライアントはこれらの ULID をエンティティの `UniqueId` にする（[naming.md](naming.md) 2章）[決定。2026-11-08。ユーザーの判断]。DTO の ID の名前は [naming.md](naming.md) 2章の「Contracts の ID」の規則による（2026-11-08 に `IdolId`・`IdolUid`・`SupportCardUid`・`CardId` などから改めた。`[Key]` の番号は変えていない）[決定。2026-11-08。ユーザーの判断]。DTO の一覧は配列にする（`IReadOnlyList<T>` は IL2CPP での MessagePack が未確認）。MessagePack の `[Key]` は後ろに足せる
     - アプリのバージョンが違う進行中のプロデュースを破棄する（5章）
     - 日付の更新（12:00）をまたいだときの処理（いまは無し。ログインボーナスなどを足すときの置き場）
     - 日付の更新をまたいで `DATE_CHANGED` が返ったときも、サインインし直して全件を取り直す（VolTech-MagicOnion の予約エラーの規則どおり。[screen-design.md](screen-design.md) 5章）
@@ -92,7 +92,7 @@ updated: 2026-11-08
 
 ### 共通レスポンス項目（`Common`）[決定。2026-11-08。ユーザーの判断]
 
-上の 1.1・1.2 の表の「Common」の列は、Response が `Common`（`AppCommonDto`。player_diff = 変更後の通貨・レベル、触ったアイドルとサポートカード、無くなったサポートカードの ID）を持つか。「あり」の Response は `IApiResponse<AppCommonDto>` を実装し、`Common` は変わったものが無ければ null。プロデュースは `ProduceStateResponse`（`StartAsync`・操作の 4 つ）に `Common` があり、報酬が付く完了の応答で通貨とレベルが入る。`ProduceResultResponse`（`AbandonAsync` の応答）・`GetStateAsync`・`SignInAsync`・`SignUpAsync` には無い。中身と作り方は [server-foundation.md](server/server-foundation.md) の共通レスポンス項目。既存の項目（`DrawResponse.GachaCurrency` など）は残す。
+上の 1.1・1.2 の表の「Common」の列は、Response が `Common`（`AppCommonDto`。player_diff = 変更後の通貨・経験値の累計、触ったアイドルとサポートカード、無くなったサポートカードの ID）を持つか。「あり」の Response は `IApiResponse<AppCommonDto>` を実装し、`Common` は変わったものが無ければ null。プロデュースは `ProduceStateResponse`（`StartAsync`・操作の 4 つ）に `Common` があり、報酬が付く完了の応答で通貨と経験値が入る。`ProduceResultResponse`（`AbandonAsync` の応答）・`GetStateAsync`・`SignInAsync`・`SignUpAsync` には無い。中身と作り方は [server-foundation.md](server/server-foundation.md) の共通レスポンス項目。既存の項目（`DrawResponse.GachaCurrency` など）は残す。
 
 ### 1.3 プロデュースの DTO [決定。2026-11-03]
 
@@ -122,7 +122,7 @@ Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Resp
 
 | テーブル | 主キー | 主な列 | 元の仕様 |
 |---|---|---|---|
-| `players` | `player_id` | プレイヤーLv、経験値、ゴールド、サポート強化pt、ガチャ通貨、作成日時 | [produce.md](../systems/produce.md) 7、[gacha.md](../systems/gacha.md) |
+| `players` | `player_id` | 経験値の累計（Lv は持たない。2026-11-09。[produce-server.md](server/produce-server.md) 4.1）、ゴールド、サポート強化pt、ガチャ通貨、作成日時 | [produce.md](../systems/produce.md) 7、[gacha.md](../systems/gacha.md) |
 | `player_idols` | `player_id` + `idol_id` | `idol_uid`（所持の ID。ULID の `char(26)`、`NOT NULL`・`UNIQUE`。行を作るときにサーバーが採番する（`IdolRepository.TryInsertAsync` が `Ulid.NewUlid()` を入れ、Domain の `IdolEntity` は `UniqueId` に持つ）。2026-11-08 にマイグレーション 0007 で足し、既存の行は `created_at` の時刻 + 乱数の ULID の形で埋めた）、トレーニング段階、覚醒段階、かけら（所持している育成アイドルだけ行がある。信頼度は PRD-11 を作るときに足す） | [idol-support.md](../systems/idol-support.md) 1、[gacha.md](../systems/gacha.md) 5 |
 | `player_support_cards` | `support_card_uid`（所持ID。ULID） | `player_id`、`card_id`、レベル、上限解放回数、入手日時。同じカードを引くたびに1行増える（2026-10-31 決定） | [idol-support.md](../systems/idol-support.md) 2.2.1 |
 | `gacha_exchange_points` | `player_id` + `gacha_id` | 交換pt | [gacha.md](../systems/gacha.md) 4 |
