@@ -24,9 +24,9 @@ public sealed class ProduceService(
         var appVersion = AppVersionHeader.Require(Context);
         return await transactions.RunAsync(Context, async tx =>
         {
-            var view = await start.ExecuteAsync(
+            var result = await start.ExecuteAsync(
                 tx, playerId, appVersion, request.IdolMasterId, request.SupportCardUniqueIds ?? [], request.RentalCandidateMasterId, request.ScenarioMasterId);
-            return ProduceResponseMapper.ToStateResponse(view);
+            return ProduceResponseMapper.ToStateResponse(result);
         });
     }
 
