@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 3/3 編成・プロデュース
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
