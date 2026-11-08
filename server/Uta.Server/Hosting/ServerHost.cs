@@ -76,6 +76,12 @@ internal static class ServerHost
 
     private static void ConfigureHost(WebApplicationBuilder builder)
     {
+        // DI の検査（スコープの寿命・起動時の組み立て）を、Development だけでなく Production でも有効にする
+        builder.Host.UseDefaultServiceProvider(options =>
+        {
+            options.ValidateScopes = true;
+            options.ValidateOnBuild = true;
+        });
         builder.Logging.ClearProviders();
         builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());
         builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureEndpointDefaults(listen => listen.Protocols = HttpProtocols.Http2));
