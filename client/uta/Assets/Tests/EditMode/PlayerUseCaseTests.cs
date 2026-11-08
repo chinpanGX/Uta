@@ -159,6 +159,24 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
+        public IEnumerator Enter_Failed_ThrowsAndKeepsRepositories() => UniTask.ToCoroutine(async () =>
+        {
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
+                1,
+                new[] { new OwnedIdolDto(1, 0, 0, 0) },
+                new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
+            await useCase.EnterAsync(false);
+            service.SignInResults.Enqueue(FakePlayerService.Fail<SignInResponse>(PlayerErrors.NotEnoughGold));
+
+            var e = await CatchAsync(() => useCase.EnterAsync(false));
+
+            StartsWith("sign-in failed: ", e);
+            Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, idols.FindAll().Count);
+            Assert.AreEqual(1, supportCards.FindAll().Count);
+        });
+
+        [UnityTest]
         public IEnumerator Refresh_Success_ReplacesRepositories() => UniTask.ToCoroutine(async () =>
         {
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1, new[] { new OwnedIdolDto(1, 0, 0, 0) }, null)));
