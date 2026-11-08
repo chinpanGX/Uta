@@ -15,6 +15,7 @@ PR をマージした後に残る worktree とローカルのブランチを、`
 | それ以外の worktree（`.claude/worktrees/` の使い捨てなど） | `git worktree remove` で消し、ブランチを消す。detached HEAD なら、HEAD が `origin/main` に入っているときに消す |
 | メインのチェックアウト（`C:/Work/Uta`）がマージ済みのブランチにいる | `main` に移って `pull --ff-only` し、ブランチを消す |
 | どの worktree でも開いていない、マージ済みのローカルのブランチ | 消す |
+| 固定の worktree が `main` を開いている | `origin/main` の detached HEAD に戻す（`main` を開いたままだと、メインのチェックアウトが `main` に移れない）。メインのチェックアウトは最後に処理する |
 | 未コミットの変更がある worktree | **触らない。**変更の一覧を出して飛ばす |
 | `.claude/worktrees/` にある、git に登録のないフォルダ | **触らない。**「登録のない残り」として出す |
 
@@ -40,6 +41,7 @@ tools/worktree-pool.sh cleanup
   - `client/uta/Assets/Fonts/NotoSansJP/` の差分は、Prefab の生成のたびに出る既知の差分（CLAUDE.md「ビルド・テスト・実行」）なので、`git -C <worktree> restore client/uta/Assets/Fonts/NotoSansJP` で戻してよい
   - それ以外の変更は消さない。一覧をユーザーに見せて、どうするか（別のブランチに残す・捨てる）を確認する
 - **`登録のない残り:`**: git の worktree としての登録が消え、フォルダだけが残ったもの。中身（`ls`）をユーザーに見せ、消してよいと言われたら消す（`rm -rf` は戻せない）
+- **`フォルダが残った:`**: git の登録とブランチは消えたが、ほかのプロセス（そのフォルダを開いたセッションやエディター）が使っていて、フォルダを消し切れなかったもの。開いているものを閉じてもらってから消す
 - **`作業中:`**: マージされていないブランチ。触らない
 
 ### 3. 実行する
