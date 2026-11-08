@@ -1,6 +1,6 @@
 ---
 title: 実装計画: マスタ スキルカードの名前と説明文
-status: ready
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/architecture/master/lesson-tables.md
 ---
@@ -321,3 +321,8 @@ ID の対応は 14章の ID → `CardId`（F01〜F07 = 1〜7、S01〜S14 = 101�
 
 - 実装結果と計画のズレ（3.1 の属性名の衝突に当たったかなど）を `lesson-tables.md` の実装メモに書き、この計画を `status: done` にする
 - コミットメッセージに、足した列・決めたこと（区分は Common、空の拒否は `IValidatable`、重複は `[Unique]`、説明文と数値の一致は自動で検証しない）と理由を書く
+
+## 8. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
