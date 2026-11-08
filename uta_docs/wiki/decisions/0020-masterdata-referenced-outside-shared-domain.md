@@ -10,6 +10,8 @@ updated: 2026-11-08
 
 前提: クライアントの Domain の層は [ADR 0021](0021-domain-entities-and-repositories.md) で作る。決定の出どころ: マスタを Shared.Domain 以外から参照してよいこと、`MemoryDatabase` をシングルトンで Inject することは、2026-11-08 にユーザーが決めた（[raw の記録](../../raw/2026-11-08-naming-and-layers-decisions.md)）。`Uta.Client.MasterData` に移すこと、Bootstrap からのやり直し、DB に保存しないこと、Presentation では表示だけにすることは、同じ日の設計書のレビューで Claude が出した案を、ユーザーが推奨どおりに採った（コミット 661131a・a7dff22 のメッセージ）。移すファイルの一覧と寿命の規則は、レビューの指摘で書き足した。
 
+**accepted にする時点**: [ADR 0022](0022-client-external-concretes-in-infrastructure.md) の「accepted にする時点と、進めてよいこと」と同じ（proposed のまま順 0 で実装し、順 0 の PR で 0020〜0022 をまとめて判断する。サーバーの Catalog をやめるのはサーバー側の実装計画）。
+
 ## 状況
 
 いまは、生成したマスタ（名前空間 `Uta.MasterData`、`MemoryDatabase`）を参照してよいのは各側の Infrastructure だけ（サーバーのアーキテクチャテスト `MasterData_IsReferencedOnlyByInfrastructure`）。クライアントの生成物は `Uta.Client.Infrastructure` の asmdef の中（`Assets/Scripts/Infrastructure/MasterData/`）にある。

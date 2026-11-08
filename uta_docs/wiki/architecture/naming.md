@@ -8,7 +8,7 @@ updated: 2026-11-08
 
 C# の型の名前を、役割ごとに決める。書式（大文字・小文字、`_` の有無、波括弧）は [CLAUDE.md](../../../CLAUDE.md) の「C# コーディング規約」と `.editorconfig` が正。
 
-決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
+決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）と、ready の計画の読み替え（2026-11-08）で決めたこと（クライアントの UseCase の具象の名前、`Find`・`FindAll`、Contracts の enum の写しを作らない、Shared.Domain と同名にしない、`Snapshot` の使いどころ、テストの補助の名前）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
 
 印: [ADR 案] は proposed の ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。ADR が accepted になるまでは、今のコードと、ほかのページ（[repository-layout.md](repository-layout.md)・[screen-design.md](screen-design.md)）の書き方が正。
 
@@ -22,7 +22,8 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 - **`Request` は通信の入力（Contracts）だけ**。UseCase の入力は引数で受け、入力の型を作らない（Contracts の `LevelUpRequest` などと同じ名前の型ができるのを避けるため）
 - **結果は `Result`**。`Outcome` は使わない
 - **Shared.Domain のエンジンへの操作の入力は `Command`**（`LessonCommand`・`ProduceCommand`）
-- **Application の型は、Contracts の型と同じ名前にしない**（Infrastructure とテストは両方を参照するため。Contracts の enum のクライアントの写しも同じ）
+- **Application の型は、Contracts の型と同じ名前にしない**（Infrastructure とテストは両方を参照するため）。**Contracts の enum のクライアントの写しは作らない**: Contracts の enum を引数に取る RPC は、UseCase の IF のメソッドを値ごとに分ける（`PickCardOfferAsync`・`DeclineCardOfferAsync` など）。結果に入る enum で写しが要るものだけ、Contracts と違う名前にする（`ProduceEnding` → `ProduceEndKind`）[決定。2026-11-08。ユーザーの判断]
+- **クライアント・サーバーの型は、Shared.Domain の型と同じ名前にしない**（両方を参照するファイルで CS0104 になるため。例: Shared.Domain の保存用の写し `ProduceSnapshot` があるので、クライアントの `ProduceStateResponse` の写しは `ProduceStateResult`）。生成したマスタの型と Shared.Domain の型が同じ名前になるのは、4章のとおり許す
 - **表にない役割は、役割を表す名詞を接尾辞にする**。使ってよい接尾辞と意味は 9章。新しい接尾辞を作る前に、9章の語で言えないかを確かめる
 
 ### 2. 層をまたぐ型
@@ -33,12 +34,14 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | リポジトリの IF [ADR 案] | `I<名詞>Repository` | `IPlayerRepository` | 各側の Domain |
 | リポジトリの IF（読み取り専用。クライアント） [ADR 案] | `IReadOnly<名詞>Repository`（`I<名詞>Repository` がこれを継ぐ） | `IReadOnlyPlayerRepository` | クライアントの Domain |
 | リポジトリの実装 | `<名詞>Repository` | `PlayerRepository` | Infrastructure |
+| リポジトリの取得のメソッド [ADR 案] | 1 件は `Find`（無ければ null）、全件は `FindAll`。サーバーは `FindAsync`・`FindAllAsync` | `Find(idolId)`、`FindAll()` | — |
 | UseCase の IF（クライアント） [ADR 案] | `I<機能>UseCase`。機能ごとに 1 つ（Contracts の `I<機能>Service` と同じ単位） | `IGachaUseCase` | クライアントの Application（ADR 0022） |
+| UseCase の具象（クライアント） [ADR 案] | `<機能>UseCase`（IF から `I` を除いたもの） | `GachaUseCase`、`PlayerUseCase` | クライアントの Infrastructure（ADR 0022） |
 | UseCase の具象（サーバー） | `<動詞><名詞>UseCase`。1 つの操作に 1 つ | `DrawUseCase` | サーバーの Application |
-| UseCase の共通の戻り値（クライアント） [ADR 案] | `UseCaseResult<T>`（業務エラーの reason を Presenter に渡す） | — | クライアントの Application |
+| UseCase の共通の戻り値（クライアント） [ADR 案] | `UseCaseResult<T>`（業務エラーの reason を Presenter に渡す。Presenter が reason で文言を分ける操作があるときだけ作る。ADR 0022） | — | クライアントの Application |
 | 結果の値 | `<操作>Result`（操作の戻り値）、`<名詞>Result`（戻り値の中の 1 件分） | `DrawResult`、`GachaResult`、`ProduceEndResult` | 返すメソッドの層（UseCase の戻り値は Application、ルールの戻り値は Domain・Shared.Domain） |
 | 結果の種類（enum） | `<何の結果か>ResultKind`。親の `Result` の型が無くてもよい | `GachaResultKind`（ガチャの 1 枠が新規か重複か）、`ExamResultKind`、`UseCheckResultKind` | 同上 |
-| ある時点の値の写し | `<名詞>Snapshot` | `ProduceSnapshot` | 使う層 |
+| ある時点の値の写し（保存・復元のための平らな写し） | `<名詞>Snapshot`。RPC の応答の写し（UseCase の戻り値）には使わず、`<操作>Result` にする | `ProduceSnapshot`（Shared.Domain） | 使う層 |
 | 状態（class・record） | `<名詞>State` | `LessonState`、`RandomStreamState` | 使う層 |
 | 保存される進行の段階（enum） | `<名詞>Status` | `ProduceSessionStatus` | 使う層 |
 | それ以外の分類（enum） | `<名詞>Kind` | `ItemKind`、`CostKind` | 使う層 |
@@ -114,6 +117,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 - テストのクラスは `<対象>Tests`。メソッドは `Method_Condition_Result` を許す（CLAUDE.md）
 - テストの偽物は `Fake<IF の名前から I を除いたもの>`（`FakeGachaService`、`FakeGachaUseCase`）
 - クライアントのテストのアセンブリは `Uta.Client.Tests.EditMode`
+- テストのデータを組み立てる static の補助は `Test<名詞>`（`TestMasterData`・`TestProduce`）。置き場は `Tests/EditMode/Support/`。ready の計画にある `GachaFixtures`・`LessonTestData` は計画の名前のまま（実装のときに改名しない）
 
 ### 9. 補助の役割の接尾辞
 
@@ -148,7 +152,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | Shared.Domain の `ExamOutcome`、クライアントの `PlayerSignInOutcome`、サーバーの `GrantOutcome` | `ExamResultKind`・`PlayerSignInResultKind`・`GrantResultKind` | 2章 |
 | Shared.Domain の enum の `UseCheckResult`・`LessonApplyResult`・`ProduceApplyResult` | `UseCheckResultKind`・`LessonApplyResultKind`・`ProduceApplyResultKind` | 2章 |
 | プロパティ名の `Outcome`・`ExamOutcome`（`DrawResultDto.Outcome`、`ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない |
-| クライアントの `AccountState`（enum） | `AccountStatus` | 2章（`State` は class・record） |
+| クライアントの `AccountState`（enum） | 削除する（`IDeviceAuthPort` が無くなると使う側が無い。`AccountStatus` に改名すると基盤の `VolTech.Client` の `AccountStatus` と衝突するので改名しない）[ADR 案] | 2章、ADR 0022。基盤移行の計画 |
 | サーバーの `GachaStatus`（record。`GetGachasUseCase` の戻り値の 1 件分） | `<名詞>Result` の形の名前（`GachaResult` は使用済みなので、触る実装計画で決める） | 2章（`Status` は enum） |
 | サーバーの `ProduceView`・`ProduceViewBuilder` | `ProduceStateResult`・`ProduceStateResultFactory` | 1章（`View` はクライアントだけ）・7章 |
 | サーバーの `ProduceEndSummary` | `ProduceEndResult` | 2章 |
@@ -159,9 +163,12 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
 | 計画にある `OwnedListBuilder`・`DialogService` | `OwnedListFactory`・`DialogOpener` | 7章・9章（`Builder` は Editor、`Service` は通信） |
-| 計画にある `OwnedSelectionRequest` | `OwnedSelection` | 1章（`Request` は通信だけ） |
-| 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEnding`（Contracts の型を写さず、Application の結果の型に入れる） | 1章・2章 |
-| 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction` など） | Contracts と同じ名前にしない名前（読み替えのときに決める） | 1章 |
+| 計画にある `OwnedSelectionRequest` | `Request` を外した名前（`OwnedSelection` は owned の計画の結果の型と同じ名前なので使わない。owned の読み替えで決める） | 1章（`Request` は通信だけ） |
+| 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEndKind`（Contracts の `ProduceEnding` と同じ名前にしない） | 1章・2章 |
+| 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction`・`MasterItemKind`） | 作らない（`IProduceUseCase` のメソッドを操作ごとに分ける。`MasterItemKind` はマスタの `ItemKind`） | 1章 |
+| 計画にある `ProduceProgress`・`ProduceSession` | `ProduceStateResult`・`ProduceSessionState` | 1章（Shared.Domain の `ProduceSnapshot` と同名にしない）・2章 |
+| 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus`・`DrawStatus`・`SupportStatus` など） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
+| サーバーのリポジトリの `ListAsync` | `FindAllAsync` [ADR 案] | 2章、ADR 0021 |
 | クライアントの `GachaLineRow` | `GachaLineRowView` | 6章 |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
@@ -169,7 +176,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot`（サーバー・クライアント） | `IdolEntity`・`SupportCardEntity`・`PlayerEntity` [ADR 案] | 2章、ADR 0021 |
 | クライアントの `PlayerCache` | `IPlayerRepository` の実装と、UI の状態の型 [ADR 案] | ADR 0021 |
 | クライアントの `IPlayerPort`・`IDeviceAuthPort`・`PlayerGateway`・`DeviceAuthGateway`・`EnterPlayerUseCase`・`SignInUseCase` と、その結果の型（`PlayerSignInResult` など） | UseCase の IF と Infrastructure の具象 [ADR 案] | ADR 0022 |
-| 計画にある `PortResult<T>` | `UseCaseResult<T>` [ADR 案] | 2章、ADR 0022 |
+| 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 | `Uta.Client.Infrastructure.Tests.EditMode` | `Uta.Client.Tests.EditMode` | 8章 |
 
@@ -178,7 +185,5 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 ## 未決事項
 
-- サーバーの `GachaStatus` の新しい名前、Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け、Contracts の enum のクライアントの写しの名前。触る実装計画（読み替え）で決める
-
-- クライアントの UseCase の具象の名前（IF と対にして `<機能>UseCase` にする案）。ADR 0022 を実装する計画で決める
+- サーバーの `GachaStatus` の新しい名前、Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け、`OwnedSelectionRequest` の新しい名前。触る実装計画（読み替え）で決める
 - サーバーの `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow` を、エンティティにするか `Record` にするか。ADR 0021 を実装する計画で決める

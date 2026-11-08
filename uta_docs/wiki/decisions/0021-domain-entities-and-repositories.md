@@ -10,6 +10,8 @@ updated: 2026-11-08
 
 決定はどれも 2026-11-08 にユーザーが決めた（経緯は [raw の記録](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation の記録](../../raw/2026-11-08-presentation-rules-decisions.md) と、設計書のレビューでの判断を書いたコミットのメッセージ）。
 
+**accepted にする時点**: [ADR 0022](0022-client-external-concretes-in-infrastructure.md) の「accepted にする時点と、進めてよいこと」と同じ（proposed のまま順 0 で実装し、順 0 の PR で 0020〜0022 をまとめて判断する。サーバーのコードはサーバー側の実装計画まで今の形のまま）。
+
 ## 状況
 
 ADR 0008 は「共通の型を各側のエンティティが包む（合成）」としているが、エンティティをどの層に何という名前で置くかは決めていない。
@@ -29,7 +31,8 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 ### クライアント
 
 - **Domain の層を asmdef `Uta.Client.Domain` で作る**（`Assets/Scripts/Domain/`）。参照するのは `Uta.Shared.Domain` と `Uta.Client.MasterData`（[ADR 0020](0020-masterdata-referenced-outside-shared-domain.md)。MasterMemory・MessagePack の DLL の参照も ADR 0020 の形）だけ。参照されるのは Application・Infrastructure・Presentation・Bootstrap・テスト
-- **リポジトリの IF は同期にする**（UniTask を参照しない）。今の保存先はメモリのキャッシュだけで、非同期にする理由が無い。同期なら、読む側が書き込みの途中の値を見ることもない。非同期が要る保存先（セーブデータなど）は、Infrastructure が起動時に読み込んでからリポジトリに入れる。前提: リポジトリの読み書きはすべてメインスレッドで行い、共通レスポンスの反映（`PlayerCommonApplier`）は 3 つのリポジトリへの書き込みの間で await しない。基盤が Applier をどのスレッドで呼ぶかは、共通レスポンスの計画で確かめる
+- **リポジトリの IF は同期にする**（UniTask を参照しない）。今の保存先はメモリのキャッシュだけで、非同期にする理由が無い。同期なら、読む側が書き込みの途中の値を見ることもない。非同期が要る保存先（セーブデータなど）は、Infrastructure が起動時に読み込んでからリポジトリに入れる。前提: リポジトリの読み書きはすべてメインスレッドで行い、共通レスポンスの反映（`PlayerCommonApplier`）は 3 つのリポジトリへの書き込みの間で await しない。基盤が Applier をどのスレッドで呼ぶかは、共通レスポンスの計画で基盤のソースを読んで確かめ、実行での確認は `Common` を返す RPC を最初にクライアントから呼ぶ gacha の計画の Play で行う（共通レスポンスの計画の時点では、クライアントがその RPC をまだ呼ばないため）。`PlayerUseCase`（サインイン）の書き込みのスレッドは、基盤移行の計画の診断で確かめる
+- **取得のメソッド名は、1 件が `Find`（無ければ null）、全件が `FindAll`**（サーバーの `FindAsync`・`FindAllAsync` と同じ語。[naming.md](../architecture/naming.md) 2章）[決定。2026-11-08。ユーザーの判断]
 - **リポジトリはエンティティごとに分け、処理は最大で取得・Upsert・Remove・全件の置き換え（`ReplaceAll`）の 4 つ**。各リポジトリは使うものだけを持つ（1 人分の `IPlayerRepository` は取得・Upsert だけ、など）。保存先はローカル（メモリのキャッシュ）。サーバーとの通信はリポジトリに書かない。`ReplaceAll` はサインインで全件を取り直したときに使う（サーバーで消えたものもキャッシュから消える）
 - **リポジトリの IF は、読み取り専用と書き込みに分ける**（.NET の `IReadOnlyList<T>` / `IList<T>` と同じ形）
   - `IReadOnly<名詞>Repository`: 取得だけ
@@ -42,7 +45,7 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 
 ### サーバー
 
-- **リポジトリの IF を Application から Domain に移し、メソッドは今の SQL の形のまま**にする。条件付きの更新（`TrySpend…`・`TryLimitBreakAsync`）、楽観ロック（`TryUpdateAsync`。[ADR 0010](0010-database.md)）、加算、追記（ガチャ履歴・プロデュース結果）は、1 文の SQL で正しさを守っているので、取得・Upsert・Remove の形に揃えない
+- **リポジトリの IF を Application から Domain に移し、メソッドは今の SQL の形のまま**にする。条件付きの更新（`TrySpend…`・`TryLimitBreakAsync`）、楽観ロック（`TryUpdateAsync`。[ADR 0010](0010-database.md)）、加算、追記（ガチャ履歴・プロデュース結果）は、1 文の SQL で正しさを守っているので、取得・Upsert・Remove の形に揃えない。**取得のメソッド名だけはクライアントと揃える**: 1 件は `FindAsync`（今のまま）、全件は `ListAsync` → `FindAllAsync`（サーバー側を移す実装計画で改名する）[決定。2026-11-08。ユーザーの判断]
 - リポジトリはテーブルの単位のまま（`IGachaRepository` のように、エンティティを持たないものも残す）
 - **IF のシグネチャに出る型は、すべて IF と一緒に Domain に移す**。今 Application にあるもの: `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot`（エンティティに改名）、`PlayerBalance`・`ProduceReward`・`ProduceSessionStatus`・`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow`。移さないと、アーキテクチャテスト（Domain は Application を参照しない）が落ちる
 - **読み取り専用の IF は作らない**。分ける目的（Presentation に書けない型を渡す）に当たる使い手が、サーバーにはいない。共通レスポンスの `PlayerDiffCollector` はリポジトリを読むだけだが、Infrastructure の型で、その層はもともと書き込みもする
@@ -76,8 +79,8 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
   - [repository-layout.md](../architecture/repository-layout.md) 2章の木、3章の asmdef の表と Client.Domain の行、4章の表の Domain の行、6.1 の「Client.Domain は今は作らない」
   - [glossary.md](../glossary.md) の Server.Domain・Client.Domain・ポートの項。エンティティ・リポジトリの項を足す
   - [screen-design.md](../architecture/screen-design.md) 7.5 の `PlayerCache.Current`
-- **共通レスポンスの player_diff（`PlayerDiff`）はエンティティではない**。`PlayerDiff` は Contracts の DTO で、操作の RPC（ガチャ・強化・プロデュースの完了など）の結果を、個々のレスポンスの項目から拾わず、1 つの共通の処理（`PlayerCommonApplier`）でクライアントのリポジトリに反映するための入れ物。反映の処理が DTO をエンティティに直し、各リポジトリに Upsert・Remove する。サインインは今どおり全件を置き換え（`ReplaceAll`）、`RefreshPlayerUseCase` も安全網として残す（[共通レスポンスの計画](../../plans/2026-11-08-common-response-player-diff.md) 0章 4・9）
-- 共通レスポンスの計画は次のように読み替える: Application の `PlayerDiffData` と `PlayerCache.Apply` は作らない。`PlayerCommonApplier` が `IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository` に書く。サーバー側（`PlayerDiffCollector` の `Touch…` を呼ぶ位置と引数）は、リポジトリの IF の置き場が変わるだけで中身は変わらない
+- **共通レスポンスの player_diff（`PlayerDiff`）はエンティティではない**。`PlayerDiff` は Contracts の DTO で、操作の RPC（ガチャ・強化・プロデュースの完了など）の結果を、個々のレスポンスの項目から拾わず、1 つの共通の処理（`PlayerCommonApplier`）でクライアントのリポジトリに反映するための入れ物。反映の処理が DTO をエンティティに直し、各リポジトリに Upsert・Remove する。サインインは今どおり全件を置き換え（アイドル・サポートカードは `ReplaceAll`、1 人分のプレイヤーは `Upsert`）、サインインでの取り直し（計画の `RefreshPlayerUseCase`。読み替えで `IPlayerUseCase.RefreshAsync`）も安全網として残す（[共通レスポンスの計画](../../plans/2026-11-08-common-response-player-diff.md) 0章 4・9）
+- 共通レスポンスの計画は次のように読み替える（計画の読み替えの節に書いた）: Application の `PlayerDiffData` と `PlayerCache.Apply` は作らない。`PlayerCommonApplier` が `IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository` に書く。サーバー側の `PlayerDiffCollector` の `Touch…` を呼ぶ位置と引数は変わらない。サーバー側を移す実装計画では、コレクターが受けるリポジトリの IF の置き場（Domain）・エンティティの型の名前・`ListAsync` → `FindAllAsync` の改名に合わせて直す
 - ready のクライアントの画面の計画（`PlayerCache` を受ける形）を読み替える。[api-design.md](../architecture/api-design.md) の型の名前も、改名のときに直す
 
 ## 見直す条件
