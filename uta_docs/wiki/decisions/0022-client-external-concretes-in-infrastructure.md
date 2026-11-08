@@ -16,7 +16,7 @@ updated: 2026-11-08
 
 - ADR 0020・0021・0022 の 3 本は、**proposed のまま順 0（上の計画）で実装し、順 0 の PR で 3 本まとめて accepted にするかを判断する**。順 0 より前に accepted にはしない
 - proposed の間に進めてよいこと: ready のクライアントの画面の計画と共通レスポンスの計画に、3 本の形への「読み替え」の節を案として書くこと、順 0 を実装すること。順 0 以外の読み替えの節の実装は、accepted の後
-- **採らないと判断したら**、順 0 の同じ PR で、ADR に由来する部分（asmdef `Uta.Client.Domain`・`Uta.Client.MasterData` の追加と生成物の移動、エンティティとリポジトリ、UseCase の IF と Infrastructure の具象、その偽とテスト）を今の形に戻す。[naming.md](../architecture/naming.md) に由来する改名（`ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`・`CardCatalogFactory`・テストのアセンブリ `Uta.Client.Tests.EditMode`）は戻さない。各計画の読み替えの節は使わない
+- **採らないと判断したら**、順 0 の同じ PR で、ADR に由来する部分を今の形に戻す: asmdef `Uta.Client.Domain`・`Uta.Client.MasterData` の追加と生成物の移動（生成物は Infrastructure に戻す）、エンティティとリポジトリ（→ `PlayerCache` など）、UseCase の IF と Infrastructure の具象とその偽・テスト（→ ポートとゲートウェイ）、`MemoryDatabase` の DI への登録（ADR 0020。[masterdata-pipeline.md](../architecture/master/masterdata-pipeline.md)「`MemoryDatabase` 自体は DI に登録しない」に戻す）。**戻さないもの**（[naming.md](../architecture/naming.md) に由来し、ADR の採否と関係ない）: 改名 `ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`・`CardCatalogFactory`、テストのアセンブリ `Uta.Client.Tests.EditMode` と名前空間 `Uta.Client.Tests`、`MasterDataLoader.LoadFromStreamingAssetsAsync` で読んでから `CardCatalogFactory.Create(db)` する形（Factory は I/O をしない: naming.md 7章）。後の計画の本文に出る旧い名前は、この改名後の名前で読む。各計画の「ADR 0020〜0022 の読み替え」の節は使わない（「基盤 11d9b06 への読み替え」の節は使う）。この一覧が正で、計画の節はこの一覧を指す
 - 3 本のうちサーバーに関わる決定（ADR 0020 のサーバーの Catalog をやめること、ADR 0021 のサーバーのリポジトリの IF を Domain に移すこと）は、順 0 で accepted にしても、サーバーのコードはサーバー側の実装計画まで今の形のまま。それまでサーバーの wiki（`server/`・`repository-layout.md` のサーバーの部分・`glossary.md` の Server.Domain）は今のコードの説明として残す
 
 ## 状況

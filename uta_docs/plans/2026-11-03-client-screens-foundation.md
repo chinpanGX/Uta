@@ -24,7 +24,7 @@ spec: ../wiki/architecture/screen-design.md
 | `PlayerCache`・`PlayerSnapshot`・`OwnedIdol`・`OwnedSupportCard`・`RefreshPlayerUseCase` | Domain の `IReadOnlyPlayerRepository`／`IPlayerRepository`（`PlayerEntity`）、`IReadOnlyIdolRepository`／`IIdolRepository`（`IdolEntity`）、`IReadOnlySupportCardRepository`／`ISupportCardRepository`（`SupportCardEntity`）。取得は `Find`（1 件。無ければ null）・`FindAll`（全件）。取り直しは `IPlayerUseCase.RefreshAsync()`（失敗は `InvalidOperationException`。移行計画 R3）。**Presenter はリポジトリを受けない**: 表示の読み取りは DtoFactory（`IReadOnly…` だけを受ける）、書き込みは Infrastructure の具象と `PlayerCommonApplier` だけ | ADR 0021 |
 | 3.3.5「RPC が成功したあとの取り直しの失敗は、印を付けて成功を返す」 | 印は持たない。取り直しは Infrastructure の具象（`<機能>UseCase`）が RPC の成功のあとに `IPlayerUseCase.RefreshAsync()` を呼び、`InvalidOperationException` を握りつぶして成功を返す（formation R2 の `TryRefreshAsync` と同じ形。ダイアログは `ApiCore` が出した分だけ）。シーンをまたいでホームへ行く前の取り直しも、状態を変えた操作の具象が済ませる（formation の決めたこと 10）。Presenter は取り直しを呼ばない | ADR 0022 |
 | `cache.Current.HasActiveProduce`・`DiscardedProduce`、`cache.Current == null` | `PlayerEntity.HasActiveProduce`・`DiscardedProduce`（サインインの応答の値。共通レスポンスの反映では据え置き）、`players.Find() == null` | ADR 0021 |
-| `PlayerCache.DiscardNoticeShown`・`MarkDiscardNoticeShown` | Application の状態の型 `DiscardNoticeState`（R2） | ADR 0021 |
+| `PlayerCache.DiscardNoticeShown`・`MarkDiscardNoticeShown` | Application の状態の型 `DiscardNoticeState`（R2）。書くのは `PlayerUseCase`（具象）だけで、Presenter は `IPlayerUseCase.MarkDiscardNoticeShown()` を呼ぶ（ADR 0022「状態の型への書き込みは具象が行う」） | ADR 0021・0022 |
 | `<名詞>ViewData` | **`<View 名>Dto`**。型ごとに次の順で決める: (1) 行の View のクラス（`<名詞>RowView`）が受けるなら、その名前 + `Dto`（`OwnedRowViewData` → `OwnedRowViewDto`、`FormationSlotViewData` → `FormationSlotRowViewDto`、`ExamRankingRowViewData` → `ExamRankingRowViewDto`、`DeckSectionViewData` → `DeckSectionHeaderRowViewDto`（行は `DeckSectionHeaderRowView`）、gacha の `GachaRateLine` → `GachaLineRowViewDto`）。**複数の画面で使う行**（`SkillCardRowView`。手札と獲得の選択肢）は、行の Dto `SkillCardRowViewDto` に表示の値だけ（title・costs・description）を持たせ、画面ごとの ID・enabled は画面側の Dto に持たせる（naming.md 6章）: `HandCardViewData` → `LessonHandRowViewDto(int instanceId, bool enabled, SkillCardRowViewDto card)`、`CardOfferItemViewData` → `CardOfferRowViewDto(int index, SkillCardRowViewDto card)`。(2) 行の View のクラスが無く、画面の IF の `Set…(IReadOnlyList<…>)` が受ける一覧の要素なら `<画面><項目>RowViewDto`（`WeekActionViewData` → `WeekActionRowViewDto`、`ClassOptionViewData` → `ClassOptionRowViewDto`）。(3) 画面全体に 1 つ渡すものは `<画面>ViewDto`（`HomeViewDto`・`FormationViewDto`）。置き場は、その画面の Presenter と同じフォルダ（`Presentation/<機能>/`。共用の行の Dto は `Presentation/Produce/`）に 1 ファイル 1 型 | naming.md 6章 |
 | Presenter が表示用の文言・値を組み立てる（`Refresh()` の中の文字列、`BuildHeader`、static の組み立ての呼び出し） | 画面ごとの **`<画面>DtoFactory`**（Presentation の `Presentation/<機能>/`。インスタンス。状態を持たず、ルートのスコープにシングルトンで登録。受けてよいのは `IReadOnly<名詞>Repository`・`MemoryDatabase`・`ICardCatalog`・Application の状態の型と外部に触れない具象だけ。リポジトリに書かず、通信・遷移・View に触れない）。Presenter は DtoFactory を受け、`view.Set…(dto)` を呼ぶだけ。`DisplayText` は Presentation に残し、DtoFactory から呼ぶ。複数の画面で使う行は `<行>DtoFactory`（`SkillCardRowDtoFactory`） | ADR 0022、naming.md 6章 |
 | `CardSummaryBuilder`・`CardSummary`（week）、`LessonCardText.Create` の中の組み立て（lesson） | `CardSummaryBuilder`・`CardSummary` は作らない。`SkillCardRowDtoFactory`（Presentation。`ICardCatalog`・`MemoryDatabase` を受ける）が `SkillCardRowViewDto` を作り、`DisplayText.Card`・`Costs`・`LessonCardText` は Dto を受ける形にする（名前の細部は week・lesson の読み替えで決める） | naming.md「今のコードとの差」、ADR 0020 |
@@ -77,7 +77,8 @@ public sealed class FeaturedIdolPicker
 }
 ```
 
-- 移行計画の `PlayerUseCase`（Infrastructure）のコンストラクターの**末尾**に `DiscardNoticeState notice` を足し（`PlayerUseCase(IPlayerService player, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards, DiscardNoticeState notice)`）、`EnterAsync`・`RefreshAsync` が**成功して**リポジトリを置き換えたあとに `notice.Reset()` を呼ぶ（本文の「`Set` で false に戻る」。失敗では呼ばない）。既存の `PlayerUseCaseTests` の `new PlayerUseCase(...)` に `new DiscardNoticeState()` を足し、`Enter_Success_ResetsDiscardNotice`・`Refresh_Success_ResetsDiscardNotice`（`MarkShown()` のあとに成功 → `Shown == false`）を足す
+- 移行計画の `IPlayerUseCase` に `void MarkDiscardNoticeShown();`（`notice.MarkShown()`。通信しない）を足す
+- 移行計画の `PlayerUseCase`（Infrastructure）のコンストラクターの**末尾**に `DiscardNoticeState notice` を足し（`PlayerUseCase(IPlayerService player, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards, DiscardNoticeState notice)`）、`EnterAsync`・`RefreshAsync` が**成功して**リポジトリを置き換えたあとに `notice.Reset()` を呼ぶ（本文の「`Set` で false に戻る」。失敗では呼ばない）。既存の `PlayerUseCaseTests` の `new PlayerUseCase(...)` に `new DiscardNoticeState()` を足し、`Enter_Success_ResetsDiscardNotice`・`Refresh_Success_ResetsDiscardNotice`（`MarkShown()` のあとに成功 → `Shown == false`）・`MarkDiscardNoticeShown_SetsFlag` を足す
 - `MasterItemKind`（3.4）は作らない（gacha が `Uta.MasterData.ItemKind` を使う）
 
 ### R3. Presentation（タイトル・ホーム）
@@ -116,17 +117,18 @@ public sealed class PlaceholderCharacterStage : ICharacterStage
 // Presentation/Home/HomeViewDto.cs
 public sealed class HomeViewDto
 {
-    public HomeViewDto(string profileText, bool resumeVisible, string primaryLabel, bool discardedProduce, int stageIdolId, string stageIdolName);
-    // stageIdolId が 0 なら所持なし（stageIdolName は null）。discardedProduce は ShowDiscardNoticeIfNeededAsync が使う（表示の値ではないが、Presenter がリポジトリを読まないためここに載せる）
+    public HomeViewDto(string profileText, bool resumeVisible, string primaryLabel, bool showDiscardNotice, int stageIdolId, string stageIdolName);
+    // stageIdolId が 0 なら所持なし（stageIdolName は null）。showDiscardNotice は「破棄の知らせのダイアログを出すか」（表示の値。ADR 0022 の DtoFactory の線の中）
 }
 
 // Presentation/Home/HomeDtoFactory.cs（ルートのスコープにシングルトン）
 public sealed class HomeDtoFactory
 {
-    public HomeDtoFactory(IReadOnlyPlayerRepository players, FeaturedIdolPicker picker, MemoryDatabase db);
+    public HomeDtoFactory(IReadOnlyPlayerRepository players, FeaturedIdolPicker picker, DiscardNoticeState notice, MemoryDatabase db);   // notice は読むだけ
     /// <summary>
     /// var p = players.Find(); null なら null。
     /// profileText = "プレイヤーLv " + p.Level + "　ガチャ通貨 " + p.GachaCurrency.ToString("N0", CultureInfo.InvariantCulture)（間は全角の空白 1 つ。本文の HomePage.SetProfile の書式）。
+    /// showDiscardNotice = p.DiscardedProduce && !notice.Shown。
     /// resumeVisible = p.HasActiveProduce（formation の読み替えが ProduceSessionState を足して読み替える）。primaryLabel = resumeVisible ? "再開" : "プロデュース"。
     /// stageIdolId = picker.Pick()。0 でなければ stageIdolName = db.IdolTable.FindByIdolId(stageIdolId).Name。
     /// </summary>
@@ -136,11 +138,11 @@ public sealed class HomeDtoFactory
 [AssetAddress(nameof(HomePage))]
 public sealed class HomePresenter : IPresenter
 {
-    [Inject] public HomePresenter(HomePage view, HomeDtoFactory dtoFactory, DiscardNoticeState notice, DialogOpener dialogs);   // : this((IHomeView)view, view.CreateStage(), dtoFactory, notice, dialogs)
-    public HomePresenter(IHomeView view, ICharacterStage stage, HomeDtoFactory dtoFactory, DiscardNoticeState notice, DialogOpener dialogs);
+    [Inject] public HomePresenter(HomePage view, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs);   // : this((IHomeView)view, view.CreateStage(), dtoFactory, player, dialogs)
+    public HomePresenter(IHomeView view, ICharacterStage stage, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs);
     // Refresh(): var dto = dtoFactory.Create(); null なら何もしない。view.SetProfile(dto.ProfileText); view.SetResume(dto.ResumeVisible, dto.PrimaryLabel);
     //   dto.StageIdolId == 0 ? stage.Clear() : stage.ShowIdol(dto.StageIdolId, dto.StageIdolName);（この順）。RefreshStage は無い（選び方は FeaturedIdolPicker）
-    // ShowDiscardNoticeIfNeededAsync(): var dto = dtoFactory.Create(); dto が null なら何もしない。dto.DiscardedProduce && !notice.Shown なら notice.MarkShown() してから await dialogs.ShowInfoAsync("バージョンが変わったため、進行中のプロデュースは破棄されました。")
+    // ShowDiscardNoticeIfNeededAsync(): var dto = dtoFactory.Create(); dto が null なら何もしない。dto.ShowDiscardNotice なら player.MarkDiscardNoticeShown() してから await dialogs.ShowInfoAsync("バージョンが変わったため、進行中のプロデュースは破棄されました。")
     // ほか（InitializeAsync・DidPushEnter・DidPopEnter・Dispose・OpenXxxAsync）は本文のまま
 }
 
@@ -206,7 +208,7 @@ public sealed class FakeDeviceAuthUseCase : IDeviceAuthUseCase
 // Tests/EditMode/Fakes/FakePlayerUseCase.cs（本文 3.3.8 の StubPlayerPort、formation の FakePlayerPort の代わり。formation 以降も使う）
 public sealed class FakePlayerUseCase : IPlayerUseCase
 {
-    public FakePlayerUseCase(CallLog log = null);   // log が null なら記録しない。Title のテストは null、ErrorNavigator・formation 以降のテスト（"Refresh" の順を見る）は同じ CallLog を渡す
+    public FakePlayerUseCase(CallLog log = null, DiscardNoticeState notice = null);   // notice があれば MarkDiscardNoticeShown が notice.MarkShown() する   // log が null なら記録しない。Title のテストは null、ErrorNavigator・formation 以降のテスト（"Refresh" の順を見る）は同じ CallLog を渡す
     /// <summary>EnterAsync の 1 回ごとの振る舞い。空なら new EnterPlayerResult(afterRegistration, afterRegistration, Player, 0, 0)。log があれば "Enter:" + afterRegistration を記録。</summary>
     public Queue<Func<UniTask<EnterPlayerResult>>> EnterResults { get; }
     /// <summary>RefreshAsync の 1 回ごとの振る舞い。空なら完了済み。失敗は () => throw new InvalidOperationException("sign-in failed: x")。log があれば "Refresh" を記録。</summary>
@@ -226,7 +228,7 @@ public sealed class FakePlayerUseCase : IPlayerUseCase
   - `UtaErrorsTests` → `ErrorDefinitionsTests`（`new ErrorPolicyProvider(ErrorDefinitions.Create())`）
   - `TitlePresenterTests`: `StubDeviceAuthPort`・`StubPlayerPort` で作った `SignInUseCase`・`EnterPlayerUseCase` → `new FakeDeviceAuthUseCase()`・`new FakePlayerUseCase()`（`log` は渡さない。本文の期待する記録の並び（`"SetStatus:…"`, `"GoToHome"`）はそのまま）。`StartAsync_SignInFails_ShowsRetry` は `deviceAuth.SignInResults.Enqueue(() => throw new InvalidOperationException("x"))`。`StartAsync_WhileRunning_Ignored`・`_DisposedDuringSignIn_…` の未完了の源は `SignInResults` に `() => source.Task`（`UniTaskCompletionSource<bool>`）
   - `TitleEntryTests`: `TitleDiagnostics` は `new TitleDiagnostics(deviceAuth, player, new ConnectivityCheck(deviceAuth, player), code => codes.Add(code))`
-  - `HomePresenterTests`: 共通の組み立ては `var db = TestMasterData.Build(b => b.Append(new[] { TestMasterData.Idol(...), ... }));`（育成アイドルの要らないテストは空の `Build(_ => { })`）、`var players = new PlayerRepository(); var idols = new IdolRepository();`、`new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), db)`、`new HomePresenter(view, stage, dtoFactory, new DiscardNoticeState(), dialogs)`。`PlayerCache` に `Set` していた所は `players.Upsert(new PlayerEntity(...))`、所持の育成アイドルは `idols.ReplaceAll(new[] { new IdolEntity(id, 0, 0, 0), ... })`。記録の形は `"SetProfile:プレイヤーLv 12　ガチャ通貨 3,250"`・`"SetResume:True,再開"`、ステージは `"ShowIdol:2,<名前>"`・`"ClearStage"`。`InitializeAsync_ShowsProfileAndResume` の期待は `"SetProfile:…"`, `"SetResume:True,再開"`, `"ClearStage"`。`ShowDiscardNotice_*` の `cache.DiscardNoticeShown` は `notice.Shown`
+  - `HomePresenterTests`: 共通の組み立ては `var db = TestMasterData.Build(b => b.Append(new[] { TestMasterData.Idol(...), ... }));`（育成アイドルの要らないテストは空の `Build(_ => { })`）、`var players = new PlayerRepository(); var idols = new IdolRepository();`、`var notice = new DiscardNoticeState();`、`new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db)`、`new HomePresenter(view, stage, dtoFactory, new FakePlayerUseCase(log, notice), dialogs)`（`FakePlayerUseCase` の第 2 引数 `DiscardNoticeState notice = null` は、`MarkDiscardNoticeShown` で書く先。記録は `"MarkDiscardNoticeShown"`。ADR 0022 の偽の規約の例外）。`PlayerCache` に `Set` していた所は `players.Upsert(new PlayerEntity(...))`、所持の育成アイドルは `idols.ReplaceAll(new[] { new IdolEntity(id, 0, 0, 0), ... })`。記録の形は `"SetProfile:プレイヤーLv 12　ガチャ通貨 3,250"`・`"SetResume:True,再開"`、ステージは `"ShowIdol:2,<名前>"`・`"ClearStage"`。`InitializeAsync_ShowsProfileAndResume` の期待は `"SetProfile:…"`, `"SetResume:True,再開"`, `"ClearStage"`。`ShowDiscardNotice_*` の `cache.DiscardNoticeShown` は `notice.Shown`（期待する記録の `"Info:…"` の前に `"MarkDiscardNoticeShown"` が入る）。`HomeDtoFactoryTests` に `Create_ShowDiscardNotice_WhenDiscardedAndNotShown`・`Create_HidesDiscardNotice_AfterShown` を足す
   - `PlaceholderCharacterStageTests`: `new PlaceholderCharacterStage(label)`、`ShowIdol(2, "テストアイドル")` で `label.text == "テストアイドル"`。`Constructor_Null_Throws` は `label` だけ
   - `HomeEntryTests`: `cache.Current == null` → 空の `PlayerRepository`、`Set` 済み → `players.Upsert(...)`
   - `ErrorNavigatorTests`: コンテナーには `builder.RegisterInstance<IPlayerUseCase>(fake);`（`new FakePlayerUseCase(log)`。同じ `CallLog` に、`RefreshAsync` が**呼ばれた時点**（積んだ `Func` を呼ぶ前）で `"Refresh"` を記録する。`PlayerCache`・`RefreshPlayerUseCase` の登録は無い）。期待する記録は本文から次のように変わる: `GoToHomeAsync_ResolvesRefreshLazily_RefreshesThenGoesHome` は `"Refresh"`, `"GoToHome"`（「`PlayerCache.Current` が `port.Snapshot` と同じ」の確認は `fake.RefreshCount == 1` に代える）。`_WhileRefreshing_SkipsRefresh` は `GatedPlayerPort` の代わりに `fake.RefreshResults.Enqueue(() => gate.Task)`（`gate` は `UniTaskCompletionSource`）: `var first = navigator.GoToHomeAsync();` → `log` が `"Refresh"` だけ、`RefreshCount == 1` → `await navigator.GoToHomeAsync();` → `log` が `"Refresh"`, `"GoToHome"`、`RefreshCount == 1` → `gate.TrySetResult()` → `await first` → `log` が `"Refresh"`, `"GoToHome"`, `"GoToHome"` → もう 1 回 `GoToHomeAsync()`（`RefreshResults` は空なので完了済み）→ `RefreshCount == 2`。`_RefreshFails_StillGoesHome` は `RefreshResults.Enqueue(() => throw new InvalidOperationException("sign-in failed: x"))` → `log` が `"Refresh"`, `"GoToHome"`（「`PlayerCache.Current` は null のまま」の確認は無い）。`_ResolveFails_StillGoesHome` は本文のまま（何も登録しないコンテナー。`log` は `"GoToHome"` だけ）
