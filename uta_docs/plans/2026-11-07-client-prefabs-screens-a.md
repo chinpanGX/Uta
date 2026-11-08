@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の Prefab 2/3 Title・Home・ガチャ・所持一覧
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -352,7 +352,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
         /// <summary>AddChild(parent, "Main") → AddVertical(LayoutSpec.Column) → SetLayout(flexibleHeight: 1)。戻り値は Main。</summary>
         public static RectTransform AddMain(Transform parent);
 
-        /// <summary>AddChild(parent, name) → AddHorizontal(LayoutSpec.Row) → SetLayout(minHeight: height, preferredHeight: height)。</summary>
+        /// <summary>AddChild(parent, name) → AddHorizontal(LayoutSpec.Row) → SetLayout(minHeight: height, preferredHeight: height, flexibleHeight: 0)。flexibleHeight 0 は、伸ばす H が true の HLG が 1 を返して親の VLG の余りを吸うのを防ぐ。</summary>
         public static RectTransform AddRow(Transform parent, string name, float height);
 
         /// <summary>AddChild(parent, name) → SetLayout(flexibleHeight: 1)。</summary>

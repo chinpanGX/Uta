@@ -14,7 +14,42 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Screens
   m_GUID: f34a6316fe9b11143a913f232f4e7aff
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 32f874e0601f5b64c84c00ecab12dbec
+    m_Address: GachaRatesModal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 87858ce56001ecd4d977e5e5947c6232
+    m_Address: SupportDetailPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: aae437b14e1cee14aa5362c51a5a13e9
+    m_Address: HomePage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: adfab18dc2648d54db5010cd3ef4c9f0
+    m_Address: TitlePage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b5df4c62d6bc7354d851d3131ffd8add
+    m_Address: GachaPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cddba6ff92756034eb6d4c4e4b8ff9f8
+    m_Address: GachaResultModal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d35d2765678984b4285f0940d359b6df
+    m_Address: OwnedPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: c170c88d72bab5d419ad9b9d9ab91d13, type: 2}
   m_SchemaSet:

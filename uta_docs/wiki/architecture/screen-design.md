@@ -149,7 +149,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 
 | 要素 | 置き場 | 役割 |
 |---|---|---|
-| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く。共通部品は 10 個: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`・`BusyBlocker`・`UiRoot`（[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) 3.4）。画面の Prefab だけを Addressables の `Screens` に登録する。部品は画面の Prefab にネストし、`UiRoot` はシーンに置く（どちらも登録しない） |
+| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く。共通部品は 10 個: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`・`BusyBlocker`・`UiRoot`（[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) 3.4）。画面の Prefab だけを Addressables の `Screens` に登録する。部品は画面の Prefab にネストし、`UiRoot` はシーンに置く（どちらも登録しない）。画面の Prefab: `Title/TitlePage`・`Home/HomePage`・`Gacha/GachaPage`・`GachaRatesModal`・`GachaResultModal`・`Owned/OwnedPage`・`SupportDetailPage`（[P2 の計画](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2。フィールドと子の対応は同 3.3）。行の Prefab（`Parts/`。登録しない）: `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow` |
 | 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う。入口は `PrefabBuildCommands`（メニュー `Uta/Prefabs/Build All`、`unity command eval` から呼ぶ `BuildAll()`）。生成クラスは `IPrefabBuilder` を実装すれば Build All に入る（`TypeCache` で集め、`Order` の順に作る） |
 | View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
 | Presenter | 同上 | View と `Application` のユースケースをつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
@@ -233,3 +233,12 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
   - `PrefabContract.FindPrefabPaths` は、フォルダ（`Assets/Prefabs/Screens` など）が無いと空を返す（画面の Prefab が 0 個のときに通るため）
   - テストの結果は `Temp/uta-test-results.xml` に出すので、`.gitignore` に `test-results.xml` を足していない
   - プレイヤーのビルド（`BuildPlayerContent` を足したあとの IL2CPP）と、フォントの二重の取り込み（画面の Prefab のバンドルとプレイヤーの両方にフォントが入るか。推測）は、ビルドを計画から外したので確かめていない。ビルドするときに `Build/` と `StreamingAssets/aa` の大きさを見る
+
+### Prefab 2/3（Title・Home・ガチャ・所持一覧。2026-11-08。[P2 の計画](../../plans/2026-11-07-client-prefabs-screens-a.md)）
+
+- **確かめた範囲**: `BuildAll()` が `built 20`（部品 10 + 行 3 + 画面 7）。EditMode のテストは、Editor を開いたまま `TestRunnerApi` で 55/55 が通った。見た目は、画面の Prefab を一時的なプレビューのシーンで 1080×1920 の Canvas（`CanvasScaler` は P1 の `UiRoot` と同じ値）に置いて `RenderTexture` に描き、PNG で目で見た。あわせて各子の矩形の大きさを計画 3.2 の計算と突き合わせた（Home の `Stage` 1216、`GachaRatesModal`・`GachaResultModal` の `Panel` 1548・1448、`OwnedPage` の `List` 1296。どれも計画どおり）。Prefab モードで開いて見る手動の確認と、Safe Area の縮みは行っていない
+- **叩き台（[screen-wireframes.md](../overview/screen-wireframes.md)）との差**（P2 の計画 決めたこと 10）: ガチャの結果は、絵のグリッドではなく 1 枠 1 行の文字にした。ガチャ名の行・画像・「交換」ボタンは置かない（gacha の C# の計画の範囲）。ホームの「プロデュース中」の帯には、週を出さない（foundation の C# の計画どおり）
+- **再生成の差分**（P2 の計画 タスク 5）: もう一度 `BuildAll()` を回すと、`OwnedPage.prefab`（と、別の回では `HomePage.prefab`）に差分が出ることがある。中身は、ネストした部品のインスタンス（`PrefabInstance`）の `stripped` のオブジェクトの fileID の付け直しと、ブロックの並び替えだけだった。値（`m_Modifications` の `propertyPath`・`value`）は同じ。`Screens.asset` のエントリは重複しない。`Prefabs/Parts/Gacha*` には差分が出なかった
+- **壊したときの確かめ**: `HomePage` の `Body/Main/Nav/NavGachaButton` を改名して保存すると、`HomePrefabTests` に絞ったテスト（`groupNames`。2 件だけが走った）で `HomePage_FieldsPointToChildren` だけが失敗し、失敗の文に `navGachaButton` と `Body/Main/Nav/NavGachaButton` が入った。改名は `HomePage.prefab` の中の `m_Name` のオーバーライドとして保存され、`Button.prefab` は変わらなかった。`BuildAll()` で戻すと全件が通った
+- **計画とのズレ**:
+  - **伸ばす H が true の HLG は、`flexibleHeight` を指定しないと 1 を返す**。そのため、行（`Nav`・`DrawRow` など）と部品 `Header`・`TabBar` が、親の VLG の余りを `Stage`・`Main` などと分け合って高くなった（例: `GachaPage` の `Header` が 720）。`ScreenLayout.AddRow` と、部品の `HeaderBuilder`・`TabBarBuilder` で `flexibleHeight: 0` を明示した（部品の変更は P1 の範囲の外）。P3 の計画で、高さを固定する HLG の行を作るときは同じようにする

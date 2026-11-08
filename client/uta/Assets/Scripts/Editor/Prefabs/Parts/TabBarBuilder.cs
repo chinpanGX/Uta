@@ -23,7 +23,8 @@ namespace Uta.Client.Editor.Prefabs.Parts
             PrefabBuildUtil.SetRect((RectTransform)root.transform, RectSpec.Top(UiTheme.TabHeight));
             PrefabBuildUtil.AddImage(root, UiTheme.Header, true);
             PrefabBuildUtil.AddHorizontal(root, new LayoutSpec(0f, 0, 0, 0, 0, TextAnchor.MiddleCenter, true, true, true, true));
-            PrefabBuildUtil.SetLayout(root, minHeight: UiTheme.TabHeight, preferredHeight: UiTheme.TabHeight);
+            // flexibleHeight 0: HLG の伸ばす H が true なので、明示しないと flexibleHeight 1 になり、親の VLG の余りを吸って高くなる
+            PrefabBuildUtil.SetLayout(root, minHeight: UiTheme.TabHeight, preferredHeight: UiTheme.TabHeight, flexibleHeight: 0f);
             var view = root.AddComponent<TabBarView>();
             PrefabBuildUtil.SetRefs(view, "tabs", new Object[0]);
             PrefabBuildUtil.SavePrefab(root, AssetPath);

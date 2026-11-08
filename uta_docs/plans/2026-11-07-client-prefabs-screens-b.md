@@ -70,7 +70,7 @@ C# は `client/` の `.editorconfig` の範囲（C# 9 の範囲。ファイル�
 表の書き方は P1 3.4 の「共通の書き方」（全面・上帯・中央・レイアウト任せ・TMP の共通の値・Image・Button の共通の値・VLG/HLG の「制御 W/H」「伸ばす W/H」・LE・「→ 部品」のネスト）に従う。加えて:
 - 「TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis」は、`TextSpec(40, UiTheme.Text, TextAlignmentOptions.MidlineLeft, wrap: false, ellipsis: true)` の意味（順に fontSize・color・alignment・折り返し（`Normal`＝wrap true／`NoWrap`）・はみ出し（`Ellipsis`／`Overflow`））。「→ `Label` TMP …」は `PrefabBuildUtil.AddLabel(parent, 名前, 文字, その TextSpec)`
 - 「`ScreenLayout.AddLabel` TMP …、高さ h」は `ScreenLayout.AddLabel(parent, 名前, 文字, その TextSpec, h)`（P2 3.4。`Label` をネストして LE h を付ける）
-- 「LE h 52」は `SetLayout(go, minHeight: 52, preferredHeight: 52)`。「LE w 200」は `preferredWidth: 200, flexibleWidth: 0`。「LE 伸び」は `flexibleHeight: 1`（縦の並びの中）か `flexibleWidth: 1`（横の並びの中）
+- 「LE h 52」は `SetLayout(go, minHeight: 52, preferredHeight: 52)`（HLG を持つ行は伸ばす H が true だと `flexibleHeight` が 1 になり親の VLG の余りを吸うので、`flexibleHeight: 0` も付ける。`ScreenLayout.AddRow` は付けている。P1 の `Header` も同じ）。「LE w 200」は `preferredWidth: 200, flexibleWidth: 0`。「LE 伸び」は `flexibleHeight: 1`（縦の並びの中）か `flexibleWidth: 1`（横の並びの中）
 - 「→ `Button` Primary "選ぶ"」は `PrefabBuildUtil.AddButtonPart(parent, 名前, "選ぶ", ButtonStyle.Primary)`
 - 色は `UiTheme` の名前（`Text`・`TextMuted`・`Accent`・`Panel`・`Header` など）
 - 出どころの略: 「W1」= screen-wireframes.md 1 編成（同様に W2〜W8）、「FM」= formation の計画、「WK」= week の計画、「LS」= lesson の計画（節の番号を付ける）
@@ -359,7 +359,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 
 | 階層 | コンポーネントと値 |
 |---|---|
-| `FormationSlotRow` | RectTransform 全面（レイアウト任せ）。Image `Panel`、raycastTarget false。LE h 130。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、`MiddleLeft`、制御 W/H true/true、伸ばす W/H false/true。`FormationSlotRowView`（labelText、selectButton、clearButton） |
+| `FormationSlotRow` | RectTransform 全面（レイアウト任せ）。Image `Panel`、raycastTarget false。LE h 130（`flexibleHeight: 0` も付ける。伸ばす H が true の HLG は指定しないと 1 を返し、親の VLG の余りを吸う）。HLG: padding 左 24・右 24・上 10・下 10、spacing 16、`MiddleLeft`、制御 W/H true/true、伸ばす W/H false/true。`FormationSlotRowView`（labelText、selectButton、clearButton） |
 | ├ `LabelText` | → `Label` TMP 32/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "枠: （空）"。LE `flexibleWidth: 1` |
 | ├ `SelectButton` | → `Button` Primary "選ぶ"。LE `minHeight: 110, preferredHeight: 110, preferredWidth: 180, flexibleWidth: 0` |
 | └ `ClearButton` | → `Button` Secondary "外す"。LE は `SelectButton` と同じ |
@@ -408,7 +408,7 @@ private const int FormationSlotCount = 5;   // FormationPresenter.SupportSlots �
 | 　　├ `SlotsTitle` | `ScreenLayout.AddLabel` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "サポートカード"、高さ 60 |
 | 　　├ `SlotList` | `ProduceLayout.AddRuntimeList(main, "SlotList", 16)`（名前は Runtime だが、ここでは生成時に子を置く） |
 | 　　│└ `Slot0`〜`Slot4` | → `FormationSlotRow`（`InstantiatePart<FormationSlotRowView>`）。`LabelText` の text を "枠1: （空）"〜"枠5: （空）" にオーバーライド |
-| 　　├ `ScenarioRow` | `AddChild` + HLG `new LayoutSpec(16, 0, 0, 0, 0, MiddleLeft, true, true, false, true)` + LE h 130 |
+| 　　├ `ScenarioRow` | `AddChild` + HLG `new LayoutSpec(16, 0, 0, 0, 0, MiddleLeft, true, true, false, true)` + LE h 130（`SetLayout(minHeight: 130f, preferredHeight: 130f, flexibleHeight: 0f)`。伸ばす H が true の HLG は `flexibleHeight` を指定しないと 1 を返し、親の VLG の余りを吸う） |
 | 　　│├ `ScenarioText` | → `Label` TMP 40/`Text`/`MidlineLeft`/NoWrap/Ellipsis、text "シナリオ: なし"。LE `flexibleWidth: 1` |
 | 　　│└ `ChangeScenarioButton` | → `Button` Secondary "変更"。LE w 200 |
 | 　　├ `Spacer` | `ScreenLayout.AddFlexibleSpacer(main, "Spacer")` |
