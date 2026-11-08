@@ -197,8 +197,12 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
   - 環境名 Production でローカルに起動できることを 1 回だけ確かめる（ZLogger のプロバイダーを含む全登録が検査を通る。DB には接続しないので、接続文字列はダミーでよい）。Bash で次を実行し、出力に `Now listening on` が出ることを確かめる（20 秒で `timeout` が止める。終了コード 124 は想定どおり）。出なかったら出力を実装メモに書いて止まる:
 
     ```bash
-    ASPNETCORE_ENVIRONMENT=Production ConnectionStrings__Default='Host=localhost;Database=uta' timeout 20 dotnet run --project server/Uta.Server --no-launch-profile
+    dotnet build server/Uta.Server
+    ASPNETCORE_ENVIRONMENT=Production ConnectionStrings__Default='Host=localhost;Database=uta' timeout 20 dotnet run --project server/Uta.Server --no-launch-profile --no-build
+    taskkill //IM Uta.Server.exe //F
     ```
+
+    `--no-launch-profile` は `launchSettings.json` の Development を使わないため。ポート 5000 を別のプロセスが使っていると `Failed to bind` で落ちるので、そのときは先に `taskkill //IM Uta.Server.exe //F` を流してからやり直す。Windows では `timeout` が止めても `Uta.Server.exe` が残ることがあるので、最後の `taskkill` で止める（残っていなければ「見つからない」と出るだけ）。2026-11-09 に今の `Program.cs` で回し、`"Hosting environment: Production"` と `Now listening on: http://localhost:5000` が出ることを確かめた
 
 - 止まる条件: `WithWebHostBuilder` の `UseEnvironment` が `Program.cs` の環境に届かず、`UseDefaultServiceProvider` の文を消しても `Build_ProductionWithSingletonCapturingScoped_Throws` が通ってしまうとき。テストの書き方を変えずに止まって報告する
 
