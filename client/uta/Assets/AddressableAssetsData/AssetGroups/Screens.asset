@@ -40,6 +40,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 28a1137f922dc274283e6e30b320ff9c
+    m_Address: Dialog
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 32f874e0601f5b64c84c00ecab12dbec
     m_Address: GachaRatesModal
     m_ReadOnly: 0

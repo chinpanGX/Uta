@@ -42,7 +42,7 @@ namespace Uta.Client.Tests
         public void Attach_SetsRootDialogsAndBusy()
         {
             var root = CreateRoot(out var busy);
-            var dialogs = new DialogOpener(null, null);
+            var dialogs = new DialogOpener(null);
             var active = new ActiveSceneUi();
 
             active.Attach(root, dialogs);
@@ -57,7 +57,7 @@ namespace Uta.Client.Tests
         {
             var root = CreateRoot(out _);
             var active = new ActiveSceneUi();
-            active.Attach(root, new DialogOpener(null, null));
+            active.Attach(root, new DialogOpener(null));
 
             active.Detach(root);
 
@@ -72,8 +72,8 @@ namespace Uta.Client.Tests
             var a = CreateRoot(out _);
             var b = CreateRoot(out _);
             var active = new ActiveSceneUi();
-            active.Attach(a, new DialogOpener(null, null));
-            active.Attach(b, new DialogOpener(null, null));
+            active.Attach(a, new DialogOpener(null));
+            active.Attach(b, new DialogOpener(null));
 
             active.Detach(a);
 
@@ -86,7 +86,7 @@ namespace Uta.Client.Tests
             var root = CreateRoot(out _);
             var active = new ActiveSceneUi();
 
-            Assert.Throws<ArgumentNullException>(() => active.Attach(null, new DialogOpener(null, null)));
+            Assert.Throws<ArgumentNullException>(() => active.Attach(null, new DialogOpener(null)));
             Assert.Throws<ArgumentNullException>(() => active.Attach(root, null));
         }
 
@@ -95,7 +95,7 @@ namespace Uta.Client.Tests
         {
             var root = CreateRoot(out _);
             var active = new ActiveSceneUi();
-            active.Attach(root, new DialogOpener(null, null));
+            active.Attach(root, new DialogOpener(null));
 
             Object.DestroyImmediate(root.gameObject);
 

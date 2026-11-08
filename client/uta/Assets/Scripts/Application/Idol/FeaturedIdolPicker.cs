@@ -6,13 +6,13 @@ namespace Uta.Client.Application.Idol
     /// <summary>ホームのステージに出す育成アイドルを選ぶ。</summary>
     public sealed class FeaturedIdolPicker
     {
-        private readonly IReadOnlyIdolRepository idols;
-        private readonly MemoryDatabase db;
+        private readonly IReadOnlyIdolRepository idolRepository;
+        private readonly MemoryDatabase memoryDatabase;
 
-        public FeaturedIdolPicker(IReadOnlyIdolRepository idols, MemoryDatabase db)
+        public FeaturedIdolPicker(IReadOnlyIdolRepository idolRepository, MemoryDatabase memoryDatabase)
         {
-            this.idols = idols;
-            this.db = db;
+            this.idolRepository = idolRepository;
+            this.memoryDatabase = memoryDatabase;
         }
 
         /// <summary>
@@ -23,9 +23,9 @@ namespace Uta.Client.Application.Idol
         {
             var bestId = 0;
             var bestRarity = int.MinValue;
-            foreach (var entity in idols.FindAll())
+            foreach (var entity in idolRepository.FindAll())
             {
-                var rarity = (int)db.IdolTable.FindByIdolId(entity.MasterId).Rarity;
+                var rarity = (int)memoryDatabase.IdolTable.FindByIdolId(entity.MasterId).Rarity;
                 if (rarity > bestRarity || (rarity == bestRarity && entity.MasterId < bestId))
                 {
                     bestRarity = rarity;

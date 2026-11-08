@@ -9,23 +9,23 @@ namespace Uta.Client.Presentation.Home
     /// <summary>ホームの表示の値を作る。状態を持たず、リポジトリに書かず、通信・遷移・View に触れない。</summary>
     public sealed class HomeDtoFactory
     {
-        private readonly IReadOnlyPlayerRepository players;
-        private readonly FeaturedIdolPicker picker;
-        private readonly DiscardNoticeState notice;   // 読むだけ
-        private readonly MemoryDatabase db;
+        private readonly IReadOnlyPlayerRepository playerRepository;
+        private readonly FeaturedIdolPicker featuredIdolPicker;
+        private readonly DiscardNoticeState discardNoticeState;   // 読むだけ
+        private readonly MemoryDatabase memoryDatabase;
 
-        public HomeDtoFactory(IReadOnlyPlayerRepository players, FeaturedIdolPicker picker, DiscardNoticeState notice, MemoryDatabase db)
+        public HomeDtoFactory(IReadOnlyPlayerRepository playerRepository, FeaturedIdolPicker featuredIdolPicker, DiscardNoticeState discardNoticeState, MemoryDatabase memoryDatabase)
         {
-            this.players = players;
-            this.picker = picker;
-            this.notice = notice;
-            this.db = db;
+            this.playerRepository = playerRepository;
+            this.featuredIdolPicker = featuredIdolPicker;
+            this.discardNoticeState = discardNoticeState;
+            this.memoryDatabase = memoryDatabase;
         }
 
         /// <summary>プレイヤーがまだ無ければ null。</summary>
         public HomeViewDto Create()
         {
-            var p = players.Find();
+            var p = playerRepository.Find();
             if (p == null)
             {
                 return null;
@@ -34,12 +34,12 @@ namespace Uta.Client.Presentation.Home
             var profileText = "プレイヤーLv " + p.Level + "　ガチャ通貨 " + p.GachaCurrency.ToString("N0", CultureInfo.InvariantCulture);
             var resumeVisible = p.HasActiveProduce;
             var primaryLabel = resumeVisible ? "再開" : "プロデュース";
-            var showDiscardNotice = p.DiscardedProduce && !notice.Shown;
-            var stageIdolId = picker.Pick();
+            var showDiscardNotice = p.DiscardedProduce && !discardNoticeState.Shown;
+            var stageIdolId = featuredIdolPicker.Pick();
             string stageIdolName = null;
             if (stageIdolId != 0)
             {
-                stageIdolName = db.IdolTable.FindByIdolId(stageIdolId).Name;
+                stageIdolName = memoryDatabase.IdolTable.FindByIdolId(stageIdolId).Name;
             }
 
             return new HomeViewDto(profileText, resumeVisible, primaryLabel, showDiscardNotice, stageIdolId, stageIdolName);

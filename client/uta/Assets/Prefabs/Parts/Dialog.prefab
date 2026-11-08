@@ -210,6 +210,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c3adda93ebbb8047bb9af1451d3be08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uta.Client.Presentation::Uta.Client.Presentation.Common.Parts.DialogView
+  _usePrefabNameAsIdentifier: 1
+  _identifier: 
+  _animationContainer:
+    _enterAnimations: []
+    _exitAnimations: []
+  panel: {fileID: 2278719332971953048}
   messageText: {fileID: 4901803131483041118}
   buttonList: {fileID: 8533138917741178471}
   buttonPrefab: {fileID: 7466635908386185666, guid: 4c9eea036b8e0bd4fbfec534bef06a1f, type: 3}

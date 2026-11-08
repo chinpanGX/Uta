@@ -10,33 +10,33 @@ namespace Uta.Client.Bootstrap
     /// </summary>
     public sealed class ApiActivityBridge : IApiActivityHandler
     {
-        private readonly ActiveSceneUi sceneUi;
-        private BusyIndicator active;
+        private readonly ActiveSceneUi activeSceneUi;
+        private BusyIndicator busyIndicator;
 
-        public ApiActivityBridge(ActiveSceneUi sceneUi)
+        public ApiActivityBridge(ActiveSceneUi activeSceneUi)
         {
-            this.sceneUi = sceneUi;
+            this.activeSceneUi = activeSceneUi;
         }
 
-        /// <summary>active = sceneUi.Busy（null を許す）。active が null でなければ active.Begin()。</summary>
+        /// <summary>busyIndicator = activeSceneUi.Busy（null を許す）。busyIndicator が null でなければ busyIndicator.Begin()。</summary>
         public void OnActivityStarted()
         {
-            active = sceneUi.Busy;
-            if (active != null)
+            busyIndicator = activeSceneUi.Busy;
+            if (busyIndicator != null)
             {
-                active.Begin();
+                busyIndicator.Begin();
             }
         }
 
         /// <summary>開始のときと違うシーンになっていても、開始したほうの数を戻す。</summary>
         public void OnActivityEnded()
         {
-            if (active != null)
+            if (busyIndicator != null)
             {
-                active.End();
+                busyIndicator.End();
             }
 
-            active = null;
+            busyIndicator = null;
         }
     }
 }

@@ -8,15 +8,15 @@ namespace Uta.Client.Presentation.Title
     /// <summary>Title シーンの入口。</summary>
     public sealed class TitleEntry : IStartable
     {
-        private readonly IScreenNavigator navigator;
-        private readonly StartupOptions options;
-        private readonly TitleDiagnostics diagnostics;
+        private readonly IScreenNavigator screenNavigator;
+        private readonly StartupOptions startupOptions;
+        private readonly TitleDiagnostics titleDiagnostics;
 
-        public TitleEntry(IScreenNavigator navigator, StartupOptions options, TitleDiagnostics diagnostics)
+        public TitleEntry(IScreenNavigator screenNavigator, StartupOptions startupOptions, TitleDiagnostics titleDiagnostics)
         {
-            this.navigator = navigator;
-            this.options = options;
-            this.diagnostics = diagnostics;
+            this.screenNavigator = screenNavigator;
+            this.startupOptions = startupOptions;
+            this.titleDiagnostics = titleDiagnostics;
         }
 
         public void Start()
@@ -24,16 +24,16 @@ namespace Uta.Client.Presentation.Title
             StartAsync().Forget();
         }
 
-        /// <summary>options.QuitAfterCheck なら診断を回す（画面を積まない）。そうでなければタイトルのページを積む。</summary>
+        /// <summary>startupOptions.QuitAfterCheck なら診断を回す（画面を積まない）。そうでなければタイトルのページを積む。</summary>
         public async UniTask StartAsync()
         {
-            if (options.QuitAfterCheck)
+            if (startupOptions.QuitAfterCheck)
             {
-                await diagnostics.RunAsync();
+                await titleDiagnostics.RunAsync();
                 return;
             }
 
-            await navigator.PushPageAsync<TitlePresenter>(playAnimation: false);
+            await screenNavigator.PushPageAsync<TitlePresenter>(playAnimation: false);
         }
     }
 }

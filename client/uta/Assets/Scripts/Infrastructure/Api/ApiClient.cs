@@ -40,10 +40,10 @@ namespace Uta.Client.Infrastructure.Api
         }
 
         /// <param name="errorHandler">アプリの共通エラーハンドラー（Bootstrap が DefaultCommonErrorHandler を渡す）</param>
-        /// <param name="activityHandler">通信中の通知先。null なら付けない（診断のとき）</param>
+        /// <param name="apiActivityHandler">通信中の通知先。null なら付けない（診断のとき）</param>
         /// <param name="errorNavigator">エラー後の画面遷移。null なら付けない（診断のとき）</param>
         /// <param name="commonApplier">Common の反映先。null なら付けない（診断のとき）</param>
-        public static ApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IApiActivityHandler activityHandler, IErrorNavigator errorNavigator, ICommonResponseApplier<AppCommonDto> commonApplier)
+        public static ApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IApiActivityHandler apiActivityHandler, IErrorNavigator errorNavigator, ICommonResponseApplier<AppCommonDto> commonApplier)
         {
             var channel = ApiChannel.Create(serverUrl);
             var callInvoker = ApiChannel.CreateCallInvoker(channel);
@@ -54,7 +54,7 @@ namespace Uta.Client.Infrastructure.Api
             var builder = ApiCore.CreateBuilder(
                     callInvoker, ServiceClientFactory.SerializerProvider, ServiceClientFactory.ClientFactoryProvider,
                     options, counting, new ErrorPolicyProvider(ErrorDefinitions.Create()), errorHandler)
-                .AddActivityHandler(activityHandler)
+                .AddActivityHandler(apiActivityHandler)
                 .WithErrorNavigator(errorNavigator);
             if (commonApplier != null)
             {

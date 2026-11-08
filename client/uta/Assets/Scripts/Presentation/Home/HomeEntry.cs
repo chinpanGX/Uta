@@ -9,15 +9,15 @@ namespace Uta.Client.Presentation.Home
     /// <summary>Home シーンの入口。</summary>
     public sealed class HomeEntry : IStartable
     {
-        private readonly IScreenNavigator navigator;
-        private readonly IReadOnlyPlayerRepository players;
-        private readonly ISceneNavigator scenes;
+        private readonly IScreenNavigator screenNavigator;
+        private readonly IReadOnlyPlayerRepository playerRepository;
+        private readonly ISceneNavigator sceneNavigator;
 
-        public HomeEntry(IScreenNavigator navigator, IReadOnlyPlayerRepository players, ISceneNavigator scenes)
+        public HomeEntry(IScreenNavigator screenNavigator, IReadOnlyPlayerRepository playerRepository, ISceneNavigator sceneNavigator)
         {
-            this.navigator = navigator;
-            this.players = players;
-            this.scenes = scenes;
+            this.screenNavigator = screenNavigator;
+            this.playerRepository = playerRepository;
+            this.sceneNavigator = sceneNavigator;
         }
 
         public void Start()
@@ -28,13 +28,13 @@ namespace Uta.Client.Presentation.Home
         /// <summary>サインインしていなければ Title へ戻す（screen-design 8章）。そうでなければホームのページを積む。</summary>
         public async UniTask StartAsync()
         {
-            if (players.Find() == null)
+            if (playerRepository.Find() == null)
             {
-                await scenes.GoToTitleAsync();
+                await sceneNavigator.GoToTitleAsync();
                 return;
             }
 
-            await navigator.PushPageAsync<HomePresenter>(playAnimation: false);
+            await screenNavigator.PushPageAsync<HomePresenter>(playAnimation: false);
         }
     }
 }

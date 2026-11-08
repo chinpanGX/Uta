@@ -45,7 +45,9 @@ namespace Uta.Client.Bootstrap
                 return false;
             }
 
-            new DialogOpener(uiRoot.DialogLayer, uiRoot.DialogPrefab).ShowInfoAsync(message).Forget();
+            // 小さいスコープで USN を使う。失敗のあとは先へ進まないので破棄しない
+            var scope = LifetimeScope.Create(builder => SceneUiInstaller.InstallScreens(builder, uiRoot));
+            scope.Container.Resolve<DialogOpener>().ShowInfoAsync(message).Forget();
             return true;
         }
 
@@ -73,7 +75,7 @@ namespace Uta.Client.Bootstrap
                         return;
                     }
 
-                    await new DialogOpener(uiRoot.DialogLayer, uiRoot.DialogPrefab).ShowInfoAsync("マスタを読めませんでした: " + e.Message);
+                    ShowFailureDialog(uiRoot, "マスタを読めませんでした: " + e.Message);
                     return;
                 }
 

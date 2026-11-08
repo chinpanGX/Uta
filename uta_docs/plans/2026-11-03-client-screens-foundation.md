@@ -1510,3 +1510,128 @@ Play モード・手動（Editor、サーバー起動済み）:
 | レビュー 1 | 完了 | `ec998f2`・`63be66e` | C1（Bootstrap に UiRoot が無い）・I1（取り直しの中の遷移のあとに外側がホームへ行く。ユーザーの判断で R4 に足した）・I2（screen-design の古い記述）・M1・M4（一部）を直した。C1 は Play でマスタのバイナリを一時的に外し、Bootstrap に「マスタを読めませんでした: …」が出ることを確かめた。M2（破棄の知らせの順序のテスト）・M3（`ErrorDialogView` の Ok・Home・Title・Store のテスト）・M4 の `ErrorDialogViewTests` の余分な `{ }` は残した |
 | レビュー 2 | 完了 | （このコミット） | Critical 0・Important 1（screen-design.md 8章の `ErrorNavigator` の説明が古い）を直した。Minor 3 件は残した: M1 `navigations` で飛ばす理由のコメント、M2 飛ばしたあとの次の「ホームへ」のログでの確認、M3 `SceneContractTests`・`SceneBuilder` の細部（報告は `uta_docs/reviews/.raw/2026-11-08-client-screens-foundation/code-client-2.md`。Git には入れない） |
 | 最後 | 完了 | （このコミット） | `UiRoot` を足したあとの Bootstrap（`63be66e`）でも、Windows の IL2CPP のビルドと `-uta-quit-after-check`（終了コード 0・`connectivity check: OK`）が通った。引数なしの起動の手動の確認は、`UiRoot` を足す前（`4d30930` の時点）のもの |
+| PR #52 のコメント | 完了 | （このコミット） | 8 章のとおり: ダイアログを USN の Overlay（`DialogPresenter`・`PushOverlayAsync`）で出す、Bootstrap の失敗のダイアログは小さいスコープ、変数名を型名に合わせた。Play で、ホームの「準備中です。」と Bootstrap の「マスタを読めませんでした: …」が `UiRoot/Overlays` の下に出ることを確かめた。Editor は Play に入るときのドメインのリロードを切っているので、2 回目以降の Play では USN が static に持つ前の Play の `PageContainer`（破棄済み）に触って Push が例外になる（Editor だけ。基盤の USN の別の作業）。`PrefabBuildCommands.BuildAll` で `OwnedPage.prefab` にも差分が出たので戻した（別のずれ）。`PlaceholderCharacterStage` の `label` は直していない |
+
+## 8. PR #52 のレビューへの対応（2026-11-09。ユーザーのコメント）
+
+この章は本文・読み替えの節より優先する。ユーザーの判断（2026-11-09）:
+
+- ダイアログだけを USN の Overlay に移す（`BusyIndicator` は UiRoot の層のまま）
+- Bootstrap の失敗のダイアログは、小さいスコープで USN を使う
+- 変数名の直しは、この PR で書いたコード全部
+
+### 8.1 ダイアログを USN の Overlay で出す（コメント: `DialogOpener.cs`「USN の管理外で UI の表示はしないで」）
+
+決めたこと 3・4 の「ダイアログは USN の遷移の外の素の層（`UiRoot.DialogLayer`）に出す」をやめ、基盤の `IScreenNavigator.PushOverlayAsync`（`OverlayContainer`）で出す。`BusyIndicator`（通信中のブロッカー）は UiRoot の層のまま。通信のたびに同期で出し入れするので、Addressables の読み込みと遷移の順番待ちを挟まないため（ユーザーの判断）。
+
+```csharp
+// Presentation/Common/DialogArgs.cs
+public sealed class DialogArgs
+{
+    public DialogArgs(string message, IReadOnlyList<string> labels, IReadOnlyList<Color> colors);   // labels と colors は同じ長さ（DialogOpener が作る）
+    public string Message { get; }
+    public IReadOnlyList<string> Labels { get; }
+    public IReadOnlyList<Color> Colors { get; }
+}
+
+// Presentation/Common/DialogPresenter.cs
+[AssetAddress("Dialog")]   // Parts/Dialog.prefab を Addressables の Screens グループに "Dialog" で登録する（8.3）
+public sealed class DialogPresenter : IPresenter, IScreenWithArgs<DialogArgs>
+{
+    [Inject] public DialogPresenter(DialogView dialogView, DialogArgs dialogArgs, IScreenNavigator screenNavigator);
+    // InitializeAsync: dialogView.SetMessage(Message)。Labels を上から dialogView.AddButton("Button" + i, Labels[i], Colors[i]) で並べ、onClick に OnClicked(i) を付ける。完了済みの UniTask を返す
+    // OnClicked(int index): 既に押されていれば何もしない（二度押し）。selectedIndex = index; screenNavigator.PopOverlayAsync(this, playAnimation: false).Forget();
+    // CompleteAsync(): UniTask.FromResult<object>(selectedIndex)。selectedIndex の初期値は -1（押されずに閉じた: シーンを閉じて ScreenNavigator が Dispose された）
+    // Dispose(): 何もしない
+}
+```
+
+- `DialogView`（`Presentation/Common/Parts/`）を `ModalBase` の派生にする（`public sealed class DialogView : ModalBase`）
+  - `SetMessage`・`AddButton` は今のまま
+  - `Destroyed` のイベントと `OnDestroy` は消す（閉じたことは `ScreenNavigator` の Pop／Dispose で分かる）
+  - `ModalBase.panel` には Prefab の子 `Panel` を入れる（8.3）
+- `DialogOpener`:
+  - コンストラクターを `DialogOpener(IScreenNavigator screenNavigator)` にする（C# の null を許す。`FakeDialogOpener` が `base(null)` で作る）。`IDisposable` を実装する
+  - 公開メソッド（`ShowInfoAsync`・`ConfirmAsync`・`ChooseAsync`）・色・`ArgumentException`・FIFO の待ち行列は今のまま
+  - 1 件の表示: `screenNavigator` が null なら `InvalidOperationException("screen navigator is not set")`。そうでなければ次の順に呼ぶ:
+    1. `var presenter = await screenNavigator.PushOverlayAsync<DialogPresenter, DialogArgs>(new DialogArgs(message, labels, colors), playAnimation: false);`
+    2. `var result = await screenNavigator.WaitForPopAsync<object>(presenter);`
+    3. `result is int index ? index : -1` を返す
+  - `Dispose()` で `disposed = true`。待ち行列の順番が来たとき `disposed` なら、Push せずに −1（今の `IsLayerDestroyed` の代わり。シーンのスコープの破棄で呼ばれる）
+- `UiRoot`: `dialogLayer`・`dialogPrefab` のフィールドと `DialogLayer`・`DialogPrefab` のプロパティを消す
+- `SceneUiInstaller`:
+  - `public static void InstallScreens(IContainerBuilder builder, UiRoot uiRoot)` を足す。中身は次のとおり:
+    - null の確かめ（今の `Install` の例外の文のまま）
+    - `RegisterComponent` の 4 行
+    - `ScreenNavigator` の登録
+    - `builder.Register<DialogOpener>(Lifetime.Singleton);`（スコープの破棄で `Dispose` される）
+  - `Install` は `InstallScreens` を呼んでから `PageStack`・`SceneUiActivation` を登録する（`RegisterInstance(new DialogOpener(...))` の行は無くなる）
+- `BootstrapEntry`（Bootstrap の失敗のダイアログ）:
+  - `ShowFailureDialog(UiRoot uiRoot, string message)` は、`uiRoot` が null か破棄済みなら今のまま `false`
+  - そうでなければ `var scope = LifetimeScope.Create(builder => SceneUiInstaller.InstallScreens(builder, uiRoot));` を作り、`scope.Container.Resolve<DialogOpener>().ShowInfoAsync(message).Forget();` を呼んで `true` を返す
+  - マスタの失敗（今の `await new DialogOpener(uiRoot.DialogLayer, ...)` の行）も `ShowFailureDialog(uiRoot, "マスタを読めませんでした: " + e.Message); return;` にする
+  - スコープは Bootstrap のシーンに残す（失敗のあとは先へ進まないので破棄しない）
+
+### 8.2 層の順（`UiRootBuilder`）
+
+- `Overlays` を `BusyBlocker` より後ろ（手前）に置く: `Pages` → `Modals` → `BusyBlocker`（`Busy`）→ `Overlays` → `EventSystem`。通信中でもダイアログを押せるようにするため（今の `Dialogs` の層と同じ理由）
+- 消すもの: `Dialogs` の子、`dialogPrefab` の読み込み、`SetRef` の 2 行（`dialogLayer`・`dialogPrefab`）
+- 「Uta は Overlay に画面を出さない」のコメントは、「ダイアログ（`DialogPresenter`）を出す」に直す
+
+### 8.3 Prefab と Addressables（`DialogBuilder`）
+
+- ルートの `DialogView` は `ModalBase` の派生になるので、`root.AddComponent<DialogView>()` のまま（`Modal` が要るコンポーネントは `RequireComponent` で付く）。`PrefabBuildUtil.SetRef(view, "panel", panel);` を足す。ルートの暗幕の `Image` は今のまま
+- 保存のあと `PrefabBuildUtil.RegisterScreen(AssetPath);`（アドレスは `Dialog`）
+- 生成: Editor を開いたまま `PrefabBuildCommands.BuildAll()` を eval で呼ぶ（CLAUDE.md「ビルド・テスト・実行」）
+  - `NotoSansJP` の差分は `git restore` で戻す（CLAUDE.md）
+  - 変わるのは `Dialog.prefab`・`UiRoot.prefab`・Addressables の `Screens` グループの設定だけのはず。ほかの Prefab の中身が変わったら止まって報告する
+- シーン: `UiRoot` の Prefab のインスタンスなので作り直さなくてよい（`SceneContractTests` が通ること）
+
+### 8.4 テスト
+
+- `DialogOpenerTests` を書き直す。`FakeScreenNavigator` を使い、足りないもの（`PushOverlayAsync` で返す Presenter、`WaitForPopAsync` の結果）は `FakeScreenNavigator` に足す:
+  - `ShowInfo_PushesOverlayWithOk`（Args の Message・Labels が `"OK"`・Colors が `ButtonPrimary`）
+  - `Confirm_Labels_AndResult`（0 → `Positive`、1 → `Negative`）
+  - `Choose_ReturnsIndex`
+  - `Choose_InvalidLabels_Throws`（null・0 個・5 個）
+  - `Queue_SecondWaitsForFirst`（1 つ目の `WaitForPopAsync` が終わるまで 2 つ目を Push しない）
+  - `Result_NotInt_ReturnsMinusOne`
+  - `NullNavigator_Throws`（`InvalidOperationException`）
+  - `Disposed_QueuedRequest_ReturnsMinusOneWithoutPush`
+- `DialogPresenterTests`（新）:
+  - `Initialize_SetsMessageAndButtons`（`Dialog.prefab` を `AssetDatabase.LoadAssetAtPath` で読んで Instantiate し、子の `Button0`… と文字を見る。最後に破棄）
+  - `Click_PopsOnce`（2 回押しても `PopOverlayAsync(this)` は 1 回）
+  - `Complete_ReturnsClickedIndex`
+  - `Complete_NotClicked_ReturnsMinusOne`
+- `PrefabContractTests` を書き直す。確かめること:
+  - `UiRoot` に `dialogLayer`・`dialogPrefab` が無い
+  - `Overlays` が `Busy` より後ろ
+  - `Dialog.prefab` のルートに `DialogView`（`Modal`）があり、`panel` が入っている
+  - Addressables の `Screens` グループに、アドレス `Dialog` がある
+- 引数の形が変わるもの: `ActiveSceneUiTests`・`ErrorDialogViewTests`・`HomePresenterTests`・`ApiActivityBridgeTests`・`FakeDialogOpener`（`base(null)`）。期待する記録は変えない
+- Play（進行役が確かめる）:
+  - タイトル → ホーム →「準備中です。」が `Overlays` の下に出て、閉じる
+  - マスタを外すと、Bootstrap に「マスタを読めませんでした: …」が出る
+
+### 8.5 変数名を型名に合わせる（コメント: `FeaturedIdolPicker.cs`「型名と変数名があっていない」）
+
+- 規則: フィールド・コンストラクターとメソッドの引数の名前は、**型名から先頭の `I` と `ReadOnly` を除き、先頭を小文字にしたもの**にする
+  - 例: `IReadOnlyIdolRepository idolRepository`、`MemoryDatabase memoryDatabase`、`IPlayerUseCase playerUseCase`、`DialogOpener dialogOpener`、`HomeDtoFactory homeDtoFactory`、`ISceneNavigator sceneNavigator`、`IScreenNavigator screenNavigator`、`IObjectResolver objectResolver`、`ITitleView titleView`、`TitlePage titlePage`
+  - 同じ型を 2 つ受けるときは、型名の前に役割の語を足す（無ければ足さない）
+  - 対象外:
+    - コレクション（`IReadOnlyList<T>` など。複数形の名詞にする）
+    - 組み込みの型（`int`・`string`・`bool`）・`UniTask`・`Action`
+    - ループの変数と、短い一時の値のローカル変数
+    - テストのコード（今回は直さない）
+- 範囲:
+  - この PR で作った `Scripts/` のファイルは、全部
+  - この PR で変えた既存のファイル（`PlayerUseCase`・`ApiClient`・`BootstrapEntry`・`SceneBuilder`・`BusyIndicator`・`Parts/` など）は、この PR が足した名前だけ（例: `PlayerUseCase` の `notice` → `discardNoticeState`）
+  - main にある既存の名前は直さない
+- [naming.md](../wiki/architecture/naming.md) に、この規則を 1 項目足す（書き方の決まりの近く。[決定。2026-11-09。ユーザーの判断]）
+- Presenter の `[Inject]` のコンストラクターの引数名も、同じ規則に従う
+
+### 8.6 wiki
+
+- `screen-design.md` で、ダイアログを「素の層（`UiRoot.DialogLayer`）」「USN の遷移の外」に出すと書いた所（7.4・7.5・8章・実装メモ）を、8.1・8.2 の形に直す
+- `BusyIndicator` が UiRoot の層に残る理由を 1 文書く
+- `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0

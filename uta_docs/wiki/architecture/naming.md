@@ -24,6 +24,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 - **Shared.Domain のエンジンへの操作の入力は `Command`**（`LessonCommand`・`ProduceCommand`）
 - **Application の型は、Contracts の型と同じ名前にしない**（Infrastructure とテストは両方を参照するため）。**Contracts の enum のクライアントの写しは作らない**: Contracts の enum を引数に取る RPC は、UseCase の IF のメソッドを値ごとに分ける（`PickCardOfferAsync`・`DeclineCardOfferAsync` など）。結果に入る enum で写しが要るものだけ、Contracts と違う名前にする（`ProduceEnding` → `ProduceEndKind`）[決定。2026-11-08。ユーザーの判断]
 - **クライアント・サーバーの型は、Shared.Domain の型と同じ名前にしない**（両方を参照するファイルで CS0104 になるため。例: Shared.Domain の保存用の写し `ProduceSnapshot` があるので、クライアントの `ProduceStateResponse` の写しは `ProduceStateResult`）。生成したマスタの型と Shared.Domain の型が同じ名前になるのは、4章のとおり許す
+- **フィールド・引数の名前は、型名から先頭の `I` と `ReadOnly` を除き、先頭を小文字にしたもの**（`IReadOnlyIdolRepository idolRepository`・`MemoryDatabase memoryDatabase`・`IScreenNavigator screenNavigator`・`TitlePage titlePage`）。同じ型を 2 つ受けるときは、型名の前に役割の語を足す。対象外: コレクション（複数形の名詞にする）・組み込みの型（`int`・`string`・`bool`）・`UniTask`・`Action`・ループの変数と短い一時のローカル変数・テストのコード [決定。2026-11-09。ユーザーの判断]
 - **表にない役割は、役割を表す名詞を接尾辞にする**。使ってよい接尾辞と意味は 9章。新しい接尾辞を作る前に、9章の語で言えないかを確かめる
 
 ### 2. 層をまたぐ型

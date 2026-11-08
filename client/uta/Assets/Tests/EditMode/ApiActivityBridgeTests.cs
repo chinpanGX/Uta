@@ -42,7 +42,7 @@ namespace Uta.Client.Tests
         {
             var root = CreateRoot(out var busy);
             var sceneUi = new ActiveSceneUi();
-            sceneUi.Attach(root, new DialogOpener(null, null));
+            sceneUi.Attach(root, new DialogOpener(null));
             var bridge = new ApiActivityBridge(sceneUi);
 
             bridge.OnActivityStarted();
@@ -58,11 +58,11 @@ namespace Uta.Client.Tests
             var rootA = CreateRoot(out var busyA);
             var rootB = CreateRoot(out var busyB);
             var sceneUi = new ActiveSceneUi();
-            sceneUi.Attach(rootA, new DialogOpener(null, null));
+            sceneUi.Attach(rootA, new DialogOpener(null));
             var bridge = new ApiActivityBridge(sceneUi);
 
             bridge.OnActivityStarted();
-            sceneUi.Attach(rootB, new DialogOpener(null, null));
+            sceneUi.Attach(rootB, new DialogOpener(null));
             bridge.OnActivityEnded();
 
             Assert.IsFalse(busyA.IsBusy);

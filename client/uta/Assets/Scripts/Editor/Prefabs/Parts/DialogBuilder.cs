@@ -6,7 +6,7 @@ using Uta.Client.Presentation.Common.Parts;
 
 namespace Uta.Client.Editor.Prefabs.Parts
 {
-    /// <summary>共通部品 Dialog（確認・お知らせ・選択。ボタンは DialogService が実行時に並べる）を作る。</summary>
+    /// <summary>Dialog（確認・お知らせ・選択。USN の Overlay に出る。ボタンは DialogPresenter が実行時に並べる）を作る。</summary>
     public sealed class DialogBuilder : IPrefabBuilder
     {
         public int Order
@@ -43,10 +43,12 @@ namespace Uta.Client.Editor.Prefabs.Parts
                 throw new InvalidOperationException("part not found: Button");
             }
 
+            PrefabBuildUtil.SetRef(view, "panel", panel);
             PrefabBuildUtil.SetRef(view, "messageText", messageText);
             PrefabBuildUtil.SetRef(view, "buttonList", buttonList);
             PrefabBuildUtil.SetRef(view, "buttonPrefab", buttonPrefab.GetComponent<ButtonView>());
             PrefabBuildUtil.SavePrefab(root, AssetPath);
+            PrefabBuildUtil.RegisterScreen(AssetPath);
         }
     }
 }

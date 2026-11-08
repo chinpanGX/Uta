@@ -10,22 +10,22 @@ namespace Uta.Client.Presentation.Title
     /// <summary>診断（-uta-quit-after-check）。画面に出さない。</summary>
     public sealed class TitleDiagnostics
     {
-        private readonly IDeviceAuthUseCase deviceAuth;
-        private readonly IPlayerUseCase player;
+        private readonly IDeviceAuthUseCase deviceAuthUseCase;
+        private readonly IPlayerUseCase playerUseCase;
         private readonly ConnectivityCheck connectivityCheck;
         private readonly Action<int> quit;
 
         [Inject]
-        public TitleDiagnostics(IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ConnectivityCheck connectivityCheck)
-            : this(deviceAuth, player, connectivityCheck, code => UnityEngine.Application.Quit(code))
+        public TitleDiagnostics(IDeviceAuthUseCase deviceAuthUseCase, IPlayerUseCase playerUseCase, ConnectivityCheck connectivityCheck)
+            : this(deviceAuthUseCase, playerUseCase, connectivityCheck, code => UnityEngine.Application.Quit(code))
         {
         }
 
         /// <summary>テスト用。quit は終了の代わり（終了コードを受ける）。</summary>
-        public TitleDiagnostics(IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ConnectivityCheck connectivityCheck, Action<int> quit)
+        public TitleDiagnostics(IDeviceAuthUseCase deviceAuthUseCase, IPlayerUseCase playerUseCase, ConnectivityCheck connectivityCheck, Action<int> quit)
         {
-            this.deviceAuth = deviceAuth;
-            this.player = player;
+            this.deviceAuthUseCase = deviceAuthUseCase;
+            this.playerUseCase = playerUseCase;
             this.connectivityCheck = connectivityCheck;
             this.quit = quit ?? throw new ArgumentNullException(nameof(quit));
         }
@@ -36,9 +36,9 @@ namespace Uta.Client.Presentation.Title
             try
             {
                 Log("startup: start");
-                var registered = await deviceAuth.SignInAsync();
+                var registered = await deviceAuthUseCase.SignInAsync();
                 Log(StartupLogs.Device(registered));
-                var entered = await player.EnterAsync(registered);
+                var entered = await playerUseCase.EnterAsync(registered);
                 Log(StartupLogs.SignUp(entered));
                 Log(StartupLogs.SignIn(entered));
                 succeeded = await connectivityCheck.RunAsync(Log);

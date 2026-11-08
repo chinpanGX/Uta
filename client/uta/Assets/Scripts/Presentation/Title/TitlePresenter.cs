@@ -12,39 +12,39 @@ namespace Uta.Client.Presentation.Title
     [AssetAddress(nameof(TitlePage))]
     public sealed class TitlePresenter : IPresenter
     {
-        private readonly ITitleView view;
-        private readonly IDeviceAuthUseCase deviceAuth;
-        private readonly IPlayerUseCase player;
-        private readonly ISceneNavigator scenes;
+        private readonly ITitleView titleView;
+        private readonly IDeviceAuthUseCase deviceAuthUseCase;
+        private readonly IPlayerUseCase playerUseCase;
+        private readonly ISceneNavigator sceneNavigator;
         private bool running;
         private bool disposed;
 
         [Inject]
-        public TitlePresenter(TitlePage view, IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ISceneNavigator scenes)
-            : this((ITitleView)view, deviceAuth, player, scenes)
+        public TitlePresenter(TitlePage titlePage, IDeviceAuthUseCase deviceAuthUseCase, IPlayerUseCase playerUseCase, ISceneNavigator sceneNavigator)
+            : this((ITitleView)titlePage, deviceAuthUseCase, playerUseCase, sceneNavigator)
         {
         }
 
-        public TitlePresenter(ITitleView view, IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ISceneNavigator scenes)
+        public TitlePresenter(ITitleView titleView, IDeviceAuthUseCase deviceAuthUseCase, IPlayerUseCase playerUseCase, ISceneNavigator sceneNavigator)
         {
-            this.view = view;
-            this.deviceAuth = deviceAuth;
-            this.player = player;
-            this.scenes = scenes;
+            this.titleView = titleView;
+            this.deviceAuthUseCase = deviceAuthUseCase;
+            this.playerUseCase = playerUseCase;
+            this.sceneNavigator = sceneNavigator;
         }
 
         public UniTask InitializeAsync()
         {
-            view.StartClicked += OnStartClicked;
-            view.SetStatus("タップしてスタート");
-            view.SetStartInteractable(true);
+            titleView.StartClicked += OnStartClicked;
+            titleView.SetStatus("タップしてスタート");
+            titleView.SetStartInteractable(true);
             return UniTask.CompletedTask;
         }
 
         public void Dispose()
         {
             disposed = true;
-            view.StartClicked -= OnStartClicked;
+            titleView.StartClicked -= OnStartClicked;
         }
 
         private void OnStartClicked()
@@ -62,19 +62,19 @@ namespace Uta.Client.Presentation.Title
             running = true;
             try
             {
-                view.SetStartInteractable(false);
-                view.SetStatus("接続中…");
+                titleView.SetStartInteractable(false);
+                titleView.SetStatus("接続中…");
                 Debug.Log("[Uta] startup: start");
                 try
                 {
-                    var registered = await deviceAuth.SignInAsync();
+                    var registered = await deviceAuthUseCase.SignInAsync();
                     if (disposed)
                     {
                         return;
                     }
 
                     Debug.Log("[Uta] " + StartupLogs.Device(registered));
-                    var entered = await player.EnterAsync(registered);
+                    var entered = await playerUseCase.EnterAsync(registered);
                     if (disposed)
                     {
                         return;
@@ -82,7 +82,7 @@ namespace Uta.Client.Presentation.Title
 
                     Debug.Log("[Uta] " + StartupLogs.SignUp(entered));
                     Debug.Log("[Uta] " + StartupLogs.SignIn(entered));
-                    await scenes.GoToHomeAsync();
+                    await sceneNavigator.GoToHomeAsync();
                     return;
                 }
                 catch (Exception e)
@@ -93,8 +93,8 @@ namespace Uta.Client.Presentation.Title
                     }
 
                     Debug.Log("[Uta] " + StartupLogs.Failed(e));
-                    view.SetStatus("接続に失敗しました: " + e.Message + "\nタップしてもう一度");
-                    view.SetStartInteractable(true);
+                    titleView.SetStatus("接続に失敗しました: " + e.Message + "\nタップしてもう一度");
+                    titleView.SetStartInteractable(true);
                 }
             }
             finally

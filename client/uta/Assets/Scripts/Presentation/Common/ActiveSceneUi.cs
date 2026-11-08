@@ -24,21 +24,21 @@ namespace Uta.Client.Presentation.Common
             }
         }
 
-        /// <summary>root・dialogs のどちらかが null なら ArgumentNullException。前に入っていたものは置き換える。</summary>
-        public void Attach(UiRoot root, DialogOpener dialogs)
+        /// <summary>root・dialogOpener のどちらかが null なら ArgumentNullException。前に入っていたものは置き換える。</summary>
+        public void Attach(UiRoot root, DialogOpener dialogOpener)
         {
             if (ReferenceEquals(root, null))
             {
                 throw new ArgumentNullException(nameof(root));
             }
 
-            if (dialogs == null)
+            if (dialogOpener == null)
             {
-                throw new ArgumentNullException(nameof(dialogs));
+                throw new ArgumentNullException(nameof(dialogOpener));
             }
 
             Root = root;
-            Dialogs = dialogs;
+            Dialogs = dialogOpener;
         }
 
         /// <summary>ReferenceEquals(Root, root) のときだけ Root・Dialogs を null にする。違えば何もしない（新しいシーンが先に Attach した場合）。</summary>

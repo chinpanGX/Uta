@@ -12,34 +12,34 @@ namespace Uta.Client.Presentation.Home
         private const string NotReadyMessage = "準備中です。";
         private const string DiscardNoticeMessage = "バージョンが変わったため、進行中のプロデュースは破棄されました。";
 
-        private readonly IHomeView view;
-        private readonly ICharacterStage stage;
-        private readonly HomeDtoFactory dtoFactory;
-        private readonly IPlayerUseCase player;
-        private readonly DialogOpener dialogs;
+        private readonly IHomeView homeView;
+        private readonly ICharacterStage characterStage;
+        private readonly HomeDtoFactory homeDtoFactory;
+        private readonly IPlayerUseCase playerUseCase;
+        private readonly DialogOpener dialogOpener;
         private bool running;
         private bool disposed;
 
         [Inject]
-        public HomePresenter(HomePage view, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs)
-            : this((IHomeView)view, view.CreateStage(), dtoFactory, player, dialogs)
+        public HomePresenter(HomePage homePage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener)
+            : this((IHomeView)homePage, homePage.CreateStage(), homeDtoFactory, playerUseCase, dialogOpener)
         {
         }
 
-        public HomePresenter(IHomeView view, ICharacterStage stage, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs)
+        public HomePresenter(IHomeView homeView, ICharacterStage characterStage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener)
         {
-            this.view = view;
-            this.stage = stage;
-            this.dtoFactory = dtoFactory;
-            this.player = player;
-            this.dialogs = dialogs;
+            this.homeView = homeView;
+            this.characterStage = characterStage;
+            this.homeDtoFactory = homeDtoFactory;
+            this.playerUseCase = playerUseCase;
+            this.dialogOpener = dialogOpener;
         }
 
         public UniTask InitializeAsync()
         {
-            view.ProduceClicked += OnProduceClicked;
-            view.GachaClicked += OnGachaClicked;
-            view.OwnedClicked += OnOwnedClicked;
+            homeView.ProduceClicked += OnProduceClicked;
+            homeView.GachaClicked += OnGachaClicked;
+            homeView.OwnedClicked += OnOwnedClicked;
             Refresh();
             return UniTask.CompletedTask;
         }
@@ -57,22 +57,22 @@ namespace Uta.Client.Presentation.Home
         public void Dispose()
         {
             disposed = true;
-            view.ProduceClicked -= OnProduceClicked;
-            view.GachaClicked -= OnGachaClicked;
-            view.OwnedClicked -= OnOwnedClicked;
+            homeView.ProduceClicked -= OnProduceClicked;
+            homeView.GachaClicked -= OnGachaClicked;
+            homeView.OwnedClicked -= OnOwnedClicked;
         }
 
         /// <summary>プレイヤーが無ければ何もしない。破棄の知らせを出す条件なら、出した印を付けてからダイアログを出す。</summary>
         public async UniTask ShowDiscardNoticeIfNeededAsync()
         {
-            var dto = dtoFactory.Create();
+            var dto = homeDtoFactory.Create();
             if (dto == null || !dto.ShowDiscardNotice)
             {
                 return;
             }
 
-            player.MarkDiscardNoticeShown();
-            await dialogs.ShowInfoAsync(DiscardNoticeMessage);
+            playerUseCase.MarkDiscardNoticeShown();
+            await dialogOpener.ShowInfoAsync(DiscardNoticeMessage);
         }
 
         public UniTask OpenProduceAsync()
@@ -115,7 +115,7 @@ namespace Uta.Client.Presentation.Home
             running = true;
             try
             {
-                await dialogs.ShowInfoAsync(NotReadyMessage);
+                await dialogOpener.ShowInfoAsync(NotReadyMessage);
                 if (disposed)
                 {
                     return;
@@ -129,21 +129,21 @@ namespace Uta.Client.Presentation.Home
 
         private void Refresh()
         {
-            var dto = dtoFactory.Create();
+            var dto = homeDtoFactory.Create();
             if (dto == null)
             {
                 return;
             }
 
-            view.SetProfile(dto.ProfileText);
-            view.SetResume(dto.ResumeVisible, dto.PrimaryLabel);
+            homeView.SetProfile(dto.ProfileText);
+            homeView.SetResume(dto.ResumeVisible, dto.PrimaryLabel);
             if (dto.StageIdolId == 0)
             {
-                stage.Clear();
+                characterStage.Clear();
             }
             else
             {
-                stage.ShowIdol(dto.StageIdolId, dto.StageIdolName);
+                characterStage.ShowIdol(dto.StageIdolId, dto.StageIdolName);
             }
         }
     }

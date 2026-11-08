@@ -6,25 +6,25 @@ namespace Uta.Client.Presentation.Common
     /// <summary>各シーンのスコープのエントリーポイント。SceneUiInstaller が登録する。</summary>
     public sealed class SceneUiActivation : IStartable, IDisposable
     {
-        private readonly ActiveSceneUi active;
-        private readonly UiRoot root;
-        private readonly DialogOpener dialogs;
+        private readonly ActiveSceneUi activeSceneUi;
+        private readonly UiRoot uiRoot;
+        private readonly DialogOpener dialogOpener;
 
-        public SceneUiActivation(ActiveSceneUi active, UiRoot root, DialogOpener dialogs)
+        public SceneUiActivation(ActiveSceneUi activeSceneUi, UiRoot uiRoot, DialogOpener dialogOpener)
         {
-            this.active = active;
-            this.root = root;
-            this.dialogs = dialogs;
+            this.activeSceneUi = activeSceneUi;
+            this.uiRoot = uiRoot;
+            this.dialogOpener = dialogOpener;
         }
 
         public void Start()
         {
-            active.Attach(root, dialogs);
+            activeSceneUi.Attach(uiRoot, dialogOpener);
         }
 
         public void Dispose()
         {
-            active.Detach(root);
+            activeSceneUi.Detach(uiRoot);
         }
     }
 }

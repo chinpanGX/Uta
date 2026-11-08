@@ -1,6 +1,4 @@
-﻿using System;
-using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
@@ -12,7 +10,7 @@ using Uta.Client.Presentation.Common.Parts;
 
 namespace Uta.Client.Editor.Prefabs.Parts
 {
-    /// <summary>UiRoot（Canvas・ページ/モーダル/オーバーレイの層・ブロッカー・ダイアログの層・EventSystem）を作る。</summary>
+    /// <summary>UiRoot（Canvas・ページ/モーダル/オーバーレイの層・ブロッカー・EventSystem）を作る。</summary>
     public sealed class UiRootBuilder : IPrefabBuilder
     {
         public int Order
@@ -55,33 +53,22 @@ namespace Uta.Client.Editor.Prefabs.Parts
             var modals = PrefabBuildUtil.AddChild(root.transform, "Modals");
             var modalContainer = modals.gameObject.AddComponent<ModalContainer>();
 
-            // ScreenNavigator のコンストラクターが要る。Uta は Overlay に画面を出さない
+            var busy = PrefabBuildUtil.InstantiatePart<BusyIndicator>(root.transform, "BusyBlocker", "Busy");
+
+            // Busy より手前なので、通信中でもダイアログ（DialogPresenter）は押せる
             var overlays = PrefabBuildUtil.AddChild(root.transform, "Overlays");
             overlays.gameObject.AddComponent<ModalContainer>();
             var overlayContainer = overlays.gameObject.AddComponent<OverlayContainer>();
 
-            var busy = PrefabBuildUtil.InstantiatePart<BusyIndicator>(root.transform, "BusyBlocker", "Busy");
-
-            // Busy より手前なので、通信中でもダイアログは押せる
-            var dialogs = PrefabBuildUtil.AddChild(root.transform, "Dialogs");
-
             var eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             eventSystem.transform.SetParent(root.transform, false);
             eventSystem.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
-
-            var dialogPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabBuildUtil.PartPath("Dialog"));
-            if (dialogPrefab == null)
-            {
-                throw new InvalidOperationException("part not found: Dialog");
-            }
 
             PrefabBuildUtil.SetRef(uiRoot, "canvas", canvas);
             PrefabBuildUtil.SetRef(uiRoot, "pageContainer", pageContainer);
             PrefabBuildUtil.SetRef(uiRoot, "modalContainer", modalContainer);
             PrefabBuildUtil.SetRef(uiRoot, "overlayContainer", overlayContainer);
             PrefabBuildUtil.SetRef(uiRoot, "busyIndicator", busy);
-            PrefabBuildUtil.SetRef(uiRoot, "dialogLayer", dialogs);
-            PrefabBuildUtil.SetRef(uiRoot, "dialogPrefab", dialogPrefab.GetComponent<DialogView>());
             PrefabBuildUtil.SavePrefab(root, AssetPath);
         }
     }

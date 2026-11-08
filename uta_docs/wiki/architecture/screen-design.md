@@ -149,12 +149,12 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 
 | 要素 | 置き場 | 役割 |
 |---|---|---|
-| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く。共通部品は 10 個: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`・`BusyBlocker`・`UiRoot`（[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) 3.4）。画面の Prefab だけを Addressables の `Screens` に登録する。部品は画面の Prefab にネストし、`UiRoot` はシーンに置く（どちらも登録しない）。画面の Prefab: `Title/TitlePage`・`Home/HomePage`・`Gacha/GachaPage`・`GachaRatesModal`・`GachaResultModal`・`Owned/OwnedPage`・`SupportDetailPage`（[P2 の計画](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2。フィールドと子の対応は同 3.3）。行の Prefab（`Parts/`。登録しない）: `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow` |
+| Prefab | `Assets/Prefabs/Parts/`（共通部品）、`Assets/Prefabs/Screens/<機能>/`（画面） | 7.1 のとおり。画面の Prefab の中に部品の Prefab をネストして置く。共通部品は 10 個: `Label`・`Button`・`Panel`・`ListRow`・`Header`・`Tab`・`TabBar`・`Dialog`・`BusyBlocker`・`UiRoot`（[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md) 3.4）。画面の Prefab と `Dialog` を Addressables の `Screens` に登録する（`Dialog` は USN の Overlay に出すので、アドレスは `Dialog`。2026-11-09）。ほかの部品は画面の Prefab にネストし、`UiRoot` はシーンに置く（登録しない）。画面の Prefab: `Title/TitlePage`・`Home/HomePage`・`Gacha/GachaPage`・`GachaRatesModal`・`GachaResultModal`・`Owned/OwnedPage`・`SupportDetailPage`（[P2 の計画](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2。フィールドと子の対応は同 3.3）。行の Prefab（`Parts/`。登録しない）: `GachaRateHeadingRow`・`GachaRateRow`・`GachaResultRow` |
 | 生成スクリプト | `Scripts/Editor/Prefabs/` | 部品・画面ごとに 1 クラス。共通の補助（`PrefabBuildUtil`）を使う。入口は `PrefabBuildCommands`（メニュー `Uta/Prefabs/Build All`、`unity command eval` から呼ぶ `BuildAll()`）。生成クラスは `IPrefabBuilder` を実装すれば Build All に入る（`TypeCache` で集め、`Order` の順に作る） |
 | View | `Presentation/<機能>/` | Prefab のルートに付く `PageBase`／`ModalBase` の派生。表示と入力の受け取りだけ。ロジックを持たない |
 | Presenter | 同上 | View と `Application` の UseCase の IF をつなぐ（基盤の `IPresenter`。コンストラクターで具象の View を受け、テスト用に `IXxxView` を受ける 2 つ目のコンストラクターを持つ） |
 | UseCase | IF は `Application/<機能>/`、具象は `Infrastructure/<機能>/` | Application に UseCase の IF `I<機能>UseCase` とその出力の型を置き、外部に触れる具象 `<機能>UseCase` は Infrastructure に置く（`I<機能>Service` を直接呼び、DTO を static の `<名詞>Mapper` で詰め替え、リポジトリに書く。通信のポート・ゲートウェイは作らない。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)。例: `IPlayerUseCase`・`PlayerUseCase`）。`Presentation` は `Infrastructure` に触れない |
-| 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する（`SceneUiInstaller.Install` が `UiRoot` のコンテナー・`IScreenNavigator`・`PageStack`・`DialogOpener` を登録する）。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。UseCase の具象（IF で登録）・リポジトリ（書き込みと読み取り専用の 2 つの IF で同じインスタンス）は Bootstrap のルートのスコープ |
+| 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する（`SceneUiInstaller.Install` が、`InstallScreens`（`UiRoot` のコンテナー・`IScreenNavigator`・`DialogOpener`）と `PageStack`・`SceneUiActivation` を登録する）。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。UseCase の具象（IF で登録）・リポジトリ（書き込みと読み取り専用の 2 つの IF で同じインスタンス）は Bootstrap のルートのスコープ |
 
 **Presenter の書き方の正**は [画面の土台の計画](../../plans/2026-11-03-client-screens-foundation.md) 3.3 とする。
 
@@ -177,7 +177,8 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 - **所持データのキャッシュ**: Domain のリポジトリ（`IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository`。読むだけの使い手には `IReadOnly<名詞>Repository` を渡す。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。サインインの応答で `IPlayerUseCase` の具象が 3 つとも置き換える（プレイヤーは `Upsert`、アイドル・サポートカードは `Clear()` のあと `Upsert(IReadOnlyList<T>)`）。エンティティは、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの ID を `MasterId`（`int`）として持つ（`PlayerEntity` は `UniqueId` だけ、`IdolEntity`・`SupportCardEntity` は両方）。1 件を引く・置き換える・消すのは `UniqueId` で行い（`IReadOnlyIdolRepository.Find(string uniqueId)`、`IIdolRepository.Upsert` は `UniqueId` が同じものを置き換える）、`FindAll` は `MasterId` の昇順 [決定。2026-11-08。ユーザーの判断。[naming.md](naming.md) 2章]。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`IPlayerUseCase.RefreshAsync`）。サーバーの確定値と食い違わせないため。`Common` を返す RPC では、`Common` の player_diff が先にリポジトリへ反映される（基盤が呼び出し側に返す前に `CommonResponseApplier` が `PlayerDiffApplier` に渡す。[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）。`RefreshAsync` は安全網
 - **マスタ**: 画面が使うマスタの値は、`MemoryDatabase`（`Uta.MasterData`。ルートのスコープにシングルトンで登録してある）を直接読む。Presentation でマスタを読むのは表示用の値を作る DtoFactory で、マスタの値でゲームのルールを計算しない（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。`IGameMaster` は作らない）
 - **スキルカードの表示**: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類・消費・強化済みの印・説明文を出す。効果の予測値は出さない
-- **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler` を `BusyIndicator` につなぐ（進行中は全面の透明な Image で入力を止める）。画面は個別に包まない
+- **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler` を `BusyIndicator` につなぐ（進行中は全面の透明な Image で入力を止める）。画面は個別に包まない。`BusyIndicator` は USN の管理外で `UiRoot` の層（`Busy`）に残す。通信のたびに同期で出し入れするので、Addressables の読み込みと遷移の順番待ちを挟まないため [決定。2026-11-09。ユーザーの判断]
+- **ダイアログ**: `DialogOpener` が USN の Overlay（`IScreenNavigator.PushOverlayAsync`）に `DialogPresenter`（Prefab `Dialog`。`[AssetAddress("Dialog")]`）を出す。ページ遷移の最中にも出せる。層の順は `Pages` → `Modals` → `Busy` → `Overlays` → `EventSystem`（通信中でもダイアログを押せる）。押されたボタンの添字は `CompleteAsync` で返り、`WaitForPopAsync` で受ける（押されずに閉じたら −1）。`Bootstrap` の失敗のダイアログは、小さい `LifetimeScope`（`SceneUiInstaller.InstallScreens`）を作って同じ `DialogOpener` で出す [決定。2026-11-09。ユーザーの判断]
 - **エラー**: 業務エラーのコードは `ErrorDefinitions` に `Stay` で登録し、画面が文言を出す。「タイトルへ」「ホームへ」は `IErrorNavigator`（8章の `ISceneNavigator` を呼ぶ）。ルートの `ErrorDialogView`・`ApiActivityBridge` は `ActiveSceneUi`（各シーンのスコープが `Start` で入れる）から、いまのシーンのダイアログ・ブロッカーを取る
 - **カードの使用可否はサーバーが判定して返す**（6章の `UsableHand`）
 
@@ -204,7 +205,7 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 
 ## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
 
-Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（`Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う。`Produce` は順 7 の 4 本目が作り直す）。
+Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（`Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う（小さい `LifetimeScope` で USN の Overlay に出す）。`Produce` は順 7 の 4 本目が作り直す）。
 
 | シーン | 役割 | 遷移 |
 |---|---|---|
@@ -258,7 +259,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 ### Prefab 3/3（編成・プロデュース。2026-11-08。[P3 の計画](../../plans/2026-11-07-client-prefabs-screens-b.md)）
 
 - **作ったもの**: 画面 10（`FormationPage`（`Screens/Formation/`）、`ProduceBackdropPage`・`WeekPage`・`ClassPage`・`SupplyPage`・`CardOfferModal`・`LessonPage`・`DeckListModal`・`ExamResultPage`・`ProduceResultPage`（`Screens/Produce/`）。Addressables の `Screens` に登録）と行 5（`FormationSlotRow`・`SkillCardRow`・`DeckSectionHeaderRow`・`DeckCardRow`・`ExamRankingRow`（`Parts/`。登録しない））。View はフィールドだけ（メソッドと `IXxxView` の実装は formation・week・lesson の C# の計画）。生成の補助は P2 の `ScreenLayout` を使い、P3 だけが使うもの（戻るの無いヘッダー・メニューのボタン・実行時に並べる一覧の入れ物）を `ProduceLayout` に置いた
-- **プロデュースのメニュー（[≡]）は Prefab を作らない**。P1 の `Dialog`（`DialogService.ChooseAsync`）で出す。[≡] のボタンだけを `WeekPage`・`LessonPage` のヘッダーの `RightSlot` に置いた（両画面はヘッダーの `BackButton` を非アクティブにし、`TitleText` を左寄せにした）
+- **プロデュースのメニュー（[≡]）は Prefab を作らない**。P1 の `Dialog`（`DialogOpener.ChooseAsync`）で出す。[≡] のボタンだけを `WeekPage`・`LessonPage` のヘッダーの `RightSlot` に置いた（両画面はヘッダーの `BackButton` を非アクティブにし、`TitleText` を左寄せにした）
 - **手札とスキルカード獲得の選択肢は、行 `SkillCardRow` を共有する**（どちらも名前・消費・説明文・タップで同じ形）
 - **確かめた範囲**: `BuildAll()` が `built 35`（P2 の 20 + 行 5 + 画面 10）。`Screens` のエントリは 7 → 17。EditMode のテストは、Editor を開いたまま `TestRunnerApi` で 63/63（`ProducePrefabTests` 8/8）が通った。壊す確かめとして、`WeekPage` のヘッダーを戻るありにし `menuButton` の参照を外して生成すると、`PrefabContractTests`（参照の null）と `ProducePrefabTests`（`BackButton` の `activeSelf`）の 2 件が落ちた
 - **見た目**: P2 と同じく、プレビューのシーンで 1080×1920 の Canvas に置いて PNG に描いて見た（画面 10 と行 `FormationSlotRow`・`SkillCardRow`）。配置は計画の表どおりで、日本語と `≡` は豆腐にならなかった。ただし **`CardOfferModal`・`DeckListModal` の `TitleText` と、`SkillCardRow` の `TitleText`・`CostsText` が PNG に描かれなかった**。どれも、それまでの画面に無かった字（獲得・名・消費・「・」など）を含む。動的フォントのアトラスに字を足した直後に描いたためと推測する（確かめていない）。描画の途中で Editor が落ち（クラッシュのフォルダは空で、原因は分からない）、残りの行 3 個の PNG と矩形の大きさの出力は取れなかった。`◀`・`＜` の字形と、Prefab モードで開いて見る手動の確認（計画 タスク 5 の手順 4）はしていない

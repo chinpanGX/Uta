@@ -10,7 +10,7 @@ namespace Uta.Client.Tests
         private readonly CallLog log;
 
         public FakeDialogOpener(CallLog log)
-            : base(null, null)
+            : base(null)
         {
             this.log = log;
         }

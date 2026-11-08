@@ -10,6 +10,7 @@ using UnityScreenNavigator;
 using UnityScreenNavigator.Runtime.Core.Modal;
 using Uta.Client.Editor.Prefabs;
 using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Common.Parts;
 
 namespace Uta.Client.Tests
 {
@@ -25,7 +26,7 @@ namespace Uta.Client.Tests
 
         private static readonly string[] UiRootLayers =
         {
-            "Background", "Pages", "Modals", "Overlays", "Busy", "Dialogs", "EventSystem",
+            "Background", "Pages", "Modals", "Busy", "Overlays", "EventSystem",
         };
 
         // 根 Broken と子 Child。Child に存在しない GUID のスクリプトの MonoBehaviour を付ける
@@ -151,11 +152,32 @@ namespace Uta.Client.Tests
             Assert.IsNotNull(overlays.GetComponent<ModalContainer>());
             Assert.IsNotNull(overlays.GetComponent<OverlayContainer>());
 
+            var uiRoot = new SerializedObject(root.GetComponent<UiRoot>());
+            Assert.IsNull(uiRoot.FindProperty("dialogLayer"));
+            Assert.IsNull(uiRoot.FindProperty("dialogPrefab"));
+
             var scaler = root.GetComponent<CanvasScaler>();
             Assert.IsNotNull(scaler);
             Assert.AreEqual(CanvasScaler.ScaleMode.ScaleWithScreenSize, scaler.uiScaleMode);
             Assert.AreEqual(new Vector2(1080f, 1920f), scaler.referenceResolution);
             Assert.AreEqual(0f, scaler.matchWidthOrHeight);
+        }
+
+        [Test]
+        public void Dialog_RootIsModalWithPanel_AndRegisteredInScreensGroup()
+        {
+            var dialog = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabBuildUtil.PartPath("Dialog"));
+            var view = dialog.GetComponent<DialogView>();
+            Assert.IsNotNull(view);
+            Assert.IsNotNull(view.GetComponent<Modal>());
+            Assert.IsNotNull(new SerializedObject(view).FindProperty("panel").objectReferenceValue);
+
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.IsNotNull(settings, "Addressables settings not found");
+            var entry = settings.FindAssetEntry(AssetDatabase.AssetPathToGUID(PrefabBuildUtil.PartPath("Dialog")));
+            Assert.IsNotNull(entry);
+            Assert.AreEqual(AddressablesSetup.ScreensGroupName, entry.parentGroup.Name);
+            Assert.AreEqual("Dialog", entry.address);
         }
 
         [Test]
@@ -189,7 +211,7 @@ namespace Uta.Client.Tests
         }
 
         [Test]
-        public void ScreensGroup_ContainsOnlyScreenPrefabs()
+        public void ScreensGroup_ContainsOnlyScreenPrefabsAndDialog()
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             Assert.IsNotNull(settings, "Addressables settings not found");
@@ -199,6 +221,11 @@ namespace Uta.Client.Tests
             var prefix = PrefabBuildUtil.ScreensFolder + "/";
             foreach (var entry in group.entries)
             {
+                if (entry.AssetPath == PrefabBuildUtil.PartPath("Dialog"))
+                {
+                    continue;   // Dialog は USN の Overlay に出すので Screens グループに入れる
+                }
+
                 StringAssert.StartsWith(prefix, entry.AssetPath);
             }
         }

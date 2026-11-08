@@ -10,23 +10,23 @@ namespace Uta.Client.Bootstrap
 {
     public sealed class ErrorNavigator : IErrorNavigator
     {
-        private readonly ISceneNavigator scenes;
-        private readonly IObjectResolver resolver;
+        private readonly ISceneNavigator sceneNavigator;
+        private readonly IObjectResolver objectResolver;
         private bool refreshing;
         private int navigations;
 
         // IPlayerUseCase をコンストラクターで受けない:
         // ApiClient のファクトリー → IErrorNavigator → IPlayerUseCase → IPlayerService → ApiClient の循環になるため
-        public ErrorNavigator(ISceneNavigator scenes, IObjectResolver resolver)
+        public ErrorNavigator(ISceneNavigator sceneNavigator, IObjectResolver objectResolver)
         {
-            this.scenes = scenes;
-            this.resolver = resolver;
+            this.sceneNavigator = sceneNavigator;
+            this.objectResolver = objectResolver;
         }
 
         public UniTask GoToTitleAsync()
         {
             navigations++;
-            return scenes.GoToTitleAsync();
+            return sceneNavigator.GoToTitleAsync();
         }
 
         public async UniTask GoToHomeAsync()
@@ -37,7 +37,7 @@ namespace Uta.Client.Bootstrap
                 refreshing = true;
                 try
                 {
-                    await resolver.Resolve<IPlayerUseCase>().RefreshAsync();
+                    await objectResolver.Resolve<IPlayerUseCase>().RefreshAsync();
                 }
                 catch (Exception e)
                 {
@@ -55,7 +55,7 @@ namespace Uta.Client.Bootstrap
             }
 
             navigations++;
-            await scenes.GoToHomeAsync();
+            await sceneNavigator.GoToHomeAsync();
         }
 
         public UniTask OpenStoreAsync()

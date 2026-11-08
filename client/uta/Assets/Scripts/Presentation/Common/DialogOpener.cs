@@ -1,26 +1,31 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using Uta.Client.Presentation.Common.Parts;
+using UnityScreenNavigator;
 
 namespace Uta.Client.Presentation.Common
 {
     /// <summary>
     /// 確認・お知らせ・選択のダイアログを開く。要求は FIFO で 1 つずつ処理する。
     /// テストで派生させる（FakeDialogOpener）ので sealed にせず、公開メソッドは virtual。
-    /// USN のモーダルにしない（ページ遷移の最中にも出せるように、USN の遷移の外の素の層（UiRoot.DialogLayer）に出す）。
+    /// USN の Overlay（IScreenNavigator.PushOverlayAsync）に DialogPresenter を出す。Overlay はページ遷移の最中にも出せる。
     /// </summary>
-    public class DialogOpener
+    public class DialogOpener : IDisposable
     {
-        private readonly RectTransform layer;
-        private readonly DialogView prefab;
+        private readonly IScreenNavigator screenNavigator;
         private UniTask tail = UniTask.CompletedTask;   // 最後に積んだ要求が終わったら完了する
+        private bool disposed;
 
-        /// <summary>layer・prefab を保存するだけ（C# の null を許す。FakeDialogOpener が base(null, null) で作る）。</summary>
-        public DialogOpener(RectTransform layer, DialogView prefab)
+        /// <summary>screenNavigator を保存するだけ（C# の null を許す。FakeDialogOpener が base(null) で作る）。</summary>
+        public DialogOpener(IScreenNavigator screenNavigator)
         {
-            this.layer = layer;
-            this.prefab = prefab;
+            this.screenNavigator = screenNavigator;
+        }
+
+        /// <summary>シーンのスコープの破棄で呼ばれる。待ち行列に残った要求は、順番が来ても出さずに −1 で終わる。</summary>
+        public void Dispose()
+        {
+            disposed = true;
         }
 
         /// <summary>お知らせ。ボタンは「OK」1 つ（ButtonPrimary）。押されたら閉じて終わる。</summary>
@@ -68,7 +73,7 @@ namespace Uta.Client.Presentation.Common
             try
             {
                 await previous;                          // 前の要求が終わるまで待つ（previous は done.Task なので例外にならない）
-                if (IsLayerDestroyed())
+                if (disposed)
                 {
                     return -1;                           // シーンを閉じたあとの待ち行列の残り
                 }
@@ -81,55 +86,18 @@ namespace Uta.Client.Presentation.Common
             }
         }
 
-        // C# の null（コンストラクターに null を渡した）は「破棄済み」に数えない（ShowOneAsync が InvalidOperationException を投げる）。
-        // Unity の null（GameObject が破棄済み）だけを破棄済みとする
-        private bool IsLayerDestroyed()
+        private async UniTask<int> ShowOneAsync(string message, string[] labels, Color[] colors)
         {
-            return !ReferenceEquals(layer, null) && layer == null;
-        }
-
-        private UniTask<int> ShowOneAsync(string message, string[] labels, Color[] colors)
-        {
-            if (ReferenceEquals(layer, null) || ReferenceEquals(prefab, null))
+            if (screenNavigator == null)
             {
-                throw new InvalidOperationException("dialog layer is not set");
+                throw new InvalidOperationException("screen navigator is not set");
             }
 
-            var source = new UniTaskCompletionSource<int>();
-            var finished = false;
-            var view = UnityEngine.Object.Instantiate(prefab, layer, false);
-            view.gameObject.name = "Dialog";
-            view.SetMessage(message);
-
-            void Complete(int index)
-            {
-                if (finished)
-                {
-                    return;
-                }
-
-                finished = true;
-                UiObjects.Destroy(view.gameObject);
-                source.TrySetResult(index);
-            }
-
-            view.Destroyed += () =>
-            {
-                if (!finished)
-                {
-                    finished = true;
-                    source.TrySetResult(-1);
-                }
-            };
-
-            for (var i = 0; i < labels.Length; i++)
-            {
-                var index = i;
-                var button = view.AddButton("Button" + i, labels[i], colors[i]);
-                button.Button.onClick.AddListener(() => Complete(index));
-            }
-
-            return source.Task;
+            var presenter = await screenNavigator.PushOverlayAsync<DialogPresenter, DialogArgs>(
+                new DialogArgs(message, labels, colors),
+                playAnimation: false);
+            var result = await screenNavigator.WaitForPopAsync<object>(presenter);
+            return result is int index ? index : -1;
         }
     }
 }

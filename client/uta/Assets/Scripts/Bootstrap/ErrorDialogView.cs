@@ -12,12 +12,12 @@ namespace Uta.Client.Bootstrap
     public sealed class ErrorDialogView : IErrorDialogView
     {
         private readonly bool autoDismiss;
-        private readonly ActiveSceneUi sceneUi;
+        private readonly ActiveSceneUi activeSceneUi;
 
-        public ErrorDialogView(bool autoDismiss, ActiveSceneUi sceneUi)
+        public ErrorDialogView(bool autoDismiss, ActiveSceneUi activeSceneUi)
         {
             this.autoDismiss = autoDismiss;
-            this.sceneUi = sceneUi;
+            this.activeSceneUi = activeSceneUi;
         }
 
         public async UniTask<ErrorDialogButton> ShowAsync(ApiError error, ErrorDialogButtons buttons)
@@ -28,7 +28,7 @@ namespace Uta.Client.Bootstrap
                 return Fallback(buttons);
             }
 
-            var dialogs = sceneUi.Dialogs;
+            var dialogs = activeSceneUi.Dialogs;
             if (dialogs == null)
             {
                 Debug.LogWarning("[Uta] error dialog: no scene ui");

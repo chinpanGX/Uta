@@ -3,11 +3,10 @@ using UnityScreenNavigator;
 using UnityScreenNavigator.Runtime.Core.Modal;
 using UnityScreenNavigator.Runtime.Core.Page;
 using UnityScreenNavigator.Runtime.Foundation.AssetLoader;
-using Uta.Client.Presentation.Common.Parts;
 
 namespace Uta.Client.Presentation.Common
 {
-    /// <summary>各シーンに 1 つ置く UI の根（Canvas・ページ/モーダル/オーバーレイの層・通信中のブロッカー・ダイアログの層）。</summary>
+    /// <summary>各シーンに 1 つ置く UI の根（Canvas・ページ/モーダル/オーバーレイの層・通信中のブロッカー）。</summary>
     [DisallowMultipleComponent]
     public sealed class UiRoot : MonoBehaviour
     {
@@ -16,8 +15,6 @@ namespace Uta.Client.Presentation.Common
         [SerializeField] private ModalContainer modalContainer;
         [SerializeField] private OverlayContainer overlayContainer;
         [SerializeField] private BusyIndicator busyIndicator;
-        [SerializeField] private RectTransform dialogLayer;
-        [SerializeField] private DialogView dialogPrefab;
 
         private AddressableAssetLoader assetLoader;
 
@@ -51,8 +48,6 @@ namespace Uta.Client.Presentation.Common
         }
 
         public BusyIndicator Busy => busyIndicator;
-        public RectTransform DialogLayer => dialogLayer;
-        public DialogView DialogPrefab => dialogPrefab;
 
         private void Awake()
         {

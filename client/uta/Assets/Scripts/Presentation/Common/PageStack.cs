@@ -15,8 +15,8 @@ namespace Uta.Client.Presentation.Common
 
         /// <summary>VContainer が使う。</summary>
         [Inject]
-        public PageStack(PageContainer pages, ModalContainer modals)
-            : this(() => pages.Pages.Count, () => modals.Modals.Count)
+        public PageStack(PageContainer pageContainer, ModalContainer modalContainer)
+            : this(() => pageContainer.Pages.Count, () => modalContainer.Modals.Count)
         {
         }
 
@@ -34,21 +34,21 @@ namespace Uta.Client.Presentation.Common
         public int ModalDepth => modalCount();
 
         /// <summary>
-        /// シーンの底のページ（ホームなど）へ戻る。ModalDepth > 0 なら navigator.PopModalAsync(playAnimation: false, popCount: ModalDepth) を待ち、
-        /// そのあと Depth > 1 なら navigator.PopPageAsync(playAnimation: false, popCount: Depth - 1) を待つ。底が 1 枚以下なら Pop を呼ばない。
+        /// シーンの底のページ（ホームなど）へ戻る。ModalDepth > 0 なら screenNavigator.PopModalAsync(playAnimation: false, popCount: ModalDepth) を待ち、
+        /// そのあと Depth > 1 なら screenNavigator.PopPageAsync(playAnimation: false, popCount: Depth - 1) を待つ。底が 1 枚以下なら Pop を呼ばない。
         /// </summary>
-        public async UniTask PopToRootAsync(IScreenNavigator navigator)
+        public async UniTask PopToRootAsync(IScreenNavigator screenNavigator)
         {
             var modals = ModalDepth;
             if (modals > 0)
             {
-                await navigator.PopModalAsync(playAnimation: false, popCount: modals);
+                await screenNavigator.PopModalAsync(playAnimation: false, popCount: modals);
             }
 
             var pages = Depth;
             if (pages > 1)
             {
-                await navigator.PopPageAsync(playAnimation: false, popCount: pages - 1);
+                await screenNavigator.PopPageAsync(playAnimation: false, popCount: pages - 1);
             }
         }
     }

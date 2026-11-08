@@ -1,151 +1,135 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
-using TMPro;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 using Uta.Client.Presentation.Common;
-using Uta.Client.Presentation.Common.Parts;
 using DialogResult = Uta.Client.Presentation.Common.DialogResult;
-using Object = UnityEngine.Object;
 
 namespace Uta.Client.Tests
 {
-    /// <summary>どれも同期の [Test]。戻り値の UniTask は await せずに変数に受け、層の子とボタンをその場で確かめる（待ち行列が空なら、ダイアログは呼んだその場で出る）。</summary>
+    /// <summary>FakeScreenNavigator で DialogOpener を確かめる。どれも同期の [Test]（戻り値の UniTask は await せず Status で見る）。</summary>
     public sealed class DialogOpenerTests
     {
-        private RectTransform layer;
+        private CallLog log;
+        private FakeScreenNavigator navigator;
         private DialogOpener opener;
 
         [SetUp]
         public void SetUp()
         {
-            layer = new GameObject("Layer", typeof(RectTransform)).GetComponent<RectTransform>();
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Parts/Dialog.prefab").GetComponent<DialogView>();
-            opener = new DialogOpener(layer, prefab);
+            log = new CallLog();
+            navigator = new FakeScreenNavigator(log);
+            opener = new DialogOpener(navigator);
         }
 
-        [TearDown]
-        public void TearDown()
+        private DialogArgs ArgsAt(int index)
         {
-            if (layer != null)
-            {
-                Object.DestroyImmediate(layer.gameObject);
-            }
-        }
-
-        private Button[] Buttons()
-        {
-            return layer.GetComponentsInChildren<Button>();
-        }
-
-        private string MessageText()
-        {
-            foreach (var text in layer.GetComponentsInChildren<TMP_Text>())
-            {
-                if (text.gameObject.name == "MessageText")
-                {
-                    return text.text;
-                }
-            }
-
-            return null;
+            return (DialogArgs)navigator.Args[index];
         }
 
         [Test]
-        public void ConfirmAsync_PositiveClicked_ReturnsPositive()
+        public void ShowInfo_PushesOverlayWithOk()
         {
-            var task = opener.ConfirmAsync("m");
-            Assert.AreEqual(1, layer.childCount);
-
-            Buttons()[0].onClick.Invoke();
+            var task = opener.ShowInfoAsync("m");
 
             Assert.AreEqual(UniTaskStatus.Succeeded, task.Status);
-            Assert.AreEqual(DialogResult.Positive, task.GetAwaiter().GetResult());
-            Assert.AreEqual(0, layer.childCount);
+            Assert.That(log.Entries, Is.EqualTo(new[] { "PushOverlay:DialogPresenter", "WaitForPop" }));
+            Assert.AreEqual("m", ArgsAt(0).Message);
+            Assert.That(ArgsAt(0).Labels, Is.EqualTo(new[] { "OK" }));
+            Assert.That(ArgsAt(0).Colors, Is.EqualTo(new[] { UiTheme.ButtonPrimary }));
         }
 
         [Test]
-        public void ConfirmAsync_NegativeClicked_ReturnsNegative()
+        public void Confirm_Labels_AndResult()
         {
-            var task = opener.ConfirmAsync("m");
+            navigator.PopResults.Enqueue(0);
+            navigator.PopResults.Enqueue(1);
 
-            Buttons()[1].onClick.Invoke();
+            var positive = opener.ConfirmAsync("m", "y", "n");
+            var negative = opener.ConfirmAsync("m", "y", "n");
 
-            Assert.AreEqual(UniTaskStatus.Succeeded, task.Status);
-            Assert.AreEqual(DialogResult.Negative, task.GetAwaiter().GetResult());
-            Assert.AreEqual(0, layer.childCount);
+            Assert.AreEqual(DialogResult.Positive, positive.GetAwaiter().GetResult());
+            Assert.AreEqual(DialogResult.Negative, negative.GetAwaiter().GetResult());
+            Assert.That(ArgsAt(0).Labels, Is.EqualTo(new[] { "y", "n" }));
+            Assert.That(ArgsAt(0).Colors, Is.EqualTo(new[] { UiTheme.ButtonPrimary, UiTheme.ButtonSecondary }));
         }
 
         [Test]
-        public void ChooseAsync_SecondClicked_ReturnsOne()
+        public void Choose_ReturnsIndex()
         {
+            navigator.PopResults.Enqueue(2);
+
             var task = opener.ChooseAsync("m", new[] { "a", "b", "c" });
-            Assert.AreEqual(3, Buttons().Length);
 
-            Buttons()[1].onClick.Invoke();
-
-            Assert.AreEqual(UniTaskStatus.Succeeded, task.Status);
-            Assert.AreEqual(1, task.GetAwaiter().GetResult());
+            Assert.AreEqual(2, task.GetAwaiter().GetResult());
+            Assert.That(ArgsAt(0).Labels, Is.EqualTo(new[] { "a", "b", "c" }));
+            Assert.That(ArgsAt(0).Colors, Is.EqualTo(new[] { UiTheme.ButtonPrimary, UiTheme.ButtonPrimary, UiTheme.ButtonPrimary }));
         }
 
         [Test]
-        public void ChooseAsync_FiveLabels_Throws()
+        public void Choose_InvalidLabels_Throws()
         {
+            Assert.Throws<ArgumentException>(() => opener.ChooseAsync("m", null));
+            Assert.Throws<ArgumentException>(() => opener.ChooseAsync("m", new string[0]));
             Assert.Throws<ArgumentException>(() => opener.ChooseAsync("m", new[] { "a", "b", "c", "d", "e" }));
-            Assert.AreEqual(0, layer.childCount);
+            Assert.That(log.Entries, Is.Empty);
         }
 
         [Test]
-        public void ShowInfoAsync_Twice_ShowsOneAtATime()
+        public void Queue_SecondWaitsForFirst()
         {
+            var gate = new UniTaskCompletionSource<object>();
+            navigator.PopGates.Enqueue(gate);
+
             var first = opener.ShowInfoAsync("a");
             var second = opener.ShowInfoAsync("b");
 
-            Assert.AreEqual(1, layer.childCount);
-            Assert.AreEqual("a", MessageText());
+            Assert.AreEqual(UniTaskStatus.Pending, first.Status);
             Assert.AreEqual(UniTaskStatus.Pending, second.Status);
+            Assert.AreEqual(1, navigator.Args.Count);
+            Assert.AreEqual("a", ArgsAt(0).Message);
 
-            Buttons()[0].onClick.Invoke();
+            gate.TrySetResult(0);
 
             Assert.AreEqual(UniTaskStatus.Succeeded, first.Status);
-            Assert.AreEqual(1, layer.childCount);
-            Assert.AreEqual("b", MessageText());
-
-            Buttons()[0].onClick.Invoke();
-
             Assert.AreEqual(UniTaskStatus.Succeeded, second.Status);
-            Assert.AreEqual(0, layer.childCount);
+            Assert.AreEqual(2, navigator.Args.Count);
+            Assert.AreEqual("b", ArgsAt(1).Message);
         }
 
         [Test]
-        public void LayerDestroyed_ReturnsWithoutDialog()
+        public void Result_NotInt_ReturnsMinusOne()
         {
-            Object.DestroyImmediate(layer.gameObject);
+            navigator.PopResults.Enqueue(null);
 
-            var confirm = opener.ConfirmAsync("m");
-            var choose = opener.ChooseAsync("m", new[] { "a" });
-            var info = opener.ShowInfoAsync("m");
+            var task = opener.ChooseAsync("m", new[] { "a" });
 
-            Assert.AreEqual(UniTaskStatus.Succeeded, confirm.Status);
-            Assert.AreEqual(UniTaskStatus.Succeeded, choose.Status);
-            Assert.AreEqual(UniTaskStatus.Succeeded, info.Status);
-            Assert.AreEqual(DialogResult.Negative, confirm.GetAwaiter().GetResult());
-            Assert.AreEqual(-1, choose.GetAwaiter().GetResult());
+            Assert.AreEqual(-1, task.GetAwaiter().GetResult());
         }
 
         [Test]
-        public void ButtonColors_PrimaryThenSecondary()
+        public void NullNavigator_Throws()
         {
-            var task = opener.ConfirmAsync("m");
-            var buttons = Buttons();
+            var task = new DialogOpener(null).ShowInfoAsync("m");
 
-            Assert.AreEqual(UiTheme.ButtonPrimary, buttons[0].GetComponent<ButtonView>().GetComponent<Image>().color);
-            Assert.AreEqual(UiTheme.ButtonSecondary, buttons[1].GetComponent<ButtonView>().GetComponent<Image>().color);
+            Assert.AreEqual(UniTaskStatus.Faulted, task.Status);
+            Assert.Throws<InvalidOperationException>(() => task.GetAwaiter().GetResult());
+        }
 
-            buttons[0].onClick.Invoke();
-            Assert.AreEqual(UniTaskStatus.Succeeded, task.Status);
+        [Test]
+        public void Disposed_QueuedRequest_ReturnsMinusOneWithoutPush()
+        {
+            var gate = new UniTaskCompletionSource<object>();
+            navigator.PopGates.Enqueue(gate);
+            var first = opener.ChooseAsync("a", new[] { "x" });
+            var second = opener.ChooseAsync("b", new[] { "x" });
+
+            opener.Dispose();
+            gate.TrySetResult(0);
+
+            Assert.AreEqual(0, first.GetAwaiter().GetResult());
+            Assert.AreEqual(-1, second.GetAwaiter().GetResult());
+            Assert.AreEqual(1, navigator.Args.Count);
         }
     }
 }

@@ -21,6 +21,9 @@ namespace Uta.Client.Tests
         /// <summary>WaitForPopAsync が返す値。空なら default(TResult)。</summary>
         public Queue<object> PopResults { get; } = new Queue<object>();
 
+        /// <summary>空でなければ、WaitForPopAsync は先頭の Source が終わるまで待ち、その値を返す（待ち行列のテスト用）。</summary>
+        public Queue<UniTaskCompletionSource<object>> PopGates { get; } = new Queue<UniTaskCompletionSource<object>>();
+
         public UniTask<TPresenter> PushPageAsync<TPresenter>(bool stack = true, bool playAnimation = true)
             where TPresenter : IPresenter
         {
@@ -108,8 +111,18 @@ namespace Uta.Client.Tests
         public UniTask<TResult> WaitForPopAsync<TResult>(IPresenter presenter, CancellationToken cancellation = default)
         {
             log.Add("WaitForPop");
+            if (PopGates.Count > 0)
+            {
+                return WaitGateAsync<TResult>(PopGates.Dequeue());
+            }
+
             var result = PopResults.Count > 0 ? (TResult)PopResults.Dequeue() : default(TResult);
             return UniTask.FromResult(result);
+        }
+
+        private static async UniTask<TResult> WaitGateAsync<TResult>(UniTaskCompletionSource<object> gate)
+        {
+            return (TResult)await gate.Task;
         }
 
         private static string NameOf(IPresenter presenter)
