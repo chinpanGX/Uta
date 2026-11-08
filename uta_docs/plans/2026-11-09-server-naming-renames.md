@@ -9,7 +9,7 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/server/server-foundat
 
 ## この計画で決めたこと
 
-- **前提と順番**（2026-11-09。ユーザーの判断）: この計画は、同じブランチ（`claude/plan-server-program-cleanup`）の [Program.cs の整理の計画](2026-11-08-server-program-cleanup.md) と 1 つの計画 PR に入れる。実装も 1 つのセッション・1 つのブランチで、**Program.cs の整理の計画を先に終えてから**この計画を進める。**実装の PR は 2 つの計画で 1 本にする**（1 つのブランチで続けて実装するため。[plans/README.md](README.md) の「実装の PR は計画ごとに分ける」の例外。ユーザーの判断に従う）。理由: Program.cs の整理の計画は `Program.cs` の登録の行を文字どおり書いており（`ProduceViewBuilder`）、新しく作る `ServiceProviderValidationTests` も `UtaServerFactory` を使う。後から改名すれば、どちらの計画も書いたとおりに実装できる。よって、この計画の行番号・コードは **Program.cs の整理の実装が終わった後**の形を前提にする（`Program.cs` の登録の並びは整理の計画の 3.1）
+- **前提と順番**（2026-11-09。ユーザーの判断）: この計画は、同じブランチ（`claude/plan-server-program-cleanup`）の [Program.cs の整理の計画](2026-11-08-server-program-cleanup.md) と 1 つの計画 PR に入れる。実装も 1 つのセッション・1 つのブランチで、**Program.cs の整理の計画を先に終えてから**この計画を進める。**実装の PR は 2 つの計画で 1 本にする**（1 つのブランチで続けて実装するため。[plans/README.md](README.md) の「実装の PR は計画ごとに分ける」の例外。ユーザーの判断に従う）。理由: Program.cs の整理の計画は、起動の組み立てを `Program.cs` から新しい `Hosting/ServerHost.cs` に移し、その完成形を今の名前（`ProduceViewBuilder`・`UtaDatabase`）で文字どおり書いており、新しく作る `ServiceProviderValidationTests` も `UtaServerFactory` を使う。後から改名すれば、どちらの計画も書いたとおりに実装できる。よって、この計画の行番号・コードは **Program.cs の整理の実装が終わった後**の形を前提にする（`ServerHost.cs` の完成形は整理の計画の 3.1。整理の後の `Program.cs` は `return ServerHost.Run(args);` と `public partial class Program;` だけで、旧い名前を書いていない）
 - **`GachaStatus` の新しい名前は `GachaEntryResult`**（2026-11-09。ユーザーの判断。`GachaExchangePointsResult` と比べ、ガチャ一覧の 1 件分と読め、後で開催期間などを足しても名前が合うほうを選んだ）。naming.md の未決事項からこの項を消す
 - **改名する型**（naming.md「今のコードとの差」の行のとおり）:
 
@@ -57,7 +57,7 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/server/server-foundat
 - **`shared/`（Shared.Domain・Contracts）の改名**（`GachaOutcome`・`ExamOutcome`・`UseCheckResult` などの enum、`ClassOptionView`、`ExamTurnBuilder`、Contracts のプロパティ `Outcome`・`ExamOutcome`）。client の画面の計画（foundation〜lesson）が実装中・予定で、client のコードにも波及するため、client の計画の読み替えと合わせて別の計画で直す。naming.md の該当の行は残す
 - Contracts の `GachaStatusDto` の名前（naming.md の差の表に無い）
 - DB の列名・ゲームログのキー・MessagePack のキー
-- `Program.cs` の登録の並び・寿命（[Program.cs の整理の計画](2026-11-08-server-program-cleanup.md) が決める。この計画は型の名前だけを書き換える）
+- `ServerHost.cs` の登録の並び・寿命（[Program.cs の整理の計画](2026-11-08-server-program-cleanup.md) が決める。この計画は型の名前だけを書き換える）
 
 ## 2. 触るファイル
 
@@ -79,7 +79,7 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/server/server-foundat
 | 改名＋変更 | `S/Application/Produce/ProduceViewBuilder.cs` → `ProduceStateResultFactory.cs` | クラス名・`Build` → `Create` | 2 |
 | 変更 | `S/Application/Produce/StartProduceUseCase.cs`・`GetProduceStateUseCase.cs`・`ProduceOperationUseCase.cs`・`AbandonProduceUseCase.cs`・`ProduceCompletion.cs` | 型名・引数名 | 2 |
 | 変更 | `S/Api/ProduceResponseMapper.cs` | 型名・引数名・コメント | 2 |
-| 変更 | `S/Program.cs` | `ProduceViewBuilder` の登録（2）、`UtaDatabase.Migrate`（3） | 2・3 |
+| 変更 | `S/Hosting/ServerHost.cs`（Program.cs の整理で作る） | `AddServices` の `ProduceViewBuilder` の登録（2）、`Migrate` メソッドの `UtaDatabase.Migrate`（3） | 2・3 |
 | 改名＋変更 | `S/Api/UtaServiceAttribute.cs` → `GameServiceFilterAttribute.cs` | クラス名 | 3 |
 | 変更 | `S/Api/GachaService.cs`・`ProduceService.cs`・`SupportService.cs`・`PlayerService.cs` | `[UtaService]` → `[GameServiceFilter]` | 3 |
 | 改名＋変更 | `S/Infrastructure/UtaDatabase.cs` → `DatabaseMigrator.cs` | クラス名・`typeof` | 3 |
@@ -161,7 +161,7 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
 - `AbandonProduceUseCase.ExecuteAsync` の戻り値と `new ProduceEndSummary(` → `ProduceEndResult`
 - `ProduceCompletion.CompleteAsync` の戻り値と `new ProduceEndSummary(` → `ProduceEndResult`
 - `ProduceResponseMapper`: XML コメントを `/// <summary>ProduceStateResult / ProduceEndResult を Contracts のレスポンスに変える。</summary>` に、`ToStateResponse(ProduceView view)` を `ToStateResponse(ProduceStateResult result)` にし、本体の `view.` をすべて `result.` にする（`view.State`・`view.ExamResult`・`view.WeekChoices`・`view.ClassOptions`・`view.NpcScores`・`view.End` の 6 種類。`view.End` は 1 行に 2 回出るので、全部で 7 か所）。`ToResultResponse(ProduceEndSummary end)` → `ToResultResponse(ProduceEndResult end)`
-- `Program.cs`: `builder.Services.AddSingleton<ProduceViewBuilder>();` → `builder.Services.AddSingleton<ProduceStateResultFactory>();`（行の位置は変えない）
+- `Hosting/ServerHost.cs` の `AddServices`: `services.AddSingleton<ProduceViewBuilder>();` → `services.AddSingleton<ProduceStateResultFactory>();`（行の位置は変えない。`using Uta.Server.Application.Produce;` は既にあるので足さない）
 - `ProduceService.cs` は `ProduceResponseMapper` を呼ぶだけで旧い型名を書いていない（`git grep` で確かめた。2026-11-09）
 
 ### 3.3 Api・Infrastructure・テストの基盤（タスク 3）
@@ -169,7 +169,7 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
 - `GameServiceFilterAttribute.cs`: `public sealed class UtaServiceAttribute : MagicOnionFilterAttribute` → `public sealed class GameServiceFilterAttribute : MagicOnionFilterAttribute`。ほか（XML コメント・`ToErrorCode`）は変えない
 - `[UtaService]` → `[GameServiceFilter]`: `GachaService.cs`（クラス）・`ProduceService.cs`（クラス）・`SupportService.cs`（クラス）・`PlayerService.cs`（`SignInAsync` のメソッド）の 4 か所
 - `DatabaseMigrator.cs`: `public static class UtaDatabase` → `public static class DatabaseMigrator`、`typeof(UtaDatabase).Assembly` → `typeof(DatabaseMigrator).Assembly`。例外の文「Uta のマイグレーション …」・スクリプト名の接頭辞 `"Uta.Server.Migrations."` は変えない
-- `Program.cs` の `UtaDatabase.Migrate(connectionString);` → `DatabaseMigrator.Migrate(connectionString);`
+- `Hosting/ServerHost.cs` の `Migrate` メソッドの `UtaDatabase.Migrate(connectionString);` → `DatabaseMigrator.Migrate(connectionString);`（`using Uta.Server.Infrastructure;` は既にあるので足さない）
 - `PostgresFixture.cs` の `UtaDatabase.Migrate(ConnectionString);` 2 か所 → `DatabaseMigrator.Migrate(ConnectionString);`
 - `ServerFactory.cs`: `public sealed class UtaServerFactory : WebApplicationFactory<Program>` → `public sealed class ServerFactory : WebApplicationFactory<Program>`、コンストラクター `public UtaServerFactory(` → `public ServerFactory(`
 - `T/Integration/` の全ファイルの `UtaServerFactory` → `ServerFactory`（タプルの型・`new`・戻り値の型。2026-11-09 の時点で `CommonResponseTests`・`DeviceRegistrationTests`・`GachaTests`・`PlayerSignUpSignInTests`・`ProduceOperationTests`・`ProducePlayTests`・`ProduceStartTests`・`SupportTests`。Program.cs の整理で足す `ServiceProviderValidationTests` も含む）
@@ -207,7 +207,7 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
 
 ## 4. タスク
 
-各タスクの前提: [Program.cs の整理の計画](2026-11-08-server-program-cleanup.md) のタスク 1〜3 が同じブランチで終わっていること（`server/Uta.Server.Tests/Integration/ServiceProviderValidationTests.cs` があること）。無ければ止まって報告する。
+各タスクの前提: [Program.cs の整理の計画](2026-11-08-server-program-cleanup.md) のタスク 1〜3 が同じブランチで終わっていること（`server/Uta.Server.Tests/Integration/ServiceProviderValidationTests.cs` と `server/Uta.Server/Hosting/ServerHost.cs` があること）。無ければ止まって報告する。
 
 ### タスク 1: ガチャの型を改名する
 
