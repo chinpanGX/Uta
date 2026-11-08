@@ -45,6 +45,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 45e1304f6e63c0d459a2c8a81a76a6c4
+    m_Address: ExamResultPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 6fffed28aa873114ea2f1506ef8254a3
     m_Address: CardOfferModal
     m_ReadOnly: 0
@@ -52,6 +57,16 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 87858ce56001ecd4d977e5e5947c6232
     m_Address: SupportDetailPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 91fd645da4bda734cadb5dd8b92dfa21
+    m_Address: DeckListModal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9743bd6bdf73b624fbb589c305161365
+    m_Address: LessonPage
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
@@ -77,6 +92,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d35d2765678984b4285f0940d359b6df
     m_Address: OwnedPage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f545cd8d7ab02e24ebd30ca3a243cde9
+    m_Address: ProduceResultPage
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
