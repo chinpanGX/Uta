@@ -79,7 +79,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 ## 4. 警告・注意
 
 - Unity のログの警告（エラーではない）:
-  - `UAL0010`・`UAL0013`: 静的フィールドを持つ型に `AutoStaticsCleanup` などの属性が要る（`shared/Uta.Shared.Domain` の `CardDefinition`、Supplement・UnityScreenNavigator の複数の型）
+  - `UAL0010`・`UAL0013`: 静的フィールドを持つ型に `AutoStaticsCleanup` などの属性が要る（`shared/Uta.Shared.Domain` の `CardDefinition`、Supplement・UnityScreenNavigator の複数の型）。Uta のコードは値が変わる static の状態を持たない（CLAUDE.md）。警告が出ている `CardDefinition` の static は不変の値
   - `CS8632`: MagicOnion.Client.Unity の nullable の注釈
   - 基盤のテスト用の asmdef（`Tests/EditMode`）は、`Assets/` の外にあるのでコンパイルされない
   - `com.unity.ai.assistant`（もとから入っているパッケージ）が `NullReferenceException` を出す（`SessionSlice.cs`）。取り込みとは関係ない
@@ -97,6 +97,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
   ```
   結果は `Temp/uta-test-results.xml` の `<test-run … total= passed= failed=>` と、`result="Failed"` の `<test-case>` の `<message>` で見る
 - **Play モードは Editor が前面にないとループが進まない**（2026-11-08。`Time.frameCount` が 1 のままだった）。一時停止して `unity command eval 'UnityEditor.EditorApplication.Step(); return UnityEngine.Time.frameCount;'` を 1 回ずつ呼ぶと、フレームが進んだ。Play で画面の遷移を確かめるときは、この `Step()` で送る
+- **Enter Play Mode Options でドメインのリロードを切っているので、static の値が Play をまたいで残る**（2026-11-09）。基盤の UnityScreenNavigator の static（コンテナーの一覧）に前の Play の破棄済みのものが残り、2 回目の Play の Push が例外になった。`EditorUtility.RequestScriptReload()` で直る。Uta のコードは値が変わる static の状態を持たない（CLAUDE.md の C# コーディング規約）
 - `unity test --mode EditMode`（2026-11-08 に 1 回だけ試した。以後は使わない）: 同じプロジェクトを開いた Editor があると、`プロジェクトは実行中のエディター（PID …）で既に開かれています` で終了コード 6。`unity close .`（保存せずに閉じる。終了コード 0、`graceful`）のあとは終了コード 0 で、プロジェクトの直下に `test-results.xml` を書いた（約 2 分。Editor の起動を含む）。`unity close` の前の `eval` の `AssetDatabase.SaveAssets` は 30 秒でタイムアウトした（閉じるのは通った）。`unity open .` は終了コード 0 で、直後の `unity status --until-ready` には出ず、もう一度 `unity open .` を実行したあと ready になった（1 回目で起動が間に合わなかっただけかは未確認）。`--filter` は試していない
 - **Prefab の生成**（2026-11-08。[計画](../../plans/2026-11-07-client-prefabs-common.md)）: Editor を開いたまま `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'` で Editor のスクリプトの静的メソッドを呼び、Prefab を作れた（`built 10`）。Editor が閉じているとき用のバッチの入口 `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` は、終了コード 0 を 1 回確かめた。`BuildAll` のたびに `NotoSansJP-Regular SDF.asset` のマテリアルの `_ScaleRatioA`・`_ScaleRatioC` が変わり、`FontAssets.ClearDynamicData()` では戻らないので、差分は `git restore` で戻す
 - Unity のバッチモードでビルドするときは、Editor が同じプロジェクトを開いていると競合する。別のワークスペース（`../Uta-wt/<名前>`）に worktree を作り、`Assets/Packages/` のコピーをしてから回す

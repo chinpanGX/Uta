@@ -11,9 +11,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Title", "TitlePage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<TitlePage>("TitlePage", out var body);
+            var page = PrefabBuildUtil.CreatePage<TitlePage>(session, "TitlePage", out var body);
             ScreenLayout.SetupBody(body);
             var main = ScreenLayout.AddMain(body);
             main.GetComponent<VerticalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;

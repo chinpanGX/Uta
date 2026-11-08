@@ -14,9 +14,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot(Name);
+            var root = session.CreateRoot(Name);
             var image = PrefabBuildUtil.AddImage(root, UiTheme.Panel, true);
             var button = PrefabBuildUtil.AddButton(root, image);
             // 高さ: 上下 24 + 52 + 44 + 92 + spacing 8 = 220

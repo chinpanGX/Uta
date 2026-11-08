@@ -58,6 +58,7 @@
 ## 書き方
 
 - [ ] `shared/.editorconfig` どおりか（ブロック形式の namespace など）。命名はルートの `.editorconfig`
+- [ ] 値が変わる static の状態が無いか（CLAUDE.md の C# コーディング規約）
 - [ ] `.cs` が BOM 付き UTF-8・LF か
 - [ ] `shared/` のプロジェクトファイルがコミットされているか
 - [ ] Unity にソースで入るので、Unity 側の `.meta` や asmdef の扱いが変更に追従しているか（取り込み方は要確認の項目。2章）

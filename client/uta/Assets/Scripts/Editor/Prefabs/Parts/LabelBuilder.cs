@@ -15,9 +15,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Label"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Label");
+            var root = session.CreateRoot("Label");
             PrefabBuildUtil.AddText(root, "ラベル", TextSpec.Body);
             PrefabBuildUtil.SavePrefab(root, AssetPath);
         }

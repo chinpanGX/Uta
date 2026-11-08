@@ -11,9 +11,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Produce", "LessonPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<LessonPage>("LessonPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<LessonPage>(session, "LessonPage", out var body);
             ScreenLayout.SetupBody(body);
             // ヘッダーの子は足さない（BackButton・TitleText・RightSlot のまま。残りのターンは Main の先頭に置く）
             var header = ProduceLayout.AddHeaderWithoutBack(body, "レッスン");

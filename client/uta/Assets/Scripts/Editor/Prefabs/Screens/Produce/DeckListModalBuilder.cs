@@ -11,9 +11,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Produce", "DeckListModal");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var modal = PrefabBuildUtil.CreateModal<DeckListModal>("DeckListModal", out var panel);
+            var modal = PrefabBuildUtil.CreateModal<DeckListModal>(session, "DeckListModal", out var panel);
 
             // 固定の文言（View のフィールドにしない）
             ScreenLayout.AddLabel(panel, "TitleText", "山札・捨札・除外", ScreenLayout.Title, 80f);

@@ -147,6 +147,10 @@ uta/
   - `server/`: .NET 10（C# 14）。新しい C# の書き方を許す（ファイルスコープ namespace など）
 - `.cs` は BOM 付き UTF-8、改行は LF
 - テストのメソッド名は `Method_Condition_Result` の形を許す
+- **値が変わる static の状態を持たない**（`client/`・`shared/`・`masterdata/`。2026-11-09。ユーザーの判断）。Editor は Play に入るときのドメインのリロードを切っているので、static の値は Play をまたいで残るため。状態は DI のスコープ（VContainer）に持たせる
+  - 禁止: `readonly` でない static のフィールド・自動プロパティ（setter のあるもの）、中身を書き換える static のコレクション、static のイベント、自前のシングルトン（`static Instance`）
+  - 使ってよい: `const`、不変の値の `static readonly`・get だけの static プロパティ（一度だけ作って書き換えない。配列・コレクションは中身を書き換えない。公開するなら `IReadOnlyList<T>` などで出す）、状態を持たない static メソッド・static class（`<機能>Mapper`・`<名詞>Factory.Create`・拡張メソッド・テストの `Test<名詞>`）、static ラムダ
+  - 対象外: 生成コード（MagicOnion・MasterMemory の Source Generator・`masterdata/gen.ps1` の出力）と、パッケージ・共通基盤のコード（共通基盤の static は、その基盤のリポジトリで直す）
 
 ## Git
 

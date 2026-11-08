@@ -55,6 +55,7 @@ Unity 7（`7000.0.0a12`）のクライアント。対象は Android / iOS / Wind
 
 ## 書き方・ファイル
 
+- [ ] 値が変わる static の状態が無いか（CLAUDE.md の C# コーディング規約）
 - [ ] C# 9 の範囲か（ファイルスコープ namespace、プライマリコンストラクタ、コレクション式、Index/Range を使わない）
 - [ ] 命名・書式が `.editorconfig` どおりか（Allman、`var`、private フィールドは接頭辞なしの camelCase）
 - [ ] `.cs` が BOM 付き UTF-8・LF か

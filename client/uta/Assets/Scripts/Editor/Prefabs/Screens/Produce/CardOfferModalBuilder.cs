@@ -11,9 +11,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Produce", "CardOfferModal");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var modal = PrefabBuildUtil.CreateModal<CardOfferModal>("CardOfferModal", out var panel);
+            var modal = PrefabBuildUtil.CreateModal<CardOfferModal>(session, "CardOfferModal", out var panel);
 
             // 固定の文言（View のフィールドにしない）
             ScreenLayout.AddLabel(panel, "TitleText", "スキルカードを1枚獲得", ScreenLayout.Title, 80f);

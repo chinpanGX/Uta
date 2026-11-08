@@ -17,9 +17,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Tab"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Tab");
+            var root = session.CreateRoot("Tab");
             var image = PrefabBuildUtil.AddImage(root, UiTheme.Header, true);
             var button = PrefabBuildUtil.AddButton(root, image);
             PrefabBuildUtil.SetLayout(root, minHeight: UiTheme.TabHeight, preferredHeight: UiTheme.TabHeight, flexibleWidth: 1f);

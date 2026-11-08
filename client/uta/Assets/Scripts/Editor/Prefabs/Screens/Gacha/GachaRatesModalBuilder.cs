@@ -9,9 +9,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Gacha", "GachaRatesModal");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var modal = PrefabBuildUtil.CreateModal<GachaRatesModal>("GachaRatesModal", out var panel);
+            var modal = PrefabBuildUtil.CreateModal<GachaRatesModal>(session, "GachaRatesModal", out var panel);
 
             ScreenLayout.AddLabel(panel, "TitleText", "排出率", ScreenLayout.Title, 90f);
             var content = PrefabBuildUtil.AddScrollList(panel, "List", out var scroll);

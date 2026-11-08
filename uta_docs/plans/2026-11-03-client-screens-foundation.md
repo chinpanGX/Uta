@@ -1511,6 +1511,7 @@ Play モード・手動（Editor、サーバー起動済み）:
 | レビュー 2 | 完了 | （このコミット） | Critical 0・Important 1（screen-design.md 8章の `ErrorNavigator` の説明が古い）を直した。Minor 3 件は残した: M1 `navigations` で飛ばす理由のコメント、M2 飛ばしたあとの次の「ホームへ」のログでの確認、M3 `SceneContractTests`・`SceneBuilder` の細部（報告は `uta_docs/reviews/.raw/2026-11-08-client-screens-foundation/code-client-2.md`。Git には入れない） |
 | 最後 | 完了 | （このコミット） | `UiRoot` を足したあとの Bootstrap（`63be66e`）でも、Windows の IL2CPP のビルドと `-uta-quit-after-check`（終了コード 0・`connectivity check: OK`）が通った。引数なしの起動の手動の確認は、`UiRoot` を足す前（`4d30930` の時点）のもの |
 | PR #52 のコメント | 完了 | （このコミット） | 8 章のとおり: ダイアログを USN の Overlay（`DialogPresenter`・`PushOverlayAsync`）で出す、Bootstrap の失敗のダイアログは小さいスコープ、変数名を型名に合わせた。Play で、ホームの「準備中です。」と Bootstrap の「マスタを読めませんでした: …」が `UiRoot/Overlays` の下に出ることを確かめた。Editor は Play に入るときのドメインのリロードを切っているので、2 回目以降の Play では USN が static に持つ前の Play の `PageContainer`（破棄済み）に触って Push が例外になる（Editor だけ。基盤の USN の別の作業）。`PrefabBuildCommands.BuildAll` で `OwnedPage.prefab` にも差分が出たので戻した（別のずれ）。`PlaceholderCharacterStage` の `label` は直していない |
+| 9 章（static の禁止） | 完了 | （このコミット） | 9 章のとおり。CLAUDE.md に決まりを足し、`PrefabBuildUtil` の static のシーンを `PrefabBuildSession` にした。計画に無かったところ: `GachaRowBuilders.cs` の内部の補助 `GachaRowPrefab.Build` にも `session` を足した（`CreateRoot` を呼ぶため）。`BuildAll` は `built 35` で、Prefab の中身は変わらない（`OwnedPage.prefab` の前からのずれは戻した） |
 
 ## 8. PR #52 のレビューへの対応（2026-11-09。ユーザーのコメント）
 
@@ -1634,4 +1635,76 @@ public sealed class DialogPresenter : IPresenter, IScreenWithArgs<DialogArgs>
 
 - `screen-design.md` で、ダイアログを「素の層（`UiRoot.DialogLayer`）」「USN の遷移の外」に出すと書いた所（7.4・7.5・8章・実装メモ）を、8.1・8.2 の形に直す
 - `BusyIndicator` が UiRoot の層に残る理由を 1 文書く
+- `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
+
+## 9. 変わる static の状態の禁止（2026-11-09。ユーザーの依頼）
+
+この章は本文・読み替えの節・8 章より優先する。ユーザーの判断（2026-11-09）:
+
+- 禁止するのは「値が変わる static の状態」だけ。const、不変の static readonly、状態を持たない static メソッドは使ってよい
+- 対象は client・shared・masterdata（Unity のドメインに入るコード）。server は対象外
+
+理由: Editor は Play に入るときのドメインのリロードを切っている（`DisableDomainReload`）。そのため static の値は Play をまたいで残る（基盤の USN の static で、2 回目の Play の Push が例外になった。8 章の実装メモ）。状態は DI のスコープ（VContainer）に持たせ、寿命をスコープに合わせる（ADR 0020「マスタをルートのスコープより長く生きる場所に置かない」と同じ考え）。
+
+### 9.1 決まり（CLAUDE.md の「C# コーディング規約」に足す。下の文のとおり）
+
+```markdown
+- **値が変わる static の状態を持たない**（`client/`・`shared/`・`masterdata/`。2026-11-09。ユーザーの判断）。Editor は Play に入るときのドメインのリロードを切っているので、static の値は Play をまたいで残るため。状態は DI のスコープ（VContainer）に持たせる
+  - 禁止: `readonly` でない static のフィールド・自動プロパティ（setter のあるもの）、中身を書き換える static のコレクション、static のイベント、自前のシングルトン（`static Instance`）
+  - 使ってよい: `const`、不変の値の `static readonly`・get だけの static プロパティ（一度だけ作って書き換えない。配列・コレクションは中身を書き換えない。公開するなら `IReadOnlyList<T>` などで出す）、状態を持たない static メソッド・static class（`<機能>Mapper`・`<名詞>Factory.Create`・拡張メソッド・テストの `Test<名詞>`）、static ラムダ
+  - 対象外: 生成コード（MagicOnion・MasterMemory の Source Generator・`masterdata/gen.ps1` の出力）と、パッケージ・共通基盤のコード（共通基盤の static は、その基盤のリポジトリで直す）
+```
+
+### 9.2 既存の設計の見直し（2026-11-09 に洗った結果）
+
+| 場所 | 中身 | 判定 | すること |
+|---|---|---|---|
+| `Scripts/Editor/Prefabs/PrefabBuildUtil.cs` の `private static Scene sessionScene` | Prefab を作る作業用のプレビューのシーン。`BeginSession`・`EndSession` が書き換える | 禁止に当たる | 9.3 のとおりインスタンスに直す |
+| `Scripts/Infrastructure/Api/ServiceClientFactory.SerializerProvider`（get だけの static プロパティ） | 一度だけ作るシリアライザーの設定。書き換えない | 使ってよい | なし |
+| `Scripts/Presentation/Common/UiTheme` の `static readonly Color`・`Vector2` | 不変の値 | 使ってよい | なし |
+| `shared/Uta.Shared.Contracts` の `<機能>Errors` の `static readonly ErrorCode` | 不変の値 | 使ってよい | なし |
+| `shared/Uta.Shared.Domain` の `CardDefinition.NoConditions`・`NoChildren`（長さ 0 の配列）、`OfferPool.RarityOrder`（配列） | private で、書き換えない | 使ってよい | なし |
+| `MagicOnionClientInitializer`（`[MagicOnionClientGeneration]` の生成コードの static） | 生成コード | 対象外 | なし |
+| 基盤の UnityScreenNavigator のコンテナーの一覧（static） | 前の Play の破棄済みのコンテナーが残る | 対象外（共通基盤） | 別の作業（基盤のリポジトリで直す） |
+| まだ実装していない計画（gacha・owned・formation・week・lesson）の static | owned の `OwnedSelection.Cancelled`（不変の 1 インスタンス）、各計画の `static (c, r) => …` のラムダ、テストの `Test<名詞>`・`GachaFixtures` の static メソッド | 使ってよい | なし（`OwnedSelection` は不変の型のままにする） |
+| 計画 `2026-11-03-client-scenes.md` の `BootstrapPlayMode` の static コンストラクター | Unity の `EditorSceneManager.playModeStartScene` に入れるだけで、自分の static の状態は持たない | 使ってよい | なし |
+
+### 9.3 `PrefabBuildSession`（`Scripts/Editor/Prefabs/PrefabBuildSession.cs`。名前空間 `Uta.Client.Editor.Prefabs`）
+
+```csharp
+/// <summary>Prefab を作る間だけ開くプレビューのシーン。PrefabBuildCommands が using で作り、各 Builder に渡す。</summary>
+public sealed class PrefabBuildSession : IDisposable
+{
+    public PrefabBuildSession();                 // EditorSceneManager.NewPreviewScene() を開いて持つ
+    /// <summary>今の PrefabBuildUtil.CreateRoot の中身（RectTransform 付きの GameObject を作り、このシーンへ移し、Stretch にして scale 1）。Dispose のあとなら InvalidOperationException("prefab build session is disposed: " + name)。</summary>
+    public GameObject CreateRoot(string name);
+    public void Dispose();                        // シーンが有効なら ClosePreviewScene。2 回目は何もしない
+}
+```
+
+- `PrefabBuildUtil`:
+  - `sessionScene`・`BeginSession`・`EndSession`・`CreateRoot` を消す
+  - `CreatePage<TPage>(string name, out RectTransform body)`・`CreateModal<TModal>(string name, out RectTransform panel)` は、先頭に `PrefabBuildSession session` を足し、中の `CreateRoot(name)` を `session.CreateRoot(name)` にする
+  - ほかのメソッドは今のまま（static のまま。状態を持たない）
+- `IPrefabBuilder.Build()` を `Build(PrefabBuildSession session)` にする
+- 各 Builder（`Scripts/Editor/Prefabs/Parts/`・`Screens/` の全部）:
+  - `Build()` → `Build(PrefabBuildSession session)`
+  - `PrefabBuildUtil.CreateRoot(` → `session.CreateRoot(`
+  - `PrefabBuildUtil.CreatePage<…>(` → `PrefabBuildUtil.CreatePage<…>(session, `（`CreateModal` も同じ）
+  - 中身はほかに変えない
+- `PrefabBuildCommands`:
+  - `PrefabBuildUtil.BeginSession();` と `RunCleanup(PrefabBuildUtil.EndSession)` をやめる
+  - `var session = new PrefabBuildSession();` を作って各 `builder.Build(session)` に渡し、今 `EndSession` を呼んでいる場所（`finally` の中の `RunCleanup`）で `RunCleanup(session.Dispose)` を呼ぶ（呼ぶ順は今のまま）
+- ほかに `PrefabBuildUtil.CreateRoot`・`BeginSession`・`EndSession`・`IPrefabBuilder.Build()` を呼ぶ所（Editor・テスト）があれば、同じ形に直す。Grep で 0 件にする
+- 確かめ方:
+  - `unity recompile` のエラー 0
+  - `PrefabBuildCommands.BuildAll()` が `built 35` を返し、Prefab の中身が変わらない（`git status` で `client/uta/Assets/Prefabs/` に差分が無い。`OwnedPage.prefab` の `TabSupport`・`TabIdols` の入れ替えは前からのずれなので、出たら戻す。`NotoSansJP` も戻す）
+  - EditMode の全件が通る
+
+### 9.4 ほかに直すもの
+
+- コードレビューのチェックリスト `.claude/skills/requesting-code-review/layers/client.md`・`layers/shared.md` に、9.1 の決まりを 1 項目ずつ足す（「値が変わる static の状態が無いか（CLAUDE.md の C# コーディング規約）」）
+- `uta_docs/wiki/architecture/unity7-evaluation.md`:
+  - 4章の「Editor が背面だと Play のループが進まない」の項の近くに、1 項目足す。中身は次の 3 つ: Enter Play Mode Options でドメインのリロードを切っていること、そのため static の値が Play をまたいで残ること、基盤の USN の static で 2 回目の Play の Push が例外になったこと（`EditorUtility.RequestScriptReload()` で直る）
+  - 82 行の `UAL0010`・`UAL0013` の項に、「Uta のコードは値が変わる static の状態を持たない（CLAUDE.md）。警告が出ている `CardDefinition` の static は不変の値」と足す
 - `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0

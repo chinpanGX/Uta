@@ -19,9 +19,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Dialog"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Dialog");
+            var root = session.CreateRoot("Dialog");
             // 下の入力を止める
             PrefabBuildUtil.AddImage(root, UiTheme.Overlay, true);
             var view = root.AddComponent<DialogView>();

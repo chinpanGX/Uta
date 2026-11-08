@@ -10,6 +10,6 @@
         string AssetPath { get; }
 
         /// <summary>Prefab を作って AssetPath に保存する（既にあれば上書き。GUID は保たれる）。</summary>
-        void Build();
+        void Build(PrefabBuildSession session);
     }
 }

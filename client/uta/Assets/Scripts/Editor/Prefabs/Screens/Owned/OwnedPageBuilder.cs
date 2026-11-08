@@ -12,9 +12,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Owned", "OwnedPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<OwnedPage>("OwnedPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<OwnedPage>(session, "OwnedPage", out var body);
             ScreenLayout.SetupBody(body);
             var header = PrefabBuildUtil.AddHeader(body, "所持一覧");
             var tabBar = PrefabBuildUtil.AddTabBar(body, "TabBar", new[] { "TabIdols", "TabSupport" }, new[] { "育成アイドル", "サポート" });

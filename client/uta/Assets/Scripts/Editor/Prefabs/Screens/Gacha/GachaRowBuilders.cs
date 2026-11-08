@@ -12,9 +12,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            GachaRowPrefab.Build(Name, "通常枠", ScreenLayout.Heading, 64f);
+            GachaRowPrefab.Build(session, Name, "通常枠", ScreenLayout.Heading, 64f);
         }
     }
 
@@ -27,9 +27,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            GachaRowPrefab.Build(Name, "SSR 育成アイドル 0.000%", ScreenLayout.SmallLine, 52f);
+            GachaRowPrefab.Build(session, Name, "SSR 育成アイドル 0.000%", ScreenLayout.SmallLine, 52f);
         }
     }
 
@@ -42,18 +42,18 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            GachaRowPrefab.Build(Name, "1. SSR 育成アイドル 名前　NEW", ScreenLayout.SmallBlock, 96f);
+            GachaRowPrefab.Build(session, Name, "1. SSR 育成アイドル 名前　NEW", ScreenLayout.SmallBlock, 96f);
         }
     }
 
     /// <summary>ガチャの行の Prefab の共通の作り方（ルート 1 つ: TMP・LayoutElement・GachaLineRow）。</summary>
     internal static class GachaRowPrefab
     {
-        public static void Build(string name, string sampleText, TextSpec spec, float height)
+        public static void Build(PrefabBuildSession session, string name, string sampleText, TextSpec spec, float height)
         {
-            var root = PrefabBuildUtil.CreateRoot(name);
+            var root = session.CreateRoot(name);
             var text = PrefabBuildUtil.AddText(root, sampleText, spec);
             PrefabBuildUtil.SetLayout(root, minHeight: height, preferredHeight: height);
             var row = root.AddComponent<GachaLineRow>();

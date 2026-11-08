@@ -14,9 +14,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot(Name);
+            var root = session.CreateRoot(Name);
             var image = PrefabBuildUtil.AddImage(root, UiTheme.Panel, false);
             PrefabBuildUtil.SetLayout(root, minHeight: 100f, preferredHeight: 100f);
             var view = root.AddComponent<ExamRankingRowView>();

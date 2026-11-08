@@ -11,9 +11,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Produce", "ProduceResultPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<ProduceResultPage>("ProduceResultPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<ProduceResultPage>(session, "ProduceResultPage", out var body);
             ScreenLayout.SetupBody(body);
             var main = ScreenLayout.AddMain(body);
 

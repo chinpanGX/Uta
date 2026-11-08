@@ -12,9 +12,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Produce", "WeekPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<WeekPage>("WeekPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<WeekPage>(session, "WeekPage", out var body);
             ScreenLayout.SetupBody(body);
             var header = ProduceLayout.AddHeaderWithoutBack(body, "週 1 / 16");
             var menu = ProduceLayout.AddMenuButton(header);

@@ -9,9 +9,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Owned", "SupportDetailPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<SupportDetailPage>("SupportDetailPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<SupportDetailPage>(session, "SupportDetailPage", out var body);
             ScreenLayout.SetupBody(body);
             var header = PrefabBuildUtil.AddHeader(body, "サポートカード");
             var main = ScreenLayout.AddMain(body);
