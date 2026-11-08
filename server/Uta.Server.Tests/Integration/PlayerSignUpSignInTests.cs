@@ -86,6 +86,22 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
             Assert.Equal(26, x.SupportCardUid.Length);
         });
         Assert.Equal(5, response.SupportCards.Select(x => x.SupportCardUid).Distinct().Count());
+        Assert.Equal(26, response.PlayerId.Length);
+        Assert.Equal(player.PlayerId.ToString(), response.PlayerId);
+        Assert.All(response.Idols, x => Assert.Equal(26, x.IdolUid.Length));
+        Assert.Equal(2, response.Idols.Select(x => x.IdolUid).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Migration_PlayerIdolUid_IsNotNullAndUnique()
+    {
+        var notNull = await postgres.QueryScalarAsync<long>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'player_idols' AND column_name = 'idol_uid' AND is_nullable = 'NO'");
+        var unique = await postgres.QueryScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE tablename = 'player_idols' AND indexdef LIKE 'CREATE UNIQUE INDEX%(idol_uid)%'");
+
+        Assert.Equal(1L, notNull);
+        Assert.Equal(1L, unique);
     }
 
     [Fact]
