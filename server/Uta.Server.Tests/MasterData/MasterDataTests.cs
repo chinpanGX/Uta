@@ -332,4 +332,33 @@ public class MasterDataTests
     {
         Assert.Equal(amount, Db.DuplicateConversionTable.FindByItemKindAndRarity((kind, rarity)).Amount);
     }
+
+    [Theory]
+    [InlineData(Rarity.R, 0, 20)]
+    [InlineData(Rarity.R, 4, 40)]
+    [InlineData(Rarity.SR, 0, 30)]
+    [InlineData(Rarity.SSR, 4, 60)]
+    public void SupportLevelCap_MaxLevelByRarityAndLimitBreak(Rarity rarity, int limitBreak, int maxLevel)
+    {
+        Assert.Equal(maxLevel, Db.SupportLevelCapTable.FindByRarityAndLimitBreak((rarity, limitBreak)).MaxLevel);
+    }
+
+    [Fact]
+    public void EvaluationRankReward_FAndSSPlus()
+    {
+        var f = Db.EvaluationRankRewardTable.FindByRank(ProduceRank.F);
+        Assert.Equal((50, 1000, 500, 10), (f.GachaCurrency, f.Gold, f.SupportPoints, f.Exp));
+        var ssPlus = Db.EvaluationRankRewardTable.FindByRank(ProduceRank.SSPlus);
+        Assert.Equal((800, 20000, 10000, 60), (ssPlus.GachaCurrency, ssPlus.Gold, ssPlus.SupportPoints, ssPlus.Exp));
+    }
+
+    // ProduceCompletion は All をそのまま必要経験値の列にする。PlayerLevelRules.AddExp は requiredExps[level - 1] で引くので、All が Level の昇順であることを固定する
+    [Fact]
+    public void PlayerLevelExp_AllIsInLevelOrder()
+    {
+        var all = Db.PlayerLevelExpTable.All;
+        Assert.Equal(Enumerable.Range(1, 99), all.Select(x => x.Level));
+        Assert.Equal(40, all.First().RequiredExp);
+        Assert.Equal(3960, all.Last().RequiredExp);
+    }
 }
