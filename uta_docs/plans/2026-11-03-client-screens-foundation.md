@@ -1495,3 +1495,4 @@ Play モード・手動（Editor、サーバー起動済み）:
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 1 | 完了 | `63d3742` | `FakePlayerUseCase` をタスク 2 に移した（計画の書き漏れ。R5 を直した）。`DialogOpenerTests` は `UnityEditor.DialogResult` と曖昧になるので別名 `using` |

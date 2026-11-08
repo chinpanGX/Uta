@@ -3,6 +3,7 @@ using System.Collections;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine.TestTools;
+using Uta.Client.Application.Player;
 using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Infrastructure.SupportCard;
@@ -17,6 +18,7 @@ namespace Uta.Client.Tests
         private PlayerRepository players;
         private IdolRepository idols;
         private SupportCardRepository supportCards;
+        private DiscardNoticeState notice;
         private PlayerUseCase useCase;
 
         [SetUp]
@@ -26,7 +28,8 @@ namespace Uta.Client.Tests
             players = new PlayerRepository();
             idols = new IdolRepository();
             supportCards = new SupportCardRepository();
-            useCase = new PlayerUseCase(service, players, idols, supportCards);
+            notice = new DiscardNoticeState();
+            useCase = new PlayerUseCase(service, players, idols, supportCards, notice);
         }
 
         private static SignInResponse SignIn(int level = 1, OwnedIdolDto[] idols = null, OwnedSupportCardDto[] supportCards = null)
@@ -256,5 +259,35 @@ namespace Uta.Client.Tests
             Assert.AreEqual(1, idols.FindAll().Count);
             Assert.AreEqual(1, supportCards.FindAll().Count);
         });
+
+        [UnityTest]
+        public IEnumerator Enter_Success_ResetsDiscardNotice() => UniTask.ToCoroutine(async () =>
+        {
+            notice.MarkShown();
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn()));
+
+            await useCase.EnterAsync(false);
+
+            Assert.IsFalse(notice.Shown);
+        });
+
+        [UnityTest]
+        public IEnumerator Refresh_Success_ResetsDiscardNotice() => UniTask.ToCoroutine(async () =>
+        {
+            notice.MarkShown();
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn()));
+
+            await useCase.RefreshAsync();
+
+            Assert.IsFalse(notice.Shown);
+        });
+
+        [Test]
+        public void MarkDiscardNoticeShown_SetsFlag()
+        {
+            useCase.MarkDiscardNoticeShown();
+
+            Assert.IsTrue(notice.Shown);
+        }
     }
 }
