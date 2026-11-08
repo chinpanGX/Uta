@@ -36,3 +36,6 @@ updated: 2026-11-01
 - [0017-spec-design-plan-stages.md](0017-spec-design-plan-stages.md) — ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え（accepted）
 - [0018-change-log-from-git.md](0018-change-log-from-git.md) — 変更の記録は log.md をやめ、git log から取る。ADR 0017 の「log.md に追記する」を置き換え（accepted）
 - [0019-foundation-packages.md](0019-foundation-packages.md) — 共通基盤はサブモジュールをやめ、サーバーは `packages/` の NuGet パッケージ、Unity は git URL で参照する。ADR 0005 を置き換え（accepted）
+- [0020-masterdata-referenced-outside-shared-domain.md](0020-masterdata-referenced-outside-shared-domain.md) — 生成したマスタは Shared.Domain 以外のどの層から参照してもよい。`MemoryDatabase` はシングルトンで Inject する。ADR 0008 の一部を置き換え（proposed）
+- [0021-domain-entities-and-repositories.md](0021-domain-entities-and-repositories.md) — 各側の Domain にエンティティ（`<名詞>Entity`）とリポジトリの IF（読み取り専用と書き込み）を置く。ADR 0008 の一部を置き換え（proposed）
+- [0022-client-external-concretes-in-infrastructure.md](0022-client-external-concretes-in-infrastructure.md) — クライアントは外部に触れる具象を Infrastructure に置き、Application には機能ごとの UseCase の IF を置く。ADR 0008 の一部を置き換え（proposed）

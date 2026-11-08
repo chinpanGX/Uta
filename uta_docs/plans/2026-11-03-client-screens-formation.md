@@ -7,6 +7,182 @@ spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 
 # 実装計画: client/ の画面 4/6 編成・プロデュースの開始と再開
 
+## ADR 0020〜0022・naming.md への読み替え（案。実装は順 0（基盤移行の計画）の PR で ADR 0020〜0022 の accepted が決まってから。この節が本文と食い違ったら、この節が正）
+
+2026-11-08。画面の計画に共通の読み替え（対応表）は [foundation の計画](2026-11-03-client-screens-foundation.md)の同名の節の R0 が正。この節は formation に固有の読み替えだけを書く。前提: foundation・gacha・owned の読み替えが実装済み（`DialogOpener`・`HomeDtoFactory`・`FeaturedIdolPicker`・`DiscardNoticeState`・`FakePlayerUseCase`・`TestMasterData`、`ServerReasons`（gacha が作っていれば）、`OwnedListFactory`・`DisplayText`）。gacha・owned の読み替えの節はまだ無い（次のセッションが足す）。**この計画の実装に入る前に、owned の読み替えが実装済みであることを確かめる**: 選択モードの要求の型（owned が `Request` を外した名前に改名している。実在の名前に合わせる）に `ForSupportCard(int idolId, IReadOnlyCollection<string> excludedUids)` と `IdolId`・`ExcludedUids` のプロパティがあり、`IdolPlan`・`ExcludedSupportCardIds` が無いこと（R4）。無ければ止まって報告する。「基盤 11d9b06 への読み替え」の節との優先は [索引](2026-11-07-client-screens-index.md) の読み替えの節。ADR は [0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../wiki/decisions/0021-domain-entities-and-repositories.md)・[0022](../wiki/decisions/0022-client-external-concretes-in-infrastructure.md)、命名は [naming.md](../wiki/architecture/naming.md)。
+
+### R1. 型の名前
+
+| 本文 | 読み替え | 根拠 |
+|---|---|---|
+| `ProduceProgress` | `ProduceStateResult`（`GetStateAsync` の戻り値。サーバーの `ProduceView` の新しい名前と同じ: 1章「同じ役割には同じ名前」。`ProduceSnapshot` は Shared.Domain の保存用の写しと同名なので使わない。ユーザーの判断 2026-11-08） | naming.md 1・2章 |
+| `ProduceOutcome` | `ProduceEndResult` | naming.md 1・2章 |
+| `ProduceEndingKind` | `ProduceEndKind`（値は同じ。Contracts の `ProduceEnding` と同名にしない） | naming.md 1章 |
+| `CardOfferAction`・`LessonActionType` | **作らない**（R2 でメソッドを操作ごとに分ける） | naming.md 1章 |
+| `ProduceStartStatus`・`ProduceResumeStatus`・`ProduceStepStatus` | `ProduceStartResultKind`・`ProduceResumeResultKind`・`ProduceStepResultKind`（値・意味は同じ） | naming.md 2章 |
+| `ProduceSession` | `ProduceSessionState`（Application の状態の型。中身は同じ: `Current`・`Previous`・`ExamResultShown`・`HasActive`・`Set`・`Clear`） | naming.md 2章、ADR 0021 |
+| `FormationSlotViewData` | `FormationSlotRowViewDto`（R4） | naming.md 6章 |
+| `ProduceDeckCard`・`ProduceWeekAction`・`ProduceClassOption`・`ProduceExamTurn`・`ProduceParamBonus`・`ProducePersistent`・`ProduceLesson`・`ProduceExamResult` | そのまま（Application の UseCase の出力の型。`ProduceLesson.UsableHand` の扱いも本文のまま） | — |
+| サーバーの `ProduceView`・`ProduceViewBuilder`・`ProduceEndSummary`、Shared.Domain の `ClassOptionView`（タスク 1 で触る） | **タスク 1 で改名する**（naming.md「今のコードとの差」。条件なし）: `ProduceView` → `ProduceStateResult`、`ProduceViewBuilder` → `ProduceStateResultFactory`、`ProduceEndSummary` → `ProduceEndResult`（どれも `server/Uta.Server/Application/Produce/` のファイル名も）、`ClassOptionView` → `ClassOption`（`shared/Uta.Shared.Domain/Produce/ProduceEngine.cs` の `GetClassOptions` の戻り値）、Shared.Domain の `ExamOutcome`（enum）→ `ExamResultKind` と、プロパティ `ProduceResult.Outcome`（Shared.Domain）・`ProduceResultResponse.ExamOutcome`（Contracts。MessagePack はキーの番号なので通信に影響しない）→ `ResultKind`・`ExamResultKind`（この計画が `ProduceEndResult` で `ExamOutcome` を使うため。naming.md「今のコードとの差」。DB の列名 `exam_outcome` は変えない）。使っている場所は `server/Uta.Server/` の `Api/ProduceResponseMapper.cs`・`Application/Produce/AbandonProduceUseCase.cs`・`GetProduceStateUseCase.cs`・`ProduceCompletion.cs`・`ProduceOperationUseCase.cs`・`StartProduceUseCase.cs`・`Program.cs`、`server/Uta.Server.Tests/`、`shared/Uta.Shared.Domain.Tests/`（Grep `ProduceView\b\|ProduceViewBuilder\|ProduceEndSummary\|ClassOptionView` で確かめる）。旧い名前を書いている wiki（`produce-server.md`・`produce-domain.md`・`screen-design.md` 7.6 など。Grep）も同じタスクで直す。本文 3.1 とタスク 1 の手順 3 の `ProduceView`・`ProduceViewBuilder` は新しい名前で読む | naming.md 1・7章 |
+
+### R2. Application: `IProduceUseCase`（`IProducePort`・`StartProduceUseCase`・`ResumeProduceUseCase`・`AbandonProduceUseCase`・`ProduceActions`・`ProduceRefresh` の代わり）
+
+`Application/Produce/IProduceUseCase.cs`・`ProduceSessionState.cs`・`ProduceStartResultKind.cs`・`ProduceResumeResultKind.cs`・`ProduceStepResultKind.cs`・`ProduceStateResult.cs`・`ProduceEndResult.cs`・`ProduceEndKind.cs`・`FormationNormalizer.cs`・`ScenarioResolver.cs`（1 ファイル 1 型）。2 章の表の `IProducePort.cs`・`ProduceSession.cs`・`ProduceRefresh.cs`・`ProduceStartStatus.cs`・`StartProduceUseCase.cs`・`ProduceResumeStatus.cs`・`ResumeProduceUseCase.cs`・`AbandonProduceUseCase.cs`・`ProduceStepStatus.cs`・`ProduceActions.cs`・`ProduceEndingKind.cs`・`ProduceOutcome.cs`・`ProduceProgress.cs`・`CardOfferAction.cs`・`LessonActionType.cs` の行はこの名前に読み替える。
+
+```csharp
+public interface IProduceUseCase   // Contracts の IProduceService と同じ単位。メソッドは Presenter の操作の単位（ADR 0022）
+{
+    UniTask<ProduceStartResultKind> StartAsync(int idolId, IReadOnlyList<string> supportCardUids, int scenarioId);
+    UniTask<ProduceResumeResultKind> ResumeAsync();
+    /// <summary>セッションが無くなったら true（放棄した、またはもう無かった）。残っていれば false。</summary>
+    UniTask<bool> AbandonAsync();
+    // 1 手の操作（本文の ProduceActions の 4 つを操作ごとに分ける。操作番号は session.Current.OperationNumber を具象が入れる）
+    UniTask<ProduceStepResultKind> ChooseWeekActionAsync(int slotIndex, int optionIndex, ParamKind param);
+    UniTask<ProduceStepResultKind> PickCardOfferAsync(int offerIndex);    // ResolveCardOfferRequest(op, CardOfferActionKind.Pick, offerIndex)
+    UniTask<ProduceStepResultKind> DeclineCardOfferAsync();              // ResolveCardOfferRequest(op, CardOfferActionKind.Decline, 0)
+    UniTask<ProduceStepResultKind> DecideExamRetryAsync(bool retry);
+    UniTask<ProduceStepResultKind> UseCardAsync(int cardInstanceId);     // ExecuteLessonActionRequest(op, LessonActionKind.UseCard, cardInstanceId, 0)
+    UniTask<ProduceStepResultKind> UseDrinkAsync(int drinkSlotIndex);    // ExecuteLessonActionRequest(op, LessonActionKind.UseDrink, 0, drinkSlotIndex)
+    UniTask<ProduceStepResultKind> SkipLessonTurnAsync();                // ExecuteLessonActionRequest(op, LessonActionKind.Skip, 0, 0)
+    // 状態の型への書き込み（lesson の画面が使う。ADR 0022「状態の型への書き込みも具象が行う」。ユーザーの判断 2026-11-08）
+    void MarkExamResultShown();   // session.ExamResultShown = true（試験結果の画面を出した印。lesson 3.4.3）
+    void ClearSession();          // session.Clear()（プロデュース結果の「ホームへ」。lesson 3.4.4。通信しない）
+}
+```
+
+- `CardOfferActionKind` の `Reroll`・`Remove` は MVP の画面（week）が使わないので IF に置かない（使う計画が足す）
+- `MarkExamResultShown`・`ClearSession` はこの計画では呼ぶ側が無い（lesson が使う）。具象に実装し、`ProduceUseCaseTests` に `MarkExamResultShown_SetsFlag`・`ClearSession_ClearsSession` を足す
+- 動き（成功・業務エラーの分岐。本文 3.2「ユースケースの動き」）はそのままで、次を読み替える: `port.XxxAsync(...)` → `IProduceService` の呼び出しと `ProduceMapper` での写し（R3）、`r.IsBusinessError` と `r.Reason == ServerReasons.Xxx` → `result.IsError && result.ErrorCode == ProduceErrors.Xxx`、`PortResult.Failure` → `handledCodes` に無い失敗、`ProduceRefresh.TryAsync(refresh)` → 具象の private `TryRefreshAsync()`（`await player.RefreshAsync()` を `try` で包み `InvalidOperationException` を握りつぶす。成功で true）。`RunAsync(Func<int, …>)` に 1 つにまとめる書き方は、7 つの操作で同じ
+- `ProduceSessionState` への `Set`・`Clear` は具象 `ProduceUseCase` が行う（ADR 0022）
+- **`ServerReasons` にプロデュースの 7 定数は足さない**（結果が enum なので Presenter が reason を見ない。本文 3.2 の先頭の段落と、2 章の `ServerReasons.cs`・`ServerReasonsTests.cs` の行は無効）
+- `FormationNormalizer`（外部に触れない Application の具象。ADR 0022「編成のプランの判定」）:
+  ```csharp
+  public sealed class FormationNormalizer
+  {
+      public FormationNormalizer(IReadOnlySupportCardRepository supportCards, MemoryDatabase db);
+      /// <summary>
+      /// slotUids（長さは FormationPresenter.SupportSlots）を順に見て、所持に無い uid（supportCards.Find(uid) == null）と、
+      /// idolId != 0 でプランが合わない uid（!FormationValidator.IsPlanCompatible(idolPlan, cardPlan)。idolPlan は (Plan)(int)db.IdolTable.FindByIdolId(idolId).Plan、
+      /// cardPlan は (Plan)(int)db.SupportCardTable.FindBySupportCardId(card.CardId).Plan。Plan は Shared.Domain の enum）を null にした新しい配列を返す。
+      /// removed は null にした数。slotUids が null なら ArgumentNullException。
+      /// </summary>
+      public string[] RemoveIncompatible(int idolId, IReadOnlyList<string> slotUids, out int removed);
+  }
+  ```
+- `ScenarioResolver`（外部に触れない Application の具象。naming.md 9章の `Resolver`「ID などから対象を引き当てる」。シナリオの選択は開始の業務の入力なので DtoFactory に置かない）:
+  ```csharp
+  public sealed class ScenarioResolver
+  {
+      public ScenarioResolver(MemoryDatabase db);   // db.ScenarioTable.All を ScenarioId の昇順に並べたものを持つ（以下「シナリオの並び」）
+      public int Count { get; }                     // シナリオの数
+      public int IdAt(int index);                   // シナリオの並びの index の ScenarioId。範囲外なら ArgumentOutOfRangeException
+      public string NameAt(int index);              // 同じく Name（FormationDtoFactory が使う）
+  }
+  ```
+
+### R3. Infrastructure
+
+```csharp
+// Infrastructure/Produce/ProduceUseCase.cs
+public sealed class ProduceUseCase : IProduceUseCase
+{
+    public ProduceUseCase(IProduceService produce, ProduceSessionState session, IPlayerUseCase player);
+    // handledCodes は本文 3.3 の表のとおり private static readonly ErrorCode[] で持つ（4 つの操作の列は 7 つの操作で同じ）
+}
+
+// Infrastructure/Produce/ProduceMapper.cs（static。本文の ProduceGateway.ToProgress・ToOutcome。規則は本文 3.3 のまま）
+public static class ProduceMapper
+{
+    public static ProduceStateResult ToStateResult(ProduceStateResponse response);
+    public static ProduceEndResult ToEndResult(ProduceResultResponse response);   // ProduceEnding → ProduceEndKind は (ProduceEndKind)(int)
+}
+```
+
+- `ProduceApi`・`ProduceGateway` は作らない（2 章の `Api/ProduceApi.cs`・`Produce/ProduceGateway.cs` の行は無効）。`ApiClient` に `public IProduceService Produce { get; }` を足し、`BootstrapEntry` に `builder.Register<IProduceService>(resolver => resolver.Resolve<ApiClient>().Produce, Lifetime.Singleton);`（「基盤 11d9b06 への読み替え」の節のとおり。`IPlayerService` の登録の次。**タスク 5 の DI の行と一緒に足す**。忘れると EditMode では分からず、タスク 6 の Play で VContainer の解決の例外になる）。呼び方は `await produce.WithHandledCodes(StartHandled).StartAsync(req).ToResult()` の形
+- `MagicOnionClientInitializer` に `typeof(IProduceService)` を足すのは本文のまま
+
+### R4. Presentation
+
+- `ProduceFlow(ProduceSessionState session, IScreenNavigator navigator, PageStack pageStack, DialogOpener dialogs, ISceneNavigator scenes)`、`ProduceMenu(DialogOpener dialogs, IProduceUseCase produce, ProduceFlow flow)`（`abandon.ExecuteAsync()` → `produce.AbandonAsync()`）、`ProduceEntry(IScreenNavigator navigator, ProduceSessionState session, ProduceFlow flow, DialogOpener dialogs, ISceneNavigator scenes)`。中身は本文のまま
+- 背景のページ: `ProduceBackdropViewDto(string header)` と `ProduceBackdropDtoFactory`（`Presentation/Produce/`。依存なし。`ProduceBackdropViewDto Create(ProduceStateResult p)` の文字列は本文の `BuildHeader` のとおり。`p` が null なら `ArgumentNullException`）。`ProduceBackdropPresenter([Inject] ProduceBackdropPage view, ProduceSessionState session, ProduceBackdropDtoFactory dtoFactory)`（テスト用も同じ並びで `IProduceBackdropView`）。`Refresh()` は、`session.Current` が null なら何もしない（本文のとおり）、そうでなければ `view.SetHeader(dtoFactory.Create(session.Current).Header)`。static の `BuildHeader` は作らない
+- 編成（3.5）:
+  ```csharp
+  public sealed class FormationSlotRowViewDto { public FormationSlotRowViewDto(string label, bool filled); }
+  public sealed class FormationViewDto
+  {
+      public FormationViewDto(string idolLabel, IReadOnlyList<FormationSlotRowViewDto> slots, string scenarioLabel, bool canChangeScenario, bool canStart);
+  }
+  public interface IFormationView
+  {
+      void Set(FormationViewDto dto);   // 本文の SetIdol・SetSlots・SetScenario・SetStartEnabled を 1 つに。FormationPage は 4 つの参照に順に入れる（slots の数の検査は本文の SetSlots のまま）
+      // イベント 6 つは本文のまま
+  }
+  // Presentation/Formation/FormationDtoFactory.cs（ルートのスコープにシングルトン）
+  public sealed class FormationDtoFactory
+  {
+      public FormationDtoFactory(IReadOnlySupportCardRepository supportCards, ScenarioResolver scenarios, MemoryDatabase db);
+      /// <summary>
+      /// 本文 3.5 の Refresh() の文言をそのまま作る: idolLabel は idolId == 0 なら "育成アイドル: 未選択"、そうでなければ db.IdolTable.FindByIdolId(idolId) の名前・DisplayText.RarityName・PlanName（マスタの enum は (Shared.Domain の型)(int) で変換）。
+      /// slots は長さ FormationPresenter.SupportSlots の uid（null は空）。supportCards.Find(uid) が null の枠は空として出す（枠を null に直すのは FormationNormalizer）。見つかれば db.SupportCardTable.FindBySupportCardId(card.CardId) の名前・レア度と card.Level。
+      /// scenarioLabel は scenarios.Count == 0 なら "シナリオ: なし"、そうでなければ "シナリオ: " + scenarios.NameAt(scenarioIndex)。canChangeScenario は scenarios.Count >= 2。canStart は idolId != 0 && scenarios.Count > 0。
+      /// </summary>
+      public FormationViewDto Create(int idolId, IReadOnlyList<string> slotUids, int scenarioIndex);
+  }
+  ```
+  - `FormationPresenter`:
+    ```csharp
+    [Inject] public FormationPresenter(FormationPage view, FormationDtoFactory dtoFactory, FormationNormalizer normalizer, FeaturedIdolPicker picker, ScenarioResolver scenarios,
+        IProduceUseCase produce, DialogOpener dialogs, IScreenNavigator navigator, ISceneNavigator scenes);
+    public FormationPresenter(IFormationView view, FormationDtoFactory dtoFactory, FormationNormalizer normalizer, FeaturedIdolPicker picker, ScenarioResolver scenarios,
+        IProduceUseCase produce, DialogOpener dialogs, IScreenNavigator navigator, ISceneNavigator scenes);
+    ```
+    - 状態（`idolId`・`slots`・`scenarioIndex`・`running`・`disposed`）は本文のまま Presenter が持つ（画面の中だけの UI の状態）。`Refresh()` は `view.Set(dtoFactory.Create(idolId, slots, scenarioIndex))` だけ
+    - `InitializeAsync`: 既定の `idolId` は `picker.Pick()`
+    - `SelectIdolAsync` の 4: `slots = normalizer.RemoveIncompatible(idolId, slots, out var removed);`。5: `Refresh()` のあと `removed > 0` なら `ShowInfoAsync("プランが合わないサポートカードを外しました。")`
+    - `SelectSlotAsync` の 3・4: 選択モードの要求は `idolId` と `excludedUids`（枠 `index` 以外の埋まっている uid。枠の順）だけで作る。**owned への申し送り**（owned の読み替えで決め、owned が実装する。この計画はそれが実装済みであることを前提にし、無ければ止まって報告する）: 本文の `OwnedSelectionRequest.ForSupportCard(Plan idolPlan, IReadOnlyCollection<string> excludedUids, IReadOnlyCollection<int> excludedSupportCardIds)` を `ForSupportCard(int idolId, IReadOnlyCollection<string> excludedUids)` にし、プロパティは `IdolPlan`・`ExcludedSupportCardIds` を消して `IdolId` を足す。プランの判定と、除外する `CardId`（`excludedUids` の所持から引く。所持に無い uid は無視する）は owned の `OwnedListFactory` がリポジトリとマスタから引く（Presenter がマスタ・リポジトリを読まないため）。owned のテスト（`OwnedSelectionRequestTests`・`OwnedListFactoryTests` の除外のケース）もそれに合わせる。型の名前（`Request` を外す）は owned の読み替えで決める
+    - `NextScenario`・`StartAsync` の `master.Scenarios.Count` は `scenarios.Count`、`master.Scenarios[scenarioIndex].ScenarioId` は `scenarios.IdAt(scenarioIndex)`。`StartAsync` は `var kind = await produce.StartAsync(idolId, uids, scenarios.IdAt(scenarioIndex));` で、分岐は `ProduceStartResultKind` の同じ値
+- ホーム（3.6）:
+  - `HomeDtoFactory`（foundation）のコンストラクターの**末尾**に `ProduceSessionState session` を足し（`HomeDtoFactory(IReadOnlyPlayerRepository players, FeaturedIdolPicker picker, DiscardNoticeState notice, MemoryDatabase db, ProduceSessionState session)`）、`resumeVisible` を `session.Current != null ? session.HasActive : p.HasActiveProduce` にする（本文の `HasActiveProduce()`）。`HomeDtoFactoryTests` の既存の組み立てに `new ProduceSessionState()` を足し、`Create_ActiveSession_ResumeEvenIfPlayerInactive`・`Create_FinishedSession_HidesResume` を足す（タスク 5）
+  - `HomePresenter` のコンストラクター（2 本）の最後（gacha が足した `IScreenNavigator navigator` の後ろ）に `IProduceUseCase produce, ISceneNavigator scenes` を足す（`ProduceSession`・`ResumeProduceUseCase`・`AbandonProduceUseCase` は受けない）。足したあとの形: `[Inject] HomePresenter(HomePage view, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs, IScreenNavigator navigator, IProduceUseCase produce, ISceneNavigator scenes) : this((IHomeView)view, view.CreateStage(), dtoFactory, player, dialogs, navigator, produce, scenes)` と、テスト用の `HomePresenter(IHomeView view, ICharacterStage stage, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs, IScreenNavigator navigator, IProduceUseCase produce, ISceneNavigator scenes)`（gacha が `IGachaUseCase` などを足していれば、その後ろ。実在の並びに合わせる）
+  - `OpenProduceAsync`: 進行中かは `dtoFactory.Create()` の `ResumeVisible`（null なら何もしない）。`ResumeCoreAsync` は `var kind = await produce.ResumeAsync();`、放棄は `await produce.AbandonAsync();`。ほかは本文のまま
+- DI（タスク 5 の 6 行の代わり。`BootstrapEntry.RegisterUseCases` の最後）:
+  ```csharp
+  builder.Register<ProduceSessionState>(Lifetime.Singleton);
+  builder.Register<ProduceUseCase>(Lifetime.Singleton).As<IProduceUseCase>();
+  builder.Register<ScenarioResolver>(Lifetime.Singleton);
+  builder.Register<FormationNormalizer>(Lifetime.Singleton);
+  builder.Register<FormationDtoFactory>(Lifetime.Singleton);
+  builder.Register<ProduceBackdropDtoFactory>(Lifetime.Singleton);
+  ```
+  `using` は `Uta.Client.Application.Produce; Uta.Client.Infrastructure.Produce; Uta.Client.Presentation.Formation; Uta.Client.Presentation.Produce;`
+
+### R5. テスト
+
+- `Tests/EditMode/Fakes/FakeProduceService.cs`（`IProduceService` の偽。`ProduceUseCaseTests` が使う）: `Queue<Func<UnaryResult<ProduceStateResponse>>> StateResults`（Start・GetState・7 つの操作で共有。メソッドは `Dequeue()()` をそのまま返す。空なら `InvalidOperationException("FakeProduceService: no state result")`）、`Queue<Func<UnaryResult<ProduceResultResponse>>> AbandonResults`（空なら `"FakeProduceService: no abandon result"`）。積み方の補助は移行計画の `FakePlayerService` と同じ static の `Ok<T>(T)`・`Fail<T>(ErrorCode)`（`Fail` は `FakeRpcErrors.ApiFailureResult<T>(code)`。基盤の `FakeRpcErrors` が使えないときの扱いも移行計画 R5 と同じ）。`CallLog` への記録は本文 3.7 の `FakeProducePort` と同じ文字列（`"ResolveCardOffer:op,kind,index"`・`"ExecuteLessonAction:op,kind,card,drink"` の `kind` は Contracts の enum の名前）。`IService<IProduceService>` の 5 メンバーは `WithHeaders` が `this`
+- `Tests/EditMode/Fakes/FakeProduceUseCase.cs`（Presenter・`ProduceFlow`・`ProduceMenu` のテスト用。week・lesson も使う）: 4 つの `Queue` の要素は **`Func<UniTask<T>>`**（`Queue<Func<UniTask<ProduceStartResultKind>>> StartResults`、`Queue<Func<UniTask<ProduceResumeResultKind>>> ResumeResults`、`Queue<Func<UniTask<bool>>> AbandonResults`、`Queue<Func<UniTask<ProduceStepResultKind>>> StepResults`（7 つの操作で共有））。メソッドは記録してから `Dequeue()()` を返す。空なら `StartResults` は `InvalidOperationException("FakeProduceUseCase: no start result")`、`ResumeResults` は `Resumed`、`AbandonResults` は true、`StepResults` は `Succeeded`。**偽そのものはセッション・リポジトリに書かない**が、テストは本物の具象が行う副作用（`session.Set`・`session.Clear`・`players.Upsert`）を、積む `Func` の中に書いて再現する（例: `AbandonResults.Enqueue(() => { session.Clear(); players.Upsert(inactive); return UniTask.FromResult(true); })`）。例外は `() => throw new InvalidOperationException("FakeProduceUseCase: no state result")` を積む（week・lesson の例外のテストの期待 `"…: FakeProducePort: no state result"` は `"…: FakeProduceUseCase: no state result"` と読み替える。`LogAssert.Expect` の `Regex` も同じ）。`MarkExamResultShown`・`ClearSession` は、コンストラクターの第 2 引数 `ProduceSessionState session = null` が渡されていればそれに書き（`session.ExamResultShown = true`・`session.Clear()`）、記録は `"MarkExamResultShown"`・`"ClearSession"`。記録: `"Start:" + idolId + ":" + string.Join(",", uids) + ":" + scenarioId`・`"Resume"`・`"Abandon"`・`"ChooseWeekAction:slot,option,param"`・`"PickCardOffer:index"`・`"DeclineCardOffer"`・`"DecideExamRetry:retry"`・`"UseCard:id"`・`"UseDrink:slot"`・`"SkipLessonTurn"`
+- `FakePlayerPort` は作らない。foundation の `FakePlayerUseCase`（`new FakePlayerUseCase(log)`。記録 `"Refresh"`）を使う。本文の `"SignIn"` の記録は `"Refresh"` と読む（`"GetState"` → 本物の `ProduceUseCase` のテストでは `"GetState"` のまま、Presenter のテストでは `"Resume"`）
+- `TestProduce`: `Progress(...)` → `StateResult(...)`（戻りは `ProduceStateResult`。引数は同じ）、`Abandoned()` は `ProduceEndResult`、`Player(...)` は `PlayerEntity(1, 0, 0, 0, gachaCurrency, hasActiveProduce, false)` を返す（所持の一覧は本物の `IdolRepository`・`SupportCardRepository` にテストが `ReplaceAll` で入れる）。足すもの: `StateResponse(int operationNumber = 0, ProducePhase phase = ProducePhase.WeekSelect, int scenarioId = 1, int idolId = 1, int week = 1, int singing = 100, int rhythm = 100, int expression = 100, int hp = 30, int maxHp = 30, int examRetryLeft = 1, DeckCardDto[] deck = null, WeekActionDto[] weekActions = null, ClassOptionDto[] classOptions = null, int[] cardOffers = null, LessonDto lesson = null, ExamResultDto examResult = null, ProduceResultResponse result = null)`（`new ProduceStateResponse(...)` のコンストラクターの並びに渡す。並びと DTO の名前は `shared/Uta.Shared.Contracts/Produce/ProduceStateResponse.cs` のとおりで、違えばそちらに合わせる。null の配列は空の配列）と `ResultResponse(ProduceEnding ending = ProduceEnding.Abandoned, int playerLevel = 1)`（ほかの引数は 0・`ExamResultKind.Nothing`・`ProduceRank` の最初の値）。`ProduceUseCaseTests` はこれで応答を作る
+- 5 章の表の読み替え:
+  - `StartProduceUseCaseTests`・`ResumeProduceUseCaseTests`・`AbandonProduceUseCaseTests`・`ProduceActionsTests`・`ProduceGatewayTests` → **`ProduceUseCaseTests`**（`FakeProduceService` + `new FakePlayerUseCase(log)` + 本物の `ProduceSessionState`。本文の 5 ファイルのケースを全部移す。`"SignIn"` → `"Refresh"`、`Status` → `ResultKind`、「`session.Current` が戻り値」は「`session.Current.OperationNumber`・`Phase` が積んだ応答の値」、`Operation_Finished_RefreshesPlayer` の「`PlayerCache.Current` が差し替わる」は「`"Refresh"` が記録される」）と **`ProduceMapperTests`**（`ToProgress_*` → `ToStateResult_*`、`ToOutcome_MapsEnding` → `ToEndResult_MapsEndKind`）。`AllOperations_MapToPort` は 7 つの操作で `"ChooseWeekAction:…"`・`"ResolveCardOffer:0,Pick,2"`・`"ResolveCardOffer:0,Decline,0"`・`"DecideExamRetry:0,True"`・`"ExecuteLessonAction:0,UseCard,7,0"`・`"ExecuteLessonAction:0,UseDrink,0,1"`・`"ExecuteLessonAction:0,Skip,0,0"`
+  - `ProduceSessionTests` → `ProduceSessionStateTests`、`ProduceProgressTests` → `ProduceStateResultTests`
+  - `ProduceFlowTests`・`ProduceEntryTests`: `DialogService` → `DialogOpener`、型の名前の読み替えだけ
+  - `ProduceMenuTests`: `FakeProduceUseCase`。`Show_AbandonConfirmed_AbandonsThenExits` は `"Confirm:…"`, `"Abandon"`, `"GoToHome"`（`"SignIn"` は無い。取り直しは本物の具象の中）
+  - `ProduceBackdropPresenterTests`: `Initialize_SetsHeader` の期待は `"SetHeader:" + new ProduceBackdropDtoFactory().Create(...).Header`。文字列そのものの確認は `ProduceBackdropDtoFactoryTests`（新）の `Create_FormatsHeader`（週 3、100/110/120、体力 25 / 30）
+  - `FormationPresenterTests`: `FakeGameMaster` → `TestMasterData.Build(b => { b.Append(new[] { TestMasterData.Idol(1, "…", Rarity.SR) /* Plan は Sense */, ... }); b.Append(new[] { new SupportCard { SupportCardId = …, Name = …, Rarity = …, Plan = … }, ... }); b.Append(new[] { new Scenario { ScenarioId = 1, Name = … }, new Scenario { ScenarioId = 2, Name = … } }); })`（`Idol.Plan` を Logic にするテストは `TestMasterData.Idol` の戻りを `with` せず、`new Idol { … }` で書く）。所持は本物の `IdolRepository`・`SupportCardRepository`、`FakeProducePort` → `FakeProduceUseCase`、`var scenarios = new ScenarioResolver(db);`・`new FormationDtoFactory(supportCards, scenarios, db)`・`new FormationNormalizer(supportCards, db)`・`new FeaturedIdolPicker(idols, db)`。偽の View は `Set(dto)` を `"Set:" + dto.IdolLabel + "|" + string.Join("/", dto.Slots.Select(s => s.Label)) + "|" + dto.ScenarioLabel + "," + dto.CanChangeScenario + "," + dto.CanStart` と記録し、最後の dto を `LastDto` に持つ。「`SetIdol` が増えない」は「`"Set:"` の行が増えない」。`SelectSlot_BuildsRequestWithExclusions` の確かめは要求の `IdolId` と `ExcludedUids`（R4 の申し送り。`IdolPlan` は無い）。`Start_Exception_ShowsError` の例外の文は `"FakeProduceUseCase: no start result"`。`Start_AlreadyInProgress_ShowsInfoAndPops` に `"SignIn"` は無い
+  - `FormationNormalizerTests`（新。タスク 2）: `RemoveIncompatible_ClearsIncompatiblePlan`、`RemoveIncompatible_ClearsUnknownUid`、`RemoveIncompatible_CountsRemoved`、`RemoveIncompatible_NoIdol_ClearsOnlyUnknown`
+  - `FormationDtoFactoryTests`（新。タスク 4）: 本文の `Initialize_DefaultsToHighestRarityIdol`・`Initialize_NoIdols_StartDisabled`・`Initialize_ShowsEmptySlotsAndScenario` の文言の期待をここに移す（`Create(2, 空の 5 枠, 0)` など）。`FormationPresenterTests` の同名のテストは `"Set:"` の記録の有無と `LastDto.CanStart` だけを見る
+  - `HomePresenterTests`: 新しい引数は `FakeProduceUseCase`（同じ `CallLog`）と `FakeSceneNavigator`。`"GetState"` → `"Resume"`、`"SignIn"` は無い。本物の具象が行う副作用は、積む `Func` の中で再現する: `OpenProduce_Active_AbandonConfirmed_HidesResume` は `players.Upsert(hasActiveProduce = true)` で始め、`ChooseResults` に 1、`ConfirmResults` に `Positive`、`AbandonResults.Enqueue(() => { players.Upsert(TestProduce.Player(hasActiveProduce: false)); return UniTask.FromResult(true); })` → 記録が `"Choose:…"`, `"Confirm:…"`, `"Abandon"`, `"SetResume:False,プロデュース"`。`OpenProduce_Active_ResumeNotInProgress_ShowsInfoAndRefreshes` は `ResumeResults.Enqueue(() => { players.Upsert(TestProduce.Player(hasActiveProduce: false)); return UniTask.FromResult(ProduceResumeResultKind.NotInProgress); })` → `"Choose:…"`, `"Resume"`, `"Info:進行中のプロデュースはありません。"`, `"SetResume:False,プロデュース"`。`OpenProduce_Active_Resume_GoesToProduce` は `ResumeResults.Enqueue(() => { session.Set(TestProduce.StateResult()); return UniTask.FromResult(ProduceResumeResultKind.Resumed); })` → `"Choose:…"`, `"Resume"`, `"GoToProduce"`。`OpenProduceAsync_WhileRunning_Ignored` は `ResumeResults` に `NotInProgress` を返す `Func` を 1 つ、`InfoGate` で止める（`"Resume"` は 1 回）。`Refresh_ActiveSession_*` は `session.Set(...)` のあと `"SetResume:True,再開"`
+
+### R6. タスクの読み替え・申し送り
+
+- タスク 1: R1 の表の最後の行の改名（サーバーの 3 型と Shared.Domain の `ClassOptionView`）を、`UsableHand` と同じタスクで行う。確かめ方は本文のまま（`dotnet build Uta.slnx` が警告 0・エラー 0、テスト、Lint）
+- タスク 2: Application の型（R1 の名前）・`IProduceUseCase`・`ProduceSessionState`・`FormationNormalizer`・`ScenarioResolver`、偽（`FakeProduceUseCase`・`TestProduce`）、テスト（`ProduceSessionStateTests`・`ProduceStateResultTests`・`FormationNormalizerTests`・`ScenarioResolverTests`（`Count`・`IdAt`・`NameAt`・範囲外の例外））。`ServerReasons`・`ServerReasonsTests` は触らない
+- タスク 3: `ProduceUseCase`・`ProduceMapper`・`ApiClient.Produce`・`MagicOnionClientInitializer`、`FakeProduceService`、`ProduceUseCaseTests`・`ProduceMapperTests`
+- タスク 4: `ProduceBackdropDtoFactory`・`FormationDtoFactory`・`FormationViewDto`・`FormationSlotRowViewDto` を足す。`FormationSlotViewData.cs` の行は `FormationSlotRowViewDto.cs`・`FormationViewDto.cs`・`FormationDtoFactory.cs`。テストに `ProduceBackdropDtoFactoryTests`・`FormationDtoFactoryTests` を足す
+- タスク 5: DI は R4 の 6 行と `Register<IProduceService>`（R3）。`HomeDtoFactory` のコンストラクターと `HomeDtoFactoryTests` の変更（R4）、`HomePresenter`・`HomePresenterTests` の変更（R4・R5）
+- 1 章の ADR に 0020〜0022 を足す。「DTO の写しは Infrastructure に閉じる」（ADR 0008）は変わらない（`ProduceMapper` が Infrastructure）
+- **week・lesson（次のセッション）への申し送り**: `ProduceActions.ExecuteLessonActionAsync(LessonActionType …)` → `UseCardAsync`／`UseDrinkAsync`／`SkipLessonTurnAsync`、`ResolveCardOfferAsync(CardOfferAction …)` → `PickCardOfferAsync`／`DeclineCardOfferAsync`。`ProduceSession` → `ProduceSessionState`、`ProduceProgress` → `ProduceStateResult`、`ProduceOutcome` → `ProduceEndResult`、`ProduceEndingKind` → `ProduceEndKind`。`FakeProduceFlow` の `base(...)` の引数の型は R4 の `ProduceFlow`。Presenter が受ける `ProduceActions` は `IProduceUseCase`、`FakeProducePort` は `FakeProduceUseCase`（R5 の形。本物の `ProduceActions` による状態の更新と `"no state result"` の例外を前提にしたテストは、積む `Func` の中で `session.Set` する・例外を投げる形に直す。`ServerReasons.ProduceStaleOperation` は無い）。lesson の Presenter が `session.ExamResultShown = true`（3.4.3）・`session.Clear()`（3.4.4「ホームへ」）と書く箇所は、`IProduceUseCase.MarkExamResultShown()`・`ClearSession()`（R2）を呼ぶ形に読み替える（ユーザーの判断 2026-11-08。Presenter は状態の型に直接書かない）。week のテストが `ServerReasons.ProduceInvalidArgument`・`ProduceStaleOperation` で業務エラーを作っている箇所（week 5.2）は、`FakeProduceUseCase.StepResults` に `ProduceStepResultKind.Rejected`・`Recovered` を積む形に読み替える（`ServerReasons` にプロデュースの定数は無い: R2）。**owned への申し送り**: 選択モードの要求の `ForSupportCard` は `(int idolId, IReadOnlyCollection<string> excludedUids)`（R4）
+
 ## この計画で決めたこと
 
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。

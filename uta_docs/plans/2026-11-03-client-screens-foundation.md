@@ -7,6 +7,234 @@ spec: ../wiki/architecture/screen-design.md
 
 # 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
 
+## ADR 0020〜0022・naming.md への読み替え（案。実装は順 0（基盤移行の計画）の PR で ADR 0020〜0022 の accepted が決まってから。この節が本文と食い違ったら、この節が正）
+
+2026-11-08。proposed の [ADR 0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)（マスタの参照）・[ADR 0021](../wiki/decisions/0021-domain-entities-and-repositories.md)（Domain のエンティティとリポジトリ）・[ADR 0022](../wiki/decisions/0022-client-external-concretes-in-infrastructure.md)（Infrastructure の具象と UseCase の IF）と [naming.md](../wiki/architecture/naming.md) の形に読み替える。前提: [基盤移行の計画](2026-11-08-client-foundation-migration.md)の読み替えの節（Player を移す: `Uta.Client.Domain`・`Uta.Client.MasterData` の asmdef、エンティティとリポジトリ、`IPlayerUseCase`・`IDeviceAuthUseCase`、`ApiClient`・`ErrorDefinitions` などの改名、テストの asmdef `Uta.Client.Tests.EditMode`）と[共通レスポンスの計画](2026-11-08-common-response-player-diff.md)が実装済み。「基盤 11d9b06 への読み替え」の節との優先は [索引](2026-11-07-client-screens-index.md) の読み替えの節（この節 > 11d9b06 の節 > 本文）。
+
+**R0 は、C# の画面の計画（gacha・owned・formation・week・lesson）すべてに当てはまる共通の読み替え（P1〜P3 は対象外: 索引の読み替えの節）。各計画の同名の節は、その計画に固有のことだけを書く。** 規則だけで決まらなかった名前は 2026-11-08 にユーザーが決めた（具象は `<機能>UseCase`、Contracts の enum の写しはやめて操作を分ける、リポジトリの取得は `Find`・`FindAll`、`DiscardNoticeState`・`FeaturedIdolPicker`・`FormationNormalizer`・`TestMasterData`・`ICharacterStage.ShowIdol(int, string)`、`ProduceProgress` → `ProduceStateResult`）。**本文の 3.0（公開 API の表）の `IGameMaster`・`RefreshPlayerUseCase`・`PlayerCache`・`DialogService`・`UtaErrors`・`StubDeviceAuthPort`・`StubPlayerPort`・`StubIdolMaster` の行と、3.4（マスタの読み取り）・3.5（`RefreshPlayerUseCase`・`PlayerCache`）・3.6（`MasterGameData`）の節は無効**で、この節の名前で読む（後続の計画が 3.0 を正として読むため、ここに明記する）。
+
+### R0. 画面の計画に共通の読み替え（対応表）
+
+| 本文の形 | 読み替え | 根拠 |
+|---|---|---|
+| `IGameMaster`・`MasterGameData` と読み取り用の型（`IdolInfo`・`SupportCardInfo`・`SupportAbilityInfo`・`GachaEntryInfo`・`GachaInfo`・`ScenarioWeekInfo`・`ScenarioInfo`・`CardTextInfo`・`MasterItemKind`。`SupportLevelUpCost` の struct だけは残す） | **作らない**。`MemoryDatabase`（`Uta.MasterData`。`Uta.Client.MasterData` の asmdef。ルートのスコープに `RegisterInstance`）を DtoFactory・Application の具象がコンストラクターで受け、`db.IdolTable.All`・`db.IdolTable.FindByIdolId(id)` のように直接読む（MasterMemory が生成するテーブルと `FindBy<主キー>` の名前。実在の名前はコンパイルで確かめる）。本文の `KeyNotFoundException` は、`FindBy…` が null を返したときの `NullReferenceException`／`KeyNotFoundException` に当たり、捕まえない（所持の ID はサーバーと同じマスタにある）。`MasterItemKind` は `Uta.MasterData.ItemKind` を使う。計算を含むメンバーの行き先: `GetSupportLevelUpCost`（行の合計）→ Application の `SupportLevelUpCostCalculator`（owned が作る。`SupportLevelUpCost Calculate(Rarity rarity, int fromLevel, int toLevel)`。`SupportLevelUpCost` の struct は Application に残す）、`GetCardText`（Enhanced が無ければ Normal）→ Presentation の `SkillCardRowDtoFactory`（week が作る）、`GetSupportMaxLevel`・`GetSupportMaxLimitBreak` → 使う側が `db.SupportLevelCapTable` を読む。順の規則（`IdolId` の昇順など）は読む側が `OrderBy` で揃える | ADR 0020 |
+| マスタの enum と Shared.Domain の enum の変換（foundation 3.6 の `DomainLesson`・`DomainProduce` の別名） | 今までどおり `(Shared.Domain の型)(int)マスタの値`。**マスタと Shared.Domain の両方の型を使うファイルは、`using Uta.MasterData;` を書かず**、Shared.Domain の名前空間（`Rarity`・`Plan`・`ParamKind`・`CardType`・`CostKind`・`StatusKind`・`LessonKind` は `Uta.Shared.Domain.Lesson`、`SupportType`・`SupportAbilityKind`・`Difficulty`・`WeekKind`・`ExamKind`・`ProduceRank`・`ProducePhase` は `Uta.Shared.Domain.Produce`）だけを `using` し、マスタの型は `Uta.MasterData.MemoryDatabase`・`Uta.MasterData.Rarity` と名前空間付きで書く（別名 `using` は使わない。`MemoryDatabase` だけを使うファイル（マスタの enum を読まない）は `using Uta.MasterData;` を書いてよい） | ADR 0020、naming.md 4章 |
+| `I<機能>Port`・`<機能>Gateway`・Application の UseCase の具象（`<動詞><名詞>UseCase`・`ProduceActions`） | Application に機能ごとの IF **`I<機能>UseCase`**（Contracts の `I<機能>Service` と同じ単位。メソッドは Presenter の操作の単位で、手順（呼ぶ順・取り直し・状態の型への書き込み）を含む）。Infrastructure に具象 **`<機能>UseCase`**（`I<機能>Service` を直接呼び、`handledCodes` を持ち、DTO を Application・Domain の型に詰め替え、リポジトリ・状態の型に書く）。DTO → Application・Domain の型の詰め替えは static の **`<機能>Mapper`**（`ToXxx`）に分け、テストも分ける。Presenter は IF だけを受ける | ADR 0022、naming.md 2・7章 |
+| `PortResult<T>`・`ServerReasons`（gacha が作り、owned・formation が使う） | **使い分けの基準**: その操作の本文で Presenter が `r.Reason`（`ServerReasons` の定数）を見て文言を分けているなら `UseCaseResult<T>`（`Application/Common/`。中身は本文の `PortResult<T>` と同じ: `Succeeded`・`Value`・`Reason`・`ErrorText`・`IsBusinessError`、`Success`／`BusinessError`／`Failure`）と `ServerReasons`（Infrastructure の具象が `result.ErrorCode == <機能>Errors.Xxx` で比べて `BusinessError(ServerReasons.Xxx, result.Error.ToString())` に直す）、`handledCodes` のコードが本文で既に enum（`DrawStatus`・`SupportStatus`・`ProduceStartStatus` など）に写されているなら `<操作>ResultKind` の enum（値も返すなら enum と値を持つ `<操作>Result` の class）。**gacha・owned・formation の本文はどの操作も enum に写しているので、`UseCaseResult<T>`・`ServerReasons`（と `PortResultTests`・`ServerReasonsTests`）は作らない**（ユーザーの判断 2026-11-08。gacha の読み替えで、reason を見る操作が無いことを確かめてから確定する。ADR 0022 31 行の「残す」は「要るときだけ」に直す提案を親のセッションへの報告に挙げた）。week・lesson の見分け方も同じ（本文が `ProduceStepStatus` で分岐しているので enum） | naming.md 2章、ADR 0022 |
+| `PlayerCache`・`PlayerSnapshot`・`OwnedIdol`・`OwnedSupportCard`・`RefreshPlayerUseCase` | Domain の `IReadOnlyPlayerRepository`／`IPlayerRepository`（`PlayerEntity`）、`IReadOnlyIdolRepository`／`IIdolRepository`（`IdolEntity`）、`IReadOnlySupportCardRepository`／`ISupportCardRepository`（`SupportCardEntity`）。取得は `Find`（1 件。無ければ null）・`FindAll`（全件）。取り直しは `IPlayerUseCase.RefreshAsync()`（失敗は `InvalidOperationException`。移行計画 R3）。**Presenter はリポジトリを受けない**: 表示の読み取りは DtoFactory（`IReadOnly…` だけを受ける）、書き込みは Infrastructure の具象と `PlayerCommonApplier` だけ | ADR 0021 |
+| 3.3.5「RPC が成功したあとの取り直しの失敗は、印を付けて成功を返す」 | 印は持たない。取り直しは Infrastructure の具象（`<機能>UseCase`）が RPC の成功のあとに `IPlayerUseCase.RefreshAsync()` を呼び、`InvalidOperationException` を握りつぶして成功を返す（formation R2 の `TryRefreshAsync` と同じ形。ダイアログは `ApiCore` が出した分だけ）。シーンをまたいでホームへ行く前の取り直しも、状態を変えた操作の具象が済ませる（formation の決めたこと 10）。Presenter は取り直しを呼ばない | ADR 0022 |
+| `cache.Current.HasActiveProduce`・`DiscardedProduce`、`cache.Current == null` | `PlayerEntity.HasActiveProduce`・`DiscardedProduce`（サインインの応答の値。共通レスポンスの反映では据え置き）、`players.Find() == null` | ADR 0021 |
+| `PlayerCache.DiscardNoticeShown`・`MarkDiscardNoticeShown` | Application の状態の型 `DiscardNoticeState`（R2）。書くのは `PlayerUseCase`（具象）だけで、Presenter は `IPlayerUseCase.MarkDiscardNoticeShown()` を呼ぶ（ADR 0022「状態の型への書き込みは具象が行う」） | ADR 0021・0022 |
+| `<名詞>ViewData` | **`<View 名>Dto`**。型ごとに次の順で決める: (1) 行の View のクラス（`<名詞>RowView`）が受けるなら、その名前 + `Dto`（`OwnedRowViewData` → `OwnedRowViewDto`、`FormationSlotViewData` → `FormationSlotRowViewDto`、`ExamRankingRowViewData` → `ExamRankingRowViewDto`、`DeckSectionViewData` → `DeckSectionHeaderRowViewDto`（行は `DeckSectionHeaderRowView`）、gacha の `GachaRateLine` → `GachaLineRowViewDto`）。**複数の画面で使う行**（`SkillCardRowView`。手札と獲得の選択肢）は、行の Dto `SkillCardRowViewDto` に表示の値だけ（title・costs・description）を持たせ、画面ごとの ID・enabled は画面側の Dto に持たせる（naming.md 6章）: `HandCardViewData` → `LessonHandRowViewDto(int instanceId, bool enabled, SkillCardRowViewDto card)`、`CardOfferItemViewData` → `CardOfferRowViewDto(int index, SkillCardRowViewDto card)`。(2) 行の View のクラスが無く、画面の IF の `Set…(IReadOnlyList<…>)` が受ける一覧の要素なら `<画面><項目>RowViewDto`（`WeekActionViewData` → `WeekActionRowViewDto`、`ClassOptionViewData` → `ClassOptionRowViewDto`）。(3) 画面全体に 1 つ渡すものは `<画面>ViewDto`（`HomeViewDto`・`FormationViewDto`）。置き場は、その画面の Presenter と同じフォルダ（`Presentation/<機能>/`。共用の行の Dto は `Presentation/Produce/`）に 1 ファイル 1 型 | naming.md 6章 |
+| Presenter が表示用の文言・値を組み立てる（`Refresh()` の中の文字列、`BuildHeader`、static の組み立ての呼び出し） | 画面ごとの **`<画面>DtoFactory`**（Presentation の `Presentation/<機能>/`。インスタンス。状態を持たず、ルートのスコープにシングルトンで登録。受けてよいのは `IReadOnly<名詞>Repository`・`MemoryDatabase`・`ICardCatalog`・Application の状態の型と外部に触れない具象だけ。リポジトリに書かず、通信・遷移・View に触れない）。Presenter は DtoFactory を受け、`view.Set…(dto)` を呼ぶだけ。`DisplayText` は Presentation に残し、DtoFactory から呼ぶ。複数の画面で使う行は `<行>DtoFactory`（`SkillCardRowDtoFactory`） | ADR 0022、naming.md 6章 |
+| `CardSummaryBuilder`・`CardSummary`（week）、`LessonCardText.Create` の中の組み立て（lesson） | `CardSummaryBuilder`・`CardSummary` は作らない。`SkillCardRowDtoFactory`（Presentation。`ICardCatalog`・`MemoryDatabase` を受ける）が `SkillCardRowViewDto` を作り、`DisplayText.Card`・`Costs`・`LessonCardText` は Dto を受ける形にする（名前の細部は week・lesson の読み替えで決める） | naming.md「今のコードとの差」、ADR 0020 |
+| `OwnedListBuilder`（owned）、`GachaRateCalculator`（gacha）、`SupportLevelPlanner`・`SupportSnapshotEdits`（owned） | 外部に触れない Application の具象として残す。`OwnedListBuilder` → **`OwnedListFactory`**（インスタンス。`IReadOnly…Repository`・`MemoryDatabase` を受ける）、`GachaRateCalculator`（`MemoryDatabase` を受けるインスタンス）、`SupportLevelPlanner` はそのまま（`IGameMaster` の引数を `MemoryDatabase` に）、`SupportSnapshotEdits`（`PlayerSnapshot` の書き換え）は作らない（具象がリポジトリに `Upsert` する） | ADR 0022、naming.md 7・9章 |
+| `DialogService`・`FakeDialogService` | **`DialogOpener`・`FakeDialogOpener`**（中身・メソッド名は同じ。`SceneUiInstaller`・`ActiveSceneUi.Dialogs` の型も） | naming.md 9章 |
+| `UtaApiClient`・`UtaErrors`・`UtaMagicOnionClientInitializer`・`UtaErrorsTests` | `ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`・`ErrorDefinitionsTests`（移行計画で改名済み） | naming.md 1章 |
+| 操作の結果の enum `<名詞>Status`（`ProduceStartStatus`・`ProduceResumeStatus`・`ProduceStepStatus`・gacha の `DrawStatus`・owned の `SupportStatus`） | `<操作>ResultKind`（`ProduceStartResultKind`・`ProduceResumeResultKind`・`ProduceStepResultKind`・`DrawResultKind`・`SupportResultKind`。値は同じ） | naming.md 2章 |
+| 操作の結果の class `<名詞>Outcome`（gacha の `DrawOutcome`、owned の `SupportOutcome`、formation の `ProduceOutcome`）と、サーバーに同じ役割の型がある Application の型（gacha の `DrawCallResult`・`DrawItem`・`GachaStatus`、owned の `SupportLevelUpResult`・`SupportLimitBreakResult`） | `Outcome` は使わない（`<操作>Result`。formation は `ProduceOutcome` → `ProduceEndResult`）。**同じ役割にはサーバーと同じ名前**（naming.md 1章）: gacha・owned の読み替えで、サーバーの `DrawResult`（結果の一覧・通貨・交換pt）・`GachaResult`（1 枠分）・`LevelUpResult`・`LimitBreakResult`・`GetGachasUseCase` の戻り値の型を見て揃える（`DrawCallResult` → `DrawResult`、`DrawItem` → `GachaResult` の見込み。`DrawOutcome`（enum と値を持つ UseCase の戻り値）はサーバーに相手が無いので `<操作>Result` の形で別の名前にする）。class の `GachaStatus`（`Status` は enum だけ）も同じ場所で決める。決めた名前はこの表に書き戻す | naming.md 1・2章 |
+| 新しく作る、分類の enum（owned の `OwnedSortKey`・`OwnedTab`・`LevelUpStep` など） | `<名詞>Kind`（`OwnedSortKind`・`OwnedTabKind`・`LevelUpStepKind`） | naming.md 2章 |
+| `<名詞>Row` の名前で、マスタの行でないもの（gacha の `GachaRateRow`・`GachaRateLine`、lesson の `ExamRankingRow`）と、クライアントの `GachaLineRow`（行の View） | `Row` はマスタの行（naming.md 4章）なので、それ以外は別の語にする（表示用なら `<…>RowViewDto`、Application の値なら `<名詞>Entry` など 9章にない語を避け、`<名詞>Result`・`<名詞>Line` の候補から gacha・lesson の読み替えで決める）。`GachaLineRow` → `GachaLineRowView` | naming.md 4・6章 |
+| 応答の写しの型と状態の型（formation の `ProduceProgress`・`ProduceOutcome`・`ProduceSession` を week・lesson が使う） | `ProduceStateResult`・`ProduceEndResult`・`ProduceSessionState`（formation R1。`ProduceSnapshot` は Shared.Domain の保存用の写しと同名なので使わない） | naming.md 1・2章 |
+| 先送りした名前（上の行の「gacha・owned の読み替えで決める」など） | 次のセッションが決めたら、この表の該当の行に書き戻す（R0 が共通の対応表として完結するように）。索引の読み替えの節の申し送りにも書いた | — |
+| `WeekProgress`（week。引数 `ScenarioInfo`） | `ScenarioInfo` は作られないので、マスタの `Scenario`・`ScenarioWeek` の行（`MemoryDatabase` から読む）を受ける形にする（week の読み替えで決める） | ADR 0020 |
+| Shared.Domain・Contracts の改名（naming.md「今のコードとの差」: Contracts の `GachaOutcome` → `GachaResultKind`、Shared.Domain の `ExamOutcome` → `ExamResultKind`、`ClassOptionView` → `ClassOption`、プロパティ `Outcome`・`ExamOutcome` → `ResultKind`・`ExamResultKind`） | その型を最初に使う C# の計画が、プロパティ名の改名と wiki の直しも含めて同じ PR で行う: `GachaOutcome` と `DrawResultDto.Outcome` は gacha、`ClassOptionView` と `ExamOutcome`（`ProduceEndResult` が持つ）と `ProduceResultResponse.ExamOutcome`・Shared.Domain の `ProduceResult.Outcome` は formation（R1）。改名したら、旧い名前を書いている wiki（`systems/`・`architecture/`）を Grep で探して同じ変更で直す（naming.md） | naming.md 1章 |
+| Contracts の enum のクライアントの写し（`CardOfferAction`・`LessonActionType`・`MasterItemKind`） | 作らない。`IProduceUseCase` のメソッドを操作ごとに分ける（formation の読み替え R2）。`MasterItemKind` はマスタの `ItemKind`。残る写し `ProduceEndingKind` は **`ProduceEndKind`**（Contracts の `ProduceEnding` と同名にしない。naming.md 163 行の `ProduceEnding` は naming.md 1章と食い違うので、親のセッションへの報告に挙げた） | naming.md 1章 |
+| `OwnedSelectionRequest`（owned） | `Request` を外した名前にする。naming.md の `OwnedSelection` は owned の結果の型 `OwnedSelection` と同名なので使えない。owned の読み替えで決める（親のセッションへの報告に挙げた） | naming.md 1章 |
+| テストの補助の名前（gacha の `GachaFixtures`、lesson の `LessonTestData`、formation の `TestProduce`、この節の `TestMasterData`） | そのまま（naming.md 8章に規則が無い。親のセッションへの報告に挙げた）。置き場は `Tests/EditMode/Support/` | — |
+| テストの偽（`StubPlayerPort`・`StubDeviceAuthPort`・`FakePlayerPort`・`FakeProducePort`・`FakeSupportPort`・`FakeGameMaster`・`StubIdolMaster`） | Presenter・Flow のテスト: **`Fake<機能>UseCase`**（`FakePlayerUseCase`・`FakeDeviceAuthUseCase`・`FakeGachaUseCase`・`FakeSupportUseCase`・`FakeProduceUseCase`。`Tests/EditMode/Fakes/` に 1 つずつ。返す値の `Queue` と、同じ `CallLog` への記録）。Infrastructure の具象のテスト: **`Fake<機能>Service`**（`FakePlayerService`・`FakeGachaService`・`FakeSupportService`・`FakeProduceService`。`IService<T>` の 5 メンバーを実装し `WithHeaders` は `this`。失敗は基盤の `FakeRpcErrors.ApiFailureResult<T>`）。**マスタの偽は作らず**、`TestMasterData.Build(...)`（R6）で小さな `MemoryDatabase` を作る。リポジトリは本物（Infrastructure のメモリ実装）を使う | ADR 0022、naming.md 8章 |
+| テストのアセンブリ `Uta.Client.Infrastructure.Tests.EditMode`、名前空間 `Uta.Client.Infrastructure.Tests` | `Uta.Client.Tests.EditMode`、`Uta.Client.Tests`（移行計画で改名済み） | naming.md 8章 |
+| `BootstrapEntry.RegisterUseCases` の行 | ゲートウェイの行は無い。具象を IF で登録する: `builder.Register<GachaUseCase>(Lifetime.Singleton).As<IGachaUseCase>();`。DtoFactory・外部に触れない具象・状態の型も同じ場所にシングルトンで登録する（`builder.Register<HomeDtoFactory>(Lifetime.Singleton);`） | ADR 0022 |
+| 3.3 の共通ルール | ADR 0022 が accepted になったら `screen-design.md` に移す（ADR 0022「accepted にしたら直すもの」）。移すまでは本文の 3.3 とこの節が正。読み替え: 3.3.2 の Presenter の形は R3 の `HomePresenter`（DtoFactory を受け、`Refresh()` は `view.Set…(dtoFactory.Create())`）。3.3.3 の「文言の組み立ては Presenter でもページでもよい」→「DtoFactory が作り、View は値を入れるだけ」。3.3.5 の「ゲートウェイの `handledCodes`」→「Infrastructure の具象の `handledCodes`」、「ユースケースの結果の型」→「`UseCaseResult<T>` か `<操作>ResultKind`」、「`RefreshPlayerUseCase`」→「`IPlayerUseCase.RefreshAsync`（具象が呼ぶ）」。3.3.8 の偽と 3.3.9 の DI の表（ルートの行の「ゲートウェイ、`PlayerCache`、`IGameMaster`」→「リポジトリ（2 つの IF で）、`MemoryDatabase`、UseCase の具象（IF で）、DtoFactory、状態の型、外部に触れない具象」）はこの表に読み替える | ADR 0022 |
+
+### R1. asmdef・DI
+
+- asmdef の参照は移行計画の R1 で足し済み（`Uta.Client.Domain`・`Uta.Client.MasterData`、`MasterMemory.dll`・`MessagePack.dll`）。この計画で足すのは本文 3.1 のとおり（テストの asmdef の名前は `Uta.Client.Tests.EditMode.asmdef`）
+- 2 章の表: `Scripts/Application/Master/*.cs`（11 ファイル）・`Scripts/Infrastructure/MasterData/MasterGameData.cs`・`Scripts/Application/Player/RefreshPlayerUseCase.cs`・`PlayerCache.cs`（変更。型が無い）・`Scripts/Application/Auth/SignInUseCase.cs`（コメントだけ直す。型が無い。3.7 のコメントの直しも無効）・`Tests/EditMode/Fakes/StubIdolMaster.cs`・`StubDeviceAuthPort.cs`・`StubPlayerPort.cs`・`Tests/EditMode/MasterGameDataTests.cs`・`RefreshPlayerUseCaseTests.cs`・`PlayerCacheTests.cs` の行は無効。代わりに作る・変えるもの: 作成 `Scripts/Application/Player/DiscardNoticeState.cs`、`Scripts/Application/Idol/FeaturedIdolPicker.cs`、`Scripts/Presentation/Home/HomeViewDto.cs`・`HomeDtoFactory.cs`、`Tests/EditMode/Fakes/FakePlayerUseCase.cs`・`FakeDeviceAuthUseCase.cs`、`Tests/EditMode/Support/TestMasterData.cs`、`Tests/EditMode/DiscardNoticeStateTests.cs`・`FeaturedIdolPickerTests.cs`・`HomeDtoFactoryTests.cs`。変更 `Scripts/Infrastructure/Player/PlayerUseCase.cs`（コンストラクターに `DiscardNoticeState` を足す。R2）・`Tests/EditMode/PlayerUseCaseTests.cs`（2 本足す）。改名済みの名前で読む: `Infrastructure/Api/UtaErrors.cs`・`UtaApiClient.cs` は `ErrorDefinitions.cs`・`ApiClient.cs`、`Presentation/Common/DialogService.cs` は `DialogOpener.cs`、`Tests/EditMode/DialogServiceTests.cs` は `DialogOpenerTests.cs`、`Tests/EditMode/Fakes/FakeDialogService.cs` は `FakeDialogOpener.cs`、`Tests/EditMode/UtaErrorsTests.cs` は `ErrorDefinitionsTests.cs`、テストの asmdef は `Uta.Client.Tests.EditMode.asmdef`
+- 3.3.9 の DI の表のルートの行: `MemoryDatabase`・`ICardCatalog`、`ActiveSceneUi`、`StartupOptions`、`ISceneNavigator`・`IErrorNavigator`、`ApiClient`、リポジトリ 3 つ（2 つの IF で）、UseCase の具象（IF で）、`DiscardNoticeState`、`FeaturedIdolPicker`、DtoFactory
+
+### R2. Application
+
+```csharp
+// Application/Player/DiscardNoticeState.cs（ADR 0021「UI の状態はエンティティに入れない」。本文 3.5 の PlayerCache の印の代わり）
+public sealed class DiscardNoticeState
+{
+    public bool Shown { get; private set; }
+    public void MarkShown();   // Shown = true
+    public void Reset();       // Shown = false
+}
+
+// Application/Idol/FeaturedIdolPicker.cs（名前空間 Uta.Client.Application.Idol。naming.md 9章の Picker。外部に触れない具象）
+public sealed class FeaturedIdolPicker
+{
+    public FeaturedIdolPicker(IReadOnlyIdolRepository idols, MemoryDatabase db);
+    /// <summary>
+    /// 所持の育成アイドル（idols.FindAll()）のうち、マスタの Rarity（db.IdolTable.FindByIdolId(e.IdolId).Rarity を (int) にした値）が最も大きいもの、
+    /// 同じなら IdolId が小さいものの IdolId（本文 3.7 の RefreshStage の選び方。所持の順に依らない）。所持が 0 なら 0。
+    /// マスタに無い IdolId は捕まえない（所持の IdolId はサーバーと同じマスタにある）。
+    /// </summary>
+    public int Pick();
+}
+```
+
+- 移行計画の `IPlayerUseCase` に `void MarkDiscardNoticeShown();`（`notice.MarkShown()`。通信しない）を足す
+- 移行計画の `PlayerUseCase`（Infrastructure）のコンストラクターの**末尾**に `DiscardNoticeState notice` を足し（`PlayerUseCase(IPlayerService player, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards, DiscardNoticeState notice)`）、`EnterAsync`・`RefreshAsync` が**成功して**リポジトリを置き換えたあとに `notice.Reset()` を呼ぶ（本文の「`Set` で false に戻る」。失敗では呼ばない）。既存の `PlayerUseCaseTests` の `new PlayerUseCase(...)` に `new DiscardNoticeState()` を足し、`Enter_Success_ResetsDiscardNotice`・`Refresh_Success_ResetsDiscardNotice`（`MarkShown()` のあとに成功 → `Shown == false`）・`MarkDiscardNoticeShown_SetsFlag` を足す
+- `MasterItemKind`（3.4）は作らない（gacha が `Uta.MasterData.ItemKind` を使う）
+
+### R3. Presentation（タイトル・ホーム）
+
+タイトル（3.7）:
+- `TitlePresenter`: `[Inject] TitlePresenter(TitlePage view, IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ISceneNavigator scenes)` と `TitlePresenter(ITitleView view, IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ISceneNavigator scenes)`。`StartAsync` の 3 は `var registered = await deviceAuth.SignInAsync();` → `var entered = await player.EnterAsync(registered);`（手順・ログ・`disposed` の確かめは本文のまま）
+- `StartupLogs.SignIn(EnterPlayerResult e)`: `"sign-in: ok level=" + e.Player.Level + " exp=" + e.Player.Exp + " gold=" + e.Player.Gold + " supportPoints=" + e.Player.SupportPoints + " gachaCurrency=" + e.Player.GachaCurrency + " idols=" + e.IdolCount + " supportCards=" + e.SupportCardCount + " hasActiveProduce=" + e.Player.HasActiveProduce + " discardedProduce=" + e.Player.DiscardedProduce`（`PlayerSnapshot` を受けない。出る文字列は同じ）
+- `TitleDiagnostics`: `SignInUseCase signIn, EnterPlayerUseCase enterPlayer` の 2 引数を `IDeviceAuthUseCase deviceAuth, IPlayerUseCase player` にする（`ConnectivityCheck` は移行計画で同じ形に直し済み）。`signIn.ExecuteAsync()` → `deviceAuth.SignInAsync()`、`enterPlayer.ExecuteAsync(registered)` → `player.EnterAsync(registered)`
+- `TitleLifetimeScope`・`TitleEntry` は本文のまま
+
+ホーム（3.7。ADR 0022「Presenter は DtoFactory を受ける」）:
+
+```csharp
+public interface IHomeView
+{
+    void SetProfile(string text);                          // 本文の SetProfile(int level, int gachaCurrency) を、組み立て済みの文字を受ける形に（View は値を入れるだけ）
+    void SetResume(bool visible, string primaryLabel);     // 本文の SetResumeVisible(bool)。主ボタンのラベルも Dto から受ける
+    event Action ProduceClicked; event Action GachaClicked; event Action OwnedClicked;   // 本文のまま
+}
+
+/// <summary>ホームのキャラ表示のステージ。ステージはマスタを読まない（ADR 0020: Presentation でマスタを読むのは DtoFactory だけ）。</summary>
+public interface ICharacterStage
+{
+    void ShowIdol(int idolId, string name);   // 3D の ModelCharacterStage は idolId を使う。MVP の仮の枠は name を出す
+    void Clear();
+}
+public sealed class PlaceholderCharacterStage : ICharacterStage
+{
+    public PlaceholderCharacterStage(TMP_Text label);   // label が null なら ArgumentNullException("label")。master は受けない
+    public void ShowIdol(int idolId, string name);      // label.text = name
+    public void Clear();                                // label.text = EmptyText
+}
+// HomePage.CreateStage() は引数なし（new PlaceholderCharacterStage(stageLabel)）。SetProfile(string)・SetResume(bool, string) は参照に入れるだけ:
+//   profileText.text = text; resumePanel.SetActive(visible); primaryButton.SetLabel(primaryLabel);
+
+// Presentation/Home/HomeViewDto.cs
+public sealed class HomeViewDto
+{
+    public HomeViewDto(string profileText, bool resumeVisible, string primaryLabel, bool showDiscardNotice, int stageIdolId, string stageIdolName);
+    // stageIdolId が 0 なら所持なし（stageIdolName は null）。showDiscardNotice は「破棄の知らせのダイアログを出すか」（表示の値。ADR 0022 の DtoFactory の線の中）
+}
+
+// Presentation/Home/HomeDtoFactory.cs（ルートのスコープにシングルトン）
+public sealed class HomeDtoFactory
+{
+    public HomeDtoFactory(IReadOnlyPlayerRepository players, FeaturedIdolPicker picker, DiscardNoticeState notice, MemoryDatabase db);   // notice は読むだけ
+    /// <summary>
+    /// var p = players.Find(); null なら null。
+    /// profileText = "プレイヤーLv " + p.Level + "　ガチャ通貨 " + p.GachaCurrency.ToString("N0", CultureInfo.InvariantCulture)（間は全角の空白 1 つ。本文の HomePage.SetProfile の書式）。
+    /// showDiscardNotice = p.DiscardedProduce && !notice.Shown。
+    /// resumeVisible = p.HasActiveProduce（formation の読み替えが ProduceSessionState を足して読み替える）。primaryLabel = resumeVisible ? "再開" : "プロデュース"。
+    /// stageIdolId = picker.Pick()。0 でなければ stageIdolName = db.IdolTable.FindByIdolId(stageIdolId).Name。
+    /// </summary>
+    public HomeViewDto Create();
+}
+
+[AssetAddress(nameof(HomePage))]
+public sealed class HomePresenter : IPresenter
+{
+    [Inject] public HomePresenter(HomePage view, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs);   // : this((IHomeView)view, view.CreateStage(), dtoFactory, player, dialogs)
+    public HomePresenter(IHomeView view, ICharacterStage stage, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs);
+    // Refresh(): var dto = dtoFactory.Create(); null なら何もしない。view.SetProfile(dto.ProfileText); view.SetResume(dto.ResumeVisible, dto.PrimaryLabel);
+    //   dto.StageIdolId == 0 ? stage.Clear() : stage.ShowIdol(dto.StageIdolId, dto.StageIdolName);（この順）。RefreshStage は無い（選び方は FeaturedIdolPicker）
+    // ShowDiscardNoticeIfNeededAsync(): var dto = dtoFactory.Create(); dto が null なら何もしない。dto.ShowDiscardNotice なら player.MarkDiscardNoticeShown() してから await dialogs.ShowInfoAsync("バージョンが変わったため、進行中のプロデュースは破棄されました。")
+    // ほか（InitializeAsync・DidPushEnter・DidPopEnter・Dispose・OpenXxxAsync）は本文のまま
+}
+
+/// <summary>Home シーンの入口。</summary>
+public sealed class HomeEntry : IStartable
+{
+    public HomeEntry(IScreenNavigator navigator, IReadOnlyPlayerRepository players, ISceneNavigator scenes);
+    // StartAsync: players.Find() == null なら GoToTitleAsync、そうでなければ PushPageAsync<HomePresenter>（入口は Presenter ではないので、読み取り専用のリポジトリを受けてよい）
+}
+```
+
+- `PlaceholderCharacterStage`・`HomePage` の `using Uta.Client.Application.Master;` は要らない。`HomeDtoFactory` は `using Uta.MasterData;`（`MemoryDatabase`）・`using Uta.Client.Domain.Player;`・`using Uta.Client.Application.Idol;`・`using System.Globalization;`
+- 後続の計画が `HomePresenter` のコンストラクターに足すものは、UseCase の IF（`IGachaUseCase`・`IProduceUseCase` など）と `IScreenNavigator`・`ISceneNavigator`。リポジトリ・`MemoryDatabase` は足さない（DtoFactory が受ける）
+- 2〜4 本目が差し替えるホームのボタンのテスト（決めたこと 16）の規則は変わらない
+
+### R4. `Bootstrap` と `Infrastructure.Api`
+
+- `UtaErrors.Create()` → `ErrorDefinitions.Create()`（19 個の中身は本文のまま）。`UtaApiClient.Create` → `ApiClient.Create`（引数の足し方は本文のまま）
+- `ErrorNavigator.GoToHomeAsync`: `resolver.Resolve<RefreshPlayerUseCase>().ExecuteAsync()` → `resolver.Resolve<IPlayerUseCase>().RefreshAsync()`。遅延解決の理由（`ApiClient` → `IErrorNavigator` → `IPlayerUseCase` → `IPlayerService` → `ApiClient` の循環）は同じ
+- `BootstrapEntry.RunAsync` の 2: `cardCatalog = CardCatalogFactory.Create(db);`（`gameMaster = new MasterGameData(db)` は無い）。登録は `builder.RegisterInstance(db); builder.RegisterInstance<ICardCatalog>(cardCatalog);`（`RegisterInstance<IGameMaster>` は無い）
+- `RegisterUseCases` を作るとき、移行計画 R4 の 5 行（リポジトリ 3 つ・`DeviceAuthUseCase`・`PlayerUseCase`）と共通レスポンスの計画の `builder.Register<PlayerCommonApplier>(Lifetime.Singleton);`（どれも今は `LifetimeScope.Create` のラムダに直書き）をここへ移し、続けてこの計画で次を足す。`ApiClient.Create(...)` の呼び出しは、共通レスポンスの計画が足した最後の引数 `resolver.Resolve<PlayerCommonApplier>()` を保ったまま、本文 3.8 の `IApiActivityHandler`・`IErrorNavigator` の引数をその前（`Create` の引数の並びは移行計画の `Create` → 本文 3.8 → 共通レスポンスの順に末尾に足されている）に入れる。**2〜6 本目はここに足す**（UseCase の具象は IF で、DtoFactory・具象・状態の型はそのまま登録する）:
+  ```csharp
+  builder.Register<DiscardNoticeState>(Lifetime.Singleton);
+  builder.Register<FeaturedIdolPicker>(Lifetime.Singleton);
+  builder.Register<HomeDtoFactory>(Lifetime.Singleton);
+  ```
+  本文の 6 行（`DeviceAuthGateway`・`PlayerGateway`・`PlayerCache`・`SignInUseCase`・`EnterPlayerUseCase`・`RefreshPlayerUseCase`）は無い
+- `ActiveSceneUi.Dialogs`・`SceneUiInstaller`・`ErrorDialogView` の `DialogService` は `DialogOpener`
+
+### R5. タスクの読み替え
+
+- タスク 1: `DialogService` → `DialogOpener`。偽は `CallLog`・`FakeScreenNavigator`・`FakeDialogOpener`・`FakeSceneNavigator`・`FakePlayerUseCase`・`FakeDeviceAuthUseCase`（R6）と `Support/TestMasterData.cs`
+- タスク 2: 「マスタの読み取り口」は無い。作るのは `DiscardNoticeState`・`FeaturedIdolPicker`、`PlayerUseCase` への `DiscardNoticeState` の追加、`ErrorDefinitions` の 18 個。テストは `DiscardNoticeStateTests`・`FeaturedIdolPickerTests`・`PlayerUseCaseTests` の 2 本の追加・`ErrorDefinitionsTests`。計画 0 の前提の確認（`Card.Name`・`CardFace.Description`）は、`Assets/Scripts/MasterData/Generated/Lesson/` を見る
+- タスク 3: `HomeViewDto`・`HomeDtoFactory` を作る。`StubIdolMaster` は作らない。テストに `HomeDtoFactoryTests` を足す
+- タスク 4: `IGameMaster` の登録は無い（R4）。止まる条件 B5 の循環の経路は R4 のとおり
+- タスク 6（wiki）: `screen-design.md` 7.5 の「マスタ」の行と 7.4・8 章は移行計画のタスク 3 が ADR 0020〜0022 の形に直している（この計画で直すのは、本文の記述のうち実装と違うところだけ）。この計画で足して直すもの: 7.8 の「`IGameMaster.GetIdol(idolId).Name`」を「`HomeDtoFactory` がマスタから名前を引き、`ICharacterStage.ShowIdol(idolId, name)` に渡す」に。3.3 の共通ルールを `screen-design.md` に移す仕事は ADR 0022 の accepted の後の別の作業（この計画ではしない）
+
+### R6. テストの読み替え
+
+```csharp
+// Tests/EditMode/Support/TestMasterData.cs（名前空間 Uta.Client.Tests）
+public static class TestMasterData
+{
+    /// <summary>
+    /// append で足した行だけを持つ MemoryDatabase を作る: var b = new DatabaseBuilder(); append(b); return new MemoryDatabase(b.Build());
+    /// （MasterMemory の DatabaseBuilder・MemoryDatabase のコンストラクターの実在の形はコンパイルで確かめ、違えば止まって報告する。ADR 0020「最初に使う実装計画で確かめる」= この計画）。
+    /// 検証（IValidatable）は走らないので、テストは要る列だけ入れる。
+    /// </summary>
+    public static MemoryDatabase Build(Action<DatabaseBuilder> append);
+    /// <summary>名前とレア度だけを決めた Idol の行（本文の StubIdolMaster.Idol と同じ値: Plan は Sense、MaxHp 30、Initial は 0、First/Second/ThirdParam は Singing・Rhythm・Expression。ほかの列は 0）。</summary>
+    public static Idol Idol(int idolId, string name, Rarity rarity);   // Rarity・Plan・ParamKind はマスタの enum（Uta.MasterData）
+}
+
+// Tests/EditMode/Fakes/FakeDeviceAuthUseCase.cs（本文 3.3.8 の StubDeviceAuthPort の代わり）
+public sealed class FakeDeviceAuthUseCase : IDeviceAuthUseCase
+{
+    public FakeDeviceAuthUseCase(CallLog log = null);   // log が null なら記録しない（Title のテストは null で作り、本文の期待する記録の並びを変えない）
+    /// <summary>SignInAsync の 1 回ごとの振る舞い。空なら UniTask.FromResult(false)（登録済みの端末）。Dequeue した Func を呼んでその UniTask を返す（例外を投げる・未完了の源を返す）。log があれば "DeviceSignIn" を記録。</summary>
+    public Queue<Func<UniTask<bool>>> SignInResults { get; }
+    // ReissueTokenAsync は完了済み。InvalidateServerSideTokenAsync は TokenInvalidationCount を 1 増やして完了済み。CanReceiveServerErrorAsync は true。TokenInvalidationCount の初期値は 0
+}
+
+// Tests/EditMode/Fakes/FakePlayerUseCase.cs（本文 3.3.8 の StubPlayerPort、formation の FakePlayerPort の代わり。formation 以降も使う）
+public sealed class FakePlayerUseCase : IPlayerUseCase
+{
+    public FakePlayerUseCase(CallLog log = null, DiscardNoticeState notice = null);   // notice があれば MarkDiscardNoticeShown が notice.MarkShown() する   // log が null なら記録しない。Title のテストは null、ErrorNavigator・formation 以降のテスト（"Refresh" の順を見る）は同じ CallLog を渡す
+    /// <summary>EnterAsync の 1 回ごとの振る舞い。空なら new EnterPlayerResult(afterRegistration, afterRegistration, Player, 0, 0)。log があれば "Enter:" + afterRegistration を記録。</summary>
+    public Queue<Func<UniTask<EnterPlayerResult>>> EnterResults { get; }
+    /// <summary>RefreshAsync の 1 回ごとの振る舞い。空なら完了済み。失敗は () => throw new InvalidOperationException("sign-in failed: x")。log があれば "Refresh" を記録。</summary>
+    public Queue<Func<UniTask>> RefreshResults { get; }
+    /// <summary>既定の EnterAsync が返すエンティティ。既定は new PlayerEntity(1, 0, 0, 0, 0, false, false)。</summary>
+    public PlayerEntity Player { get; set; }
+    public int RefreshCount { get; }
+    // 偽はリポジトリに書かない。テストは本物のリポジトリ（PlayerRepository など）に Upsert・ReplaceAll で値を入れる
+}
+```
+
+- 5 章の表の読み替え:
+  - `DialogServiceTests` → `DialogOpenerTests`（中身は同じ）
+  - `MasterGameDataTests` → 無い。`RefreshPlayerUseCaseTests` → 無い（移行計画の `PlayerUseCaseTests` の `Refresh_*`）。`PlayerCacheTests` → `DiscardNoticeStateTests`（`MarkShown_SetsFlag`・`Reset_ClearsFlag`）
+  - `FeaturedIdolPickerTests`（新。タスク 2）: `Pick_ReturnsHighestRarityThenSmallestId`（`TestMasterData.Build` に 1（SR）・2（SSR）・3（SSR）・4（R）、`IdolRepository.ReplaceAll` に 4・3・1・2 の順 → 2）、`Pick_SingleIdol_ReturnsIt`、`Pick_NoIdols_ReturnsZero`
+  - `HomeDtoFactoryTests`（新。タスク 3）: `Create_NoPlayer_ReturnsNull`、`Create_FormatsProfileAndResume`（Lv 12・ガチャ通貨 3250・`HasActiveProduce = true` → `ProfileText == "プレイヤーLv 12　ガチャ通貨 3,250"`・`ResumeVisible`・`PrimaryLabel == "再開"`）、`Create_StageFromPicker`（所持 2（SSR）→ `StageIdolId == 2`、`StageIdolName` がマスタの名前）、`Create_NoIdols_StageZero`
+  - `UtaErrorsTests` → `ErrorDefinitionsTests`（`new ErrorPolicyProvider(ErrorDefinitions.Create())`）
+  - `TitlePresenterTests`: `StubDeviceAuthPort`・`StubPlayerPort` で作った `SignInUseCase`・`EnterPlayerUseCase` → `new FakeDeviceAuthUseCase()`・`new FakePlayerUseCase()`（`log` は渡さない。本文の期待する記録の並び（`"SetStatus:…"`, `"GoToHome"`）はそのまま）。`StartAsync_SignInFails_ShowsRetry` は `deviceAuth.SignInResults.Enqueue(() => throw new InvalidOperationException("x"))`。`StartAsync_WhileRunning_Ignored`・`_DisposedDuringSignIn_…` の未完了の源は `SignInResults` に `() => source.Task`（`UniTaskCompletionSource<bool>`）
+  - `TitleEntryTests`: `TitleDiagnostics` は `new TitleDiagnostics(deviceAuth, player, new ConnectivityCheck(deviceAuth, player), code => codes.Add(code))`
+  - `HomePresenterTests`: 共通の組み立ては `var db = TestMasterData.Build(b => b.Append(new[] { TestMasterData.Idol(...), ... }));`（育成アイドルの要らないテストは空の `Build(_ => { })`）、`var players = new PlayerRepository(); var idols = new IdolRepository();`、`var notice = new DiscardNoticeState();`、`new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db)`、`new HomePresenter(view, stage, dtoFactory, new FakePlayerUseCase(log, notice), dialogs)`（`FakePlayerUseCase` の第 2 引数 `DiscardNoticeState notice = null` は、`MarkDiscardNoticeShown` で書く先。記録は `"MarkDiscardNoticeShown"`。ADR 0022 の偽の規約の例外）。`PlayerCache` に `Set` していた所は `players.Upsert(new PlayerEntity(...))`、所持の育成アイドルは `idols.ReplaceAll(new[] { new IdolEntity(id, 0, 0, 0), ... })`。記録の形は `"SetProfile:プレイヤーLv 12　ガチャ通貨 3,250"`・`"SetResume:True,再開"`、ステージは `"ShowIdol:2,<名前>"`・`"ClearStage"`。`InitializeAsync_ShowsProfileAndResume` の期待は `"SetProfile:…"`, `"SetResume:True,再開"`, `"ClearStage"`。`ShowDiscardNotice_*` の `cache.DiscardNoticeShown` は `notice.Shown`（期待する記録の `"Info:…"` の前に `"MarkDiscardNoticeShown"` が入る）。`HomeDtoFactoryTests` に `Create_ShowDiscardNotice_WhenDiscardedAndNotShown`・`Create_HidesDiscardNotice_AfterShown` を足す
+  - `PlaceholderCharacterStageTests`: `new PlaceholderCharacterStage(label)`、`ShowIdol(2, "テストアイドル")` で `label.text == "テストアイドル"`。`Constructor_Null_Throws` は `label` だけ
+  - `HomeEntryTests`: `cache.Current == null` → 空の `PlayerRepository`、`Set` 済み → `players.Upsert(...)`
+  - `ErrorNavigatorTests`: コンテナーには `builder.RegisterInstance<IPlayerUseCase>(fake);`（`new FakePlayerUseCase(log)`。同じ `CallLog` に、`RefreshAsync` が**呼ばれた時点**（積んだ `Func` を呼ぶ前）で `"Refresh"` を記録する。`PlayerCache`・`RefreshPlayerUseCase` の登録は無い）。期待する記録は本文から次のように変わる: `GoToHomeAsync_ResolvesRefreshLazily_RefreshesThenGoesHome` は `"Refresh"`, `"GoToHome"`（「`PlayerCache.Current` が `port.Snapshot` と同じ」の確認は `fake.RefreshCount == 1` に代える）。`_WhileRefreshing_SkipsRefresh` は `GatedPlayerPort` の代わりに `fake.RefreshResults.Enqueue(() => gate.Task)`（`gate` は `UniTaskCompletionSource`）: `var first = navigator.GoToHomeAsync();` → `log` が `"Refresh"` だけ、`RefreshCount == 1` → `await navigator.GoToHomeAsync();` → `log` が `"Refresh"`, `"GoToHome"`、`RefreshCount == 1` → `gate.TrySetResult()` → `await first` → `log` が `"Refresh"`, `"GoToHome"`, `"GoToHome"` → もう 1 回 `GoToHomeAsync()`（`RefreshResults` は空なので完了済み）→ `RefreshCount == 2`。`_RefreshFails_StillGoesHome` は `RefreshResults.Enqueue(() => throw new InvalidOperationException("sign-in failed: x"))` → `log` が `"Refresh"`, `"GoToHome"`（「`PlayerCache.Current` は null のまま」の確認は無い）。`_ResolveFails_StillGoesHome` は本文のまま（何も登録しないコンテナー。`log` は `"GoToHome"` だけ）
+  - `StubIdolMaster` を使うテストは `TestMasterData.Build` と本物の `IdolRepository` に読み替える
+- Play モード・手動の確認は本文のまま
+
 ## この計画で決めたこと
 
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。

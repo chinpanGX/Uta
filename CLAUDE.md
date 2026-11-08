@@ -18,7 +18,7 @@
 |---|---|
 | 設計・仕様を確認する、未決事項に触れる | `uta_docs/wiki/index.md` → フォルダの `README.md` → 関連ページ（全体は `overview/game-spec.md`、ゲームの仕様は `systems/`、実装設計書は `architecture/`。何の正がどのページかは `architecture/README.md`）。決定は ADR（`decisions/`）が正 |
 | 技術選定・方針変更をする | `uta_docs/wiki/decisions/`（既存 ADR を確認。新規は `0000-template.md` を使う） |
-| C# のコードを書く | 下の「C# コーディング規約」と `.editorconfig` |
+| C# のコードを書く | 下の「C# コーディング規約」と `.editorconfig`。型の名前は `uta_docs/wiki/architecture/naming.md` |
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
 | 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
 | コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`、レビュー担当は `.claude/agents/uta-code-reviewer.md`） |
