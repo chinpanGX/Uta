@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントを共通基盤の新しい呼び方（11d9b06）に移す
-status: ready
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/screen-design.md
 ---
@@ -347,3 +347,8 @@ foundation・formation・gacha・owned の 4 本の、タイトル（`# 実装�
 ## 7. 未決事項
 
 なし（0 章の了承を反映した）。
+
+## 8. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
