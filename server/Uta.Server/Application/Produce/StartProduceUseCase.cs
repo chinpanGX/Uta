@@ -10,9 +10,9 @@ namespace Uta.Server.Application.Produce;
 
 public sealed class StartProduceUseCase(
     IProduceSessionRepository sessions, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards,
-    ProduceEngine engine, ProduceCatalog catalog, IRandomSource randomSource, ProduceSessionDiscarder discarder, ProduceViewBuilder viewBuilder)
+    ProduceEngine engine, ProduceCatalog catalog, IRandomSource randomSource, ProduceSessionDiscarder discarder, ProduceStateResultFactory resultFactory)
 {
-    public async Task<ProduceView> ExecuteAsync(
+    public async Task<ProduceStateResult> ExecuteAsync(
         TxContext tx, Ulid playerId, int appVersion, int idolId, IReadOnlyList<string> supportCardUids, int rentalCandidateId, int scenarioId)
     {
         try
@@ -87,6 +87,6 @@ public sealed class StartProduceUseCase(
 
         var data = new ProduceSessionData(seed, streams.Export(), ProduceSnapshot.From(state, catalog.Cards));
         await sessions.InsertAsync(tx, Ulid.NewUlid(), playerId, appVersion, data);
-        return viewBuilder.Build(state, null, null);
+        return resultFactory.Create(state, null, null);
     }
 }

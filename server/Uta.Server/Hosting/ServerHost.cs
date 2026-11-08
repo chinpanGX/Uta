@@ -106,7 +106,7 @@ internal static class ServerHost
 
         // プロデュース
         services.AddSingleton<ProduceEngine>();
-        services.AddSingleton<ProduceViewBuilder>();
+        services.AddSingleton<ProduceStateResultFactory>();
         services.AddScoped<ProduceSessionDiscarder>();
         services.AddScoped<StartProduceUseCase>();
         services.AddScoped<GetProduceStateUseCase>();

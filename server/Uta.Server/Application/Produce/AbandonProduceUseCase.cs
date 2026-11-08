@@ -8,7 +8,7 @@ namespace Uta.Server.Application.Produce;
 
 public sealed class AbandonProduceUseCase(IProduceSessionRepository sessions, IPlayerRepository players)
 {
-    public async Task<ProduceEndSummary> ExecuteAsync(TxContext tx, Ulid playerId, int appVersion)
+    public async Task<ProduceEndResult> ExecuteAsync(TxContext tx, Ulid playerId, int appVersion)
     {
         var session = await sessions.FindActiveAsync(tx, playerId)
             ?? throw new UseCaseException(UseCaseError.ProduceNotInProgress, "not in progress");
@@ -25,7 +25,7 @@ public sealed class AbandonProduceUseCase(IProduceSessionRepository sessions, IP
 
         await sessions.InsertResultAsync(tx, ProduceResultRecord.Empty(session.SessionId, playerId, ProduceSessionStatus.Abandoned));
         var player = await players.FindAsync(tx, playerId) ?? throw new InvalidOperationException("player not found");
-        return new ProduceEndSummary(
+        return new ProduceEndResult(
             ProduceSessionStatus.Abandoned, ExamOutcome.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0, player.Level, player.Exp);
     }
 }
