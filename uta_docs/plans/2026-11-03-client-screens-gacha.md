@@ -1218,4 +1218,5 @@ Play・手動（Editor、サーバー起動済み・初期付与済みのプレ�
 |---|---|---|---|
 | 1 | 完了 | `802d863` | 止めた実装担当の書きかけを引き継いだ。BOM を付けた。EditMode 215 件通過 |
 | 2 | 完了 | `d34d5dc` | なし。EditMode 227 件通過 |
-| 3a | コードは完了・Play は未確認 | `0922a18` | テストを 2 本足した（`GachaTextsTests` の `Kind_Texts`、`GachaResultDtoFactoryTests` の `Create_NullResults_Throws`）。EditMode 250 件通過。Play の手順 7 は、Bash から `EditorApplication.Step()` の eval を繰り返して Editor の Pipeline に接続できなくなり、未確認（Editor の再起動のあとにやり直す） |
+| 3a | 完了 | `0922a18` | テストを 2 本足した（`GachaTextsTests` の `Kind_Texts`、`GachaResultDtoFactoryTests` の `Create_NullResults_Throws`）。EditMode 250 件通過。Play の手順 7 は、Bash から `EditorApplication.Step()` の eval を繰り返して Editor の Pipeline に接続できなくなり、タスク 3b のときに確かめた（期待どおり） |
+| 3b | 完了 | `dd06f7a` | モーダルの Presenter は `disposed` を持たない（読まれないので CS0414 を避けた）。Play: 排出率 35 行、単発の結果 1 行、通貨 3,000 → 2,750（player_diff）、`ApplyAsync` のスレッドはメイン（2 で一致）。計画の式 `Find("Dialog")` は実物が `Dialog(Clone)` で当たらない（`DialogView` の有無で見た）。10 連・「もう一度」・見た目・サーバー停止時のダイアログ・IL2CPP は未確認。Play 中にローカルの DB の `gacha_currency` が 2500 → 0 に変わっていた（原因不明。別のセッションの可能性） |
