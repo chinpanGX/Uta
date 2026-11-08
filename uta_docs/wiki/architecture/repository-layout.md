@@ -74,7 +74,7 @@ uta/
          │  └─ SupportCard/  #     SupportCardEntity・ISupportCardRepository・IReadOnlySupportCardRepository
          ├─ Application/     #   UseCase の IF とその出力の型、外部に触れない具象（ADR 0022）
          ├─ Infrastructure/  #   外部に触れる具象: UseCase の具象、API 呼び出し、マスタの読み込み、リポジトリの実装、ローカル保存（ADR 0022）。機能ごとのフォルダ（名前空間 Uta.Client.Infrastructure.<機能>）
-         │  ├─ Player/       #     PlayerRepository・PlayerUseCase・PlayerMapper（サインインの応答の詰め替え）
+         │  ├─ Player/       #     PlayerRepository・PlayerUseCase・PlayerMapper（サインインの応答の詰め替え）・PlayerCommonApplier（共通レスポンスの player_diff をリポジトリに反映）
          │  ├─ Idol/         #     IdolRepository
          │  └─ SupportCard/  #     SupportCardRepository
          ├─ Presentation/    #   View、Presenter

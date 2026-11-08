@@ -1,6 +1,6 @@
 ---
 title: 実装計画: 共通レスポンス項目（player_diff）をサーバーとクライアントに入れる
-status: in-progress
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/architecture/server/produce-server.md
 ---
@@ -247,3 +247,15 @@ public sealed class PlayerCommonApplier : ICommonResponseApplier<AppCommon>
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 1 | 完了 | `ad8cc0f` | 本文の `BuildAsync` の「見つからなければ飛ばす」と「InvalidOperationException」の食い違いは例外の側に合わせた。既存のテストは 295 件（計画の 293 件から増えていた） |
+| 2 | 完了 | `19bf38c` | プロデュースの途中の応答の `Common` が null なのは `StartAsync` の応答だけで確かめた（`ProduceDriver` が途中の応答を返さないため） |
+| 3 | 完了 | `7b4534d` | なし（`unity recompile` エラー 0、EditMode 120 件成功） |
+| 4・5 | 完了 | `eecff57` | スレッドはソースを読んで確かめただけ（実行での確認は gacha の計画）。IL2CPP のシリアライズは未確認 |
+| レビュー | 完了 | （この行のコミット） | server・shared・client の 3 レイヤー。Important 2 件（`produce-server.md` の `ProduceStateResponse` の表に `Common` が無い、`repository-layout.md` 2章の木に `PlayerCommonApplier` が無い）を直した。shared の Minor M2（`unity7-evaluation.md` 3.3 の IL2CPP の生成の根拠）も直した。client の Important のうち `naming.md` 148 行目（「`PlayerCommonApplier` はまだコードに無い」）は、別のセッションが `naming.md` を直しているので触らず、申し送る |
+
+残した Minor（`uta_docs/reviews/.raw/2026-11-08-common-response/` の報告。`.raw` はコミットしない）:
+
+- server M1: `BuildAsync` で、記録したプレイヤーと `tx.PlayerId` が同じかを確かめていない（今の MVP に経路は無い。1 行で防げる）。M2〜M7: 途中の応答の `Common` の確かめ、結合テストの細部、サポートカードの読み直しが 1 枚 1 クエリ、Infrastructure の例外をアーキテクチャテストで固定していない、wiki・書き方の細部
+- shared M1: `PlayerDiff`・`AppCommon` が naming.md 3章の `<名詞>Dto` に合っていない（読み替えの節は `PlayerDiffDto` と書いている）。改名するか naming.md に例外として書くかは決めていない。M3: `api-design.md` 95 行目の記述が型と合わない。M4: 用語集に「共通レスポンス項目」「player_diff」が無い
+- client M1〜M6: 詰め替えの前にプレイヤーを書く順、`PlayerDiff` → `PlayerEntity` の詰め替えが Mapper に無い、`ApiClient.Create` の `commonApplier` のコメントと null 判定、テストが `UniTask` を捨てている、往復テストが入れ子の項目を一部しか見ない、用語集
+- 方針の確認（server の「判断しなかったこと」）: `BuildAsync` が例外を投げると本体ごと `INTERNAL` でロールバックし、同じ `x-request-id` の再送も毎回失敗する（fail-closed）。計画と `server-foundation.md` のとおりにしたが、ログを出して `Common` を null にし `RefreshAsync` に任せる案もある
