@@ -1,7 +1,7 @@
 ---
 title: 命名規則（型の名前の付け方）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # 命名規則（型の名前の付け方）
@@ -140,8 +140,8 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `Navigator` | 画面・シーンの遷移 | `SceneNavigator`、`ErrorNavigator` |
 | `Executor` / `Evaluator` | Shared.Domain の効果を実行する / 条件を評価する | `EffectExecutor`、`ConditionEvaluator` |
 | `Picker` / `Granter` | 候補から選ぶ / 所持品を付与する | `GachaPicker`、`ItemGranter` |
-| `Calculator` | 表示などのための値を計算する（Shared.Domain の `Formulas` にしない、片側だけの計算） | `GachaRateCalculator`（計画） |
-| `Opener` | ダイアログなどを出して結果を待つ | `DialogOpener`（計画） |
+| `Calculator` | 表示などのための値を計算する（Shared.Domain の `Formulas` にしない、片側だけの計算） | `GachaRateCalculator` |
+| `Opener` | ダイアログなどを出して結果を待つ | `DialogOpener` |
 | `Handler` | 基盤から呼ばれる受け口（エラー・進行中の通知など） | `DefaultCommonErrorHandler` |
 | `Options` | 起動時の設定の値 | `StartupOptions` |
 | `Entry` | シーンの入口 | `BootstrapEntry` |
@@ -171,14 +171,13 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEndKind`（Contracts の `ProduceEnding` と同じ名前にしない） | 1章・2章 |
 | 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction`・`MasterItemKind`） | 作らない（`IProduceUseCase` のメソッドを操作ごとに分ける。`MasterItemKind` はマスタの `ItemKind`） | 1章 |
 | 計画にある `ProduceProgress`・`ProduceSession` | `ProduceStateResult`・`ProduceSessionState` | 1章（Shared.Domain の `ProduceSnapshot` と同名にしない）・2章 |
-| 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus`・`DrawStatus`・`SupportStatus` など） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
+| 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus`・`SupportStatus` など。gacha の `DrawStatus` は `DrawResultKind` にした） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
 | サーバーのリポジトリの `ListAsync` | `FindAllAsync` [ADR 案] | 2章、ADR 0021 |
-| クライアントの `GachaLineRow` | `GachaLineRowView` | 6章 |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
 | サーバーの `I<名詞>Catalog`・`Master<名詞>Catalog`・`GachaDefinition` など | やめる [ADR 案] | ADR 0020 |
 | サーバーの `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot` | `IdolEntity`・`SupportCardEntity`・`PlayerEntity` [ADR 案] | 2章、ADR 0021 |
-| 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み）[ADR 案] | 2章、ADR 0022 |
+| 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み。gacha では作らなかった）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 
 ## 未決事項
