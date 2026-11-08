@@ -10,6 +10,7 @@ using Uta.Server.Application.Player;
 using Uta.Server.Application.Produce;
 using Uta.Server.Application.Support;
 using Uta.Server.Infrastructure;
+using Uta.Shared.Contracts.Common;
 using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Produce;
 using VolTech.Server.Auth;
@@ -76,7 +77,8 @@ builder.Services.AddScoped<LevelUpUseCase>();
 builder.Services.AddScoped<LimitBreakUseCase>();
 builder.Services.AddScoped<SignUpUseCase>();
 builder.Services.AddScoped<SignInUseCase>();
-builder.Services.AddVoltechServer(options => builder.Configuration.GetSection("Voltech").Bind(options));
+builder.Services.AddVoltechServer(options => builder.Configuration.GetSection("Voltech").Bind(options))
+    .AddCommonResponse<AppCommon, PlayerDiffCollector>();
 // 登録した確認が 0 件だと Check が Unknown を返すので、常に Healthy の確認を 1 つ入れる（DB の確認は入れない。11.4）
 builder.Services.AddGrpcHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy());
 

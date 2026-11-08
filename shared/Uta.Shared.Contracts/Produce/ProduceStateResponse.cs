@@ -1,10 +1,12 @@
 ﻿using MessagePack;
+using Uta.Shared.Contracts.Common;
 using Uta.Shared.Domain.Produce;
+using VolTech.Server.Abstractions;
 
 namespace Uta.Shared.Contracts.Produce
 {
     [MessagePackObject]
-    public sealed class ProduceStateResponse
+    public sealed class ProduceStateResponse : IApiResponse<AppCommon>
     {
         [SerializationConstructor]
         public ProduceStateResponse(int operationNumber, ProducePhase phase, int scenarioMasterId, int idolMasterId, int week, int singing, int rhythm, int expression, int hp, int maxHp, int examRetryLeft, DeckCardDto[] deck, WeekActionDto[] weekActions, ClassOptionDto[] classOptions, int[] cardChoiceMasterIds, LessonDto lesson, ExamResultDto examResult, ProduceResultResponse result)
@@ -82,5 +84,9 @@ namespace Uta.Shared.Contracts.Produce
 
         [Key(17)]
         public ProduceResultResponse Result { get; }
+
+        /// <summary>共通レスポンス項目。基盤が入れる。</summary>
+        [Key(18)]
+        public AppCommon Common { get; set; }
     }
 }

@@ -16,7 +16,7 @@ public interface ISupportCardRepository
     /// <summary>自分の所持IDの行。無い・他人の行なら null。</summary>
     Task<OwnedSupportCard?> FindAsync(TxContext tx, Ulid playerId, Ulid uid);
 
-    Task UpdateLevelAsync(TxContext tx, Ulid uid, int level);
+    Task UpdateLevelAsync(TxContext tx, Ulid playerId, Ulid uid, int level);
 
     /// <summary>素材を消す。自分の所持で、カード ID が cardId の行だけ。消せたら true。</summary>
     Task<bool> TryDeleteMaterialAsync(TxContext tx, Ulid playerId, Ulid uid, int cardId);

@@ -1,6 +1,6 @@
 ---
 title: 実装計画: 共通レスポンス項目（player_diff）をサーバーとクライアントに入れる
-status: ready
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/architecture/server/produce-server.md
 ---
@@ -242,3 +242,8 @@ public sealed class PlayerCommonApplier : ICommonResponseApplier<AppCommon>
 ## 5. 未決事項
 
 なし（0 章の 1〜9 はユーザーが了承した。2026-11-08）。
+
+## 6. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
