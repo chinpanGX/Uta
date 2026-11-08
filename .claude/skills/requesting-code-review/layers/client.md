@@ -1,7 +1,7 @@
 # client レイヤーのチェックリスト（`client/uta/`）
 
 Unity 7（`7000.0.0a12`）のクライアント。対象は Android / iOS / Windows。
-根拠: CLAUDE.md、[ADR 0006](../../../../uta_docs/wiki/decisions/0006-adopt-unity-7-early.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)・[0009](../../../../uta_docs/wiki/decisions/0009-client-stack.md)・[0020](../../../../uta_docs/wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../../../../uta_docs/wiki/decisions/0021-domain-entities-and-repositories.md)・[0022](../../../../uta_docs/wiki/decisions/0022-client-external-concretes-in-infrastructure.md)（0020〜0022 は proposed）、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜4章・10章、[screen-design.md](../../../../uta_docs/wiki/architecture/screen-design.md)。
+根拠: CLAUDE.md、[ADR 0006](../../../../uta_docs/wiki/decisions/0006-adopt-unity-7-early.md)・[0008](../../../../uta_docs/wiki/decisions/0008-shared-domain-and-onion.md)・[0009](../../../../uta_docs/wiki/decisions/0009-client-stack.md)・[0020](../../../../uta_docs/wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../../../../uta_docs/wiki/decisions/0021-domain-entities-and-repositories.md)・[0022](../../../../uta_docs/wiki/decisions/0022-client-external-concretes-in-infrastructure.md)、[repository-layout.md](../../../../uta_docs/wiki/architecture/repository-layout.md) 3〜4章・10章、[screen-design.md](../../../../uta_docs/wiki/architecture/screen-design.md)。
 
 ## 層と依存（オニオン）
 

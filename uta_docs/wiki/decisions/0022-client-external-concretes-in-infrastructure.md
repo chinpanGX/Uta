@@ -1,10 +1,12 @@
 ---
 title: ADR 0022 クライアントは外部に触れる具象を Infrastructure に置き、Application には UseCase の IF を置く
-status: proposed
+status: accepted
 updated: 2026-11-08
 ---
 
 # ADR 0022: クライアントは外部に触れる具象を Infrastructure に置き、Application には UseCase の IF を置く
+
+> **accepted**（2026-11-08。ユーザーの判断。[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR [#44](https://github.com/chinpanGX/Uta/pull/44) で 0020〜0022 をまとめて accepted にした）。クライアントの「accepted にしたら直すもの」は同じ PR で直した。サーバーに関わるものは、[ADR 0022](0022-client-external-concretes-in-infrastructure.md) の「accepted にする時点と、進めてよいこと」のとおり、サーバー側の実装計画で直す
 
 [repository-layout.md](../architecture/repository-layout.md) のクライアントの層の決定のうち、Application の責務（4章の表の Application の行「外部とのやりとりはポートで定義する」、2章の木の「ユースケース、ポート」）と Infrastructure の責務（4章の表の Infrastructure の行「ポートの実装」）を置き換える。エンティティとリポジトリの IF の置き場は [ADR 0021](0021-domain-entities-and-repositories.md) が決める。サーバーは変えない。
 

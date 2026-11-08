@@ -10,7 +10,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）と、ready の計画の読み替え（2026-11-08）で決めたこと（クライアントの UseCase の具象の名前、`Find`・`FindAll`、Contracts の enum の写しを作らない、Shared.Domain と同名にしない、`Snapshot` の使いどころ、テストの補助の名前）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
 
-印: [ADR 案] は proposed の ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。ADR が accepted になるまでは、今のコードと、ほかのページ（[repository-layout.md](repository-layout.md)・[screen-design.md](screen-design.md)）の書き方が正。例外: ADR の accepted の条件を確かめる順 0（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)）は、proposed のまま [ADR 案] の規則で実装する（[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)「accepted にする時点と、進めてよいこと」）。順 0 のコードレビューでは [ADR 案] の規則を正として見る。
+印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則は、サーバー側の実装計画までサーバーのコードは今のまま（[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)「accepted にする時点と、進めてよいこと」）。
 
 ## 決まっていること
 

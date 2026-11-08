@@ -160,7 +160,7 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 - **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
 - **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品の Prefab も接頭辞を付けず、役割の名前にする（`Button`・`Label`・`Panel`。View の型は Prefab 名 + `View`: `ButtonView`）。部品に `Uta` 接頭辞は付けない [決定。2026-11-07。ユーザーの判断]
 
-#### 7.4.1 テストの偽物と詰め替えの規約 [[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md) の「影響・リスク」。proposed。2026-11-08]
+#### 7.4.1 テストの偽物と詰め替えの規約 [[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md) の「影響・リスク」。2026-11-08]
 
 UseCase の具象を Infrastructure に置くと、手順のテストが MagicOnion の `IService<T>` のメンバー・基盤のエラーの表し方・DTO の形の 3 つに結合する。重さを抑えるため、次の形にそろえる。
 
