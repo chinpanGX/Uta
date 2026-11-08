@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントを共通基盤の新しい呼び方（11d9b06）に移す
-status: done
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/screen-design.md
 ---
@@ -243,6 +243,18 @@ public static class PlayerMapper
 **wiki と計画**: `api-design.md` ほか wiki の DTO の項目名、`naming.md` に規則 1〜4、ready の画面の計画（foundation・formation・gacha・owned・week・lesson と共通レスポンス）は本文を書き換えず、「基盤 11d9b06 への読み替え」の節（無ければ先頭の読み替えの節）に「DTO の ID の名前は移行計画の R9 の表に読み替える」の 1 行を足す。
 
 **確かめ方**: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（件数が R8 の後の 294 と同じ）、`unity recompile`（エラー 0）、EditMode のテスト（非同期。103 件）。
+
+### R10. `ReplaceAll` をやめ、`Clear` と `Upsert` のオーバーロードにする（2026-11-08。ユーザーの判断。R2・R8 より優先）
+
+`ReplaceAll` は「一致するものを全部置き換える（まとめて Upsert）」とも読めて、「渡さなかった行は消える」が名前から読めない。そこで 2 つの操作に分ける。
+
+- `IIdolRepository`・`ISupportCardRepository` の `ReplaceAll(IReadOnlyList<T>)` を消し、次の 2 つにする:
+  - `void Clear();` 全部消す
+  - `void Upsert(IReadOnlyList<T> items);` 1 件の `Upsert(T)` と同じ規則（`UniqueId` が同じものを置き換え、無ければ足す。サポートカードは末尾に足す）を渡した順に行う。`items` が null、または要素に null があれば `ArgumentNullException`（1 件も変えない: 先に全要素を確かめてから書く）
+- `IPlayerRepository` は変えない（1 人分なので `Clear` も要らない。ADR 0021「使うものだけ」）
+- `PlayerUseCase.Apply`: 詰め替えを先に済ませ（R4 のレビューの M1 の形のまま）、`players.Upsert(p)` → `idols.Clear()` → `idols.Upsert(i)` → `supportCards.Clear()` → `supportCards.Upsert(s)` を間で `await` せずに続けて呼ぶ
+- テスト: `ReplaceAll` のテストを `Clear` と `Upsert(list)` のテストにする（`Clear` で空になる／`Upsert(list)` が既存の同じ `UniqueId` を置き換え、ほかは残す／null の配列・null の要素で何も変えずに例外／サポートカードの順）。`PlayerUseCaseTests` の「応答で置き換わる」テストで、応答に無い行が消えることを確かめる
+- wiki と計画: `api-design.md`・`screen-design.md`・`naming.md` の `ReplaceAll` を直す。ADR 0021 は本文を書き換えず、先頭の accepted の注記に「リポジトリのメソッドの名前は naming.md が正。`ReplaceAll` は `Clear` と `Upsert(IReadOnlyList<T>)` にした（2026-11-08）」を足す。foundation・formation・共通レスポンスの計画の読み替えの節に「`ReplaceAll` は R10 の `Clear` + `Upsert(list)` に読み替える」を足す
 
 ## 0. 決まっていること
 
