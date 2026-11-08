@@ -96,7 +96,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 4. 進行中のセッションがあるとき: 古ければ破棄する(下の「破棄」。破棄は 1〜3 の検証と同じトランザクションなので、検証に落ちれば破棄も巻き戻る)。古くなければ `PRODUCE_ALREADY_IN_PROGRESS`
 5. プレイヤーLv を `players` から読む。`ProduceStartInput(scenarioId, idolId, level, supportCards)` を作る(`supportCards` は所持IDの順に、`player_support_cards` の `card_id`・`level`・`limit_break`。開始時の性能の写し。完了条件 3)
 6. マスターシードを作り、`ProduceEngine.Start`。スナップショットを保存(新しいセッション ID(ULID)、`app_version` は引数、`state_version`・`rule_version` は定数)
-7. Response は 6 の状態
+7. Response は 6 の状態。`Common` は基盤が入れる(`StartAsync` は通貨を変えないので、通常は null)
 
 同じプレイヤーの別の `x-request-id` の `StartAsync` が同時に来ることは、基盤の直列化([api-design.md](../api-design.md) 3章)で起きない。部分ユニークインデックス違反は想定せず、起きたら内部エラーのままにする
 
@@ -113,7 +113,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 5. `ProduceEngine.Apply`。`UnexpectedPhase` → `PRODUCE_UNEXPECTED_PHASE`、`InvalidArgument` → `PRODUCE_INVALID_ARGUMENT`(どちらも何も保存しない)
 6. `Finished` になったら 4章を行う
 7. スナップショットとストリームの状態を、楽観ロックつきで保存。0 行なら `PRODUCE_STALE_OPERATION`
-8. Response を作る。`ExamResult` は、この操作で `LastExam` が新しくなったとき(参照が変わったとき)と、`Phase` が `ExamResult` のとき
+8. Response を作る。`Common` は基盤が入れる(4章の報酬を付けた操作の応答だけ、報酬後の通貨とレベルが入る。それ以外の操作では null)。`ExamResult` は、この操作で `LastExam` が新しくなったとき(参照が変わったとき)と、`Phase` が `ExamResult` のとき
 
 ### `AbandonAsync`
 
@@ -145,7 +145,7 @@ Response:
 
 | 型 | フィールド(宣言順) |
 |---|---|
-| `ProduceStateResponse` | `OperationNumber`、`Phase`(`ProducePhase`)、`ScenarioMasterId`、`IdolMasterId`、`Week`、`Singing`、`Rhythm`、`Expression`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Deck`(`DeckCardDto[]`)、`WeekActions`(`WeekActionDto[]`)、`ClassOptions`(`ClassOptionDto[]`)、`CardChoiceMasterIds`(`int[]`)、`Lesson`(`LessonDto`。無ければ `null`)、`ExamResult`(`ExamResultDto`。無ければ `null`)、`Result`(`ProduceResultResponse`。無ければ `null`) |
+| `ProduceStateResponse` | `OperationNumber`、`Phase`(`ProducePhase`)、`ScenarioMasterId`、`IdolMasterId`、`Week`、`Singing`、`Rhythm`、`Expression`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Deck`(`DeckCardDto[]`)、`WeekActions`(`WeekActionDto[]`)、`ClassOptions`(`ClassOptionDto[]`)、`CardChoiceMasterIds`(`int[]`)、`Lesson`(`LessonDto`。無ければ `null`)、`ExamResult`(`ExamResultDto`。無ければ `null`)、`Result`(`ProduceResultResponse`。無ければ `null`)、`Common`(`AppCommonDto`。基盤が入れる。変わったものが無ければ `null`。[server-foundation.md](server-foundation.md) 共通レスポンス項目) |
 | `DeckCardDto` | `InstanceId`、`CardMasterId`、`Enhanced`(`bool`)。`Deck` は `InstanceId` の昇順 |
 | `WeekActionDto` | `SlotIndex`、`Kind`(`WeekChoiceKind`)、`Selectable`(`bool`)。`GetWeekChoices` の結果をそのまま |
 | `ClassOptionDto` | `Index`、`HpCost`、`Param`(`ParamKind`)、`ParamGain`、`GivesCard`(`bool`)、`Selectable`(`bool`)。`GetClassOptions` の結果をそのまま |

@@ -1,9 +1,11 @@
 ﻿using MessagePack;
+using Uta.Shared.Contracts.Common;
+using VolTech.Server.Abstractions;
 
 namespace Uta.Shared.Contracts.Support
 {
     [MessagePackObject]
-    public sealed class LevelUpResponse
+    public sealed class LevelUpResponse : IApiResponse<AppCommonDto>
     {
         [SerializationConstructor]
         public LevelUpResponse(int level, int supportPoints, int gold)
@@ -23,5 +25,9 @@ namespace Uta.Shared.Contracts.Support
         /// <summary>残り。</summary>
         [Key(2)]
         public int Gold { get; }
+
+        /// <summary>共通レスポンス項目。基盤が入れる。</summary>
+        [Key(3)]
+        public AppCommonDto Common { get; set; }
     }
 }

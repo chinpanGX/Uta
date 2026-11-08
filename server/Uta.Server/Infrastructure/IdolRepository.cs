@@ -13,6 +13,11 @@ public sealed class IdolRepository : IIdolRepository
             new { uid = Ulid.NewUlid().ToString(), playerId = playerId.ToString(), idolId },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
+        if (affected == 1)
+        {
+            tx.GetCollector<PlayerDiffCollector>().TouchIdol(playerId, idolId);
+        }
+
         return affected == 1;
     }
 
@@ -32,6 +37,7 @@ public sealed class IdolRepository : IIdolRepository
             new { playerId = playerId.ToString(), idolId, shards },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
+        tx.GetCollector<PlayerDiffCollector>().TouchIdol(playerId, idolId);
     }
 
     public async Task<IReadOnlyList<OwnedIdol>> ListAsync(TxContext tx, Ulid playerId)

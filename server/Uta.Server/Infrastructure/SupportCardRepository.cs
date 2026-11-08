@@ -14,6 +14,7 @@ public sealed class SupportCardRepository : ISupportCardRepository
             new { uid = uid.ToString(), playerId = playerId.ToString(), cardId },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
+        tx.GetCollector<PlayerDiffCollector>().TouchSupportCard(playerId, uid);
     }
 
     public async Task<bool> HasMaxLimitBreakAsync(TxContext tx, Ulid playerId, int cardId)
@@ -47,13 +48,14 @@ public sealed class SupportCardRepository : ISupportCardRepository
         return row is null ? null : new OwnedSupportCard(Ulid.Parse(row.UniqueId), row.MasterId, row.Level, row.LimitBreak);
     }
 
-    public async Task UpdateLevelAsync(TxContext tx, Ulid uid, int level)
+    public async Task UpdateLevelAsync(TxContext tx, Ulid playerId, Ulid uid, int level)
     {
         await tx.Connection.ExecuteAsync(new CommandDefinition(
-            "UPDATE player_support_cards SET level = @level WHERE support_card_uid = @uid",
-            new { uid = uid.ToString(), level },
+            "UPDATE player_support_cards SET level = @level WHERE support_card_uid = @uid AND player_id = @playerId",
+            new { uid = uid.ToString(), playerId = playerId.ToString(), level },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
+        tx.GetCollector<PlayerDiffCollector>().TouchSupportCard(playerId, uid);
     }
 
     public async Task<bool> TryDeleteMaterialAsync(TxContext tx, Ulid playerId, Ulid uid, int cardId)
@@ -63,18 +65,29 @@ public sealed class SupportCardRepository : ISupportCardRepository
             new { uid = uid.ToString(), playerId = playerId.ToString(), cardId },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
+        if (affected == 1)
+        {
+            tx.GetCollector<PlayerDiffCollector>().RemoveSupportCard(playerId, uid);
+        }
+
         return affected == 1;
     }
 
     public async Task<int?> TryLimitBreakAsync(TxContext tx, Ulid playerId, Ulid uid)
     {
-        return await tx.Connection.QuerySingleOrDefaultAsync<int?>(new CommandDefinition(
+        var limitBreak = await tx.Connection.QuerySingleOrDefaultAsync<int?>(new CommandDefinition(
             "UPDATE player_support_cards SET limit_break = limit_break + 1 " +
             "WHERE support_card_uid = @uid AND player_id = @playerId AND limit_break < @max " +
             "RETURNING limit_break",
             new { uid = uid.ToString(), playerId = playerId.ToString(), max = SupportRules.MaxLimitBreak },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
+        if (limitBreak is not null)
+        {
+            tx.GetCollector<PlayerDiffCollector>().TouchSupportCard(playerId, uid);
+        }
+
+        return limitBreak;
     }
 
     private sealed class Row

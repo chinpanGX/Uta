@@ -76,19 +76,23 @@ updated: 2026-11-08
 
 ### 1.1 ガチャの DTO [決定。2026-10-31]
 
-| RPC | Request | Response |
-|---|---|---|
-| `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaMasterId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する |
-| `DrawAsync` | `GachaMasterId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemMasterId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUniqueId`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） |
-| `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 |
-| `ExchangeAsync` | `GachaMasterId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） |
+| RPC | Request | Response | Common |
+|---|---|---|---|
+| `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaMasterId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する | なし |
+| `DrawAsync` | `GachaMasterId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemMasterId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUniqueId`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） | あり |
+| `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 | なし |
+| `ExchangeAsync` | `GachaMasterId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） | あり |
 
 ### 1.2 サポートカードの DTO [決定。2026-10-31]
 
-| RPC | Request | Response |
-|---|---|---|
-| `LevelUpAsync` | `SupportCardUniqueId`（`string`）、`TargetLevel`（`int`） | `Level`、`SupportPoints`（残り）、`Gold`（残り） |
-| `LimitBreakAsync` | `SupportCardUniqueId`（解放する）、`MaterialUniqueId`（素材） | `LimitBreak`（回数）、`MaxLevel` |
+| RPC | Request | Response | Common |
+|---|---|---|---|
+| `LevelUpAsync` | `SupportCardUniqueId`（`string`）、`TargetLevel`（`int`） | `Level`、`SupportPoints`（残り）、`Gold`（残り） | あり |
+| `LimitBreakAsync` | `SupportCardUniqueId`（解放する）、`MaterialUniqueId`（素材） | `LimitBreak`（回数）、`MaxLevel` | あり |
+
+### 共通レスポンス項目（`Common`）[決定。2026-11-08。ユーザーの判断]
+
+上の 1.1・1.2 の表の「Common」の列は、Response が `Common`（`AppCommonDto`。player_diff = 変更後の通貨・レベル、触ったアイドルとサポートカード、無くなったサポートカードの ID）を持つか。「あり」の Response は `IApiResponse<AppCommonDto>` を実装し、`Common` は変わったものが無ければ null。プロデュースは `ProduceStateResponse`（`StartAsync`・操作の 4 つ）に `Common` があり、報酬が付く完了の応答で通貨とレベルが入る。`ProduceResultResponse`（`AbandonAsync` の応答）・`GetStateAsync`・`SignInAsync`・`SignUpAsync` には無い。中身と作り方は [server-foundation.md](server/server-foundation.md) の共通レスポンス項目。既存の項目（`DrawResponse.GachaCurrency` など）は残す。
 
 ### 1.3 プロデュースの DTO [決定。2026-11-03]
 

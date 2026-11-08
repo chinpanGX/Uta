@@ -132,7 +132,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 |---|---|---|
 | `Provider` | 基盤・ライブラリの IF に合わせて値を供給する | `CountingTokenProvider` |
 | `Source` | 値の出どころ（乱数など） | `SecureRandomSource`、`IRandomStreamSource` |
-| `Applier` | 受け取った値を、リポジトリなどに反映する | `PlayerCommonApplier` |
+| `Applier` | 受け取った値を、リポジトリなどに反映する | `PlayerDiffApplier`・`CommonResponseApplier` |
 | `Normalizer` | 入力を決まった形に直す | `ProduceCommandNormalizer` |
 | `Serializer` | バイト列との変換 | `ProduceStateSerializer` |
 | `Resolver` | ID などから対象を引き当てる | `PlayerResolver` |
@@ -145,7 +145,6 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `Options` | 起動時の設定の値 | `StartupOptions` |
 | `Entry` | シーンの入口 | `BootstrapEntry` |
 
-- `PlayerCommonApplier` は計画にある型（まだコードに無い）
 
 ## 今のコードとの差（改名の対象）
 

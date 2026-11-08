@@ -1,5 +1,6 @@
 ﻿using System;
 using Grpc.Net.Client;
+using Uta.Shared.Contracts.Common;
 using Uta.Shared.Contracts.Player;
 using VolTech.Client;
 using VolTech.Client.Auth;
@@ -40,7 +41,8 @@ namespace Uta.Client.Infrastructure.Api
 
         /// <param name="errorHandler">アプリの共通エラーハンドラー（Bootstrap が DefaultCommonErrorHandler を渡す）</param>
         /// <param name="errorNavigator">エラー後の画面遷移。null なら付けない（診断のとき）</param>
-        public static ApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IErrorNavigator errorNavigator)
+        /// <param name="commonApplier">Common の反映先。null なら付けない（診断のとき）</param>
+        public static ApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IErrorNavigator errorNavigator, ICommonResponseApplier<AppCommonDto> commonApplier)
         {
             var channel = ApiChannel.Create(serverUrl);
             var callInvoker = ApiChannel.CreateCallInvoker(channel);
@@ -48,11 +50,16 @@ namespace Uta.Client.Infrastructure.Api
             var deviceClient = ServiceClientFactory.Create<IDeviceService>(callInvoker);
             var tokenProvider = new DeviceTokenProvider(deviceClient, new EncryptedFileAccountStore(accountFilePath, keySource), options);
             var counting = new CountingTokenProvider(tokenProvider);
-            var core = ApiCore.CreateBuilder(
+            var builder = ApiCore.CreateBuilder(
                     callInvoker, ServiceClientFactory.SerializerProvider, ServiceClientFactory.ClientFactoryProvider,
                     options, counting, new ErrorPolicyProvider(ErrorDefinitions.Create()), errorHandler)
-                .WithErrorNavigator(errorNavigator)
-                .Build();
+                .WithErrorNavigator(errorNavigator);
+            if (commonApplier != null)
+            {
+                builder = builder.WithCommonResponseApplier(commonApplier);
+            }
+
+            var core = builder.Build();
             var playerClient = core.CreateClient<IPlayerService>();
             return new ApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, playerClient);
         }

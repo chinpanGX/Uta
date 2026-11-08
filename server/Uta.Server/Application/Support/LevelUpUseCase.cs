@@ -30,7 +30,7 @@ public sealed class LevelUpUseCase(IPlayerRepository players, ISupportCardReposi
                 : new UseCaseException(UseCaseError.PlayerNotEnoughGold, "not enough gold");
         }
 
-        await supportCards.UpdateLevelAsync(tx, uid, targetLevel);
+        await supportCards.UpdateLevelAsync(tx, playerId, uid, targetLevel);
 
         tx.WriteGameLog(GameLog.Event("support", "support_level_up")
             .Target(uid.ToString())

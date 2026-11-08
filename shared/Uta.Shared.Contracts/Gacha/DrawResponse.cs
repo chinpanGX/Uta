@@ -1,9 +1,11 @@
 ﻿using MessagePack;
+using Uta.Shared.Contracts.Common;
+using VolTech.Server.Abstractions;
 
 namespace Uta.Shared.Contracts.Gacha
 {
     [MessagePackObject]
-    public sealed class DrawResponse
+    public sealed class DrawResponse : IApiResponse<AppCommonDto>
     {
         [SerializationConstructor]
         public DrawResponse(DrawResultDto[] results, int gachaCurrency, int exchangePoints)
@@ -23,5 +25,9 @@ namespace Uta.Shared.Contracts.Gacha
         /// <summary>このガチャの交換pt。</summary>
         [Key(2)]
         public int ExchangePoints { get; }
+
+        /// <summary>共通レスポンス項目。基盤が入れる。</summary>
+        [Key(3)]
+        public AppCommonDto Common { get; set; }
     }
 }

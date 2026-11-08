@@ -1,9 +1,11 @@
 ﻿using MessagePack;
+using Uta.Shared.Contracts.Common;
+using VolTech.Server.Abstractions;
 
 namespace Uta.Shared.Contracts.Support
 {
     [MessagePackObject]
-    public sealed class LimitBreakResponse
+    public sealed class LimitBreakResponse : IApiResponse<AppCommonDto>
     {
         [SerializationConstructor]
         public LimitBreakResponse(int limitBreak, int maxLevel)
@@ -19,5 +21,9 @@ namespace Uta.Shared.Contracts.Support
         /// <summary>解放後の上限レベル。</summary>
         [Key(1)]
         public int MaxLevel { get; }
+
+        /// <summary>共通レスポンス項目。基盤が入れる。</summary>
+        [Key(2)]
+        public AppCommonDto Common { get; set; }
     }
 }
