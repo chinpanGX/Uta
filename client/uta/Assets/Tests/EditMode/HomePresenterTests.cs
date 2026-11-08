@@ -99,7 +99,7 @@ namespace Uta.Client.Tests
         {
             db = db ?? TestMasterData.Build(_ => { });
             var dtoFactory = new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db);
-            return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs);
+            return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs, new FakeScreenNavigator(log));
         }
 
         private void SetPlayer(int level = 12, int gachaCurrency = 3250, bool hasActiveProduce = true, bool discardedProduce = false)
@@ -216,7 +216,7 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
-        public IEnumerator GachaClicked_ShowsNotReady() => UniTask.ToCoroutine(async () =>
+        public IEnumerator GachaClicked_PushesGachaPage() => UniTask.ToCoroutine(async () =>
         {
             SetPlayer();
             var presenter = CreatePresenter();
@@ -225,7 +225,7 @@ namespace Uta.Client.Tests
 
             view.RaiseGachaClicked();
 
-            CollectionAssert.AreEqual(new[] { "Info:準備中です。" }, log.Entries);
+            CollectionAssert.AreEqual(new[] { "PushPage:GachaPresenter" }, log.Entries);
         });
 
         [UnityTest]
@@ -258,7 +258,7 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
-        public IEnumerator OpenGachaAsync_WhileRunning_Ignored() => UniTask.ToCoroutine(async () =>
+        public IEnumerator OpenProduceAsync_WhileRunning_Ignored() => UniTask.ToCoroutine(async () =>
         {
             SetPlayer();
             var presenter = CreatePresenter();
@@ -267,16 +267,29 @@ namespace Uta.Client.Tests
             var gate = new UniTaskCompletionSource();
             dialogs.InfoGate = gate;
 
-            var first = presenter.OpenGachaAsync();
-            await presenter.OpenGachaAsync();
+            var first = presenter.OpenProduceAsync();
+            await presenter.OpenProduceAsync();
             Assert.AreEqual(1, log.Entries.FindAll(e => e.StartsWith("Info:")).Count);
 
             gate.TrySetResult();
             await first;
             dialogs.InfoGate = null;
-            await presenter.OpenGachaAsync();
+            await presenter.OpenProduceAsync();
 
             Assert.AreEqual(2, log.Entries.FindAll(e => e.StartsWith("Info:")).Count);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenGachaAsync_PushesGachaPage() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer();
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+
+            await presenter.OpenGachaAsync();
+
+            CollectionAssert.AreEqual(new[] { "PushPage:GachaPresenter" }, log.Entries);
         });
 
         [UnityTest]

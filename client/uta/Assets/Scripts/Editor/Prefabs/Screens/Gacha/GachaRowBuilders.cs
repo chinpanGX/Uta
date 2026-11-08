@@ -48,7 +48,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
         }
     }
 
-    /// <summary>ガチャの行の Prefab の共通の作り方（ルート 1 つ: TMP・LayoutElement・GachaLineRow）。</summary>
+    /// <summary>ガチャの行の Prefab の共通の作り方（ルート 1 つ: TMP・LayoutElement・GachaLineRowView）。</summary>
     internal static class GachaRowPrefab
     {
         public static void Build(PrefabBuildSession session, string name, string sampleText, TextSpec spec, float height)
@@ -56,7 +56,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
             var root = session.CreateRoot(name);
             var text = PrefabBuildUtil.AddText(root, sampleText, spec);
             PrefabBuildUtil.SetLayout(root, minHeight: height, preferredHeight: height);
-            var row = root.AddComponent<GachaLineRow>();
+            var row = root.AddComponent<GachaLineRowView>();
             PrefabBuildUtil.SetRef(row, "text", text);
             PrefabBuildUtil.SavePrefab(root, PrefabBuildUtil.PartPath(name));
         }

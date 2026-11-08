@@ -8,8 +8,8 @@ namespace Uta.Client.Presentation.Gacha
     public sealed class GachaRatesModal : ModalBase
     {
         [SerializeField] private RectTransform listContent;
-        [SerializeField] private GachaLineRow headingRowPrefab;
-        [SerializeField] private GachaLineRow lineRowPrefab;
+        [SerializeField] private GachaLineRowView headingRowPrefab;
+        [SerializeField] private GachaLineRowView lineRowPrefab;
         [SerializeField] private ButtonView closeButton;
     }
 }

@@ -18,6 +18,7 @@ using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Infrastructure.SupportCard;
 using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Gacha;
 using Uta.Client.Presentation.Home;
 using Uta.Client.Presentation.Startup;
 using Uta.MasterData;
@@ -141,6 +142,9 @@ namespace Uta.Client.Bootstrap
             builder.Register<DeviceAuthUseCase>(Lifetime.Singleton).As<IDeviceAuthUseCase>();
             builder.Register<PlayerUseCase>(Lifetime.Singleton).As<IPlayerUseCase>();
             builder.Register<GachaRateCalculator>(Lifetime.Singleton);
+            builder.Register<GachaDtoFactory>(Lifetime.Singleton);
+            builder.Register<GachaRatesDtoFactory>(Lifetime.Singleton);
+            builder.Register<GachaResultDtoFactory>(Lifetime.Singleton);
             builder.Register<GachaUseCase>(Lifetime.Singleton).As<IGachaUseCase>();
         }
     }

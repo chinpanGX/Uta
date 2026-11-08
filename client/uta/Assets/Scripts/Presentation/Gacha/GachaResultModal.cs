@@ -8,7 +8,7 @@ namespace Uta.Client.Presentation.Gacha
     public sealed class GachaResultModal : ModalBase
     {
         [SerializeField] private RectTransform listContent;
-        [SerializeField] private GachaLineRow rowPrefab;
+        [SerializeField] private GachaLineRowView rowPrefab;
         [SerializeField] private ButtonView retryButton;
         [SerializeField] private ButtonView closeButton;
     }

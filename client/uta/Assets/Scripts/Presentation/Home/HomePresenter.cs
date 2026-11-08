@@ -2,6 +2,7 @@
 using UnityScreenNavigator;
 using Uta.Client.Application.Player;
 using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Gacha;
 using VContainer;
 
 namespace Uta.Client.Presentation.Home
@@ -17,22 +18,24 @@ namespace Uta.Client.Presentation.Home
         private readonly HomeDtoFactory homeDtoFactory;
         private readonly IPlayerUseCase playerUseCase;
         private readonly DialogOpener dialogOpener;
+        private readonly IScreenNavigator screenNavigator;
         private bool running;
         private bool disposed;
 
         [Inject]
-        public HomePresenter(HomePage homePage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener)
-            : this((IHomeView)homePage, homePage.CreateStage(), homeDtoFactory, playerUseCase, dialogOpener)
+        public HomePresenter(HomePage homePage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator)
+            : this((IHomeView)homePage, homePage.CreateStage(), homeDtoFactory, playerUseCase, dialogOpener, screenNavigator)
         {
         }
 
-        public HomePresenter(IHomeView homeView, ICharacterStage characterStage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener)
+        public HomePresenter(IHomeView homeView, ICharacterStage characterStage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator)
         {
             this.homeView = homeView;
             this.characterStage = characterStage;
             this.homeDtoFactory = homeDtoFactory;
             this.playerUseCase = playerUseCase;
             this.dialogOpener = dialogOpener;
+            this.screenNavigator = screenNavigator;
         }
 
         public UniTask InitializeAsync()
@@ -80,9 +83,22 @@ namespace Uta.Client.Presentation.Home
             return ShowNotReadyAsync();   // 4 本目が書き換える
         }
 
-        public UniTask OpenGachaAsync()
+        public async UniTask OpenGachaAsync()
         {
-            return ShowNotReadyAsync();   // 2 本目が書き換える
+            if (running)
+            {
+                return;
+            }
+
+            running = true;
+            try
+            {
+                await screenNavigator.PushPageAsync<GachaPresenter>(playAnimation: false);
+            }
+            finally
+            {
+                running = false;
+            }
         }
 
         public UniTask OpenOwnedAsync()

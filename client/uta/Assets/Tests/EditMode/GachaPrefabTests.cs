@@ -56,7 +56,7 @@ namespace Uta.Client.Tests
         {
             foreach (var path in new[] { HeadingRowPath, RateRowPath, ResultRowPath })
             {
-                var row = ScreenPrefabAssert.RootView<GachaLineRow>(ScreenPrefabAssert.Load(path));
+                var row = ScreenPrefabAssert.RootView<GachaLineRowView>(ScreenPrefabAssert.Load(path));
                 var property = new SerializedObject(row).FindProperty("text");
                 Assert.IsNotNull(property, path + ": field text not found");
                 var own = row.GetComponent<TMP_Text>();
