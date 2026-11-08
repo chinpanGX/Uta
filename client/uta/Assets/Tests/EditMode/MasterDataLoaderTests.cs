@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using Uta.Client.Infrastructure;
 using UnityEngine.TestTools;
 using Uta.MasterData;
 

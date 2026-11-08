@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 using Uta.MasterData;
 using DomainLesson = Uta.Shared.Domain.Lesson;
 
@@ -58,12 +56,6 @@ namespace Uta.Client.Infrastructure
                     x.Value))
                 .ToList();
             return DomainLesson.CardCatalog.Create(cards, faces, costs, effects, conditions);
-        }
-
-        public static async UniTask<DomainLesson.CardCatalog> LoadFromStreamingAssetsAsync(CancellationToken cancellationToken = default)
-        {
-            var db = await MasterDataLoader.LoadFromStreamingAssetsAsync(cancellationToken);
-            return Create(db);
         }
     }
 }

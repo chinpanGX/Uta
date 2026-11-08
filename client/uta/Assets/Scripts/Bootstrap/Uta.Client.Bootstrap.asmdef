@@ -6,6 +6,7 @@
         "Uta.Client.Infrastructure",
         "Uta.Client.Presentation",
         "Uta.Shared.Domain",
+        "Uta.Shared.Contracts",
         "VolTech.MagicOnion.Client",
         "VolTech.Server.Abstractions",
         "UniTask",

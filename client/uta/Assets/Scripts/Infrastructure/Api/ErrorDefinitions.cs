@@ -3,7 +3,7 @@ using VolTech.Client;
 
 namespace Uta.Client.Infrastructure.Api
 {
-    public static class UtaErrors
+    public static class ErrorDefinitions
     {
         /// <summary>アプリの業務エラーの一覧。呼ぶたびに新しい配列を返す（static の可変な配列を持たない）。</summary>
         public static ErrorDefinition[] Create()

@@ -5,7 +5,7 @@ using VolTech.Server.Abstractions;
 namespace Uta.Client.Infrastructure.Api
 {
     [MagicOnionClientGeneration(typeof(IDeviceService), typeof(IPlayerService))]
-    internal partial class UtaMagicOnionClientInitializer
+    internal partial class MagicOnionClientInitializer
     {
     }
 }

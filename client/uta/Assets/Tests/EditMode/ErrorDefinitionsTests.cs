@@ -5,12 +5,12 @@ using VolTech.Client;
 
 namespace Uta.Client.Tests
 {
-    public sealed class UtaErrorsTests
+    public sealed class ErrorDefinitionsTests
     {
         [Test]
         public void Create_ContainsPlayerNotCreatedWithTitleAction()
         {
-            var errors = UtaErrors.Create();
+            var errors = ErrorDefinitions.Create();
 
             Assert.AreEqual(1, errors.Length);
             Assert.AreEqual(PlayerErrors.NotCreated, errors[0].Code);
@@ -21,7 +21,7 @@ namespace Uta.Client.Tests
         public void Create_IsAcceptedByErrorPolicyProvider()
         {
             ErrorPolicyProvider provider = null;
-            Assert.DoesNotThrow(() => provider = new ErrorPolicyProvider(UtaErrors.Create()));
+            Assert.DoesNotThrow(() => provider = new ErrorPolicyProvider(ErrorDefinitions.Create()));
 
             Assert.AreEqual(ErrorAction.Title, provider.GetDefaultAction(PlayerErrors.NotCreated));
         }

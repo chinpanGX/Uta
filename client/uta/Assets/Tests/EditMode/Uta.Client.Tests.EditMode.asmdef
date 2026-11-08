@@ -31,7 +31,10 @@
         "nunit.framework.dll",
         "MasterMemory.dll",
         "MasterMemory.Annotations.dll",
-        "MessagePack.dll"
+        "MessagePack.dll",
+        "MagicOnion.Abstractions.dll",
+        "MagicOnion.Client.dll",
+        "Grpc.Core.Api.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

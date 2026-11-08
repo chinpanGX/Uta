@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 using NUnit.Framework;
-using UnityEngine.TestTools;
+using Uta.Client.Infrastructure;
 using DomainLesson = Uta.Shared.Domain.Lesson;
 
 namespace Uta.Client.Tests
@@ -120,17 +117,6 @@ namespace Uta.Client.Tests
                     Convert.ToInt32(Enum.Parse(domainEnum, name)),
                     masterEnum.Name + "." + name);
             }
-        }
-
-        [UnityTest]
-        public IEnumerator LoadFromStreamingAssetsAsync_ReturnsCatalog()
-        {
-            return UniTask.ToCoroutine(async () =>
-            {
-                var catalog = await CardCatalogFactory.LoadFromStreamingAssetsAsync(CancellationToken.None);
-
-                Assert.AreEqual(36, catalog.CardIds.Count);
-            });
         }
     }
 }

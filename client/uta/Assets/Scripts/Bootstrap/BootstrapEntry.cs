@@ -5,11 +5,14 @@ using UnityEngine;
 using Uta.Client.Application.Auth;
 using Uta.Client.Application.Navigation;
 using Uta.Client.Application.Player;
+using Uta.Client.Domain.Player;
 using Uta.Client.Infrastructure;
 using Uta.Client.Infrastructure.Api;
 using Uta.Client.Infrastructure.Auth;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Presentation.Startup;
+using Uta.MasterData;
+using Uta.Shared.Contracts.Player;
 using Uta.Shared.Domain.Lesson;
 using VolTech.Client;
 using VContainer;
@@ -37,10 +40,12 @@ namespace Uta.Client.Bootstrap
             errorDialog.Initialize(quitAfterCheck);
             DontDestroyOnLoad(errorDialog.gameObject);
 
+            MemoryDatabase db;
             CardCatalog cardCatalog;
             try
             {
-                cardCatalog = await CardCatalogFactory.LoadFromStreamingAssetsAsync();
+                db = await MasterDataLoader.LoadFromStreamingAssetsAsync();
+                cardCatalog = CardCatalogFactory.Create(db);
             }
             catch (Exception e)
             {
@@ -63,12 +68,13 @@ namespace Uta.Client.Bootstrap
                 var accountPath = Path.Combine(UnityEngine.Application.persistentDataPath, ServerEndpoint.AccountFileName(serverUrl));
                 var scope = LifetimeScope.Create(builder =>
                 {
+                    builder.RegisterInstance(db);
                     builder.RegisterInstance<ICardCatalog>(cardCatalog);
                     builder.RegisterInstance(new StartupOptions(quitAfterCheck));
                     builder.Register<SceneNavigator>(Lifetime.Singleton).As<ISceneNavigator>();
                     builder.Register<ErrorNavigator>(Lifetime.Singleton).As<IErrorNavigator>();
-                    builder.Register<UtaApiClient>(
-                        resolver => UtaApiClient.Create(
+                    builder.Register<ApiClient>(
+                        resolver => ApiClient.Create(
                             serverUrl,
                             AppInfo.Platform,
                             AppInfo.Version,
@@ -77,11 +83,12 @@ namespace Uta.Client.Bootstrap
                             new DefaultCommonErrorHandler(errorDialog),
                             quitAfterCheck ? null : resolver.Resolve<IErrorNavigator>()),
                         Lifetime.Singleton);
-                    builder.Register<DeviceAuthGateway>(Lifetime.Singleton).As<IDeviceAuthPort>();
-                    builder.Register<PlayerGateway>(Lifetime.Singleton).As<IPlayerPort>();
-                    builder.Register<PlayerCache>(Lifetime.Singleton);
-                    builder.Register<SignInUseCase>(Lifetime.Singleton);
-                    builder.Register<EnterPlayerUseCase>(Lifetime.Singleton);
+                    builder.Register<IPlayerService>(resolver => resolver.Resolve<ApiClient>().Player, Lifetime.Singleton);
+                    builder.Register<PlayerRepository>(Lifetime.Singleton).As<IPlayerRepository>().As<IReadOnlyPlayerRepository>();
+                    builder.Register<IdolRepository>(Lifetime.Singleton).As<IIdolRepository>().As<IReadOnlyIdolRepository>();
+                    builder.Register<SupportCardRepository>(Lifetime.Singleton).As<ISupportCardRepository>().As<IReadOnlySupportCardRepository>();
+                    builder.Register<DeviceAuthUseCase>(Lifetime.Singleton).As<IDeviceAuthUseCase>();
+                    builder.Register<PlayerUseCase>(Lifetime.Singleton).As<IPlayerUseCase>();
                 });
                 DontDestroyOnLoad(scope.gameObject);
                 await scope.Container.Resolve<ISceneNavigator>().GoToTitleAsync();

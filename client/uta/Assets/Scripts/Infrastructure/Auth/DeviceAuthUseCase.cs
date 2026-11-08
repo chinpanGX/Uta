@@ -9,39 +9,37 @@ using Uta.Client.Infrastructure.Api;
 
 namespace Uta.Client.Infrastructure.Auth
 {
-    public sealed class DeviceAuthGateway : IDeviceAuthPort
+    public sealed class DeviceAuthUseCase : IDeviceAuthUseCase
     {
-        private readonly UtaApiClient api;
+        private readonly ApiClient api;
         private readonly IDeviceService client;
         private readonly DeviceTokenProvider provider;
 
-        public DeviceAuthGateway(UtaApiClient api)
+        public DeviceAuthUseCase(ApiClient api)
         {
             this.api = api;
             client = api.DeviceClient;
             provider = api.TokenProvider;
         }
 
-        public async UniTask<AccountState> GetAccountStateAsync()
+        public async UniTask<bool> SignInAsync()
         {
+            // 状態は先に 1 回だけ取る（トークンを取った後に取ると、常に Registered になる）
             var status = await provider.GetAccountStatusAsync();
             switch (status)
             {
                 case AccountStatus.NotRegistered:
-                    return AccountState.NotRegistered;
                 case AccountStatus.Registered:
-                    return AccountState.Registered;
+                    break;
                 case AccountStatus.Corrupted:
-                    return AccountState.Corrupted;
+                    throw new InvalidOperationException("account corrupted");
                 default:
                     throw new InvalidOperationException("unknown account status: " + status);
             }
-        }
 
-        public async UniTask EnsureSignedInAsync()
-        {
             // トークンは使わずに捨てる
             await provider.GetTokenAsync();
+            return status == AccountStatus.NotRegistered;
         }
 
         public async UniTask ReissueTokenAsync()
