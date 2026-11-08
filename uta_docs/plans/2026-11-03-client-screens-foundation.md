@@ -1499,3 +1499,5 @@ Play モード・手動（Editor、サーバー起動済み）:
 | 2 | 完了 | `26f2834` | なし（前提の `Card.Name`・`CardFace.Description` は読み替えのパスで確かめた） |
 | 3 | 完了 | `55fc04f` | 境界のテストを 4 本追加。`SignInUseCase.cs`・`StubIdolMaster.cs` は R1・R5 で無効なので触っていない。`SceneBuilder` はコンパイルだけ（実行はタスク 4） |
 | 4 | 完了 | `9123490` | `ApiClient.Create` の `activityHandler` は `errorHandler` の直後。ProjectSettings は Editor を閉じず API で入れた。Play は Editor が背面だとループが進まないので `EditorApplication.Step()` でフレームを送って確かめた（手順 5 の 2〜4 は期待どおり）。見た目の手動確認は未 |
+| 5 | 一部 | （コードの変更なし） | IL2CPP のビルド（別の worktree `../Uta-wt/build-foundation`。Editor を閉じない）は成功。`-uta-quit-after-check` は終了コード 0・`connectivity check: OK`。手順 3（引数なしの起動で、タイトル → ホーム → 「準備中です。」・540×960 のウィンドウ）は手動で未確認 |
+| 6 | 完了 | `da54140` | `Uta.Client.Bootstrap` の参照は「すべて」なので UnityScreenNavigator は足していない。IL2CPP の行は進行役が足した |
