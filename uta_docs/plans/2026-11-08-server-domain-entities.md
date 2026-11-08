@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーのエンティティとリポジトリの IF を Domain に移す（ADR 0021 のサーバー側）
-status: in-progress
+status: done
 updated: 2026-11-08
 spec: ../wiki/decisions/0021-domain-entities-and-repositories.md, ../wiki/architecture/naming.md, ../wiki/architecture/repository-layout.md
 ---
@@ -161,3 +161,7 @@ ADR 0021 はサーバーのリポジトリの IF とエンティティを Domain
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 1 | 完了 | `0750724` | なし。main（共通レスポンスの #47。`AppCommonDto`・`PlayerDiffDto` への改名を含む）を取り込む前は、ビルドが警告 0・エラー 0、`dotnet test --project server/Uta.Server.Tests` が 302 件成功。取り込んだ後はビルドが警告 0・エラー 0。テストは結合テストが Docker につながらず失敗したため、**取り込んだ後の結合テストは未確認** |
+| 2 | 完了 | `93cddfb` | なし（wiki の Lint はエラー 0 件・警告 0 件） |
+
+コードレビュー（server）: Critical・Important なし（レビューに渡した範囲の取り違えによる Critical 1 件は、今のコミットでは解消している）。Minor 3 件は直さずに残す: `ProduceOperationTests.cs` の `using` の並びを関係のないところまで入れ替えた、`MasterProduceRewardCatalog.cs` の別名の `using` を先頭に動かした、小さい 4 ファイルが改名ではなく削除と追加として git に記録された（どれも振る舞いに影響しない）。
