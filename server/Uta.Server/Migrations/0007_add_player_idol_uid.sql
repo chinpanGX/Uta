@@ -22,3 +22,5 @@ ALTER TABLE player_idols ADD COLUMN idol_uid char(26);
 UPDATE player_idols SET idol_uid = pg_temp.uta_ulid(created_at);
 ALTER TABLE player_idols ALTER COLUMN idol_uid SET NOT NULL;
 ALTER TABLE player_idols ADD CONSTRAINT player_idols_idol_uid_key UNIQUE (idol_uid);
+
+DROP FUNCTION pg_temp.uta_ulid(timestamptz);

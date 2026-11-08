@@ -4,7 +4,7 @@ namespace Uta.Server.Application.Idol;
 
 public interface IIdolRepository
 {
-    /// <summary>行が無ければ追加して true。既にあれば false（何もしない）。</summary>
+    /// <summary>行が無ければ追加して true（idol_uid は実装が ULID を振る）。既にあれば false（何もしない）。</summary>
     Task<bool> TryInsertAsync(TxContext tx, Ulid playerId, int idolId);
 
     Task<bool> ExistsAsync(TxContext tx, Ulid playerId, int idolId);

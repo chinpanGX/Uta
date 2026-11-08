@@ -33,5 +33,11 @@ namespace Uta.Client.Tests
         {
             Assert.Throws<ArgumentNullException>(() => new PlayerRepository().Upsert(null));
         }
+
+        [Test]
+        public void Entity_NullUniqueId_Throws()
+        {
+            Assert.Throws<ArgumentNullException>(() => new PlayerEntity(null, 1, 0, 0, 0, 0, false, false));
+        }
     }
 }

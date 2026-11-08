@@ -256,7 +256,7 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 | `ExamRetryLeft` | `int` | 再挑戦の残り回数 |
 | `WeekActions` | 配列 | 週の選択のとき: 枠ごとの行動の種類。休むは最後の枠(選べないときは選べない印) |
 | `ClassOptions` | 配列 | 授業の週のとき: 選択肢ごとの `HpCost`・上がるパラメータ・`ParamGain` |
-| `CardOffers` | `int[]` | カードの選択肢のとき: カード ID(枠の順) |
+| `CardChoiceMasterIds` | `int[]` | カードの選択肢のとき: カード ID(枠の順) |
 | `Lesson` | 型 | レッスン・試験のとき: [lesson-domain-types.md](lesson-domain-types.md) 3章の `LessonState` から山札の並びを除いたもの(手札のインスタンス ID、山札・捨札・除外の中身は ID の昇順)と、試験なら審査ターンの列・スコア・NPC のスコア |
 | `ExamResult` | 型 | 試験が終わった操作のレスポンスに入れる: スコア・順位・NPC のスコア・合否。再挑戦が残らず局面「試験の結果」を飛ばしたときも入れる(画面は結果を出してから次の局面に進む。入力は待たない) [2026-11-01] |
 | `Result` | `ProduceResultResponse` | 終了の局面に入った操作のレスポンスだけ(ほかは空) |

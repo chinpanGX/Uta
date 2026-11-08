@@ -215,6 +215,28 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
+        public IEnumerator Refresh_NullIdInResponse_ThrowsAndKeepsRepositories() => UniTask.ToCoroutine(async () =>
+        {
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
+                1,
+                new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") },
+                new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
+            await useCase.EnterAsync(false);
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
+                5,
+                new[] { new OwnedIdolDto(2, 0, 0, 0, "U2"), new OwnedIdolDto(1, 0, 0, 0, null) },
+                null)));
+
+            var e = await CatchAsync(() => useCase.RefreshAsync());
+
+            Assert.IsInstanceOf<ArgumentNullException>(e);
+            Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, idols.FindAll().Count);
+            Assert.IsNotNull(idols.Find("U1"));
+            Assert.AreEqual(1, supportCards.FindAll().Count);
+        });
+
+        [UnityTest]
         public IEnumerator Refresh_NotCreated_ThrowsAndKeepsRepositories() => UniTask.ToCoroutine(async () =>
         {
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(

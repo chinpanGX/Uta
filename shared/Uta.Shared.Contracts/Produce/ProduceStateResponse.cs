@@ -7,7 +7,7 @@ namespace Uta.Shared.Contracts.Produce
     public sealed class ProduceStateResponse
     {
         [SerializationConstructor]
-        public ProduceStateResponse(int operationNumber, ProducePhase phase, int scenarioMasterId, int idolMasterId, int week, int singing, int rhythm, int expression, int hp, int maxHp, int examRetryLeft, DeckCardDto[] deck, WeekActionDto[] weekActions, ClassOptionDto[] classOptions, int[] cardOffers, LessonDto lesson, ExamResultDto examResult, ProduceResultResponse result)
+        public ProduceStateResponse(int operationNumber, ProducePhase phase, int scenarioMasterId, int idolMasterId, int week, int singing, int rhythm, int expression, int hp, int maxHp, int examRetryLeft, DeckCardDto[] deck, WeekActionDto[] weekActions, ClassOptionDto[] classOptions, int[] cardChoiceMasterIds, LessonDto lesson, ExamResultDto examResult, ProduceResultResponse result)
         {
             OperationNumber = operationNumber;
             Phase = phase;
@@ -23,7 +23,7 @@ namespace Uta.Shared.Contracts.Produce
             Deck = deck;
             WeekActions = weekActions;
             ClassOptions = classOptions;
-            CardOffers = cardOffers;
+            CardChoiceMasterIds = cardChoiceMasterIds;
             Lesson = lesson;
             ExamResult = examResult;
             Result = result;
@@ -72,7 +72,7 @@ namespace Uta.Shared.Contracts.Produce
         public ClassOptionDto[] ClassOptions { get; }
 
         [Key(14)]
-        public int[] CardOffers { get; }
+        public int[] CardChoiceMasterIds { get; }
 
         [Key(15)]
         public LessonDto Lesson { get; }

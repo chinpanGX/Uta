@@ -190,7 +190,7 @@ public class ProducePlayTests(PostgresFixture postgres)
                 var state = await GetStateAsync(player, $"req-state-{++stateCounter}");
                 AssertSameBasics(current, state);
                 Assert.Equal(current.WeekActions.Length, state.WeekActions.Length);
-                Assert.Equal(current.CardOffers, state.CardOffers);
+                Assert.Equal(current.CardChoiceMasterIds, state.CardChoiceMasterIds);
                 if (current.Phase == ProducePhase.ExamResult)
                 {
                     Assert.NotNull(state.ExamResult);

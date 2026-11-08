@@ -231,7 +231,7 @@ public static class PlayerMapper
 | `LevelUpRequest` | `SupportCardUid` | `SupportCardUniqueId` |
 | `LimitBreakRequest` | `SupportCardUid`・`MaterialUid` | `SupportCardUniqueId`・`MaterialUniqueId` |
 | `StartProduceRequest` | `IdolId`・`SupportCardUids`・`RentalCandidateId`・`ScenarioId` | `IdolMasterId`・`SupportCardUniqueIds`・`RentalCandidateMasterId`・`ScenarioMasterId` |
-| `ProduceStateResponse` | `ScenarioId`・`IdolId` | `ScenarioMasterId`・`IdolMasterId` |
+| `ProduceStateResponse` | `ScenarioId`・`IdolId`・`CardOffers` | `ScenarioMasterId`・`IdolMasterId`・`CardChoiceMasterIds`（`CardOffers` はレビューの後にユーザーが決めた。「カードの選択肢」のカードのマスタ ID の配列） |
 | `DeckCardDto` | `CardId` | `CardMasterId` |
 
 コンストラクターの引数名も同じ規則（camelCase）。IService の RPC の引数に同じ ID があれば同じ規則で直す。

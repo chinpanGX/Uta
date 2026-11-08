@@ -87,9 +87,25 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
         });
         Assert.Equal(5, response.SupportCards.Select(x => x.UniqueId).Distinct().Count());
         Assert.Equal(26, response.PlayerId.Length);
-        Assert.Equal(player.PlayerId.ToString(), response.PlayerId);
+        Assert.Equal(player.PlayerId, response.PlayerId);
         Assert.All(response.Idols, x => Assert.Equal(26, x.UniqueId.Length));
         Assert.Equal(2, response.Idols.Select(x => x.UniqueId).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task SignIn_Twice_ReturnsSameIdolUniqueIds()
+    {
+        await using var factory = new UtaServerFactory(postgres);
+        using var channel = factory.CreateGrpcChannel();
+        var player = await PlayerClient.CreateAsync(channel);
+
+        await player.CallAsync(service => service.SignUpAsync(), "req-1");
+        var first = await player.CallAsync(service => service.SignInAsync(), "req-2");
+        var second = await player.CallAsync(service => service.SignInAsync(), "req-3");
+
+        Assert.Equal(
+            first.Idols.Select(x => (x.MasterId, x.UniqueId)).ToArray(),
+            second.Idols.Select(x => (x.MasterId, x.UniqueId)).ToArray());
     }
 
     [Fact]
