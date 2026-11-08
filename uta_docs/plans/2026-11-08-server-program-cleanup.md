@@ -10,16 +10,19 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 ## この計画で決めたこと
 
 - **前提**: [PR #51](https://github.com/chinpanGX/Uta/pull/51)（Catalog をやめた。ADR 0020 のサーバー側）は 2026-11-08 に main へマージ済み。計画のブランチは main から切った（積み PR にしない）。この計画は #51 の後の `server/Uta.Server/Program.cs`（`ICardCatalog`・`ProduceCatalog` の Factory 2 行が残り、ほかの Catalog の登録が無い形）を前提に書いた
-- **登録の並べ替え**（2026-11-08。ユーザーの判断。案は入れない（今の並びのまま）と比べ、新しい UseCase の置き場所が決まるほうを選んだ）: `migrate` の分岐の後を、ホスト → マスタ → Infrastructure → 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー）→ 基盤 → ヘルスチェック の順に並べ、空行と見出しのコメントで区切る。並べ替えで動きは変わらない（同じ型の登録が 2 つ無く、`AddVoltechServer` の中の登録は `TryAdd`。テストの `ConfigureTestServices` は `Program.cs` の登録の後に流れる）。完成形は 3.1
+- **登録の並べ替え**（2026-11-08。ユーザーの判断。案は入れない（今の並びのまま）と比べ、新しい UseCase の置き場所が決まるほうを選んだ）: `migrate` の分岐の後を、ホスト → マスタ → Infrastructure → 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー）→ 基盤 → ヘルスチェック の順に並べ、空行と見出しのコメントで区切る。並べ替えで動きは変わらない（同じ型の登録が 2 つ無く、`AddVoltechServer` が `TryAdd` で入れる型（`TimeProvider`・`GameClock`・`ITransactions`）を `Program.cs` は登録しない。テストの `ConfigureTestServices` は `Program.cs` の登録の後に流れる）。完成形は 3.1
 - **`migrate` の分岐の位置は変えない**（接続文字列を読んだ直後、マスタの読み込みより前）。`migrate` はマスタも DI も使わない
 - **機能ごとの拡張メソッド（`AddProduce()` など）には分けない**。登録は 30 行ほどで、見出しのコメントで機能の区切りは読める。分けると、1 か所で読めた寿命の組み合わせ（シングルトンがスコープを抱えていないか）が 5 ファイルに散る。機能ごとの登録が 1 機能で 10 行を超えたら見直す
 - **`ProduceEngine` はプロデュースの区切りに置く**（Shared.Domain の育成の計算。マスタの区切りは `MemoryDatabase` と、マスタから Shared.Domain の型を組み立てる Factory の 2 行だけにする）。`ItemGranter` はガチャ、`ProduceSessionDiscarder` はプロデュースの区切りに置く（置き場のフォルダ `Application/Gacha/`・`Application/Produce/` に合わせる。サインインからも使うが、持ち主はフォルダで決める）。`IRandomSource`（`SecureRandomSource`）は実装が `Infrastructure/` にあるので Infrastructure の区切りに置く
-- **DI の検査を環境によらず有効にする**（2026-11-08。ユーザーの判断。`ValidateOnBuild` だけ（`ServiceProvider` は `ValidateScopes` のときだけスコープの検査をするので、シングルトンがスコープの型を抱える誤りを Production で見逃す）・入れない、と比べて選んだ。起動時に全登録を 1 回組み立てる分、起動が少し遅くなるが、登録は約 30 件で小さい（推測で、計っていない））: `builder.Host.UseDefaultServiceProvider(options => { options.ValidateScopes = true; options.ValidateOnBuild = true; })` をホストの区切りの先頭に足す。ASP.NET Core は Development のときだけ両方を有効にする（既定）。結合テストは `WebApplicationFactory` の既定の Development で動くので、**今の登録は既に両方の検査を通っている**（全結合テストが通っている）。足すことで変わるのは、Production（Cloud Run）でも登録漏れ・寿命の誤りが `builder.Build()` で止まること
+- **DI の検査を環境によらず有効にする**（2026-11-08。ユーザーの判断。`ValidateOnBuild` だけ（`ServiceProvider` は `ValidateScopes` のときだけスコープの検査をするので、シングルトンがスコープの型を抱える誤りを Production で見逃す）・入れない、と比べて選んだ。起動時に全登録の依存の解決を 1 回調べる分、起動が少し遅くなる。登録の総数はフレームワークを含めて数百だが、`ValidateOnBuild` はインスタンスを作らず依存の解決だけを調べるので、影響は小さい（計っていない））: `builder.Host.UseDefaultServiceProvider(options => { options.ValidateScopes = true; options.ValidateOnBuild = true; })` をホストの区切りの先頭に足す。ASP.NET Core は環境名が Development のときだけ両方を有効にする（既定）。ここで言う Production は ASP.NET Core の環境名で、`ASPNETCORE_ENVIRONMENT` を設定しないときの既定値。Cloud Run の環境（[ADR 0011](../wiki/decisions/0011-deploy-google-cloud.md)・repository-layout.md 11.1 の呼び方では dev。本番は分けない）には `ASPNETCORE_ENVIRONMENT` を設定する記述が wiki に無いので、環境名は Production になる。結合テストは `WebApplicationFactory` の既定の Development で動くので、**今の登録は既に両方の検査を通っている**。今日の登録の誤りはテストで止まるので、足すことで増えるのは次の 3 つ:
+  1. 実行時の `ValidateScopes`: ルートの `IServiceProvider` からスコープの型を解決する誤りが、Development 以外でも「黙って抱え込む」から「例外で止まる」に変わる。今の Uta のコードと基盤（`AuthFilter`・`CommonResponseRegistration` はリクエストの `ServiceProvider` を使う）にルートから解決する経路は無く、RPC の経路は結合テストで同じ検査を通っているので、Cloud Run で新たに例外になる経路は無い
+  2. 将来、環境で分岐する登録（`builder.Environment.IsDevelopment()` など）を足したとき、Development 以外だけの登録も `builder.Build()` で検査される
+  3. テストを回さずにデプロイしたとき、登録漏れ・寿命の誤りが起動で止まる（要求の途中で落ちない）
 - **`ValidateOnBuild` で落ちないことの確かめ**（足す前に確かめたこと。2026-11-08）:
   - `AddVoltechServer`（VolTech-MagicOnion `11d9b06`、`src/VolTech.Server/Hosting/VoltechServerExtensions.cs`）が登録するのは、オプションと検証（`VoltechServerOptionsValidator`）・`TimeProvider.System`・`GameClock`・`ITransactions` → `Transactions` のシングルトンと、`AddGrpc()`・`AddMagicOnion()`。環境で登録を変える分岐は無い（`IsDevelopment` などは基盤の `src/` に無い）
   - `AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` は `CommonResponseRegistration` のインスタンスをシングルトンで登録するだけで、`PlayerDiffCollector` は DI に登録しない（`CommonResponseRegistration.CreateCollector` が `ActivatorUtilities.CreateInstance` でリクエストのスコープから作る）。`ValidateOnBuild` は登録された型しか見ないので、`PlayerDiffCollector` は検査の対象にならず、落ちない。`PlayerDiffCollector` の引数の解決は、今どおり実行時に `CommonResponseTests` が確かめる
   - MagicOnion のサービスとフィルターも DI に登録されない（MagicOnion がリクエストごとに作る）ので、同じく対象外
-  - よって、Development で全結合テストが通っていることが、Production で `ValidateOnBuild` が落ちないことの根拠になる。実装では、タスク 2 の全テストと、Production で検査が効くことのテスト（5章）で確かめる
+  - よって、`UtaServerFactory` が Development で `builder.Build()` を通っていること（`ValidateOnBuild` は登録された全記述子を見るので、テストが叩く RPC の範囲には関係ない）が、Production で `ValidateOnBuild` が落ちないことの根拠になる。成り立つ前提は、テストが置き換える登録が `TimeProvider`・`IRandomSource` のインスタンスの 2 つだけで、Production の記述子の解決を変えないこと（`UtaServerFactory.ConfigureWebHost`）。実装では、タスク 2 の全テストと、Production で検査が効くことのテスト（5章）で確かめる
 - **検査が Production で効くことをテストで固定する**（5章）。既存の結合テストは Development で動くので、`UseDefaultServiceProvider` の行を消しても全部通ってしまい、この変更を守れない。Production で、スコープの型を抱えたシングルトンを足すと起動が失敗することを 1 件だけ確かめる
 - **wiki**: [repository-layout.md](../wiki/architecture/repository-layout.md) 12章「サーバーの骨組み」の `Program.cs` の行に、登録の並び順と DI の検査を書き足す（タスク 3）。[server-foundation.md](../wiki/architecture/server/server-foundation.md) は `Program.cs` の骨組みを 12章に任せているので直さない
 
@@ -29,9 +32,9 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 
 ## 1. 目的と前提
 
-`server/Uta.Server/Program.cs` の DI の登録を、読む順に並べ替え、起動時の DI の検査を Production でも効かせる。動き（RPC・`migrate`・ヘルスチェック）は変えない。
+`server/Uta.Server/Program.cs` の DI の登録を、読む順に並べ替え、起動時の DI の検査を環境名が Production（Cloud Run の dev 環境）でも効かせる。動き（RPC・`migrate`・ヘルスチェック）は変えない。例外は、スコープの型をルートから解決する誤りの失敗の仕方で、Development 以外でも例外で止まるようになる（今のコードにその経路は無い。「この計画で決めたこと」）。
 
-- 関係する ADR: [0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)（マスタを `MemoryDatabase` のシングルトンで登録する）、[0011](../wiki/decisions/0011-deploy-google-cloud.md)（Cloud Run。Production の環境）
+- 関係する ADR: [0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)（マスタを `MemoryDatabase` のシングルトンで登録する）、[0011](../wiki/decisions/0011-deploy-google-cloud.md)（Cloud Run。環境は dev の 1 つで、ASP.NET Core の環境名は Production）
 - 設計: [repository-layout.md](../wiki/architecture/repository-layout.md) 12章「サーバーの骨組み」、[server-foundation.md](../wiki/architecture/server/server-foundation.md)（ZLogger・`AddCommonResponse`）
 
 ### 決めないこと（範囲外）
@@ -40,6 +43,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 - `using` の並び（今のまま。並べ替えで使わなくなる `using` は無い）
 - `migrate` の処理と、接続文字列の読み方
 - `appsettings.json`・`launchSettings.json`
+- Cloud Run に `ASPNETCORE_ENVIRONMENT` を設定するかどうか（今は wiki に記述が無く、設定しない形。repository-layout.md 11.4 に書き足すかは、この計画では決めない）
 
 ## 2. 触るファイル
 
@@ -143,7 +147,10 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 
         var exception = Assert.ThrowsAny<Exception>(() => production.Server);
 
-        Assert.Contains("Cannot consume scoped service", exception.ToString());
+        var message = exception.ToString();
+        Assert.Contains("Cannot consume scoped service", message);
+        Assert.Contains(nameof(IPlayerRepository), message);
+        Assert.Contains(nameof(ScopedCapturingSingleton), message);
     }
 
     private sealed class ScopedCapturingSingleton(IPlayerRepository players)
@@ -153,16 +160,17 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 }
 ```
 
-- `IPlayerRepository` は `Uta.Server.Domain.Player` にある（scoped で登録されている）。スコープの型を引数に取るシングルトンを足すと、`ValidateScopes` と `ValidateOnBuild` が両方有効なときだけ `builder.Build()` が `AggregateException`（中に `Cannot consume scoped service 'Uta.Server.Domain.Player.IPlayerRepository' from singleton ...`）を投げる。`WebApplicationFactory` が包む例外の型は版で変わりうるので、型は `ThrowsAny<Exception>` で受け、`ToString()`（内側の例外の文も含む）に `Cannot consume scoped service` が含まれることで確かめる
+- `IPlayerRepository` は `Uta.Server.Domain.Player` にある（scoped で登録されている）。スコープの型を引数に取るシングルトンを足すと、`ValidateScopes` と `ValidateOnBuild` が両方有効なときだけ `builder.Build()` が `AggregateException`（中に `Cannot consume scoped service 'Uta.Server.Domain.Player.IPlayerRepository' from singleton ...`）を投げる。`WebApplicationFactory` が包む例外の型は版で変わりうるので、型は `ThrowsAny<Exception>` で受け、`ToString()`（内側の例外の文も含む）に `Cannot consume scoped service` と、自分の型の名前 `IPlayerRepository`・`ScopedCapturingSingleton` が含まれることで確かめる（文言は版で変わりうるが、変わればテストが落ちて気づける。型の名前で、何が検出されたかも読める）
 - `builder.Build()` は DB に接続しないので、PostgreSQL のコンテナは接続文字列を渡すためだけに使う（`UtaServerFactory` のコンストラクタが要る）
 - 失敗したファクトリーの `DisposeAsync` は例外を投げない（ホストが作られていないので止めるものが無い）。`await using` のままでよい
 
 ### 3.3 repository-layout.md 12章
 
-「サーバーの骨組み」の 1 つ目の箇条（`- \`Program.cs\`: \`NpgsqlDataSource\` を 1 つ登録し、…ここで足す`）の直後に、次の箇条を足す（既存の箇条は変えない）。
+「サーバーの骨組み」の 1 つ目の箇条（`- \`Program.cs\`: \`NpgsqlDataSource\` を 1 つ登録し、…ここで足す`）の直後に、次の 2 つの箇条を足す（既存の箇条は変えない）。
 
 ```markdown
-- `Program.cs` の登録の並び（2026-11-08。[計画](../../plans/2026-11-08-server-program-cleanup.md)）: `migrate` の分岐の後に、ホスト（DI の検査・ログ・Kestrel）→ マスタ（`MemoryDatabase` と Shared.Domain の型の Factory）→ Infrastructure（DB・リポジトリ・乱数）→ 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー。置き場のフォルダで分ける）→ 基盤（`AddVoltechServer`）→ ヘルスチェック の順に並べ、見出しのコメントで区切る。機能ごとの拡張メソッドには分けない（登録は約 30 行で、寿命の組み合わせを 1 か所で読むため）。DI の検査（`ValidateScopes`・`ValidateOnBuild`）は環境によらず有効にする（ASP.NET Core の既定は Development だけ）。DI に登録しない `PlayerDiffCollector`・MagicOnion のサービスは検査の対象外で、実行時に結合テストが確かめる
+- `Program.cs` の登録の並び（2026-11-08。[計画](../../plans/2026-11-08-server-program-cleanup.md)）: `migrate` の分岐の後に、ホスト（DI の検査・ログ・Kestrel）→ マスタ（`MemoryDatabase` と Shared.Domain の型の Factory）→ Infrastructure（DB・リポジトリ・乱数。実装が `Infrastructure/` にあるもの）→ 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー。`Application/` の置き場のフォルダで分け、Shared.Domain の計算（`ProduceEngine`）は使う機能の区切りに置く）→ 基盤（`AddVoltechServer`）→ ヘルスチェック の順に並べ、見出しのコメントで区切る。機能ごとの拡張メソッドには分けない（登録は約 30 行で、寿命の組み合わせを 1 か所で読むため）
+- `Program.cs` の DI の検査（2026-11-08）: `ValidateScopes`・`ValidateOnBuild` は環境名によらず有効にする（ASP.NET Core の既定は Development だけ。Cloud Run の dev 環境は `ASPNETCORE_ENVIRONMENT` を設定しないので環境名は Production）。DI に登録しない `PlayerDiffCollector`・MagicOnion のサービスとフィルターは検査の対象外で、実行時に結合テストが確かめる
 ```
 
 ## 4. タスク
@@ -170,7 +178,7 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 ### タスク 1: 登録を並べ替える
 
 - 触るファイル: `server/Uta.Server/Program.cs`
-- 手順: 48〜81 行目を、3.1 のコードから `// ホスト` の直後のコメント 1 行と `builder.Host.UseDefaultServiceProvider(...)` の文（6 行）を除いたものに置き換える。ほかの行は変えない
+- 手順: 48〜81 行目を、3.1 のコードから `// ホスト` の直後のコメント 1 行と `builder.Host.UseDefaultServiceProvider(...)` の文 5 行（計 6 行）を除いたものに置き換える。ほかの行は変えない
 - 境界: 登録の行の数が変わっていないこと（置き換えの前後で `grep -c "builder.Services.Add" server/Uta.Server/Program.cs` が同じ 29）
 - 確かめ方: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（Docker が要る）がすべて通る
 
@@ -185,12 +193,12 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
   - `dotnet build Uta.slnx`（警告 0・エラー 0）
   - `dotnet test --project server/Uta.Server.Tests` がすべて通り、`Build_ProductionWithSingletonCapturingScoped_Throws` が通る
   - 追加のテストが設定を守っていることを 1 回だけ確かめる: `UseDefaultServiceProvider` の文を一時的に消すと `Build_ProductionWithSingletonCapturingScoped_Throws` が落ちること（Production では既定で検査しないため、`production.Server` が例外を投げない）。確かめたら戻す。結果を実装メモに書く
-- 止まる条件: 1 で Production の起動（既存のテストは Development なので、テストでは起きない）や、`WithWebHostBuilder` の `UseEnvironment` が `Program.cs` の環境に届かず、消しても通ってしまうとき。テストの書き方を変えずに止まって報告する
+- 止まる条件: `WithWebHostBuilder` の `UseEnvironment` が `Program.cs` の環境に届かず、`UseDefaultServiceProvider` の文を消しても `Build_ProductionWithSingletonCapturingScoped_Throws` が通ってしまうとき。テストの書き方を変えずに止まって報告する
 
 ### タスク 3: wiki に書く
 
 - 触るファイル: `uta_docs/wiki/architecture/repository-layout.md`
-- 手順: 3.3 の箇条を足す。frontmatter の `updated` を実装した日にする
+- 手順: 3.3 の 2 つの箇条を足す。frontmatter の `updated` を実装した日にする
 - 確かめ方: `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
 
 ## 5. テスト
@@ -205,7 +213,7 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 - `dotnet build Uta.slnx`
 - `dotnet test --project server/Uta.Server.Tests`
 
-Production の Cloud Run での起動は、この計画では確かめない（デプロイは別。テストで Production の環境名での組み立てまでを確かめる）。
+Cloud Run（dev）での起動は、この計画では確かめない（デプロイは別。テストで環境名 Production での組み立てまでを確かめる）。
 
 ## 6. 未決事項
 
