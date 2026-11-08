@@ -13,3 +13,4 @@
 - [2026-11-01-wiki-log.md](2026-11-01-wiki-log.md) — 2026-11-01 まで wiki に置いていた更新履歴（追記しない）
 - [2026-11-01-masterdata-unity-spike.md](2026-11-01-masterdata-unity-spike.md) — マスタを Unity に取り込む計画のための、アドオンのツールでの確認
 - [2026-11-08-naming-and-layers-decisions.md](2026-11-08-naming-and-layers-decisions.md) — 命名規則と層の中身（マスタの参照範囲、エンティティと Repository、クライアントの Application）の相談で決まったこと
+- [2026-11-08-presentation-rules-decisions.md](2026-11-08-presentation-rules-decisions.md) — 上の続き。Presentation 層のルール（Args と ViewDto、DtoFactory、読み取り専用のリポジトリの IF）
