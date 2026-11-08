@@ -44,4 +44,4 @@ updated: 2026-11-08
 - 参照の列（`UseConditionGroupId`・`RefConditionGroupId`・`RefEffectGroupId`・`RefCardId`）は、使わないとき CSV のセルを空にする（`0` は「ID 0 を探す」ことになって失敗する）
 - 効果内条件は、直前の 1 効果の行にだけ付ける。持続効果の子のグループは `EffectGroupId = 親グループ + 1`（面ごとの `… × 100 + 面 × 10 + 2`）
 
-2026-11-03（[計画](../../../plans/2026-11-03-masterdata-card-text.md)）: `Card.Name`（`card.csv` の 2 列目）・`CardFace.Description`（`cardFace.csv` の 5 列目）を足した。36 枚の名前と 72 面の説明文は計画の 3.4。列を足したので `MasterDataSchema.Hash` が変わり、サーバー・クライアントのバイナリを作り直した
+2026-11-08（[計画](../../../plans/2026-11-03-masterdata-card-text.md)。計画は 2026-11-03）: `Card.Name`（`card.csv` の 2 列目）・`CardFace.Description`（`cardFace.csv` の 5 列目）を足した。36 枚の名前と 72 面の説明文は計画の 3.4。列を足したので `MasterDataSchema.Hash` が変わり、サーバー・クライアントのバイナリを作り直した。`[Unique]` と `Card` の `bool Unique` プロパティの名前の衝突は起きなかった（完全修飾は要らない）。計画で推測とした `CardFaceTable.FindByCardIdAndFace((cardId, face))` の名前は、サーバーのテスト（`CardTexts_SpotCheck`）で確かめた。クライアントの生成ソースの置き場所は `client/uta/Assets/Scripts/MasterData/Generated/`（計画 2章の当初の `Infrastructure/MasterData/Generated/` は誤りで、計画も直した）

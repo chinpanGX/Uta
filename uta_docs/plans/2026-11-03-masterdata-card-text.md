@@ -1,6 +1,6 @@
 ---
 title: 実装計画: マスタ スキルカードの名前と説明文
-status: in-progress
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/master/lesson-tables.md
 ---
@@ -47,7 +47,7 @@ spec: ../wiki/architecture/master/lesson-tables.md
 | 変更 | `masterdata/csv/card.csv` | 2 列目に `Name` を足す（3.2・3.4） | 1 |
 | 変更 | `masterdata/csv/cardFace.csv` | 5 列目に `Description` を足す（3.2・3.4） | 1 |
 | 変更（再生成） | `server/Uta.Server/Infrastructure/MasterData/Generated/Lesson/Card.cs`・`CardFace.cs`・`Generated/MasterDataSchema.cs`・`masterdata.bytes`・`masterdata.manifest.json` | `gen.ps1` が作り直す（手で直さない） | 1 |
-| 変更（再生成） | `client/uta/Assets/Scripts/Infrastructure/MasterData/Generated/Lesson/Card.cs`・`CardFace.cs`・`Generated/MasterDataSchema.cs`、`client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes`・`masterdata.manifest.json` | `gen.ps1` が作り直す（手で直さない）。ファイルは増えないので `.meta` は増えない | 1 |
+| 変更（再生成） | `client/uta/Assets/Scripts/MasterData/Generated/Lesson/Card.cs`・`CardFace.cs`・`Generated/MasterDataSchema.cs`、`client/uta/Assets/StreamingAssets/MasterData/masterdata.bytes`・`masterdata.manifest.json` | `gen.ps1` が作り直す（手で直さない）。ファイルは増えないので `.meta` は増えない | 1 |
 | 変更 | `server/Uta.Server.Tests/MasterData/MasterDataTests.cs` | テストを 4 つ足す（5章） | 1 |
 | 変更 | `client/uta/Assets/Tests/EditMode/MasterDataLoaderTests.cs` | テストを 1 つ足す（5章） | 2 |
 | 変更 | `uta_docs/wiki/architecture/master/lesson-tables.md` | 1章・2章・実装メモ（タスク 3） | 3 |
@@ -326,3 +326,7 @@ ID の対応は 14章の ID → `CardId`（F01〜F07 = 1〜7、S01〜S14 = 101�
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 1 | 完了 | `9ee7a90` | `[Unique]` と `bool Unique` の名前の衝突は起きなかった。`FindByCardIdAndFace((id, face))` はそのままコンパイルできた。手順 6 の 3 通りの検証はどれも終了コード 1 でバイナリは変わらなかった。クライアントの生成ソースの置き場所は `client/uta/Assets/Scripts/MasterData/Generated/`（2章を直した）。`dotnet build Uta.slnx` 警告 0・エラー 0、サーバーのテスト 299 件成功 |
+| 2 | 完了（Unity 未確認） | `9e9a110` | テストを足しただけ。`client/uta` を開いた Editor が無く、`unity test --mode EditMode` のバッチ実行は 2 回ともマシンのメモリ不足（OutOfMemory・GC heap の初期化失敗）でコンパイルが止まった。**`unity recompile` と EditMode のテストは確認できていない** |
+| 3 | 完了 | `2050768` | frontmatter の `updated` は実際に直した 2026-11-08 にした。`[計画]` は計画へのリンクにした |
+| レビュー | 完了 | （この計画を done にしたコミット） | Critical 0・Important 1（shared I1: 「レッスン中1回」（`OnceInLesson`）・`Unique` が画面にも説明文にも出ない。screen-design.md 7章の表示項目の抜けで、この計画の範囲外。後続の画面の計画で決める）。Minor のうち、glossary.md・lesson-card.md の仮称の置き換えの注記、lesson-tables.md の実装メモ、2章のパスは直した。残した Minor: 名前 3 つ（勢いまかせ・深呼吸ひとつ・心の準備運動）の参考作品との突き合わせはユーザーに依頼、`Cards_NamesAreDistinct` が件数 36 を直接書き重複の名前を出さない、`CardFaces_DescriptionIsNotBlank` の件数 72 の重複、クライアントのテストの LINQ の書き方の不揃い、foundation の計画 1307 行のクライアントの生成ソースのパスの誤り（別のセッションの担当） |
