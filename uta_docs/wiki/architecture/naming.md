@@ -1,7 +1,7 @@
 ---
 title: 命名規則（型の名前の付け方）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # 命名規則（型の名前の付け方）
@@ -145,6 +145,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `Handler` | 基盤から呼ばれる受け口（エラー・進行中の通知など） | `DefaultCommonErrorHandler` |
 | `Options` | 起動時の設定の値 | `StartupOptions` |
 | `Entry` | シーンの入口 | `BootstrapEntry` |
+| `Host` | アプリのホスト（設定・DI の登録・エンドポイント）を組み立てて動かす。プロセスの入口（`Program.cs`）から呼ぶ | `ServerHost` |
 
 
 ## 今のコードとの差（改名の対象）
