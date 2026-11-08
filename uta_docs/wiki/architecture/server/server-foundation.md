@@ -98,14 +98,14 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 
 基盤の共通レスポンス項目（VolTech-MagicOnion の `docs/spec/common-response.md`・`docs/guide/server.md`「共通レスポンス項目」）を使い、所持品・通貨・レベルを変える RPC のレスポンスに、変更後の値を `Common` として載せる。計画は [common-response-player-diff](../../../plans/2026-11-08-common-response-player-diff.md)。
 
-- **Uta は `AppCommon` に player_diff だけを持つ**（`Uta.Shared.Contracts/Common/AppCommon.cs`・`PlayerDiff.cs`）。バッジと通知は MVP に仕様が無いので持たない（後で `Key(1)`・`Key(2)` に足せる）。`Program.cs` で `AddVoltechServer(...).AddCommonResponse<AppCommon, PlayerDiffCollector>()` を呼ぶ。`PlayerDiffCollector` は DI に登録しない（基盤がトランザクションごとにリクエストの ServiceProvider から作り、コンストラクターの引数のリポジトリはスコープのものが解決される）
+- **Uta は `AppCommonDto` に player_diff だけを持つ**（`Uta.Shared.Contracts/Common/AppCommonDto.cs`・`PlayerDiffDto.cs`）。バッジと通知は MVP に仕様が無いので持たない（後で `Key(1)`・`Key(2)` に足せる）。`Program.cs` で `AddVoltechServer(...).AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` を呼ぶ。`PlayerDiffCollector` は DI に登録しない（基盤がトランザクションごとにリクエストの ServiceProvider から作り、コンストラクターの引数のリポジトリはスコープのものが解決される）
 - **player_diff の中身は「変更後の値」**: `HasBalance`（真なら次の 5 つが有効）・`Level`・`Exp`・`Gold`・`SupportPoints`・`GachaCurrency`、触ったアイドル `Idols`、触ったサポートカード `SupportCards`、無くなったサポートカードの ID `RemovedSupportCardUniqueIds`。変化量は持たない。`Common.PlayerDiff` が null なら変化なし
-- **`Common` を載せるレスポンス**（`IApiResponse<AppCommon>` を実装）: `DrawResponse`・`ExchangeResponse`・`LevelUpResponse`・`LimitBreakResponse`・`ProduceStateResponse`。載せない: `SignInResponse`（全件を返すので呼び出し側が置き換える）、`SignUpResponse`、`GetGachasResponse`、`ProduceResultResponse`（`ProduceStateResponse.Result` に入る入れ子の型で、`AbandonAsync` が単独で返すときも所持品は変わらない）。既存の項目（`DrawResponse.GachaCurrency` など）は消さない
+- **`Common` を載せるレスポンス**（`IApiResponse<AppCommonDto>` を実装）: `DrawResponse`・`ExchangeResponse`・`LevelUpResponse`・`LimitBreakResponse`・`ProduceStateResponse`。載せない: `SignInResponse`（全件を返すので呼び出し側が置き換える）、`SignUpResponse`、`GetGachasResponse`、`ProduceResultResponse`（`ProduceStateResponse.Result` に入る入れ子の型で、`AbandonAsync` が単独で返すときも所持品は変わらない）。既存の項目（`DrawResponse.GachaCurrency` など）は消さない
 - **記録は `PlayerDiffCollector`**（`Infrastructure/PlayerDiffCollector.cs`）。リポジトリの書き込みが成功した後に、`tx.GetCollector<PlayerDiffCollector>()` の `TouchBalance`／`TouchIdol`／`TouchSupportCard`／`RemoveSupportCard` を 1 行呼ぶ。リポジトリの書き込みメソッドの引数と戻り値は変えない。何も書かない（失敗を含む）RPC は何も記録されず、`Common` は null
 - **`BuildAsync` が読み直す**: 記録したキーについて、DB から現在の値を読んで DTO にする（`TouchBalance` → `players`、`TouchIdol` → `idols.FindAllAsync` から該当、`TouchSupportCard` → `supportCards.FindAsync`）。記録の対象が DB に無いのは取りこぼしの不具合なので `InvalidOperationException`（基盤が `INTERNAL` にしてロールバックする）。1 つのトランザクションで記録できるプレイヤーは 1 人で、違う ID が来ても `InvalidOperationException`。何も記録されていなければ null を返す。`RemoveSupportCard` は同じ ID の upsert の記録を外す（逆も同じ）
 - 冪等性の再送では、保存済みのレスポンス（`Common` を含む）がそのまま返る
 - コレクターは Infrastructure から DTO を参照する唯一の例外（[repository-layout.md](../repository-layout.md) 3章）
-- クライアントの反映は [screen-design.md](../screen-design.md) 7.5（`PlayerCommonApplier`）
+- クライアントの反映は [screen-design.md](../screen-design.md) 7.5（`CommonResponseApplier` → `PlayerDiffApplier`）
 
 ## 未確定事項
 

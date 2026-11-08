@@ -5,7 +5,7 @@ using VolTech.Server.Abstractions;
 namespace Uta.Shared.Contracts.Gacha
 {
     [MessagePackObject]
-    public sealed class DrawResponse : IApiResponse<AppCommon>
+    public sealed class DrawResponse : IApiResponse<AppCommonDto>
     {
         [SerializationConstructor]
         public DrawResponse(DrawResultDto[] results, int gachaCurrency, int exchangePoints)
@@ -28,6 +28,6 @@ namespace Uta.Shared.Contracts.Gacha
 
         /// <summary>共通レスポンス項目。基盤が入れる。</summary>
         [Key(3)]
-        public AppCommon Common { get; set; }
+        public AppCommonDto Common { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 ---
 title: レッスン・カードのマスタ
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # レッスン・カードのマスタ
@@ -12,14 +12,15 @@ updated: 2026-11-03
 
 | テーブル | 主キー | 主な列 |
 |---|---|---|
-| `Card` | `CardId` | プラン、種別、レアリティ、`UnlockLv`、`OnceInLesson`、`Unique`、`StartInHand` |
-| `CardFace` | `CardId` + `Face`（通常 / 強化） | `EffectGroupId`、`UseConditionGroupId`（空欄＝条件なし） |
+| `Card` | `CardId` | `Name`（`string`。表示名。空でなく、表の中で重ならない）、プラン、種別、レアリティ、`UnlockLv`、`OnceInLesson`、`Unique`、`StartInHand` |
+| `CardFace` | `CardId` + `Face`（通常 / 強化） | `EffectGroupId`、`UseConditionGroupId`（空欄＝条件なし）、`Description`（`string`。その面の効果の説明文。空でない。消費は書かない） |
 | `CardCost` | `CardId` + `Face` + `Order` | `Kind`（enum `CostKind`）、`Value` |
 | `Effect` | `EffectGroupId` + `Order` | `Op`（enum）、`Status`（enum）、`Trigger`（enum）、`Value`、`Arg1`〜`Arg3`（`int`）、`RefConditionGroupId`、`RefEffectGroupId`、`RefCardId` |
 | `Condition` | `ConditionGroupId` + `Order` | `Subject`（enum）、`Comparator`（enum）、`Value`。グループ内はすべて満たすと真（AND） |
 
 - 区分はすべて Common（スキルカードは表示と判定に使う。[masterdata-pipeline.md](masterdata-pipeline.md) 4章）
 - グループの参照は、`Effect`・`Condition` の列を `[Exists]` で指す（`CardFace.EffectGroupId` と `Effect.RefEffectGroupId` は `[Exists(typeof(Effect), nameof(Effect.EffectGroupId))]`、`UseConditionGroupId`・`RefConditionGroupId` は `Condition` の `ConditionGroupId` を同じ形で。空欄を許す列は `AllowEmpty = true`）。グループの見出しテーブル（`EffectGroup`・`ConditionGroup`）は置かない [決定。2026-11-01。ユーザーの判断]。アドオンの `[Exists]` は主キー以外の列も参照できる（[defining-master-data.md](https://github.com/chinpanGX/MasterMemoryAddons/blob/main/docs/guide/defining-master-data.md)）ので、見出しが無くても属性で検証でき、テーブルが 2 つ減る
+- `Card.Name`・`CardFace.Description` は人が書いた文。値は `card.csv`・`cardFace.csv` が正。説明文が `Effect`・`CardCost`・`Condition` の数値と食い違わないことは自動では検証しない（CSV を変えたらレビューで突き合わせる）[決定。2026-11-03。[計画](../../../plans/2026-11-03-masterdata-card-text.md)]
 - グループで持つ形（効果・条件を 1 つの ID でまとめる）はそのまま。MVP の 36 枚でグループ ID を手で振る手間（約 90）は受け入れる [決定。2026-11-01]
 
 ## 2. 検証 [決定。2026-11-01]
@@ -28,6 +29,7 @@ updated: 2026-11-03
 - `Effect` の入れ子の深さ（1）だけは、`IValidatable` の `CallOnce()` で `Effect` の全行を読んで検査する
 - 表をまたぐ検査はサーバーのテスト `MasterDataInvariantTests`: すべてのカードに `Normal` と `Enhanced` の `CardFace` が 1 行ずつある。すべての `CardFace` に同じ `(CardId, Face)` の `CardCost` が 1 行以上あり、すべての `CardCost` に同じ `(CardId, Face)` の `CardFace` がある
 - 参照は属性（`[Exists]`）
+- `Card` の `IValidatable` は `Name` が空・空白だけでないこと、`CardFace` の `IValidatable` は `Description` が空・空白だけでないことを見る。`Card.Name` の重複は `[Unique]`
 
 ## 未決事項
 
@@ -41,3 +43,5 @@ updated: 2026-11-03
 - `unlockLv` は**仮の値**（N・R = 1、SR = 5、SSR = 10）
 - 参照の列（`UseConditionGroupId`・`RefConditionGroupId`・`RefEffectGroupId`・`RefCardId`）は、使わないとき CSV のセルを空にする（`0` は「ID 0 を探す」ことになって失敗する）
 - 効果内条件は、直前の 1 効果の行にだけ付ける。持続効果の子のグループは `EffectGroupId = 親グループ + 1`（面ごとの `… × 100 + 面 × 10 + 2`）
+
+2026-11-08（[計画](../../../plans/2026-11-03-masterdata-card-text.md)。計画は 2026-11-03）: `Card.Name`（`card.csv` の 2 列目）・`CardFace.Description`（`cardFace.csv` の 5 列目）を足した。36 枚の名前と 72 面の説明文は計画の 3.4。列を足したので `MasterDataSchema.Hash` が変わり、サーバー・クライアントのバイナリを作り直した。`[Unique]` と `Card` の `bool Unique` プロパティの名前の衝突は起きなかった（完全修飾は要らない）。計画で推測とした `CardFaceTable.FindByCardIdAndFace((cardId, face))` の名前は、サーバーのテスト（`CardTexts_SpotCheck`）で確かめた。クライアントの生成ソースの置き場所は `client/uta/Assets/Scripts/MasterData/Generated/`（計画 2章の当初の `Infrastructure/MasterData/Generated/` は誤りで、計画も直した）

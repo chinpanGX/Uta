@@ -6,12 +6,12 @@ using Uta.Shared.Contracts.Player;
 
 namespace Uta.Client.Tests
 {
-    public sealed class AppCommonSerializationTests
+    public sealed class AppCommonDtoSerializationTests
     {
         [Test]
-        public void AppCommon_RoundTripsThroughMessagePack()
+        public void AppCommonDto_RoundTripsThroughMessagePack()
         {
-            var original = new AppCommon(new PlayerDiff(
+            var original = new AppCommonDto(new PlayerDiffDto(
                 true, 1, 2, 3, 4, 5,
                 new[] { new OwnedIdolDto(10, 1, 2, 3, "I1") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 100, 5, 1) },
@@ -19,7 +19,7 @@ namespace Uta.Client.Tests
             var options = MessagePackSerializerOptions.Standard.WithResolver(StandardResolver.Instance);
 
             var bytes = MessagePackSerializer.Serialize(original, options);
-            var actual = MessagePackSerializer.Deserialize<AppCommon>(bytes, options).PlayerDiff;
+            var actual = MessagePackSerializer.Deserialize<AppCommonDto>(bytes, options).PlayerDiff;
 
             Assert.IsTrue(actual.HasBalance);
             Assert.AreEqual(1, actual.Level);

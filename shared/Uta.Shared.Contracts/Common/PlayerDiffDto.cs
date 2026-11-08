@@ -4,10 +4,10 @@ using Uta.Shared.Contracts.Player;
 namespace Uta.Shared.Contracts.Common
 {
     [MessagePackObject]
-    public sealed class PlayerDiff
+    public sealed class PlayerDiffDto
     {
         [SerializationConstructor]
-        public PlayerDiff(bool hasBalance, int level, int exp, int gold, int supportPoints, int gachaCurrency, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string[] removedSupportCardUniqueIds)
+        public PlayerDiffDto(bool hasBalance, int level, int exp, int gold, int supportPoints, int gachaCurrency, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string[] removedSupportCardUniqueIds)
         {
             HasBalance = hasBalance;
             Level = level;

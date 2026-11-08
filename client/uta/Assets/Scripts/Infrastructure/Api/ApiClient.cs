@@ -42,7 +42,7 @@ namespace Uta.Client.Infrastructure.Api
         /// <param name="errorHandler">アプリの共通エラーハンドラー（Bootstrap が DefaultCommonErrorHandler を渡す）</param>
         /// <param name="errorNavigator">エラー後の画面遷移。null なら付けない（診断のとき）</param>
         /// <param name="commonApplier">Common の反映先。null なら付けない（診断のとき）</param>
-        public static ApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IErrorNavigator errorNavigator, ICommonResponseApplier<AppCommon> commonApplier)
+        public static ApiClient Create(string serverUrl, string platform, int appVersion, string accountFilePath, string keySource, ICommonErrorHandler errorHandler, IErrorNavigator errorNavigator, ICommonResponseApplier<AppCommonDto> commonApplier)
         {
             var channel = ApiChannel.Create(serverUrl);
             var callInvoker = ApiChannel.CreateCallInvoker(channel);

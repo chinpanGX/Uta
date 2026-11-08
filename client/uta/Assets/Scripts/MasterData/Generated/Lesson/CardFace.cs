@@ -17,11 +17,13 @@ namespace Uta.MasterData
         public CardFaceKind Face { get; init; }
         public int EffectGroupId { get; init; }
         public int UseConditionGroupId { get; init; }
+        public string Description { get; init; } = "";
 
         void IValidatable<CardFace>.Validate(IValidator<CardFace> validator)
         {
             validator.Validate(x => x.Face != CardFaceKind.Nothing, "cardFace: Face が Nothing");
             validator.Validate(x => x.EffectGroupId != 0, "cardFace: EffectGroupId が 0");
+            validator.Validate(x => !string.IsNullOrWhiteSpace(x.Description), "cardFace: Description が空");
         }
     }
 }

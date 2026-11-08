@@ -92,7 +92,7 @@ updated: 2026-11-08
 
 ### 共通レスポンス項目（`Common`）[決定。2026-11-08。ユーザーの判断]
 
-上の 1.1・1.2 の表の「Common」の列は、Response が `Common`（`AppCommon`。player_diff = 変更後の通貨・レベル、触ったアイドルとサポートカード、無くなったサポートカードの ID）を持つか。「あり」の Response は `IApiResponse<AppCommon>` を実装し、`Common` は変わったものが無ければ null。プロデュースは `ProduceStateResponse`（`StartAsync`・操作の 4 つ）に `Common` があり、報酬が付く完了の応答で通貨とレベルが入る。`ProduceResultResponse`（`AbandonAsync` の応答）・`GetStateAsync`・`SignInAsync`・`SignUpAsync` には無い。中身と作り方は [server-foundation.md](server/server-foundation.md) の共通レスポンス項目。既存の項目（`DrawResponse.GachaCurrency` など）は残す。
+上の 1.1・1.2 の表の「Common」の列は、Response が `Common`（`AppCommonDto`。player_diff = 変更後の通貨・レベル、触ったアイドルとサポートカード、無くなったサポートカードの ID）を持つか。「あり」の Response は `IApiResponse<AppCommonDto>` を実装し、`Common` は変わったものが無ければ null。プロデュースは `ProduceStateResponse`（`StartAsync`・操作の 4 つ）に `Common` があり、報酬が付く完了の応答で通貨とレベルが入る。`ProduceResultResponse`（`AbandonAsync` の応答）・`GetStateAsync`・`SignInAsync`・`SignUpAsync` には無い。中身と作り方は [server-foundation.md](server/server-foundation.md) の共通レスポンス項目。既存の項目（`DrawResponse.GachaCurrency` など）は残す。
 
 ### 1.3 プロデュースの DTO [決定。2026-11-03]
 

@@ -86,13 +86,14 @@ namespace Uta.Client.Bootstrap
                             AppInfo.AccountKeySource,
                             new DefaultCommonErrorHandler(errorDialog),
                             quitAfterCheck ? null : resolver.Resolve<IErrorNavigator>(),
-                            resolver.Resolve<PlayerCommonApplier>()),
+                            resolver.Resolve<CommonResponseApplier>()),
                         Lifetime.Singleton);
                     builder.Register<IPlayerService>(resolver => resolver.Resolve<ApiClient>().Player, Lifetime.Singleton);
                     builder.Register<PlayerRepository>(Lifetime.Singleton).As<IPlayerRepository>().As<IReadOnlyPlayerRepository>();
                     builder.Register<IdolRepository>(Lifetime.Singleton).As<IIdolRepository>().As<IReadOnlyIdolRepository>();
                     builder.Register<SupportCardRepository>(Lifetime.Singleton).As<ISupportCardRepository>().As<IReadOnlySupportCardRepository>();
-                    builder.Register<PlayerCommonApplier>(Lifetime.Singleton);
+                    builder.Register<PlayerDiffApplier>(Lifetime.Singleton);
+                    builder.Register<CommonResponseApplier>(Lifetime.Singleton);
                     builder.Register<DeviceAuthUseCase>(Lifetime.Singleton).As<IDeviceAuthUseCase>();
                     builder.Register<PlayerUseCase>(Lifetime.Singleton).As<IPlayerUseCase>();
                 });

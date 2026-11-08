@@ -12,7 +12,7 @@ namespace Uta.Server.Infrastructure;
 /// Infrastructure から Contracts の DTO を参照する唯一の例外（TxContext.GetCollector が具象型の完全一致を要求するため）。
 /// </summary>
 public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards)
-    : ICommonResponseCollector<AppCommon>
+    : ICommonResponseCollector<AppCommonDto>
 {
     private Ulid? playerId;
     private bool balanceTouched;
@@ -47,7 +47,7 @@ public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolReposito
         removedSupportCards.Add(uid);
     }
 
-    public async ValueTask<AppCommon?> BuildAsync(TxContext tx)
+    public async ValueTask<AppCommonDto?> BuildAsync(TxContext tx)
     {
         if (playerId is not { } id)
         {
@@ -99,7 +99,7 @@ public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolReposito
             return null;
         }
 
-        return new AppCommon(new PlayerDiff(hasBalance, level, exp, gold, supportPoints, gachaCurrency, idolDtos.ToArray(), cardDtos.ToArray(), removed));
+        return new AppCommonDto(new PlayerDiffDto(hasBalance, level, exp, gold, supportPoints, gachaCurrency, idolDtos.ToArray(), cardDtos.ToArray(), removed));
     }
 
     private void Bind(Ulid id)

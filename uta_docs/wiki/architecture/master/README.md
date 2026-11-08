@@ -1,7 +1,7 @@
 ---
 title: architecture/master（マスタ設計）の目次
 status: draft
-updated: 2026-11-01
+updated: 2026-11-08
 ---
 
 # architecture/master（マスタ設計）の目次
@@ -28,8 +28,8 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 
 | テーブル | 主キー | 区分 | 中身 |
 |---|---|---|---|
-| `Card` | `CardId` | Common | スキルカードの見出し（プラン、種別、レアリティ、解放 Lv など） |
-| `CardFace` | `CardId` + `Face` | Common | 通常 / 強化の面。効果・使用条件のグループを指す |
+| `Card` | `CardId` | Common | スキルカードの見出し（名前、プラン、種別、レアリティ、解放 Lv など） |
+| `CardFace` | `CardId` + `Face` | Common | 通常 / 強化の面。効果・使用条件のグループを指す。説明文 |
 | `CardCost` | `CardId` + `Face` + `Order` | Common | コスト |
 | `Effect` | `EffectGroupId` + `Order` | Common | 効果の 1 行（`Op` と引数） |
 | `Condition` | `ConditionGroupId` + `Order` | Common | 条件の 1 行（AND） |
@@ -85,5 +85,5 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 
 ### 5. 索引から見えること
 
-- 合計 31 テーブル（2026-11-01 にレッスンの見出し 2 つとプロデュースの `LessonSetting`・`ExamRivalScore` を減らした）。ServerOnly は `EvaluationRankReward` の 1 つ（`InitialSupportCard`・`InitialSetting` は 2026-11-01 に Common にした）。`[ClientOnly]` のテーブル・列はまだ無い（表示名・アイコンは未定義）
+- 合計 31 テーブル（2026-11-01 にレッスンの見出し 2 つとプロデュースの `LessonSetting`・`ExamRivalScore` を減らした）。ServerOnly は `EvaluationRankReward` の 1 つ（`InitialSupportCard`・`InitialSetting` は 2026-11-01 に Common にした）。`[ClientOnly]` のテーブル・列はまだ無い（表示名・説明文は Common の列: `Idol.Name`・`SupportCard.Name`・`Card.Name`・`CardFace.Description`。アイコンは未定義）
 - ServerOnly のテーブルを Common のテーブルから `[Exists]` で参照するものは無い。逆向き（`EvaluationRankReward.Rank` → `EvaluationRank`）は `[Exists]` を付けず、13 ランクがそろうことをサーバーのテストで確かめる（ServerOnly の表から Common の表への `[Exists]` は未確認。[repository-layout.md](../repository-layout.md) 8章。2026-11-01）（2026-11-01 にアドオンのツールで、付けても通ることを確認した: [Unity に取り込む計画](../../../plans/2026-11-01-masterdata-unity.md) 2章）

@@ -74,7 +74,7 @@ uta/
          │  └─ SupportCard/  #     SupportCardEntity・ISupportCardRepository・IReadOnlySupportCardRepository
          ├─ Application/     #   UseCase の IF とその出力の型、外部に触れない具象（ADR 0022）
          ├─ Infrastructure/  #   外部に触れる具象: UseCase の具象、API 呼び出し、マスタの読み込み、リポジトリの実装、ローカル保存（ADR 0022）。機能ごとのフォルダ（名前空間 Uta.Client.Infrastructure.<機能>）
-         │  ├─ Player/       #     PlayerRepository・PlayerUseCase・PlayerMapper（サインインの応答の詰め替え）・PlayerCommonApplier（共通レスポンスの player_diff をリポジトリに反映）
+         │  ├─ Player/       #     PlayerRepository・PlayerUseCase・PlayerMapper（サインインの応答の詰め替え）・PlayerDiffApplier（player_diff をリポジトリに反映）。Api/CommonResponseApplier（共通レスポンスを受けて項目ごとの Applier に渡す）
          │  ├─ Idol/         #     IdolRepository
          │  └─ SupportCard/  #     SupportCardRepository
          ├─ Presentation/    #   View、Presenter
@@ -184,7 +184,7 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 `Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。これはサーバーの規則（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md) のサーバー側を実装する計画まで今のまま）。クライアントは下の「生成したマスタの置き場」。
 
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
-- **例外: `Infrastructure/PlayerDiffCollector.cs` は `Uta.Shared.Contracts` の DTO（`AppCommon`・`PlayerDiff`・`OwnedIdolDto`・`OwnedSupportCardDto`）を参照してよい** [決定。2026-11-08。ユーザーの判断]。基盤の `TxContext.GetCollector<T>` が具象型の完全一致を要求し、リポジトリ（Infrastructure）が書き込みの中で記録するため、コレクターを Infrastructure に置くしかない。この 1 ファイル以外では Infrastructure から DTO を参照しない。DTO への写し（2 行）は `Api/PlayerService.cs` の SignIn と重複させる（[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）
+- **例外: `Infrastructure/PlayerDiffCollector.cs` は `Uta.Shared.Contracts` の DTO（`AppCommonDto`・`PlayerDiffDto`・`OwnedIdolDto`・`OwnedSupportCardDto`）を参照してよい** [決定。2026-11-08。ユーザーの判断]。基盤の `TxContext.GetCollector<T>` が具象型の完全一致を要求し、リポジトリ（Infrastructure）が書き込みの中で記録するため、コレクターを Infrastructure に置くしかない。この 1 ファイル以外では Infrastructure から DTO を参照しない。DTO への写し（2 行）は `Api/PlayerService.cs` の SignIn と重複させる（[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）
 - **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーでは生成物を参照してよいのは Infrastructure だけ。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
 - 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
 - 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする（層ごとに 1 件。型がまだ無い層のルールは空の集合で通るので、その層に最初の型が入る計画が「型が 1 つ以上ある」テストを足す）。動作の確認（2026-11-01）: NetArchTest.Rules 1.3.2 は .NET 10・xunit.v3（Microsoft.Testing.Platform）で動き、違反を検出できる

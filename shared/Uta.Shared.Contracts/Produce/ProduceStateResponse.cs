@@ -6,7 +6,7 @@ using VolTech.Server.Abstractions;
 namespace Uta.Shared.Contracts.Produce
 {
     [MessagePackObject]
-    public sealed class ProduceStateResponse : IApiResponse<AppCommon>
+    public sealed class ProduceStateResponse : IApiResponse<AppCommonDto>
     {
         [SerializationConstructor]
         public ProduceStateResponse(int operationNumber, ProducePhase phase, int scenarioMasterId, int idolMasterId, int week, int singing, int rhythm, int expression, int hp, int maxHp, int examRetryLeft, DeckCardDto[] deck, WeekActionDto[] weekActions, ClassOptionDto[] classOptions, int[] cardChoiceMasterIds, LessonDto lesson, ExamResultDto examResult, ProduceResultResponse result)
@@ -87,6 +87,6 @@ namespace Uta.Shared.Contracts.Produce
 
         /// <summary>共通レスポンス項目。基盤が入れる。</summary>
         [Key(18)]
-        public AppCommon Common { get; set; }
+        public AppCommonDto Common { get; set; }
     }
 }

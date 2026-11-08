@@ -11,7 +11,7 @@ using Uta.Shared.Contracts.Player;
 
 namespace Uta.Client.Tests
 {
-    public sealed class PlayerCommonApplierTests
+    public sealed class PlayerDiffApplierTests
     {
         private const string CardA = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
         private const string CardB = "01ARZ3NDEKTSV4RRFFQ69G5FAW";
@@ -19,7 +19,7 @@ namespace Uta.Client.Tests
         private PlayerRepository players;
         private IdolRepository idols;
         private SupportCardRepository supportCards;
-        private PlayerCommonApplier applier;
+        private PlayerDiffApplier applier;
 
         [SetUp]
         public void SetUp()
@@ -27,22 +27,22 @@ namespace Uta.Client.Tests
             players = new PlayerRepository();
             idols = new IdolRepository();
             supportCards = new SupportCardRepository();
-            applier = new PlayerCommonApplier(players, idols, supportCards);
+            applier = new PlayerDiffApplier(players, idols, supportCards);
             players.Upsert(new PlayerEntity("P1", 1, 2, 3, 4, 5, true, true));
             idols.Upsert(new IdolEntity("I1", 10, 0, 0, 0));
             supportCards.Upsert(new SupportCardEntity(CardA, 100, 1, 0));
             supportCards.Upsert(new SupportCardEntity(CardB, 200, 1, 0));
         }
 
-        private static AppCommon Common(bool hasBalance, OwnedIdolDto[] idolDtos, OwnedSupportCardDto[] cardDtos, string[] removed)
+        private static PlayerDiffDto Diff(bool hasBalance, OwnedIdolDto[] idolDtos, OwnedSupportCardDto[] cardDtos, string[] removed)
         {
-            return new AppCommon(new PlayerDiff(hasBalance, 9, 8, 7, 6, 5 + 100, idolDtos, cardDtos, removed));
+            return new PlayerDiffDto(hasBalance, 9, 8, 7, 6, 5 + 100, idolDtos, cardDtos, removed);
         }
 
         [Test]
-        public void ApplyAsync_ReplacesBalance_WhenHasBalance()
+        public void Apply_ReplacesBalance_WhenHasBalance()
         {
-            applier.ApplyAsync(Common(true, null, null, null));
+            applier.Apply(Diff(true, null, null, null));
 
             var p = players.Find();
             Assert.AreEqual("P1", p.UniqueId);
@@ -54,34 +54,34 @@ namespace Uta.Client.Tests
         }
 
         [Test]
-        public void ApplyAsync_KeepsBalance_WhenNoBalance()
+        public void Apply_KeepsBalance_WhenNoBalance()
         {
             var before = players.Find();
 
-            applier.ApplyAsync(Common(false, null, null, null));
+            applier.Apply(Diff(false, null, null, null));
 
             Assert.AreSame(before, players.Find());
         }
 
         [Test]
-        public void ApplyAsync_KeepsProduceFlags()
+        public void Apply_KeepsProduceFlags()
         {
-            applier.ApplyAsync(Common(true, null, null, null));
+            applier.Apply(Diff(true, null, null, null));
 
             Assert.IsTrue(players.Find().HasActiveProduce);
             Assert.IsTrue(players.Find().DiscardedProduce);
         }
 
         [Test]
-        public void ApplyAsync_UpsertsIdolAndSupportCard()
+        public void Apply_UpsertsIdolAndSupportCard()
         {
-            var common = Common(
+            var diff = Diff(
                 false,
                 new[] { new OwnedIdolDto(10, 1, 2, 3, "I1"), new OwnedIdolDto(20, 0, 0, 0, "I2") },
                 new[] { new OwnedSupportCardDto(CardA, 100, 5, 1), new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAX", 300, 1, 0) },
                 null);
 
-            applier.ApplyAsync(common);
+            applier.Apply(diff);
 
             Assert.AreEqual(2, idols.FindAll().Count);
             Assert.AreEqual(1, idols.Find("I1").Training);
@@ -92,25 +92,25 @@ namespace Uta.Client.Tests
         }
 
         [Test]
-        public void ApplyAsync_RemovesSupportCard()
+        public void Apply_RemovesSupportCard()
         {
-            applier.ApplyAsync(Common(false, null, null, new[] { CardB, "NOTHING" }));
+            applier.Apply(Diff(false, null, null, new[] { CardB, "NOTHING" }));
 
             Assert.AreEqual(1, supportCards.FindAll().Count);
             Assert.IsNull(supportCards.Find(CardB));
         }
 
         [Test]
-        public void ApplyAsync_IsIdempotent()
+        public void Apply_IsIdempotent()
         {
-            var common = Common(
+            var diff = Diff(
                 true,
                 new[] { new OwnedIdolDto(20, 0, 0, 0, "I2") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAX", 300, 1, 0) },
                 new[] { CardB });
 
-            applier.ApplyAsync(common);
-            applier.ApplyAsync(common);
+            applier.Apply(diff);
+            applier.Apply(diff);
 
             Assert.AreEqual(9, players.Find().Level);
             Assert.AreEqual(2, idols.FindAll().Count);
@@ -119,31 +119,18 @@ namespace Uta.Client.Tests
         }
 
         [Test]
-        public void ApplyAsync_Throws_WhenNotSignedIn()
+        public void Apply_Throws_WhenNotSignedIn()
         {
-            var empty = new PlayerCommonApplier(new PlayerRepository(), new IdolRepository(), new SupportCardRepository());
+            var empty = new PlayerDiffApplier(new PlayerRepository(), new IdolRepository(), new SupportCardRepository());
 
-            Assert.Throws<InvalidOperationException>(() => empty.ApplyAsync(Common(true, null, null, null)));
+            Assert.Throws<InvalidOperationException>(() => empty.Apply(Diff(true, null, null, null)));
         }
 
         [Test]
-        public void ApplyAsync_TreatsNullArraysAsEmpty()
+        public void Apply_TreatsNullArraysAsEmpty()
         {
-            Assert.DoesNotThrow(() => applier.ApplyAsync(Common(false, null, null, null)));
+            Assert.DoesNotThrow(() => applier.Apply(Diff(false, null, null, null)));
 
-            Assert.AreEqual(1, idols.FindAll().Count);
-            Assert.AreEqual(2, supportCards.FindAll().Count);
-        }
-
-        [Test]
-        public void ApplyAsync_DoesNothing_WhenPlayerDiffNull()
-        {
-            var before = players.Find();
-
-            applier.ApplyAsync(new AppCommon(null));
-            applier.ApplyAsync(null);
-
-            Assert.AreSame(before, players.Find());
             Assert.AreEqual(1, idols.FindAll().Count);
             Assert.AreEqual(2, supportCards.FindAll().Count);
         }
