@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Nodes;
 using Uta.Server.Application.Common;
-using Uta.Server.Application.Player;
 using Uta.Server.Domain.Gacha;
+using Uta.Server.Domain.Player;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Gacha;
@@ -36,7 +36,7 @@ public sealed class DrawUseCase(
             var table = (count == 10 && slot == 10) ? gacha.Guaranteed : gacha.Normal;
             var item = table.Items[GachaPicker.Pick(random, table.Weights)];
             var result = (await granter.GrantAsync(tx, playerId, item.Kind, item.ItemId)) with { Slot = slot };
-            await gachas.AddHistoryAsync(tx, new GachaHistoryRow(
+            await gachas.AddHistoryAsync(tx, new GachaHistoryRecord(
                 Ulid.NewUlid(), requestId, playerId, gachaId, slot, table.GachaTableId,
                 (int)result.Kind, result.ItemId, (int)result.Outcome, result.Shards, result.SupportPoints));
             results.Add(result);

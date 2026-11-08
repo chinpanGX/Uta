@@ -1,7 +1,6 @@
-﻿using Uta.Server.Domain.Produce;
-using Uta.Shared.Domain.Produce;
+﻿using Uta.Shared.Domain.Produce;
 
-namespace Uta.Server.Application.Produce;
+namespace Uta.Server.Domain.Produce;
 
 /// <summary>state 列に入れるもの。マスターシード、乱数ストリームの状態、状態の写し。</summary>
 public sealed record ProduceSessionData(ulong MasterSeed, IReadOnlyList<RandomStreamState> Streams, ProduceSnapshot Snapshot);

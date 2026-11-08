@@ -1,6 +1,6 @@
-﻿using Uta.Server.Application.Idol;
-using Uta.Server.Application.Player;
-using Uta.Server.Application.Support;
+﻿using Uta.Server.Domain.Idol;
+using Uta.Server.Domain.Player;
+using Uta.Server.Domain.Support;
 using Uta.Shared.Contracts.Common;
 using Uta.Shared.Contracts.Player;
 using VolTech.Server.Transaction;
@@ -75,7 +75,7 @@ public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolReposito
         var idolDtos = new List<OwnedIdolDto>();
         if (touchedIdols.Count > 0)
         {
-            var owned = await idols.ListAsync(tx, id);
+            var owned = await idols.FindAllAsync(tx, id);
             foreach (var idolId in touchedIdols.Order())
             {
                 var idol = owned.FirstOrDefault(x => x.MasterId == idolId)

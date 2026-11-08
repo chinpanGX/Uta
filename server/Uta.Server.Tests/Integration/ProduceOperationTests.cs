@@ -1,15 +1,15 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Uta.Server.Application.Produce;
+using Microsoft.Extensions.DependencyInjection;
+using Uta.Server.Domain.Produce;
 using Uta.Server.Infrastructure;
 using Uta.Server.Tests.Integration.Support;
-using VolTech.Server.Transaction;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Produce;
+using VolTech.Server.Transaction;
 
 namespace Uta.Server.Tests.Integration;
 

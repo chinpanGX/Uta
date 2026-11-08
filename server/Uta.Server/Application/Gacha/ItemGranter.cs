@@ -1,7 +1,7 @@
-﻿using Uta.Server.Application.Idol;
-using Uta.Server.Application.Player;
-using Uta.Server.Application.Support;
-using Uta.Server.Domain.Gacha;
+﻿using Uta.Server.Domain.Gacha;
+using Uta.Server.Domain.Idol;
+using Uta.Server.Domain.Player;
+using Uta.Server.Domain.Support;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Gacha;

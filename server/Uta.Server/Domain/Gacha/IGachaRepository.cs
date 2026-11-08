@@ -1,6 +1,6 @@
 ﻿using VolTech.Server.Transaction;
 
-namespace Uta.Server.Application.Gacha;
+namespace Uta.Server.Domain.Gacha;
 
 public interface IGachaRepository
 {
@@ -13,5 +13,5 @@ public interface IGachaRepository
     /// <summary>プレイヤーの交換pt。行があるガチャだけ（キーは GachaId）。</summary>
     Task<IReadOnlyDictionary<int, int>> GetExchangePointsAsync(TxContext tx, Ulid playerId);
 
-    Task AddHistoryAsync(TxContext tx, GachaHistoryRow row);
+    Task AddHistoryAsync(TxContext tx, GachaHistoryRecord row);
 }

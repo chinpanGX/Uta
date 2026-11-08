@@ -1,4 +1,4 @@
-﻿using Uta.Server.Application.Produce;
+﻿using Uta.Server.Domain.Produce;
 using Uta.Server.Infrastructure;
 using Uta.Shared.Domain.Produce;
 

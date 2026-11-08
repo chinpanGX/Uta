@@ -1,8 +1,8 @@
 ﻿using Uta.Server.Application.Common;
-using Uta.Server.Application.Idol;
-using Uta.Server.Application.Player;
-using Uta.Server.Application.Support;
+using Uta.Server.Domain.Idol;
+using Uta.Server.Domain.Player;
 using Uta.Server.Domain.Produce;
+using Uta.Server.Domain.Support;
 using Uta.Shared.Domain.Produce;
 using VolTech.Server.Transaction;
 
@@ -36,7 +36,7 @@ public sealed class StartProduceUseCase(
         }
 
         var uids = new HashSet<Ulid>();
-        var owned = new List<OwnedSupportCard>();
+        var owned = new List<SupportCardEntity>();
         foreach (var text in supportCardUids)
         {
             if (!Ulid.TryParse(text, out var uid))

@@ -1,6 +1,7 @@
-﻿using Uta.MasterData;
+﻿using ProduceRank = Uta.Shared.Domain.Produce.ProduceRank;
+using Uta.MasterData;
 using Uta.Server.Application.Produce;
-using ProduceRank = Uta.Shared.Domain.Produce.ProduceRank;
+using Uta.Server.Domain.Produce;
 
 namespace Uta.Server.Infrastructure;
 

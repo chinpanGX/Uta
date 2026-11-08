@@ -1,5 +1,6 @@
 ﻿using Uta.Server.Application.Common;
-using Uta.Server.Application.Player;
+using Uta.Server.Domain.Player;
+using Uta.Server.Domain.Support;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Support;

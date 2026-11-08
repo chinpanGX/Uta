@@ -1,6 +1,6 @@
 ﻿using VolTech.Server.Transaction;
 
-namespace Uta.Server.Application.Produce;
+namespace Uta.Server.Domain.Produce;
 
 public interface IProduceSessionRepository
 {
