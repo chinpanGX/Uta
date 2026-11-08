@@ -24,8 +24,8 @@ namespace Uta.Client.Editor.Prefabs.Screens
             var view = root.AddComponent<FormationSlotRowView>();
 
             var labelText = PrefabBuildUtil.AddLabel(root.transform, "LabelText", "枠: （空）",
-                new TextSpec(UiTheme.FontSmall, UiTheme.Text, TextAlignmentOptions.MidlineLeft, false, true));
-            PrefabBuildUtil.SetLayout(labelText.gameObject, flexibleWidth: 1f);
+                ScreenLayout.SmallLine);
+            PrefabBuildUtil.SetLayout(labelText.gameObject, preferredWidth: 0f, flexibleWidth: 1f);
             var select = PrefabBuildUtil.AddButtonPart(root.transform, "SelectButton", "選ぶ", ButtonStyle.Primary);
             PrefabBuildUtil.SetLayout(select.gameObject, minHeight: 110f, preferredHeight: 110f, preferredWidth: 180f, flexibleWidth: 0f);
             var clear = PrefabBuildUtil.AddButtonPart(root.transform, "ClearButton", "外す", ButtonStyle.Secondary);

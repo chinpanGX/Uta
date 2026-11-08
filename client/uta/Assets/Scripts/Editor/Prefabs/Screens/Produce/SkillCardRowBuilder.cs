@@ -25,7 +25,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
             var view = root.AddComponent<SkillCardRowView>();
 
             var title = PrefabBuildUtil.AddLabel(root.transform, "TitleText", "カード名 [R] アクティブ",
-                new TextSpec(UiTheme.FontBody, UiTheme.Text, TextAlignmentOptions.MidlineLeft, false, true));
+                ScreenLayout.Line);
             PrefabBuildUtil.SetLayout(title.gameObject, minHeight: 52f, preferredHeight: 52f);
             var costs = PrefabBuildUtil.AddLabel(root.transform, "CostsText", "消費 4",
                 new TextSpec(UiTheme.FontSmall, UiTheme.Accent, TextAlignmentOptions.MidlineLeft, false, true));

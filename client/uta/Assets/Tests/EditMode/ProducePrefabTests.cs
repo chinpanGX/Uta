@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using NUnit.Framework;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using Uta.Client.Presentation.Formation;
@@ -254,6 +255,179 @@ namespace Uta.Client.Infrastructure.Tests
             AssertNoChildren(LessonPagePath, "Body/Main/HandScroll/Viewport/Content");
             AssertNoChildren(DeckListModalPath, "Panel/ListScroll/Viewport/Content");
             AssertNoChildren(ExamResultPagePath, "Body/Main/RankingScroll/Viewport/Content");
+        }
+
+        [Test]
+        public void FormationPage_FieldsPointToChildren()
+        {
+            var view = LoadView<FormationPage>(FormationPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "header", "Body/Header");
+            ScreenPrefabAssert.FieldIsChild(view, "idolText", "Body/Main/IdolPanel/IdolText");
+            ScreenPrefabAssert.FieldIsChild(view, "selectIdolButton", "Body/Main/IdolPanel/SelectIdolButton");
+            var slots = new SerializedObject(view).FindProperty("slots");
+            Assert.IsNotNull(slots, "FormationPage.slots not found");
+            Assert.AreEqual(5, slots.arraySize);
+            for (var i = 0; i < slots.arraySize; i++)
+            {
+                var slot = slots.GetArrayElementAtIndex(i).objectReferenceValue as Component;
+                Assert.IsNotNull(slot, "slots[" + i + "] is null");
+                Assert.AreEqual(view.transform.Find("Body/Main/SlotList/Slot" + i).gameObject, slot.gameObject, "slots[" + i + "]");
+            }
+            ScreenPrefabAssert.FieldIsChild(view, "scenarioText", "Body/Main/ScenarioRow/ScenarioText");
+            ScreenPrefabAssert.FieldIsChild(view, "changeScenarioButton", "Body/Main/ScenarioRow/ChangeScenarioButton");
+            ScreenPrefabAssert.FieldIsChild(view, "startButton", "Body/Main/StartButton");
+        }
+
+        [Test]
+        public void ProduceBackdropPage_FieldsPointToChildren()
+        {
+            var view = LoadView<ProduceBackdropPage>(ProduceBackdropPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "headerText", "Body/Main/HeaderText");
+        }
+
+        [Test]
+        public void WeekPage_FieldsPointToChildren()
+        {
+            var view = LoadView<WeekPage>(WeekPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "header", "Body/Header");
+            ScreenPrefabAssert.FieldIsChild(view, "menuButton", "Body/Header/RightSlot/MenuButton");
+            ScreenPrefabAssert.FieldIsChild(view, "nextExamText", "Body/Main/NextExamText");
+            ScreenPrefabAssert.FieldIsChild(view, "statusText", "Body/Main/StatusPanel/StatusText");
+            ScreenPrefabAssert.FieldIsChild(view, "actionList", "Body/Main/ActionList");
+        }
+
+        [Test]
+        public void ClassPage_FieldsPointToChildren()
+        {
+            var view = LoadView<ClassPage>(ClassPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "header", "Body/Header");
+            ScreenPrefabAssert.FieldIsChild(view, "optionList", "Body/Main/OptionList");
+        }
+
+        [Test]
+        public void SupplyPage_FieldsPointToChildren()
+        {
+            var view = LoadView<SupplyPage>(SupplyPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "header", "Body/Header");
+            ScreenPrefabAssert.FieldIsChild(view, "receiveButton", "Body/Main/ReceiveButton");
+        }
+
+        [Test]
+        public void CardOfferModal_FieldsPointToChildren()
+        {
+            var view = LoadView<CardOfferModal>(CardOfferModalPath);
+            ScreenPrefabAssert.FieldIsChild(view, "cardList", "Panel/CardList");
+            ScreenPrefabAssert.FieldIsChild(view, "deckCountText", "Panel/DeckCountText");
+            ScreenPrefabAssert.FieldIsChild(view, "declineButton", "Panel/DeclineButton");
+        }
+
+        [Test]
+        public void LessonPage_FieldsPointToChildren()
+        {
+            var view = LoadView<LessonPage>(LessonPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "header", "Body/Header");
+            ScreenPrefabAssert.FieldIsChild(view, "menuButton", "Body/Header/RightSlot/MenuButton");
+            ScreenPrefabAssert.FieldIsChild(view, "turnText", "Body/Main/TurnText");
+            ScreenPrefabAssert.FieldIsChild(view, "progressText", "Body/Main/ProgressText");
+            ScreenPrefabAssert.FieldIsChild(view, "statusText", "Body/Main/StatusText");
+            ScreenPrefabAssert.FieldIsChild(view, "lastResultText", "Body/Main/LastResultText");
+            ScreenPrefabAssert.FieldIsChild(view, "pilesButton", "Body/Main/PilesButton");
+            ScreenPrefabAssert.FieldIsChild(view, "handContent", "Body/Main/HandScroll/Viewport/Content");
+            ScreenPrefabAssert.FieldIsChild(view, "skipButton", "Body/Main/SkipButton");
+        }
+
+        [Test]
+        public void DeckListModal_FieldsPointToChildren()
+        {
+            var view = LoadView<DeckListModal>(DeckListModalPath);
+            ScreenPrefabAssert.FieldIsChild(view, "listContent", "Panel/ListScroll/Viewport/Content");
+            ScreenPrefabAssert.FieldIsChild(view, "closeButton", "Panel/CloseButton");
+        }
+
+        [Test]
+        public void ExamResultPage_FieldsPointToChildren()
+        {
+            var view = LoadView<ExamResultPage>(ExamResultPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "titleText", "Body/Main/TitleText");
+            ScreenPrefabAssert.FieldIsChild(view, "rankingContent", "Body/Main/RankingScroll/Viewport/Content");
+            ScreenPrefabAssert.FieldIsChild(view, "outcomeText", "Body/Main/OutcomeText");
+            ScreenPrefabAssert.FieldIsChild(view, "retryButton", "Body/Main/RetryButton");
+            ScreenPrefabAssert.FieldIsChild(view, "nextButton", "Body/Main/NextButton");
+        }
+
+        [Test]
+        public void ProduceResultPage_FieldsPointToChildren()
+        {
+            var view = LoadView<ProduceResultPage>(ProduceResultPagePath);
+            ScreenPrefabAssert.FieldIsChild(view, "rankText", "Body/Main/RankText");
+            ScreenPrefabAssert.FieldIsChild(view, "linesText", "Body/Main/LinesText");
+            ScreenPrefabAssert.FieldIsChild(view, "homeButton", "Body/Main/HomeButton");
+        }
+
+        [Test]
+        public void FormationSlotRow_FieldsPointToChildren()
+        {
+            var view = LoadView<FormationSlotRowView>(FormationSlotRowPath);
+            ScreenPrefabAssert.FieldIsChild(view, "labelText", "LabelText");
+            ScreenPrefabAssert.FieldIsChild(view, "selectButton", "SelectButton");
+            ScreenPrefabAssert.FieldIsChild(view, "clearButton", "ClearButton");
+        }
+
+        [Test]
+        public void SkillCardRow_FieldsPointToChildren()
+        {
+            var view = LoadView<SkillCardRowView>(SkillCardRowPath);
+            ScreenPrefabAssert.FieldIsChild(view, "titleText", "TitleText");
+            ScreenPrefabAssert.FieldIsChild(view, "costsText", "CostsText");
+            ScreenPrefabAssert.FieldIsChild(view, "descriptionText", "DescriptionText");
+            AssertFieldIsRootComponent(view, "button", view.GetComponent<UnityEngine.UI.Button>());
+            AssertFieldIsRootComponent(view, "background", view.GetComponent<UnityEngine.UI.Image>());
+        }
+
+        [Test]
+        public void ExamRankingRow_FieldsPointToChildren()
+        {
+            var view = LoadView<ExamRankingRowView>(ExamRankingRowPath);
+            ScreenPrefabAssert.FieldIsChild(view, "text", "Text");
+            AssertFieldIsRootComponent(view, "background", view.GetComponent<UnityEngine.UI.Image>());
+        }
+
+        [Test]
+        public void DeckRows_TextIsOwnTmp()
+        {
+            var header = LoadView<DeckSectionHeaderRowView>(DeckSectionHeaderRowPath);
+            AssertFieldIsRootComponent(header, "headerText", header.GetComponent<TMP_Text>());
+            var card = LoadView<DeckCardRowView>(DeckCardRowPath);
+            AssertFieldIsRootComponent(card, "text", card.GetComponent<TMP_Text>());
+        }
+
+        [Test]
+        public void PagesWithoutBackTarget_HaveNoHeader()
+        {
+            foreach (var path in new[] { ExamResultPagePath, ProduceResultPagePath, ProduceBackdropPagePath })
+            {
+                Assert.IsNull(ScreenPrefabAssert.Load(path).transform.Find("Body/Header"), path + ": Body/Header exists");
+            }
+        }
+
+        [Test]
+        public void HeaderTitle_IsLeftAlignedWithoutBackButton()
+        {
+            foreach (var path in new[] { WeekPagePath, LessonPagePath })
+            {
+                var title = FindChild(ScreenPrefabAssert.Load(path), path, "Body/Header/TitleText").GetComponent<TMP_Text>();
+                Assert.IsNotNull(title, path + ": TitleText has no TMP_Text");
+                Assert.AreEqual(TextAlignmentOptions.MidlineLeft, title.alignment, path + ": TitleText.alignment");
+            }
+        }
+
+        private static void AssertFieldIsRootComponent(Component view, string fieldName, Component expected)
+        {
+            var label = view.GetType().Name + "." + fieldName;
+            Assert.IsNotNull(expected, label + ": expected component is missing on root");
+            var property = new SerializedObject(view).FindProperty(fieldName);
+            Assert.IsNotNull(property, label + ": field not found");
+            Assert.AreEqual(expected, property.objectReferenceValue, label);
         }
 
         private static void AssertRootView(string path, Type viewType)

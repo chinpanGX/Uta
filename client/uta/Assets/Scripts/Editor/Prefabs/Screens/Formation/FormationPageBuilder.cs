@@ -50,7 +50,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
             // flexibleHeight 0: HLG の伸ばす H が true なので、明示しないと flexibleHeight 1 になり、親の VLG の余りを吸う
             PrefabBuildUtil.SetLayout(scenarioRow.gameObject, minHeight: 130f, preferredHeight: 130f, flexibleHeight: 0f);
             var scenarioText = PrefabBuildUtil.AddLabel(scenarioRow, "ScenarioText", "シナリオ: なし", ScreenLayout.Line);
-            PrefabBuildUtil.SetLayout(scenarioText.gameObject, flexibleWidth: 1f);
+            PrefabBuildUtil.SetLayout(scenarioText.gameObject, preferredWidth: 0f, flexibleWidth: 1f);
             var changeScenario = PrefabBuildUtil.AddButtonPart(scenarioRow, "ChangeScenarioButton", "変更", ButtonStyle.Secondary);
             PrefabBuildUtil.SetLayout(changeScenario.gameObject, preferredWidth: 200f, flexibleWidth: 0f);
 

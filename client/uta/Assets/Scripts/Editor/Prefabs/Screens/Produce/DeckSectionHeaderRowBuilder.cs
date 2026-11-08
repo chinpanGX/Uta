@@ -17,7 +17,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
         {
             var root = PrefabBuildUtil.CreateRoot(Name);
             var text = PrefabBuildUtil.AddText(root, "山札 0 枚",
-                new TextSpec(UiTheme.FontBody, UiTheme.Accent, TextAlignmentOptions.MidlineLeft, false, true));
+                ScreenLayout.Heading);
             PrefabBuildUtil.SetLayout(root, minHeight: 60f, preferredHeight: 60f);
             var view = root.AddComponent<DeckSectionHeaderRowView>();
 

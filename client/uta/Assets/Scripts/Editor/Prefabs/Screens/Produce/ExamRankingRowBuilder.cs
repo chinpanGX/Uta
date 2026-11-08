@@ -22,7 +22,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
             var view = root.AddComponent<ExamRankingRowView>();
 
             var text = PrefabBuildUtil.AddLabel(root.transform, "Text", "1位　ライバル 1　1,000",
-                new TextSpec(UiTheme.FontBody, UiTheme.Text, TextAlignmentOptions.MidlineLeft, false, true));
+                ScreenLayout.Line);
             PrefabBuildUtil.SetRect((RectTransform)text.transform, RectSpec.Stretch(32f, 32f, 0f, 0f));
 
             PrefabBuildUtil.SetRef(view, "background", image);
