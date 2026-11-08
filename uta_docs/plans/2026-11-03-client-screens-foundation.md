@@ -1512,6 +1512,7 @@ Play モード・手動（Editor、サーバー起動済み）:
 | 最後 | 完了 | （このコミット） | `UiRoot` を足したあとの Bootstrap（`63be66e`）でも、Windows の IL2CPP のビルドと `-uta-quit-after-check`（終了コード 0・`connectivity check: OK`）が通った。引数なしの起動の手動の確認は、`UiRoot` を足す前（`4d30930` の時点）のもの |
 | PR #52 のコメント | 完了 | （このコミット） | 8 章のとおり: ダイアログを USN の Overlay（`DialogPresenter`・`PushOverlayAsync`）で出す、Bootstrap の失敗のダイアログは小さいスコープ、変数名を型名に合わせた。Play で、ホームの「準備中です。」と Bootstrap の「マスタを読めませんでした: …」が `UiRoot/Overlays` の下に出ることを確かめた。Editor は Play に入るときのドメインのリロードを切っているので、2 回目以降の Play では USN が static に持つ前の Play の `PageContainer`（破棄済み）に触って Push が例外になる（Editor だけ。基盤の USN の別の作業）。`PrefabBuildCommands.BuildAll` で `OwnedPage.prefab` にも差分が出たので戻した（別のずれ）。`PlaceholderCharacterStage` の `label` は直していない |
 | 9 章（static の禁止） | 完了 | （このコミット） | 9 章のとおり。CLAUDE.md に決まりを足し、`PrefabBuildUtil` の static のシーンを `PrefabBuildSession` にした。計画に無かったところ: `GachaRowBuilders.cs` の内部の補助 `GachaRowPrefab.Build` にも `session` を足した（`CreateRoot` を呼ぶため）。`BuildAll` は `built 35` で、Prefab の中身は変わらない（`OwnedPage.prefab` の前からのずれは戻した） |
+| レビュー 3 | 完了 | （このコミット） | 8.7 のとおり C1（USN の遷移中にダイアログを押せない。ユーザーの判断で Dialog に CanvasGroup の ignoreParentGroups）・I1・M1・M2・M4 を直した。M3（名前の規則の対象外: 計画が指定した builder・session、UiObjects の GameObject・Transform、ローカル変数の扱い）と M5（−1 で終わるのが VContainer の破棄の順に頼っていること）は残した。確かめたのはバッチモード: Prefab の生成（built 35、変わったのは Dialog.prefab だけ）・EditMode 210 件。遷移の最中に押せることの Play での確認はしていない（Editor が使えなかった） |
 
 ## 8. PR #52 のレビューへの対応（2026-11-09。ユーザーのコメント）
 
@@ -1636,6 +1637,44 @@ public sealed class DialogPresenter : IPresenter, IScreenWithArgs<DialogArgs>
 - `screen-design.md` で、ダイアログを「素の層（`UiRoot.DialogLayer`）」「USN の遷移の外」に出すと書いた所（7.4・7.5・8章・実装メモ）を、8.1・8.2 の形に直す
 - `BusyIndicator` が UiRoot の層に残る理由を 1 文書く
 - `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
+
+### 8.7 3 回目のコードレビューへの対応（2026-11-09）
+
+報告は `uta_docs/reviews/.raw/2026-11-08-client-screens-foundation/code-client-3.md`（Git には入れない）。直すのは C1・I1・M1・M2・M4。M3（規則の対象外の扱い）と M5 は直さず、実装メモに残す。
+
+- **C1. USN の遷移の最中もダイアログを押せるようにする**（ユーザーの判断 2026-11-09: 直し方 (a)）
+  - 起きていたこと:
+    - 基盤の USN は、どれかのコンテナーが遷移している間、`Overlays` を含む全部のコンテナーの `CanvasGroup.interactable` を false にする（設定の既定値）
+    - そのため、ページの `InitializeAsync` の通信でエラーのダイアログが出ると、押せずに画面が固まる
+  - `DialogBuilder`: ルートに `CanvasGroup` を付け、`ignoreParentGroups = true` にする（`interactable`・`blocksRaycasts` は true、`alpha` は 1）
+    - USN の `Modal` は `GetOrAddComponent<CanvasGroup>()` で同じものを使う
+    - 二度押しは `DialogPresenter` が止める
+  - `DialogOpener` のクラスの `<summary>` は、実際の動きに合わせる: 「USN の Overlay に出す。ダイアログの Prefab の `CanvasGroup` が `ignoreParentGroups` なので、ページの遷移の最中（`InitializeAsync` の通信のエラーなど）にも押せる」
+  - `PrefabContractTests` に足す: `Dialog` のルートに `CanvasGroup` があり、`ignoreParentGroups` が true
+  - `screen-design.md`（ダイアログの項。181 行付近）に足す: 遷移の最中もダイアログを押せること、その理由と仕組み（USN は遷移中に全コンテナーを止めるので、ダイアログだけ `ignoreParentGroups` で外す）
+- **M2. 暗幕が二重になる**
+  - `DialogBuilder`: ルートの暗幕の `Image`（`PrefabBuildUtil.AddImage(root, UiTheme.Overlay, true)` の行）を消す
+  - 暗幕と入力の遮断は、USN の `DefaultModalBackdrop` に任せる（ほかのモーダルの `ModalBase` と同じ）
+- **I1. 名前の規則の漏れ**（8.5 の規則。テストは対象外）
+  - `ActiveSceneUi`: `Attach(UiRoot root, …)`・`Detach(UiRoot root)` の `root` → `uiRoot`
+    - 中の参照、`nameof(root)` → `nameof(uiRoot)`、`<summary>` の `root` も直す
+    - プロパティ `Root` は今のまま
+  - `StartupLogs`: `SignUp(EnterPlayerResult entered)`・`SignIn(EnterPlayerResult e)` → `enterPlayerResult`、`Failed(Exception e)` → `exception`
+- **M1. Push の途中でシーンが閉じたとき**
+  - `DialogOpener` の 1 件の表示で、`PushOverlayAsync` と `WaitForPopAsync` の 2 つの `await` を `try` で包む
+  - `catch (Exception) when (disposed) { return -1; }` にする（スコープの破棄のあとに届く例外だけを −1 にする）
+  - `DialogOpenerTests` に `PushThrows_AfterDispose_ReturnsMinusOne` を足す
+    - `FakeScreenNavigator` に、`PushOverlayAsync` で例外を投げる口を足す（例: `public Exception PushOverlayException { get; set; }`。null でなければ投げる）
+    - テストの手順: 例外を設定する → `Dispose` してから要求する。順番が来たときに `disposed` だと Push しないので、Push の途中で `Dispose` したのと同じになるよう、`PushOverlayAsync` の中で `Dispose` を呼んでから投げる。具体的には、`FakeScreenNavigator` に `Action OnPushOverlay` を足し、テストで `() => opener.Dispose()` を入れる
+    - 期待: 結果は −1 で、例外は外へ出ない
+- **M4. `PrefabBuildSession` の `<summary>`**: 「PrefabBuildCommands が using で作り」を「`PrefabBuildCommands.BuildAll` が作り、`finally` で `Dispose` する」に直す
+- 確かめ方（進行役が Unity のバッチモードで回す。実装担当は Unity を起動しない）:
+  - `PrefabBuildCommands.BuildAllBatch` で Prefab を作り直す
+    - 変わるのは `Dialog.prefab` だけのはず
+    - `OwnedPage.prefab`・`NotoSansJP` の差分は戻す
+  - EditMode の全件が通る
+  - wiki の Lint のエラー 0
+  - Play での確認（遷移の最中に押せること）は、今回はしない（Editor が使えないため。PR の本文に書く）
 
 ## 9. 変わる static の状態の禁止（2026-11-09。ユーザーの依頼）
 

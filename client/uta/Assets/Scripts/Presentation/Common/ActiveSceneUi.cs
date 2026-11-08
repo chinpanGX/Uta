@@ -24,12 +24,12 @@ namespace Uta.Client.Presentation.Common
             }
         }
 
-        /// <summary>root・dialogOpener のどちらかが null なら ArgumentNullException。前に入っていたものは置き換える。</summary>
-        public void Attach(UiRoot root, DialogOpener dialogOpener)
+        /// <summary>uiRoot・dialogOpener のどちらかが null なら ArgumentNullException。前に入っていたものは置き換える。</summary>
+        public void Attach(UiRoot uiRoot, DialogOpener dialogOpener)
         {
-            if (ReferenceEquals(root, null))
+            if (ReferenceEquals(uiRoot, null))
             {
-                throw new ArgumentNullException(nameof(root));
+                throw new ArgumentNullException(nameof(uiRoot));
             }
 
             if (dialogOpener == null)
@@ -37,14 +37,14 @@ namespace Uta.Client.Presentation.Common
                 throw new ArgumentNullException(nameof(dialogOpener));
             }
 
-            Root = root;
+            Root = uiRoot;
             Dialogs = dialogOpener;
         }
 
-        /// <summary>ReferenceEquals(Root, root) のときだけ Root・Dialogs を null にする。違えば何もしない（新しいシーンが先に Attach した場合）。</summary>
-        public void Detach(UiRoot root)
+        /// <summary>ReferenceEquals(Root, uiRoot) のときだけ Root・Dialogs を null にする。違えば何もしない（新しいシーンが先に Attach した場合）。</summary>
+        public void Detach(UiRoot uiRoot)
         {
-            if (ReferenceEquals(Root, root))
+            if (ReferenceEquals(Root, uiRoot))
             {
                 Root = null;
                 Dialogs = null;

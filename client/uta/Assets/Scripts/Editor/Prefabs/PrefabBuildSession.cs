@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 namespace Uta.Client.Editor.Prefabs
 {
-    /// <summary>Prefab を作る間だけ開くプレビューのシーン。PrefabBuildCommands が using で作り、各 Builder に渡す。</summary>
+    /// <summary>Prefab を作る間だけ開くプレビューのシーン。PrefabBuildCommands.BuildAll が作り、finally で Dispose する。各 Builder に渡す。</summary>
     public sealed class PrefabBuildSession : IDisposable
     {
         private Scene scene;

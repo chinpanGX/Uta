@@ -131,5 +131,16 @@ namespace Uta.Client.Tests
             Assert.AreEqual(-1, second.GetAwaiter().GetResult());
             Assert.AreEqual(1, navigator.Args.Count);
         }
+
+        [Test]
+        public void PushThrows_AfterDispose_ReturnsMinusOne()
+        {
+            navigator.OnPushOverlay = () => opener.Dispose();
+            navigator.PushOverlayException = new InvalidOperationException("scope disposed");
+
+            var task = opener.ChooseAsync("m", new[] { "x" });
+
+            Assert.AreEqual(-1, task.GetAwaiter().GetResult());
+        }
     }
 }

@@ -8,7 +8,7 @@ namespace Uta.Client.Presentation.Common
     /// <summary>
     /// 確認・お知らせ・選択のダイアログを開く。要求は FIFO で 1 つずつ処理する。
     /// テストで派生させる（FakeDialogOpener）ので sealed にせず、公開メソッドは virtual。
-    /// USN の Overlay（IScreenNavigator.PushOverlayAsync）に DialogPresenter を出す。Overlay はページ遷移の最中にも出せる。
+    /// USN の Overlay（IScreenNavigator.PushOverlayAsync）に DialogPresenter を出す。ダイアログの Prefab の CanvasGroup が ignoreParentGroups なので、ページの遷移の最中（InitializeAsync の通信のエラーなど）にも押せる。
     /// </summary>
     public class DialogOpener : IDisposable
     {
@@ -93,11 +93,18 @@ namespace Uta.Client.Presentation.Common
                 throw new InvalidOperationException("screen navigator is not set");
             }
 
-            var presenter = await screenNavigator.PushOverlayAsync<DialogPresenter, DialogArgs>(
-                new DialogArgs(message, labels, colors),
-                playAnimation: false);
-            var result = await screenNavigator.WaitForPopAsync<object>(presenter);
-            return result is int index ? index : -1;
+            try
+            {
+                var presenter = await screenNavigator.PushOverlayAsync<DialogPresenter, DialogArgs>(
+                    new DialogArgs(message, labels, colors),
+                    playAnimation: false);
+                var result = await screenNavigator.WaitForPopAsync<object>(presenter);
+                return result is int index ? index : -1;
+            }
+            catch (Exception) when (disposed)
+            {
+                return -1;                               // スコープの破棄のあとに届いた例外
+            }
         }
     }
 }

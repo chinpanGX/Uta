@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityScreenNavigator;
@@ -20,6 +21,12 @@ namespace Uta.Client.Tests
 
         /// <summary>WaitForPopAsync が返す値。空なら default(TResult)。</summary>
         public Queue<object> PopResults { get; } = new Queue<object>();
+
+        /// <summary>null でなければ、PushOverlayAsync はこの例外を投げる（OnPushOverlay を呼んだあと）。</summary>
+        public Exception PushOverlayException { get; set; }
+
+        /// <summary>PushOverlayAsync の先頭で呼ぶ（Push の途中の出来事をテストで再現する）。</summary>
+        public Action OnPushOverlay { get; set; }
 
         /// <summary>空でなければ、WaitForPopAsync は先頭の Source が終わるまで待ち、その値を返す（待ち行列のテスト用）。</summary>
         public Queue<UniTaskCompletionSource<object>> PopGates { get; } = new Queue<UniTaskCompletionSource<object>>();
@@ -93,6 +100,16 @@ namespace Uta.Client.Tests
         {
             log.Add("PushOverlay:" + typeof(TPresenter).Name);
             Args.Add(args);
+            if (OnPushOverlay != null)
+            {
+                OnPushOverlay();
+            }
+
+            if (PushOverlayException != null)
+            {
+                throw PushOverlayException;
+            }
+
             return UniTask.FromResult(default(TPresenter));
         }
 

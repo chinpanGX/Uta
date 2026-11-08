@@ -22,8 +22,12 @@ namespace Uta.Client.Editor.Prefabs.Parts
         public void Build(PrefabBuildSession session)
         {
             var root = session.CreateRoot("Dialog");
-            // 下の入力を止める
-            PrefabBuildUtil.AddImage(root, UiTheme.Overlay, true);
+            // USN の遷移の最中も押せるよう、親の CanvasGroup（遷移中は interactable=false）を外す。暗幕と入力の遮断は USN の DefaultModalBackdrop に任せる
+            var canvasGroup = root.AddComponent<CanvasGroup>();
+            canvasGroup.ignoreParentGroups = true;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+            canvasGroup.alpha = 1f;
             var view = root.AddComponent<DialogView>();
 
             // 高さは ContentSizeFitter が決める

@@ -11,19 +11,19 @@ namespace Uta.Client.Presentation.Title
             return registered ? "device: registered" : "device: token issued";
         }
 
-        public static string SignUp(EnterPlayerResult entered)
+        public static string SignUp(EnterPlayerResult enterPlayerResult)
         {
-            return "sign-up: " + (!entered.SignedUp ? "skipped" : entered.Created ? "created" : "already exists");
+            return "sign-up: " + (!enterPlayerResult.SignedUp ? "skipped" : enterPlayerResult.Created ? "created" : "already exists");
         }
 
-        public static string SignIn(EnterPlayerResult e)
+        public static string SignIn(EnterPlayerResult enterPlayerResult)
         {
-            return "sign-in: ok level=" + e.Player.Level + " exp=" + e.Player.Exp + " gold=" + e.Player.Gold + " supportPoints=" + e.Player.SupportPoints + " gachaCurrency=" + e.Player.GachaCurrency + " idols=" + e.IdolCount + " supportCards=" + e.SupportCardCount + " hasActiveProduce=" + e.Player.HasActiveProduce + " discardedProduce=" + e.Player.DiscardedProduce;
+            return "sign-in: ok level=" + enterPlayerResult.Player.Level + " exp=" + enterPlayerResult.Player.Exp + " gold=" + enterPlayerResult.Player.Gold + " supportPoints=" + enterPlayerResult.Player.SupportPoints + " gachaCurrency=" + enterPlayerResult.Player.GachaCurrency + " idols=" + enterPlayerResult.IdolCount + " supportCards=" + enterPlayerResult.SupportCardCount + " hasActiveProduce=" + enterPlayerResult.Player.HasActiveProduce + " discardedProduce=" + enterPlayerResult.Player.DiscardedProduce;
         }
 
-        public static string Failed(Exception e)
+        public static string Failed(Exception exception)
         {
-            return "start: FAILED " + e.GetType().FullName + ": " + e.Message;
+            return "start: FAILED " + exception.GetType().FullName + ": " + exception.Message;
         }
     }
 }

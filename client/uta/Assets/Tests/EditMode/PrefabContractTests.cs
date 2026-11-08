@@ -171,6 +171,9 @@ namespace Uta.Client.Tests
             Assert.IsNotNull(view);
             Assert.IsNotNull(view.GetComponent<Modal>());
             Assert.IsNotNull(new SerializedObject(view).FindProperty("panel").objectReferenceValue);
+            var group = dialog.GetComponent<CanvasGroup>();
+            Assert.IsNotNull(group);
+            Assert.IsTrue(group.ignoreParentGroups);
 
             var settings = AddressableAssetSettingsDefaultObject.Settings;
             Assert.IsNotNull(settings, "Addressables settings not found");
