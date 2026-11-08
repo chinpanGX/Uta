@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
-status: in-progress
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -1509,3 +1509,4 @@ Play モード・手動（Editor、サーバー起動済み）:
 | 6 | 完了 | `da54140` | `Uta.Client.Bootstrap` の参照は「すべて」なので UnityScreenNavigator は足していない。IL2CPP の行は進行役が足した |
 | レビュー 1 | 完了 | `ec998f2`・`63be66e` | C1（Bootstrap に UiRoot が無い）・I1（取り直しの中の遷移のあとに外側がホームへ行く。ユーザーの判断で R4 に足した）・I2（screen-design の古い記述）・M1・M4（一部）を直した。C1 は Play でマスタのバイナリを一時的に外し、Bootstrap に「マスタを読めませんでした: …」が出ることを確かめた。M2（破棄の知らせの順序のテスト）・M3（`ErrorDialogView` の Ok・Home・Title・Store のテスト）・M4 の `ErrorDialogViewTests` の余分な `{ }` は残した |
 | レビュー 2 | 完了 | （このコミット） | Critical 0・Important 1（screen-design.md 8章の `ErrorNavigator` の説明が古い）を直した。Minor 3 件は残した: M1 `navigations` で飛ばす理由のコメント、M2 飛ばしたあとの次の「ホームへ」のログでの確認、M3 `SceneContractTests`・`SceneBuilder` の細部（報告は `uta_docs/reviews/.raw/2026-11-08-client-screens-foundation/code-client-2.md`。Git には入れない） |
+| 最後 | 完了 | （このコミット） | `UiRoot` を足したあとの Bootstrap（`63be66e`）でも、Windows の IL2CPP のビルドと `-uta-quit-after-check`（終了コード 0・`connectivity check: OK`）が通った。引数なしの起動の手動の確認は、`UiRoot` を足す前（`4d30930` の時点）のもの |
