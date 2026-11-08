@@ -6,14 +6,14 @@ namespace Uta.Shared.Contracts.Gacha
     public sealed class ExchangeRequest
     {
         [SerializationConstructor]
-        public ExchangeRequest(int gachaId, int ceilingItemOrder)
+        public ExchangeRequest(int gachaMasterId, int ceilingItemOrder)
         {
-            GachaId = gachaId;
+            GachaMasterId = gachaMasterId;
             CeilingItemOrder = ceilingItemOrder;
         }
 
         [Key(0)]
-        public int GachaId { get; }
+        public int GachaMasterId { get; }
 
         /// <summary>GachaCeilingItem の Order。</summary>
         [Key(1)]

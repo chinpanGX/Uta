@@ -6,15 +6,15 @@ namespace Uta.Shared.Contracts.Gacha
     public sealed class DrawResultDto
     {
         [SerializationConstructor]
-        public DrawResultDto(int slot, ItemKind itemKind, int itemId, GachaOutcome outcome, int shards, int supportPoints, string supportCardUid)
+        public DrawResultDto(int slot, ItemKind itemKind, int itemMasterId, GachaOutcome outcome, int shards, int supportPoints, string supportCardUniqueId)
         {
             Slot = slot;
             ItemKind = itemKind;
-            ItemId = itemId;
+            ItemMasterId = itemMasterId;
             Outcome = outcome;
             Shards = shards;
             SupportPoints = supportPoints;
-            SupportCardUid = supportCardUid;
+            SupportCardUniqueId = supportCardUniqueId;
         }
 
         /// <summary>1〜10。交換は 0。</summary>
@@ -26,7 +26,7 @@ namespace Uta.Shared.Contracts.Gacha
 
         /// <summary>育成アイドルなら IdolId、サポートカードなら SupportCardId。</summary>
         [Key(2)]
-        public int ItemId { get; }
+        public int ItemMasterId { get; }
 
         [Key(3)]
         public GachaOutcome Outcome { get; }
@@ -41,6 +41,6 @@ namespace Uta.Shared.Contracts.Gacha
 
         /// <summary>増えたサポートカードの所持ID。無ければ空文字（null にしない）。</summary>
         [Key(6)]
-        public string SupportCardUid { get; }
+        public string SupportCardUniqueId { get; }
     }
 }

@@ -17,7 +17,7 @@ public sealed class LimitBreakUseCase(ISupportCardRepository supportCards, ISupp
             throw new UseCaseException(UseCaseError.SupportInvalidMaterial, "material is the same card");
         }
 
-        if (!await supportCards.TryDeleteMaterialAsync(tx, playerId, materialUid, target.CardId))
+        if (!await supportCards.TryDeleteMaterialAsync(tx, playerId, materialUid, target.MasterId))
         {
             throw new UseCaseException(UseCaseError.SupportInvalidMaterial, "invalid material");
         }
@@ -28,8 +28,8 @@ public sealed class LimitBreakUseCase(ISupportCardRepository supportCards, ISupp
 
         tx.WriteGameLog(GameLog.Event("support", "support_limit_break")
             .Target(uid.ToString())
-            .Field("card_id", target.CardId).Field("material_uid", materialUid.ToString()).Field("limit_break", limitBreak));
+            .Field("card_id", target.MasterId).Field("material_uid", materialUid.ToString()).Field("limit_break", limitBreak));
 
-        return new LimitBreakResult(limitBreak, catalog.GetMaxLevel(target.CardId, limitBreak));
+        return new LimitBreakResult(limitBreak, catalog.GetMaxLevel(target.MasterId, limitBreak));
     }
 }

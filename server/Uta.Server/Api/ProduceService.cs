@@ -25,7 +25,7 @@ public sealed class ProduceService(
         return await transactions.RunAsync(Context, async tx =>
         {
             var view = await start.ExecuteAsync(
-                tx, playerId, appVersion, request.IdolId, request.SupportCardUids ?? [], request.RentalCandidateId, request.ScenarioId);
+                tx, playerId, appVersion, request.IdolMasterId, request.SupportCardUniqueIds ?? [], request.RentalCandidateMasterId, request.ScenarioMasterId);
             return ProduceResponseMapper.ToStateResponse(view);
         });
     }

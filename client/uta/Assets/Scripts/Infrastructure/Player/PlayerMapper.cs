@@ -18,12 +18,12 @@ namespace Uta.Client.Infrastructure.Player
 
         public static IdolEntity ToIdolEntity(OwnedIdolDto dto)
         {
-            return new IdolEntity(dto.IdolUid, dto.IdolId, dto.Training, dto.Awakening, dto.Shards);
+            return new IdolEntity(dto.UniqueId, dto.MasterId, dto.Training, dto.Awakening, dto.Shards);
         }
 
         public static SupportCardEntity ToSupportCardEntity(OwnedSupportCardDto dto)
         {
-            return new SupportCardEntity(dto.SupportCardUid, dto.CardId, dto.Level, dto.LimitBreak);
+            return new SupportCardEntity(dto.UniqueId, dto.MasterId, dto.Level, dto.LimitBreak);
         }
 
         public static List<IdolEntity> ToIdolEntities(OwnedIdolDto[] dtos)

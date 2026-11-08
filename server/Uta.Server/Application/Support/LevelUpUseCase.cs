@@ -13,13 +13,13 @@ public sealed class LevelUpUseCase(IPlayerRepository players, ISupportCardReposi
         var state = await supportCards.FindAsync(tx, playerId, uid)
             ?? throw new UseCaseException(UseCaseError.SupportNotOwned, "support card not owned");
 
-        var max = catalog.GetMaxLevel(state.CardId, state.LimitBreak);
+        var max = catalog.GetMaxLevel(state.MasterId, state.LimitBreak);
         if (targetLevel <= state.Level || targetLevel > max)
         {
             throw new UseCaseException(UseCaseError.SupportInvalidTargetLevel, "invalid target level");
         }
 
-        var cost = catalog.GetLevelUpCost(state.CardId, state.Level, targetLevel);
+        var cost = catalog.GetLevelUpCost(state.MasterId, state.Level, targetLevel);
         var balance = await players.TrySpendSupportAndGoldAsync(tx, playerId, cost.SupportPoints, cost.Gold);
         if (balance is null)
         {
@@ -34,7 +34,7 @@ public sealed class LevelUpUseCase(IPlayerRepository players, ISupportCardReposi
 
         tx.WriteGameLog(GameLog.Event("support", "support_level_up")
             .Target(uid.ToString())
-            .Field("card_id", state.CardId).Field("from_level", state.Level).Field("to_level", targetLevel)
+            .Field("card_id", state.MasterId).Field("from_level", state.Level).Field("to_level", targetLevel)
             .Field("support_points_spent", cost.SupportPoints).Field("gold_spent", cost.Gold)
             .Field("support_points_after", balance.SupportPoints).Field("gold_after", balance.Gold));
 

@@ -53,7 +53,7 @@ public class ProducePlayTests(PostgresFixture postgres)
     private static async Task<(ProduceDriver Driver, ProduceStateResponse Final)> PlayShortestAsync(
         PlayerClient player, SignInResponse signIn, string requestId = "req-3")
     {
-        var uids = signIn.SupportCards.Take(2).Select(x => x.SupportCardUid).ToArray();
+        var uids = signIn.SupportCards.Take(2).Select(x => x.UniqueId).ToArray();
         var started = await StartProduceAsync(player, requestId, uids, 1);
         var driver = new ProduceDriver(player);
         var final = await driver.PlayToEndAsync(started);
@@ -140,7 +140,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         await using var factory = NewFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var (player, signIn) = await NewPlayerAsync(channel);
-        var uids = signIn.SupportCards.Take(2).Select(x => x.SupportCardUid).ToArray();
+        var uids = signIn.SupportCards.Take(2).Select(x => x.UniqueId).ToArray();
         var started = await StartProduceAsync(player, "req-3", uids, 1);
         var current = await player.CallAsync<IProduceService, ProduceStateResponse>(
             x => x.ChooseWeekActionAsync(new ChooseWeekActionRequest(started.OperationNumber, 0, -1, ParamKind.Singing)), "req-4");

@@ -6,20 +6,20 @@ namespace Uta.Shared.Contracts.Player
     public sealed class OwnedSupportCardDto
     {
         [SerializationConstructor]
-        public OwnedSupportCardDto(string supportCardUid, int cardId, int level, int limitBreak)
+        public OwnedSupportCardDto(string uniqueId, int masterId, int level, int limitBreak)
         {
-            SupportCardUid = supportCardUid;
-            CardId = cardId;
+            UniqueId = uniqueId;
+            MasterId = masterId;
             Level = level;
             LimitBreak = limitBreak;
         }
 
         /// <summary>ULID 26 文字。</summary>
         [Key(0)]
-        public string SupportCardUid { get; }
+        public string UniqueId { get; }
 
         [Key(1)]
-        public int CardId { get; }
+        public int MasterId { get; }
 
         [Key(2)]
         public int Level { get; }

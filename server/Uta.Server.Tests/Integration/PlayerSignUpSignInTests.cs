@@ -70,7 +70,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
         Assert.Equal(2500, response.GachaCurrency);
         Assert.False(response.HasActiveProduce);
         Assert.False(response.DiscardedProduce);
-        Assert.Equal(new[] { 1, 2 }, response.Idols.Select(x => x.IdolId).ToArray());
+        Assert.Equal(new[] { 1, 2 }, response.Idols.Select(x => x.MasterId).ToArray());
         Assert.All(response.Idols, x =>
         {
             Assert.Equal(0, x.Training);
@@ -78,18 +78,18 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
             Assert.Equal(0, x.Shards);
         });
         Assert.Equal(5, response.SupportCards.Length);
-        Assert.Equal(new[] { 1, 2, 3, 4, 5 }.ToHashSet(), response.SupportCards.Select(x => x.CardId).ToHashSet());
+        Assert.Equal(new[] { 1, 2, 3, 4, 5 }.ToHashSet(), response.SupportCards.Select(x => x.MasterId).ToHashSet());
         Assert.All(response.SupportCards, x =>
         {
             Assert.Equal(1, x.Level);
             Assert.Equal(0, x.LimitBreak);
-            Assert.Equal(26, x.SupportCardUid.Length);
+            Assert.Equal(26, x.UniqueId.Length);
         });
-        Assert.Equal(5, response.SupportCards.Select(x => x.SupportCardUid).Distinct().Count());
+        Assert.Equal(5, response.SupportCards.Select(x => x.UniqueId).Distinct().Count());
         Assert.Equal(26, response.PlayerId.Length);
         Assert.Equal(player.PlayerId.ToString(), response.PlayerId);
-        Assert.All(response.Idols, x => Assert.Equal(26, x.IdolUid.Length));
-        Assert.Equal(2, response.Idols.Select(x => x.IdolUid).Distinct().Count());
+        Assert.All(response.Idols, x => Assert.Equal(26, x.UniqueId.Length));
+        Assert.Equal(2, response.Idols.Select(x => x.UniqueId).Distinct().Count());
     }
 
     [Fact]

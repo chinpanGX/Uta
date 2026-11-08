@@ -32,8 +32,8 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
             var player = result.Player;
             return new SignInResponse(
                 player.Level, player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, result.HasActiveProduce, result.DiscardedProduce,
-                result.Idols.Select(x => new OwnedIdolDto(x.IdolId, x.Training, x.Awakening, x.Shards, x.Uid.ToString())).ToArray(),
-                result.SupportCards.Select(x => new OwnedSupportCardDto(x.Uid.ToString(), x.CardId, x.Level, x.LimitBreak)).ToArray(),
+                result.Idols.Select(x => new OwnedIdolDto(x.MasterId, x.Training, x.Awakening, x.Shards, x.UniqueId.ToString())).ToArray(),
+                result.SupportCards.Select(x => new OwnedSupportCardDto(x.UniqueId.ToString(), x.MasterId, x.Level, x.LimitBreak)).ToArray(),
                 playerId.ToString());
         });
     }

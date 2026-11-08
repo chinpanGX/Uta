@@ -6,24 +6,24 @@ namespace Uta.Shared.Contracts.Produce
     public sealed class StartProduceRequest
     {
         [SerializationConstructor]
-        public StartProduceRequest(int idolId, string[] supportCardUids, int rentalCandidateId, int scenarioId)
+        public StartProduceRequest(int idolMasterId, string[] supportCardUniqueIds, int rentalCandidateMasterId, int scenarioMasterId)
         {
-            IdolId = idolId;
-            SupportCardUids = supportCardUids;
-            RentalCandidateId = rentalCandidateId;
-            ScenarioId = scenarioId;
+            IdolMasterId = idolMasterId;
+            SupportCardUniqueIds = supportCardUniqueIds;
+            RentalCandidateMasterId = rentalCandidateMasterId;
+            ScenarioMasterId = scenarioMasterId;
         }
 
         [Key(0)]
-        public int IdolId { get; }
+        public int IdolMasterId { get; }
 
         [Key(1)]
-        public string[] SupportCardUids { get; }
+        public string[] SupportCardUniqueIds { get; }
 
         [Key(2)]
-        public int RentalCandidateId { get; }
+        public int RentalCandidateMasterId { get; }
 
         [Key(3)]
-        public int ScenarioId { get; }
+        public int ScenarioMasterId { get; }
     }
 }

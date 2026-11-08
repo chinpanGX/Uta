@@ -26,7 +26,7 @@ public class SupportTests(PostgresFixture postgres)
         var player = await PlayerClient.CreateAsync(channel);
         await player.CallAsync(service => service.SignUpAsync(), "req-1");
         var signIn = await player.CallAsync(service => service.SignInAsync(), "req-2");
-        var uid = signIn.SupportCards.First(x => x.CardId == 1).SupportCardUid;
+        var uid = signIn.SupportCards.First(x => x.MasterId == 1).UniqueId;
         return (factory, channel, player, uid);
     }
 
@@ -125,7 +125,7 @@ public class SupportTests(PostgresFixture postgres)
         var other = await PlayerClient.CreateAsync(channel, "fedcba9876543210-secret2");
         await other.CallAsync(service => service.SignUpAsync(), "req-1");
         var otherSignIn = await other.CallAsync(service => service.SignInAsync(), "req-2");
-        var otherUid = otherSignIn.SupportCards.First(x => x.CardId == 1).SupportCardUid;
+        var otherUid = otherSignIn.SupportCards.First(x => x.MasterId == 1).UniqueId;
 
         var requestNumber = 3;
         foreach (var target in new[] { otherUid, Ulid.NewUlid().ToString(), "not-a-ulid" })
@@ -281,7 +281,7 @@ public class SupportTests(PostgresFixture postgres)
         await using var _ = factory;
         using var __ = channel;
         var signIn = await player.CallAsync(service => service.SignInAsync(), "req-x");
-        var other = signIn.SupportCards.First(x => x.CardId == 2).SupportCardUid;
+        var other = signIn.SupportCards.First(x => x.MasterId == 2).UniqueId;
 
         var exception = await Assert.ThrowsAsync<RpcException>(() => LimitBreakAsync(player, uid, other, "req-3"));
 
@@ -298,7 +298,7 @@ public class SupportTests(PostgresFixture postgres)
         var other = await PlayerClient.CreateAsync(channel, "fedcba9876543210-secret2");
         await other.CallAsync(service => service.SignUpAsync(), "req-1");
         var otherSignIn = await other.CallAsync(service => service.SignInAsync(), "req-2");
-        var otherUid = otherSignIn.SupportCards.First(x => x.CardId == 1).SupportCardUid;
+        var otherUid = otherSignIn.SupportCards.First(x => x.MasterId == 1).UniqueId;
 
         var exception1 = await Assert.ThrowsAsync<RpcException>(() => LimitBreakAsync(player, uid, otherUid, "req-3"));
         var exception2 = await Assert.ThrowsAsync<RpcException>(() => LimitBreakAsync(player, uid, Ulid.NewUlid().ToString(), "req-4"));

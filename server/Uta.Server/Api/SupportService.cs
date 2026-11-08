@@ -19,7 +19,7 @@ public sealed class SupportService(ITransactions transactions, LevelUpUseCase le
         var playerId = Context.GetAuthContext().PlayerId;
         return await transactions.RunAsync(Context, async tx =>
         {
-            var result = await levelUp.ExecuteAsync(tx, playerId, ParseUid(request.SupportCardUid), request.TargetLevel);
+            var result = await levelUp.ExecuteAsync(tx, playerId, ParseUid(request.SupportCardUniqueId), request.TargetLevel);
             return new LevelUpResponse(result.Level, result.SupportPoints, result.Gold);
         });
     }
@@ -29,7 +29,7 @@ public sealed class SupportService(ITransactions transactions, LevelUpUseCase le
         var playerId = Context.GetAuthContext().PlayerId;
         return await transactions.RunAsync(Context, async tx =>
         {
-            var result = await limitBreak.ExecuteAsync(tx, playerId, ParseUid(request.SupportCardUid), ParseUid(request.MaterialUid));
+            var result = await limitBreak.ExecuteAsync(tx, playerId, ParseUid(request.SupportCardUniqueId), ParseUid(request.MaterialUniqueId));
             return new LimitBreakResponse(result.LimitBreak, result.MaxLevel);
         });
     }

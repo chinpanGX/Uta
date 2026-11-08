@@ -37,18 +37,18 @@ public sealed class IdolRepository : IIdolRepository
     public async Task<IReadOnlyList<OwnedIdol>> ListAsync(TxContext tx, Ulid playerId)
     {
         var rows = await tx.Connection.QueryAsync<Row>(new CommandDefinition(
-            "SELECT idol_uid AS Uid, idol_id AS IdolId, training AS Training, awakening AS Awakening, shards AS Shards " +
+            "SELECT idol_uid AS UniqueId, idol_id AS MasterId, training AS Training, awakening AS Awakening, shards AS Shards " +
             "FROM player_idols WHERE player_id = @playerId ORDER BY idol_id",
             new { playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return rows.Select(x => new OwnedIdol(Ulid.Parse(x.Uid), x.IdolId, x.Training, x.Awakening, x.Shards)).ToList();
+        return rows.Select(x => new OwnedIdol(Ulid.Parse(x.UniqueId), x.MasterId, x.Training, x.Awakening, x.Shards)).ToList();
     }
 
     private sealed class Row
     {
-        public string Uid { get; set; } = "";
-        public int IdolId { get; set; }
+        public string UniqueId { get; set; } = "";
+        public int MasterId { get; set; }
         public int Training { get; set; }
         public int Awakening { get; set; }
         public int Shards { get; set; }
