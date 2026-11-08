@@ -7,7 +7,7 @@ namespace Uta.Client.Presentation.Title
 {
     /// <summary>
     /// 疎通の診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）。
-    /// 診断用（-uta-quit-after-check）。画面の計画で消す。
+    /// 診断用（-uta-quit-after-check）。`TitleDiagnostics` が使う。
     /// </summary>
     public sealed class ConnectivityCheck
     {

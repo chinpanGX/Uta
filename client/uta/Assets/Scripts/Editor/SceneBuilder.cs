@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using Uta.Client.Bootstrap;
 using Uta.Client.Presentation;
-using Uta.Client.Presentation.Home;
 using Uta.Client.Presentation.Produce;
-using Uta.Client.Presentation.Title;
+using Uta.Client.Presentation.Common;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -18,6 +17,7 @@ namespace Uta.Client.Editor
     public static class SceneBuilder
     {
         private const string ScenesFolder = "Assets/Scenes";
+        private const string UiRootPrefabPath = "Assets/Prefabs/Parts/UiRoot.prefab";
 
         [MenuItem("Uta/Create Scenes")]
         public static void CreateScenes()
@@ -57,31 +57,42 @@ namespace Uta.Client.Editor
         private static void BuildTitle(Scene scene)
         {
             CreateCamera();
-            CreateEventSystem();
-            var canvas = CreateCanvas();
-            var start = CreateButton(canvas.transform, "StartButton", "TAP TO START", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(600, 160));
-            var status = CreateText(canvas.transform, "StatusText", string.Empty, 36, TextAnchor.UpperCenter, new Vector2(0.5f, 0f), new Vector2(0, 120), new Vector2(1000, 300));
-            var view = canvas.gameObject.AddComponent<TitleView>();
-            var so = new SerializedObject(view);
-            so.FindProperty("startButton").objectReferenceValue = start;
-            so.FindProperty("statusText").objectReferenceValue = status;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            new GameObject("TitleScope").AddComponent<TitleLifetimeScope>();
+            var uiRoot = InstantiateUiRoot();
+            var scope = new GameObject("TitleScope").AddComponent<TitleLifetimeScope>();
+            SetRef(scope, "uiRoot", uiRoot);
         }
 
         private static void BuildHome(Scene scene)
         {
             CreateCamera();
-            CreateEventSystem();
-            var canvas = CreateCanvas();
-            var summary = CreateText(canvas.transform, "SummaryText", string.Empty, 44, TextAnchor.UpperLeft, new Vector2(0.5f, 1f), new Vector2(0, -120), new Vector2(1000, 800));
-            var produce = CreateButton(canvas.transform, "ProduceButton", "PRODUCE", new Vector2(0.5f, 0f), new Vector2(0, 200), new Vector2(600, 160));
-            var view = canvas.gameObject.AddComponent<HomeView>();
-            var so = new SerializedObject(view);
-            so.FindProperty("summaryText").objectReferenceValue = summary;
-            so.FindProperty("produceButton").objectReferenceValue = produce;
+            var uiRoot = InstantiateUiRoot();
+            var scope = new GameObject("HomeScope").AddComponent<HomeLifetimeScope>();
+            SetRef(scope, "uiRoot", uiRoot);
+        }
+
+        private static UiRoot InstantiateUiRoot()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(UiRootPrefabPath);
+            if (prefab == null)
+            {
+                throw new System.InvalidOperationException("UiRoot prefab not found. run Uta/Prefabs/Build All first");
+            }
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            return instance.GetComponent<UiRoot>();
+        }
+
+        private static void SetRef(Object target, string field, Object value)
+        {
+            var so = new SerializedObject(target);
+            var property = so.FindProperty(field);
+            if (property == null)
+            {
+                throw new System.InvalidOperationException(target.GetType().Name + "." + field + " not found");
+            }
+
+            property.objectReferenceValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
-            new GameObject("HomeScope").AddComponent<HomeLifetimeScope>();
         }
 
         private static void BuildProduce(Scene scene)
