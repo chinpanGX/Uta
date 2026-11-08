@@ -274,3 +274,4 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
 | タスク | コミット | ズレ・メモ |
 |---|---|---|
 | 1 | d1ded85 | なし。ログのキー `["outcome"]` は計画どおり残した |
+| 2 | 756945a | なし |
