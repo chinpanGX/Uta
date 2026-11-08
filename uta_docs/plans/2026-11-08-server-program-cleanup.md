@@ -381,3 +381,4 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 | タスク | コミット | ズレ・メモ |
 |---|---|---|
 | 1 | ccf564d | なし。WebApplicationFactory<Program> は ServerHost 経由でも動いた（結合テスト 308 件成功） |
+| 2 | 7892d1a | なし。検査の 2 行を消すと Build_ProductionWithSingletonCapturingScoped_Throws が落ちる（No exception was thrown）ことを確かめて戻した。Production で起動し `Hosting environment: Production`・`Now listening on: http://localhost:5000` が出た（出力は ZLogger の JSON） |
