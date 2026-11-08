@@ -1216,3 +1216,6 @@ Play・手動（Editor、サーバー起動済み・初期付与済みのプレ�
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 1 | 完了 | `802d863` | 止めた実装担当の書きかけを引き継いだ。BOM を付けた。EditMode 215 件通過 |
+| 2 | 完了 | `d34d5dc` | なし。EditMode 227 件通過 |
+| 3a | コードは完了・Play は未確認 | `0922a18` | テストを 2 本足した（`GachaTextsTests` の `Kind_Texts`、`GachaResultDtoFactoryTests` の `Create_NullResults_Throws`）。EditMode 250 件通過。Play の手順 7 は、Bash から `EditorApplication.Step()` の eval を繰り返して Editor の Pipeline に接続できなくなり、未確認（Editor の再起動のあとにやり直す） |
