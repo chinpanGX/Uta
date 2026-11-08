@@ -50,8 +50,9 @@ namespace Uta.Client.Editor
         private static void BuildBootstrap(Scene scene)
         {
             CreateCamera();
-            var entry = new GameObject("BootstrapEntry");
-            entry.AddComponent<BootstrapEntry>();
+            var uiRoot = InstantiateUiRoot();
+            var entry = new GameObject("BootstrapEntry").AddComponent<BootstrapEntry>();
+            SetRef(entry, "uiRoot", uiRoot);
         }
 
         private static void BuildTitle(Scene scene)

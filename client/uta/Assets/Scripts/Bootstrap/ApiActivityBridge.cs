@@ -31,7 +31,7 @@ namespace Uta.Client.Bootstrap
         /// <summary>開始のときと違うシーンになっていても、開始したほうの数を戻す。</summary>
         public void OnActivityEnded()
         {
-            if (!ReferenceEquals(active, null) && active != null)
+            if (active != null)
             {
                 active.End();
             }

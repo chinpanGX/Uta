@@ -113,7 +113,14 @@ namespace Uta.Client.Presentation.Common
                 source.TrySetResult(index);
             }
 
-            view.Destroyed += () => Complete(-1);
+            view.Destroyed += () =>
+            {
+                if (!finished)
+                {
+                    finished = true;
+                    source.TrySetResult(-1);
+                }
+            };
 
             for (var i = 0; i < labels.Length; i++)
             {

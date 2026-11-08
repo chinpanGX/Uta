@@ -1,5 +1,4 @@
-﻿using System;
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using UnityScreenNavigator;
 using Uta.Client.Application.Player;
 using Uta.Client.Presentation.Common;

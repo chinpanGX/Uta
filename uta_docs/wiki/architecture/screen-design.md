@@ -156,6 +156,8 @@ MVP の画面（[game-spec.md](../overview/game-spec.md) の「画面」）を�
 | UseCase | IF は `Application/<機能>/`、具象は `Infrastructure/<機能>/` | Application に UseCase の IF `I<機能>UseCase` とその出力の型を置き、外部に触れる具象 `<機能>UseCase` は Infrastructure に置く（`I<機能>Service` を直接呼び、DTO を static の `<名詞>Mapper` で詰め替え、リポジトリに書く。通信のポート・ゲートウェイは作らない。[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)。例: `IPlayerUseCase`・`PlayerUseCase`）。`Presentation` は `Infrastructure` に触れない |
 | 組み立て | 各シーンの `LifetimeScope`（8章） | シーンの `UiRoot` と、そのシーンの入口・補助を登録する（`SceneUiInstaller.Install` が `UiRoot` のコンテナー・`IScreenNavigator`・`PageStack`・`DialogOpener` を登録する）。**Presenter はどのスコープにも登録しない**（Presenter の `[AssetAddress]` で、基盤の `IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する）。UseCase の具象（IF で登録）・リポジトリ（書き込みと読み取り専用の 2 つの IF で同じインスタンス）は Bootstrap のルートのスコープ |
 
+**Presenter の書き方の正**は [画面の土台の計画](../../plans/2026-11-03-client-screens-foundation.md) 3.3 とする。
+
 - **遷移**: ホーム（またはシーンの最初のページ）を底にする。局面ごとの切り替えは、いまのページを `Pop` してから次を `Push`（`Replace` は作らない: USN の `stack: false` は「積むページ自身を履歴に残さない」意味で、前のページを消すものではない）。ホームへ戻るときは上のページ・モーダルを全部 `Pop`
 - **Presenter の作法**: 購読は `InitializeAsync`、解除は `Dispose`。実行中フラグは `finally` で戻す。テストが await できるよう、処理は公開の `UniTask` メソッドにする
 - **命名**: Prefab 名 = View の型名（`HomePage`）。子の GameObject は役割の PascalCase（`BackButton`、`TitleText`、`ListContent`）。部品の Prefab も接頭辞を付けず、役割の名前にする（`Button`・`Label`・`Panel`。View の型は Prefab 名 + `View`: `ButtonView`）。部品に `Uta` 接頭辞は付けない [決定。2026-11-07。ユーザーの判断]
@@ -197,7 +199,7 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 - **ステージの Prefab**: ホームのページの子 `Stage` に `RawImage` を置き、その子に枠の文字 `StageLabel`（TMP）を置く。MVP の `RawImage` はテクスチャなしの色つきの枠（`UiTheme.Panel`）で、文字は「キャラ表示」。値は P2 の計画（[2026-11-07-client-prefabs-screens-a.md](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2）
 - **C# は `ICharacterStage` で隠す**（`Uta.Client.Presentation.Home`）: `void ShowIdol(int idolId, string name)`（その育成アイドルを出す）と `void Clear()`（何も出さない）だけ。`HomePresenter` は `ICharacterStage` だけを知り、どう描くかを知らない
 - **MVP の実装は `PlaceholderCharacterStage`**: 枠の文字に育成アイドルの名前（`HomeDtoFactory` がマスタから名前を引き、`ICharacterStage.ShowIdol(idolId, name)` に渡す）を出すだけ。`Clear` は文字を「キャラ表示」に戻す。`RawImage` には触らない
-- **出す育成アイドルの選び方**（`HomePresenter` が決める）: 所持の育成アイドルのうち、レア度（`Rarity` の数値）が最も高いもの、同率なら `IdolEntity.MasterId`（アイドルのマスタの ID）が小さいもの。所持が 0 なら `Clear`。ホームを表示するたびに（最初の表示と、上のページから戻ったとき）選び直す
+- **出す育成アイドルの選び方**（`FeaturedIdolPicker`（Application。外部に触れない具象）が決め、`HomeDtoFactory` がマスタから名前を引く）: 所持の育成アイドルのうち、レア度（`Rarity` の数値）が最も高いもの、同率なら `IdolEntity.MasterId`（アイドルのマスタの ID）が小さいもの。所持が 0 なら `Clear`。ホームを表示するたびに（最初の表示と、上のページから戻ったとき）選び直す
 - **拡張点（MVP 外）: `ModelCharacterStage`**: 専用のカメラが育成アイドルの 3D モデルを `RenderTexture` に描き、その `RenderTexture` を `Stage` の `RawImage.texture` に割り当てる実装。`ICharacterStage` を実装し、`HomePage` がステージを作るところ（C# の計画 [foundation](../../plans/2026-11-03-client-screens-foundation.md) 3.7 の `HomePage.CreateStage`）だけを差し替える。`HomePresenter`・Prefab の階層は変えない。モデル・カメラ・`RenderTexture` の置き場と寿命、読み込み（Addressables か）は作るときに決める。3D ライブの保留（[ADR 0003](../decisions/0003-defer-3d-live.md)）とは別の、ホームのキャラ表示の拡張点
 
 ## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
@@ -215,7 +217,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 - **シーンの遷移は `ISceneNavigator`**（Application の IF: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
 - **通信エラーの後の遷移**: `ApiCore` に `IErrorNavigator`（VolTech-MagicOnion）を渡す。`GoToTitleAsync` は `Title` の読み込み、`GoToHomeAsync` は `Home` の読み込み、`OpenStoreAsync` は未実装（ログだけ。強制アップデートは実装しないため。[repository-layout.md](repository-layout.md) 10.5）。実装は `ISceneNavigator` を呼ぶだけの小さなクラスで、`Bootstrap` に置く。`ReturnToTitle` で `Title` が読み込み直されると、通信中だった古い Presenter の続きが破棄された View に触らないよう、Presenter は View が破棄済みなら何もしない。診断（下記）のときはナビゲーターを渡さない
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
-- **Home に入ったとき所持データが無い**（`IReadOnlyPlayerRepository.Find()` が null。サインインしていない）場合は、`Title` へ戻す。2026-11-08 から、#24 の仮の `HomePresenter` はこの確かめをしない（固定の文を出すだけ。画面の計画の `HomePresenter` で作り直す）
+- **Home に入ったとき所持データが無い**（`IReadOnlyPlayerRepository.Find()` が null。サインインしていない）場合は、`Title` へ戻す。`HomeEntry` が確かめる（2026-11-08）
 - 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。診断は `TitleDiagnostics`（`TitleEntry` が分ける）[2026-11-08]
 - シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` はまだ最小の uGUI（4 本目が同じ形にする。日本語の文字は TextMeshPro + フォントアセット）
 - 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）
