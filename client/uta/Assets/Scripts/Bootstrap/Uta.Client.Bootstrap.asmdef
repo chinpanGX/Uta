@@ -9,7 +9,9 @@
         "VolTech.MagicOnion.Client",
         "VolTech.Server.Abstractions",
         "UniTask",
-        "VContainer"
+        "VContainer",
+        "Uta.Client.Domain",
+        "Uta.Client.MasterData"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

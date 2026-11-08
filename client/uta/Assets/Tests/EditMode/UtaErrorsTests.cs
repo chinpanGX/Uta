@@ -3,7 +3,7 @@ using Uta.Client.Infrastructure.Api;
 using Uta.Shared.Contracts.Player;
 using VolTech.Client;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     public sealed class UtaErrorsTests
     {

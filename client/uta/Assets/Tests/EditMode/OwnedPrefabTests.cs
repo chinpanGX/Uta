@@ -4,7 +4,7 @@ using UnityEngine;
 using Uta.Client.Presentation.Common.Parts;
 using Uta.Client.Presentation.Owned;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>所持一覧・サポートカードの詳細の Prefab の View のフィールドと子の対応（P2 の計画 3.3）。</summary>
     public sealed class OwnedPrefabTests

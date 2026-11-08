@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>画面の Prefab の確かめの補助（P3 も使う）。</summary>
     public static class ScreenPrefabAssert

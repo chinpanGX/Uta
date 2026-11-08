@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using Uta.Client.Presentation.Common;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>Prefab の契約の確かめの補助。P2・P3 のテストも使う。</summary>
     public static class PrefabContract

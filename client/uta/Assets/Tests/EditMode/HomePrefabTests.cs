@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine.UI;
 using Uta.Client.Presentation.Home;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     /// <summary>HomePage の Prefab の View のフィールドと子の対応（P2 の計画 3.3）と、ステージの仮の枠。</summary>
     public sealed class HomePrefabTests

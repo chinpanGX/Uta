@@ -2,7 +2,7 @@
 using Uta.Client.Infrastructure.Player;
 using Uta.Shared.Contracts.Player;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     public sealed class PlayerGatewayTests
     {

@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using Uta.Client.Application.Player;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     public sealed class EnterPlayerUseCaseTests
     {

@@ -7,7 +7,7 @@ using NUnit.Framework;
 using UnityEngine.TestTools;
 using Uta.MasterData;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
     public class MasterDataLoaderTests
     {

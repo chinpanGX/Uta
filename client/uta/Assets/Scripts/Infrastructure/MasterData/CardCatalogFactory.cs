@@ -8,7 +8,7 @@ using DomainLesson = Uta.Shared.Domain.Lesson;
 namespace Uta.Client.Infrastructure
 {
     /// <summary>マスタの行を Shared.Domain の行の型に詰めて CardCatalog を作る。グループの解決と組み立ては CardCatalog.Create が行う（repository-layout.md 4章）。</summary>
-    public static class MasterCardCatalog
+    public static class CardCatalogFactory
     {
         public static DomainLesson.CardCatalog Create(MemoryDatabase db)
         {

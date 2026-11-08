@@ -1,6 +1,6 @@
 {
-    "name": "Uta.Client.Infrastructure.Tests.EditMode",
-    "rootNamespace": "Uta.Client.Infrastructure.Tests",
+    "name": "Uta.Client.Tests.EditMode",
+    "rootNamespace": "Uta.Client.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
@@ -17,7 +17,9 @@
         "UnityEngine.UI",
         "Unity.TextMeshPro",
         "Unity.Addressables",
-        "Unity.Addressables.Editor"
+        "Unity.Addressables.Editor",
+        "Uta.Client.Domain",
+        "Uta.Client.MasterData"
     ],
     "includePlatforms": [
         "Editor"

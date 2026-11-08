@@ -40,7 +40,7 @@ namespace Uta.Client.Bootstrap
             CardCatalog cardCatalog;
             try
             {
-                cardCatalog = await MasterCardCatalog.LoadFromStreamingAssetsAsync();
+                cardCatalog = await CardCatalogFactory.LoadFromStreamingAssetsAsync();
             }
             catch (Exception e)
             {

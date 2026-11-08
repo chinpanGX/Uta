@@ -8,9 +8,9 @@ using NUnit.Framework;
 using UnityEngine.TestTools;
 using DomainLesson = Uta.Shared.Domain.Lesson;
 
-namespace Uta.Client.Infrastructure.Tests
+namespace Uta.Client.Tests
 {
-    public class MasterCardCatalogTests
+    public class CardCatalogFactoryTests
     {
         public static readonly object[][] EnumPairs =
         {
@@ -34,7 +34,7 @@ namespace Uta.Client.Infrastructure.Tests
 
         private static DomainLesson.CardCatalog CreateCatalog()
         {
-            return MasterCardCatalog.Create(MasterDataLoader.Load(ReadBundled()));
+            return CardCatalogFactory.Create(MasterDataLoader.Load(ReadBundled()));
         }
 
         [Test]
@@ -106,7 +106,7 @@ namespace Uta.Client.Infrastructure.Tests
         [Test]
         public void Create_Null_ThrowsArgumentNull()
         {
-            Assert.Throws<ArgumentNullException>(() => MasterCardCatalog.Create(null));
+            Assert.Throws<ArgumentNullException>(() => CardCatalogFactory.Create(null));
         }
 
         [TestCaseSource(nameof(EnumPairs))]
@@ -127,7 +127,7 @@ namespace Uta.Client.Infrastructure.Tests
         {
             return UniTask.ToCoroutine(async () =>
             {
-                var catalog = await MasterCardCatalog.LoadFromStreamingAssetsAsync(CancellationToken.None);
+                var catalog = await CardCatalogFactory.LoadFromStreamingAssetsAsync(CancellationToken.None);
 
                 Assert.AreEqual(36, catalog.CardIds.Count);
             });
