@@ -197,7 +197,7 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 - **ステージの Prefab**: ホームのページの子 `Stage` に `RawImage` を置き、その子に枠の文字 `StageLabel`（TMP）を置く。MVP の `RawImage` はテクスチャなしの色つきの枠（`UiTheme.Panel`）で、文字は「キャラ表示」。値は P2 の計画（[2026-11-07-client-prefabs-screens-a.md](../../plans/2026-11-07-client-prefabs-screens-a.md) 3.2）
 - **C# は `ICharacterStage` で隠す**（`Uta.Client.Presentation.Home`）: `void ShowIdol(int idolId)`（その育成アイドルを出す）と `void Clear()`（何も出さない）だけ。`HomePresenter` は `ICharacterStage` だけを知り、どう描くかを知らない
 - **MVP の実装は `PlaceholderCharacterStage`**: 枠の文字に育成アイドルの名前（`IGameMaster.GetIdol(idolId).Name`）を出すだけ。`Clear` は文字を「キャラ表示」に戻す。`RawImage` には触らない
-- **出す育成アイドルの選び方**（`HomePresenter` が決める）: 所持の育成アイドルのうち、レア度（`Rarity` の数値）が最も高いもの、同率なら `IdolId` が小さいもの。所持が 0 なら `Clear`。ホームを表示するたびに（最初の表示と、上のページから戻ったとき）選び直す
+- **出す育成アイドルの選び方**（`HomePresenter` が決める）: 所持の育成アイドルのうち、レア度（`Rarity` の数値）が最も高いもの、同率なら `IdolEntity.MasterId`（アイドルのマスタの ID）が小さいもの。所持が 0 なら `Clear`。ホームを表示するたびに（最初の表示と、上のページから戻ったとき）選び直す
 - **拡張点（MVP 外）: `ModelCharacterStage`**: 専用のカメラが育成アイドルの 3D モデルを `RenderTexture` に描き、その `RenderTexture` を `Stage` の `RawImage.texture` に割り当てる実装。`ICharacterStage` を実装し、`HomePage` がステージを作るところ（C# の計画 [foundation](../../plans/2026-11-03-client-screens-foundation.md) 3.7 の `HomePage.CreateStage`）だけを差し替える。`HomePresenter`・Prefab の階層は変えない。モデル・カメラ・`RenderTexture` の置き場と寿命、読み込み（Addressables か）は作るときに決める。3D ライブの保留（[ADR 0003](../decisions/0003-defer-3d-live.md)）とは別の、ホームのキャラ表示の拡張点
 
 ## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]

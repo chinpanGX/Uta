@@ -1,7 +1,7 @@
 ---
 title: ガチャ
 status: draft
-updated: 2026-11-01
+updated: 2026-11-08
 ---
 
 # ガチャ
@@ -102,7 +102,7 @@ updated: 2026-11-01
 
 結果の種類(`Outcome`。DTO と履歴の `outcome`)[決定。2026-10-31]: **行が増えた・所持になったら `New`、増やさずに変換したら `Duplicate`**。
 
-| 場合 | `Outcome` | `Shards` | `SupportPoints` | `SupportCardUid` |
+| 場合 | `Outcome` | `Shards` | `SupportPoints` | `SupportCardUniqueId` |
 |---|---|---|---|---|
 | 育成アイドルを初めて得た | `New` | 0 | 0 | 空 |
 | 育成アイドルを持っていた(かけらに変換) | `Duplicate` | 量 | 0 | 空 |

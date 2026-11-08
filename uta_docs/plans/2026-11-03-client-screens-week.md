@@ -7,6 +7,10 @@ spec: ../wiki/systems/produce.md
 
 # 実装計画: client/ の画面 5/6 週の行動選択・授業・支給・スキルカードの選択肢
 
+## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
+
+- DTO の ID の名前（`OwnedIdolDto.IdolId` など）は、[移行計画](2026-11-08-client-foundation-migration.md)の R9 の表に読み替える（2026-11-08）
+
 ## この計画で決めたこと
 
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。

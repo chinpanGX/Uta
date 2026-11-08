@@ -7,6 +7,10 @@ spec: ../wiki/systems/produce.md
 
 # 実装計画: client/ の画面 6/6 レッスン・試験・試験結果・プロデュース結果
 
+## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
+
+- DTO の ID の名前（`OwnedIdolDto.IdolId` など）は、[移行計画](2026-11-08-client-foundation-migration.md)の R9 の表に読み替える（2026-11-08）
+
 ## この計画で決めたこと
 
 ユーザーは、この節と次の「ユーザーの確認が要ること」だけを読めば判断できるように書く。

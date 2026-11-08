@@ -243,6 +243,7 @@ public sealed class FakePlayerUseCase : IPlayerUseCase
 - 本文のファイル表の `Api/XxxApi.cs`（作成）の行は無効（作らない）。テストの偽物は、`PlayerGatewayTests` と同じく偽の `I…Service`（`IService<T>` の 5 メンバーを実装し、`WithHeaders` は `this` を返す）
 - `[MagicOnionClientGeneration]` の型の並びに `typeof(I…Service)` を足す指示は今のまま有効（`Uta.Shared.Contracts` の同じアセンブリなので、足し忘れても `IPlayerService` で足りるが、本文どおり足す）
 - `UtaApiClient.Create` の `IApiActivityHandler`（3.8）は、移行計画の `Create`（引数は今のまま）に足す。`ApiCoreBuilder.AddActivityHandler` を使う
+- DTO の ID の名前（`OwnedIdolDto.IdolId` など）は、[移行計画](2026-11-08-client-foundation-migration.md)の R9 の表に読み替える（2026-11-08）
 
 ## この計画で決めたこと
 

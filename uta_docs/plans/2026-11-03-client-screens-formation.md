@@ -191,6 +191,7 @@ public static class ProduceMapper
 - 本文のファイル表の `Api/XxxApi.cs`（作成）の行は無効（作らない）。テストの偽物は、`PlayerGatewayTests` と同じく偽の `I…Service`（`IService<T>` の 5 メンバーを実装し、`WithHeaders` は `this` を返す）
 - `[MagicOnionClientGeneration]` の型の並びに `typeof(I…Service)` を足す指示は今のまま有効（`Uta.Shared.Contracts` の同じアセンブリなので、足し忘れても `IPlayerService` で足りるが、本文どおり足す）
 - 3 章の `UtaApiClient` の変更（private コンストラクターの末尾に `ProduceApi produce` を足す箇条書き。移行計画を書いた時点の 314 行目）は `ProduceApi` ではなく `IProduceService Produce`（上の節）
+- DTO の ID の名前（`OwnedIdolDto.IdolId` など）は、[移行計画](2026-11-08-client-foundation-migration.md)の R9 の表に読み替える（2026-11-08）
 
 ## この計画で決めたこと
 

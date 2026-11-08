@@ -1,7 +1,7 @@
 ---
 title: プロデュースの実装設計（週の進行・乱数・状態・API）
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # プロデュースの実装設計（週の進行・乱数・状態・API）
@@ -234,7 +234,7 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 
 | Request | フィールド(`OperationNumber` の後) |
 |---|---|
-| `StartProduceRequest` | `IdolId`(`int`)、`SupportCardUids`(`string[]`、所持ID 0〜5 個を枠の順に。[idol-support.md](../systems/idol-support.md) 2.1・2.2.1)、`RentalCandidateId`(`int`。MVP は 0＝なし)、`ScenarioId`(`int`。難易度はシナリオが持つ)。`OperationNumber` は持たない |
+| `StartProduceRequest` | `IdolMasterId`(`int`)、`SupportCardUniqueIds`(`string[]`、所持ID 0〜5 個を枠の順に。[idol-support.md](../systems/idol-support.md) 2.1・2.2.1)、`RentalCandidateMasterId`(`int`。MVP は 0＝なし)、`ScenarioMasterId`(`int`。難易度はシナリオが持つ)。`OperationNumber` は持たない |
 | `ChooseWeekActionRequest` | `SlotIndex`(`int`)、`OptionIndex`(`int`。無いとき -1)、`Param`(`ParamKind`。レッスン以外は無視) |
 | `ExecuteConsultActionRequest`(MVP の後) | `Kind`(enum `ConsultActionKind`: `Exchange` / `Enhance` / `Remove` / `Finish`)、`ItemIndex`(`int`。`Exchange` のみ)、`CardInstanceId`(`int`。`Enhance` / `Remove` のみ) |
 | `ResolveCardOfferRequest` | `Kind`(enum `CardOfferActionKind`: `Pick` / `Reroll` / `Remove` / `Decline`)、`OfferIndex`(`int`。`Pick` / `Remove` のみ) |
@@ -262,7 +262,7 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 | `Result` | `ProduceResultResponse` | 終了の局面に入った操作のレスポンスだけ(ほかは空) |
 
 - 進行中のセッションが無いとき(一度も始めていない・終わった・破棄した・`app_version` か `state_version` が違う)、`GetState` はエラーにせず、`Phase` が `Nothing` で、ほかの項目が空のレスポンスを返す。`PRODUCE_NOT_IN_PROGRESS` を返すのは操作の RPC と `AbandonAsync` だけ [決定。2026-10-31。ユーザーの判断]。結果は終了の局面に入った操作のレスポンスだけで返す。そのレスポンスを受け取る前にアプリが落ちたら、結果の画面は出さずにホームに戻る(報酬は付与済みで、ホームの所持品に反映されている)
-- エラーの一覧は [api-design.md](api-design.md) 2章が正。このページの操作で返すのは `PRODUCE_STALE_OPERATION`(操作番号が違う)、`PRODUCE_UNEXPECTED_PHASE`(局面が違う)、`PRODUCE_INVALID_ARGUMENT`(範囲外の番号・ID、使えない操作、`RentalCandidateId` が 0 でない)、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_INVALID_FORMATION`(idol-support.md 2.1)、`PRODUCE_ALREADY_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`(api-design.md 5章)
+- エラーの一覧は [api-design.md](api-design.md) 2章が正。このページの操作で返すのは `PRODUCE_STALE_OPERATION`(操作番号が違う)、`PRODUCE_UNEXPECTED_PHASE`(局面が違う)、`PRODUCE_INVALID_ARGUMENT`(範囲外の番号・ID、使えない操作、`RentalCandidateMasterId` が 0 でない)、`PRODUCE_NOT_IN_PROGRESS`、`PRODUCE_INVALID_FORMATION`(idol-support.md 2.1)、`PRODUCE_ALREADY_IN_PROGRESS`、`PRODUCE_SESSION_DISCARDED`(api-design.md 5章)
 - **楽観ロックに失敗したとき**(保存の `UPDATE ... WHERE version = @v` が 0 行) [決定。2026-11-01。ユーザーの判断]: `PRODUCE_STALE_OPERATION` を返す。同じプレイヤーの要求は基盤で直列になるので([api-design.md](api-design.md) 3章)ふつうは起きないが、起きたらクライアントは `GetState` で取り直す(操作番号の食い違いと同じ扱い)
 
 ## 未決事項

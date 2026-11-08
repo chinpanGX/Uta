@@ -1,7 +1,7 @@
 ---
 title: プロデュースのサーバー処理
 status: draft
-updated: 2026-11-03
+updated: 2026-11-08
 ---
 
 # プロデュースのサーバー処理
@@ -90,9 +90,9 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 
 ### `StartAsync`
 
-1. `ScenarioId` がマスタに無ければ `PRODUCE_INVALID_ARGUMENT`
+1. `ScenarioMasterId` がマスタに無ければ `PRODUCE_INVALID_ARGUMENT`
 2. 編成の検証([idol-support.md](../../systems/idol-support.md) 2.1 の 1〜6。どれに当たっても `PRODUCE_INVALID_FORMATION`)。1 育成アイドルを所持していない、2 所持IDが 6 個以上、3 所持IDが自分の所持でない(形が違う文字列を含む)、4 同じ所持IDが 2 回、5・6 は `FormationValidator.Validate`(カード ID の重複・プランの不一致)
-3. `RentalCandidateId` が 0 でなければ `PRODUCE_INVALID_ARGUMENT`([idol-support.md](../../systems/idol-support.md) 2.1 の 7。編成の検証のあと)
+3. `RentalCandidateMasterId` が 0 でなければ `PRODUCE_INVALID_ARGUMENT`([idol-support.md](../../systems/idol-support.md) 2.1 の 7。編成の検証のあと)
 4. 進行中のセッションがあるとき: 古ければ破棄する(下の「破棄」。破棄は 1〜3 の検証と同じトランザクションなので、検証に落ちれば破棄も巻き戻る)。古くなければ `PRODUCE_ALREADY_IN_PROGRESS`
 5. プレイヤーLv を `players` から読む。`ProduceStartInput(scenarioId, idolId, level, supportCards)` を作る(`supportCards` は所持IDの順に、`player_support_cards` の `card_id`・`level`・`limit_break`。開始時の性能の写し。完了条件 3)
 6. マスターシードを作り、`ProduceEngine.Start`。スナップショットを保存(新しいセッション ID(ULID)、`app_version` は引数、`state_version`・`rule_version` は定数)
@@ -135,7 +135,7 @@ Request([produce-domain.md](../produce-domain.md) 8章のとおり):
 
 | 型 | フィールド(宣言順) |
 |---|---|
-| `StartProduceRequest` | `IdolId`(`int`)、`SupportCardUids`(`string[]`)、`RentalCandidateId`(`int`)、`ScenarioId`(`int`) |
+| `StartProduceRequest` | `IdolMasterId`(`int`)、`SupportCardUniqueIds`(`string[]`)、`RentalCandidateMasterId`(`int`)、`ScenarioMasterId`(`int`) |
 | `ChooseWeekActionRequest` | `OperationNumber`、`SlotIndex`、`OptionIndex`、`Param`(`ParamKind`) |
 | `ResolveCardOfferRequest` | `OperationNumber`、`Kind`(`CardOfferActionKind`)、`OfferIndex` |
 | `DecideExamRetryRequest` | `OperationNumber`、`Retry`(`bool`) |
@@ -145,8 +145,8 @@ Response:
 
 | 型 | フィールド(宣言順) |
 |---|---|
-| `ProduceStateResponse` | `OperationNumber`、`Phase`(`ProducePhase`)、`ScenarioId`、`IdolId`、`Week`、`Singing`、`Rhythm`、`Expression`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Deck`(`DeckCardDto[]`)、`WeekActions`(`WeekActionDto[]`)、`ClassOptions`(`ClassOptionDto[]`)、`CardOffers`(`int[]`)、`Lesson`(`LessonDto`。無ければ `null`)、`ExamResult`(`ExamResultDto`。無ければ `null`)、`Result`(`ProduceResultResponse`。無ければ `null`) |
-| `DeckCardDto` | `InstanceId`、`CardId`、`Enhanced`(`bool`)。`Deck` は `InstanceId` の昇順 |
+| `ProduceStateResponse` | `OperationNumber`、`Phase`(`ProducePhase`)、`ScenarioMasterId`、`IdolMasterId`、`Week`、`Singing`、`Rhythm`、`Expression`、`Hp`、`MaxHp`、`ExamRetryLeft`、`Deck`(`DeckCardDto[]`)、`WeekActions`(`WeekActionDto[]`)、`ClassOptions`(`ClassOptionDto[]`)、`CardOffers`(`int[]`)、`Lesson`(`LessonDto`。無ければ `null`)、`ExamResult`(`ExamResultDto`。無ければ `null`)、`Result`(`ProduceResultResponse`。無ければ `null`) |
+| `DeckCardDto` | `InstanceId`、`CardMasterId`、`Enhanced`(`bool`)。`Deck` は `InstanceId` の昇順 |
 | `WeekActionDto` | `SlotIndex`、`Kind`(`WeekChoiceKind`)、`Selectable`(`bool`)。`GetWeekChoices` の結果をそのまま |
 | `ClassOptionDto` | `Index`、`HpCost`、`Param`(`ParamKind`)、`ParamGain`、`GivesCard`(`bool`)、`Selectable`(`bool`)。`GetClassOptions` の結果をそのまま |
 | `LessonDto` | `Kind`(`LessonKind`)、`TargetParam`(`ParamKind`)、`MaxTurns`、`ClearTarget`、`PerfectTarget`、`ExamTurns`(`ExamTurnDto[]`。試験のときだけ)、`Turn`、`Shield`、`UsesLeft`、`ParamGained`(試験ではスコア)、`Hand`(`int[]`。手札の並びのまま)、`UsableHand`(`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true。レッスン・試験のとき。クライアントの手札のグレーアウトに使う。[screen-design.md](../screen-design.md) 6章。2026-11-03 追加)、`DrawPile` / `Discard` / `Exiled`(`int[]`。インスタンス ID の昇順。山札の並びは返さない)、`StatusValues`(`int[]`。`StatusKind` の数値が添字)、`ParamBonuses`(`ParamBonusDto[]`)、`Persistents`(`PersistentDto[]`)、`LessonEnhanced`(`int[]`)、`NpcScores`(`int[]`。試験のときだけ。`ProduceFormulas.NpcScores(週の RivalBaseScore)`)。体力は `ProduceStateResponse` の `Hp` / `MaxHp`(レッスン・試験の間は `LessonState` の値) |

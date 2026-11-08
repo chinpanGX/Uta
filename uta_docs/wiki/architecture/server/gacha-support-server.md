@@ -1,7 +1,7 @@
 ---
 title: ガチャ・サポートカードのサーバー処理
 status: draft
-updated: 2026-11-01
+updated: 2026-11-08
 ---
 
 # ガチャ・サポートカードのサーバー処理
@@ -30,7 +30,7 @@ updated: 2026-11-01
 `DrawAsync`(1 つのトランザクション):
 
 1. `Count` が 1 か 10 でなければ `GACHA_INVALID_COUNT`
-2. `GachaId` がマスタになければ `GACHA_NOT_FOUND`
+2. `GachaMasterId` がマスタになければ `GACHA_NOT_FOUND`
 3. 価格を決める(`Count` が 1 なら `SingleCost`、10 なら `TenCost`)。`ExpectedCost` と違えば `GACHA_COST_MISMATCH`
 4. 通貨を減らす(下の「同時実行」の SQL に `RETURNING gacha_currency` を付け、残りを受け取る)。0 行なら `GACHA_NOT_ENOUGH_CURRENCY`
 5. シードを作って乱数を用意する(1章)
@@ -40,7 +40,7 @@ updated: 2026-11-01
 
 `ExchangeAsync`(1 つのトランザクション):
 
-1. `GachaId` がマスタになければ、または `CeilingItemOrder` が `GachaCeilingItem` になければ `GACHA_NOT_FOUND`
+1. `GachaMasterId` がマスタになければ、または `CeilingItemOrder` が `GachaCeilingItem` になければ `GACHA_NOT_FOUND`
 2. 交換pt を減らす: `UPDATE gacha_exchange_points SET points = points - @c WHERE player_id = @id AND gacha_id = @g AND points >= @c`。0 行(行がない場合を含む)なら `GACHA_NOT_ENOUGH_POINTS`
 3. [gacha.md](../../systems/gacha.md) 5章の処理 → 履歴に 1 行([gacha.md](../../systems/gacha.md) 4章)
 4. Response を作る(`RETURNING points` で受けた残りの交換pt。結果の `Slot` は 0)
