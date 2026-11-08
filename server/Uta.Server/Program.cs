@@ -58,8 +58,6 @@ builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
 builder.Services.AddScoped<IIdolRepository, IdolRepository>();
 builder.Services.AddScoped<ISupportCardRepository, SupportCardRepository>();
 builder.Services.AddSingleton<IInitialGrantCatalog, MasterInitialGrantCatalog>();
-builder.Services.AddSingleton<IGachaCatalog, MasterGachaCatalog>();
-builder.Services.AddSingleton<IDuplicateConversionCatalog, MasterDuplicateConversionCatalog>();
 builder.Services.AddSingleton<IRandomSource, SecureRandomSource>();
 builder.Services.AddScoped<IGachaRepository, GachaRepository>();
 builder.Services.AddScoped<IProduceSessionRepository, ProduceSessionRepository>();

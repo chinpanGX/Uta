@@ -1,4 +1,5 @@
-﻿using Uta.Server.Domain.Gacha;
+﻿using Uta.MasterData;
+using Uta.Server.Domain.Gacha;
 using Uta.Server.Domain.Idol;
 using Uta.Server.Domain.Player;
 using Uta.Server.Domain.Support;
@@ -8,7 +9,7 @@ namespace Uta.Server.Application.Gacha;
 
 /// <summary>所持品への書き込み（gacha.md 5章）。Draw と Exchange が使う。Slot は 0 で返す（呼び出し側が with で入れる）。</summary>
 public sealed class ItemGranter(
-    IIdolRepository idols, ISupportCardRepository supportCards, IPlayerRepository players, IDuplicateConversionCatalog conversions)
+    IIdolRepository idols, ISupportCardRepository supportCards, IPlayerRepository players, MemoryDatabase master)
 {
     public async Task<GachaResult> GrantAsync(TxContext tx, Ulid playerId, GrantedItemKind kind, int itemId)
     {
@@ -21,7 +22,7 @@ public sealed class ItemGranter(
                 return new GachaResult(0, kind, itemId, GrantOutcome.New, 0, 0, null);
             }
 
-            var shards = conversions.GetAmount(kind, itemId);
+            var shards = GetConversionAmount(kind, itemId);
             await idols.AddShardsAsync(tx, playerId, itemId, shards);
             return new GachaResult(0, kind, itemId, GrantOutcome.Duplicate, shards, 0, null);
         }
@@ -29,7 +30,7 @@ public sealed class ItemGranter(
         var maxed = await supportCards.HasMaxLimitBreakAsync(tx, playerId, itemId);
         if (ItemGrantRules.Decide(kind, false, maxed) == GrantOutcome.Duplicate)
         {
-            var points = conversions.GetAmount(kind, itemId);
+            var points = GetConversionAmount(kind, itemId);
             await players.AddSupportPointsAsync(tx, playerId, points);
             return new GachaResult(0, kind, itemId, GrantOutcome.Duplicate, 0, points, null);
         }
@@ -37,5 +38,14 @@ public sealed class ItemGranter(
         var uid = Ulid.NewUlid();
         await supportCards.InsertAsync(tx, playerId, uid, itemId);
         return new GachaResult(0, kind, itemId, GrantOutcome.New, 0, 0, uid);
+    }
+
+    /// <summary>重複したときの変換量。育成アイドルはかけら、サポートカードは完凸後の強化pt。</summary>
+    private int GetConversionAmount(GrantedItemKind kind, int itemId)
+    {
+        var (itemKind, rarity) = kind == GrantedItemKind.Idol
+            ? (ItemKind.Idol, master.IdolTable.FindByIdolId(itemId).Rarity)
+            : (ItemKind.SupportCard, master.SupportCardTable.FindBySupportCardId(itemId).Rarity);
+        return master.DuplicateConversionTable.FindByItemKindAndRarity((itemKind, rarity)).Amount;
     }
 }

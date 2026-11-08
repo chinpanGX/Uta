@@ -320,4 +320,16 @@ public class MasterDataTests
         Assert.Equal(ItemKind.SupportCard, second.ItemKind);
         Assert.Equal(9, second.SupportCardId);
     }
+
+    [Theory]
+    [InlineData(ItemKind.Idol, Rarity.R, 5)]
+    [InlineData(ItemKind.Idol, Rarity.SR, 25)]
+    [InlineData(ItemKind.Idol, Rarity.SSR, 50)]
+    [InlineData(ItemKind.SupportCard, Rarity.R, 300)]
+    [InlineData(ItemKind.SupportCard, Rarity.SR, 1000)]
+    [InlineData(ItemKind.SupportCard, Rarity.SSR, 3000)]
+    public void DuplicateConversion_AmountByKindAndRarity(ItemKind kind, Rarity rarity, int amount)
+    {
+        Assert.Equal(amount, Db.DuplicateConversionTable.FindByItemKindAndRarity((kind, rarity)).Amount);
+    }
 }

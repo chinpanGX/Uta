@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーの Catalog をやめ、マスタを UseCase から直接読む（ADR 0020 のサーバー側）
-status: ready
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/naming.md
 ---
@@ -404,4 +404,5 @@ public void PlayerLevelExp_AllIsInLevelOrder()
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ |
+|---|---|---|
