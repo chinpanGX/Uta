@@ -1,6 +1,6 @@
 ---
 title: 実装計画: クライアントを共通基盤の新しい呼び方（11d9b06）に移す
-status: in-progress
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/screen-design.md
 ---
@@ -418,3 +418,4 @@ foundation・formation・gacha・owned の 4 本の、タイトル（`# 実装�
 | レビュー | 完了 | `99fd2c2`・`d4d00a7` | client 1 回目: Important 2（`Enter_Failed_ThrowsAndKeepsRepositories` が移っていない／テストを先に書いて失敗することの実測が無い）を直した。実測: `PlayerUseCase` を一時的に `NotImplementedException` にすると `PlayerUseCaseTests` 12 件すべて失敗、ほか 91 件は成功。Minor M1〜M5 も直した（`Apply` は詰め替えを先に済ませてから書く、など）。M6（`Uta.Client.Domain`・`MasterData` の asmdef を `noEngineReferences: true` にできるか）は任意のため見送り。shared: Minor 1（ADR 0022 の「採らないと判断したら」に yaml の `source` を戻すことが無い。ADR は親のセッションが直す） |
 | R8 | 完了 | （R8 のコミット 3 つ） | ユーザーの判断で追加。マイグレーション 0007 の埋め戻しはローカルの DB の 2 行で確かめた（時刻の部分が `created_at` と一致）。サーバー 294 件・EditMode 103 件成功 |
 | R9 | 完了 | `84e799f` | ユーザーの判断で追加。表どおり（差分なし）。クライアントのテストは位置引数で DTO を組んでいて変更不要だった。week・lesson の計画には読み替えの節が無かったので、同じ見出しの節を新しく作って 1 行だけ入れた |
+| R8・R9 のレビュー | 完了 | `1d93a8c` | server・shared は指摘 Minor だけ、client は Important 2（テストで UniqueId と MasterId が同じ値／後続の計画に R8 の読み替えが無い）を直した。`CardOffers` → `CardChoiceMasterIds`、`x-app-version` は互換な DTO の変更では上げない（どちらもユーザーの判断）。Editor の Play で、0007 で埋めた既存のアカウントの `sign-in: ok` を確かめた。R8 の確かめ方の「アカウント無しから」は回していない（既存のアカウントのサインインで、埋め戻した ID を含む応答が通ることを確かめた）。サーバー 295 件・EditMode 106 件成功。未対応の Minor: 0007 の埋め戻しの自動テスト、名前空間 `…Idol` とマスタの型 `Uta.MasterData.Idol` の衝突の規則 |

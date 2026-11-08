@@ -50,6 +50,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 - リポジトリの名前は、エンティティ名から `Entity` を除いたもの
 - エンティティ・リポジトリのフォルダと名前空間は機能ごとに分ける（クライアントの Domain・Infrastructure の `Player`・`Idol`・`SupportCard`。[repository-layout.md](repository-layout.md) 2章）[決定。2026-11-08。ユーザーの判断]
+- 機能の名前空間（`Uta.Client.<層>.Idol`・`…SupportCard`・`…Gacha`）が、生成したマスタの同名の型（`Uta.MasterData.Idol`・`SupportCard`・`Gacha`）とぶつかってコンパイルできないときは、型の側を `Uta.MasterData.Idol` のように名前空間付きで書く（名前空間の名前は変えない。using の別名も使わない）[決定。2026-11-08。R8 の実装で決めた]
 - enum の区分の優先: 操作の結果を表すなら `ResultKind`、保存される進行の段階なら `Status`、それ以外の分類なら `Kind`
 - **既にある enum で、上の区分に当たらないものは名前を変えない**。用語集の語・ゲームの語そのもの（`Plan`・`Rarity`・`ProduceRank`）、ゲームの局面（`ProducePhase`・`LessonPhase`。用語集の「局面」）、理由（`LessonEndReason`）、終わり方（Contracts の `ProduceEnding`）、検査の結果（`FormationCheck`）、種類（`CardType`・`SupportType`）、エラー（`UseCaseError`）。新しく作る enum は、上の区分か、この行の語（`Phase`・`Reason`）から選ぶ。`Type` は新しく使わない（`Kind` にする）
 

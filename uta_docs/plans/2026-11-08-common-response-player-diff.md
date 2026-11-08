@@ -39,7 +39,7 @@ spec: ../wiki/architecture/api-design.md, ../wiki/architecture/server/server-fou
 - タスク 4 の wiki: `screen-design.md` 7.5「所持データのキャッシュ」の行は移行計画のタスク 3 が `IPlayerRepository`・`IPlayerUseCase.RefreshAsync` の形に書き直す。この計画はその行に「`Common` の player_diff が先にリポジトリへ反映される（`PlayerCommonApplier`）。`RefreshAsync` は安全網」と 1 文足す
 - DTO の ID の名前（`OwnedIdolDto.IdolId` など）は、[移行計画](2026-11-08-client-foundation-migration.md)の R9 の表に読み替える（2026-11-08）
 - クライアントのエンティティ・リポジトリの形（`IdolEntity.IdolId` → `MasterId`、`SupportCardEntity.SupportCardUid`・`CardId` → `UniqueId`・`MasterId`、`PlayerEntity` の `UniqueId`、コンストラクターの先頭の `uniqueId`、`Find(string uniqueId)`、名前空間 `Uta.Client.Domain.Idol`・`…SupportCard`・`Uta.Client.Infrastructure.Idol`・`…SupportCard`）は、[移行計画](2026-11-08-client-foundation-migration.md)の R8 に読み替える（2026-11-08）
-- この計画の `RemovedSupportCardUids`（`PlayerDiffDto` の `[Key(8)]`）は `RemovedSupportCardUniqueIds`、`new OwnedIdolDto(...)` は R8・R9 の引数（`MasterId`・…・`UniqueId`。末尾に `idol.UniqueId.ToString()`）、`new OwnedSupportCardDto(card.UniqueId.ToString(), card.MasterId, …)` に読み替える（2026-11-08。サーバーのコードレビューの指摘）
+- この計画の `RemovedSupportCardUids`（`PlayerDiffDto` の `[Key(8)]`）は `RemovedSupportCardUniqueIds`、`new OwnedIdolDto(...)` は R8・R9 の引数（`MasterId`・…・`UniqueId`。末尾に `idol.UniqueId.ToString()`）、`new OwnedSupportCardDto(card.UniqueId.ToString(), card.MasterId, …)` に読み替える（2026-11-08。サーバーのコードレビューの指摘）。`new PlayerEntity(...)` の先頭の `uniqueId` には `current.UniqueId`（今のプレイヤーのもの。差分の応答はプレイヤーの ID を持たない）を渡す
 
 ## 0. 決まっていること（ユーザーが推奨どおりに了承した。2026-11-08）
 
