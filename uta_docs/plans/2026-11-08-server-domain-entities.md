@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーのエンティティとリポジトリの IF を Domain に移す（ADR 0021 のサーバー側）
-status: ready
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/decisions/0021-domain-entities-and-repositories.md, ../wiki/architecture/naming.md, ../wiki/architecture/repository-layout.md
 ---
@@ -156,3 +156,8 @@ ADR 0021 はサーバーのリポジトリの IF とエンティティを Domain
 ## 6. 未決事項
 
 なし。
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
