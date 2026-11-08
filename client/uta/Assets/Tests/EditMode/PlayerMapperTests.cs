@@ -10,12 +10,13 @@ namespace Uta.Client.Tests
         {
             return new SignInResponse(
                 3, 40, 500, 60, 700, true, false,
-                new[] { new OwnedIdolDto(1, 2, 3, 4), new OwnedIdolDto(5, 6, 7, 8) },
+                new[] { new OwnedIdolDto(1, 2, 3, 4, "U1"), new OwnedIdolDto(5, 6, 7, 8, "U5") },
                 new[]
                 {
                     new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12),
                     new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAW", 20, 21, 22),
-                });
+                },
+                "P1");
         }
 
         [Test]
@@ -23,6 +24,7 @@ namespace Uta.Client.Tests
         {
             var player = PlayerMapper.ToPlayerEntity(NewResponse());
 
+            Assert.AreEqual("P1", player.UniqueId);
             Assert.AreEqual(3, player.Level);
             Assert.AreEqual(40, player.Exp);
             Assert.AreEqual(500, player.Gold);
@@ -38,7 +40,8 @@ namespace Uta.Client.Tests
             var idols = PlayerMapper.ToIdolEntities(NewResponse().Idols);
 
             Assert.AreEqual(2, idols.Count);
-            Assert.AreEqual(5, idols[1].IdolId);
+            Assert.AreEqual("U5", idols[1].UniqueId);
+            Assert.AreEqual(5, idols[1].MasterId);
             Assert.AreEqual(6, idols[1].Training);
             Assert.AreEqual(7, idols[1].Awakening);
             Assert.AreEqual(8, idols[1].Shards);
@@ -50,8 +53,8 @@ namespace Uta.Client.Tests
             var cards = PlayerMapper.ToSupportCardEntities(NewResponse().SupportCards);
 
             Assert.AreEqual(2, cards.Count);
-            Assert.AreEqual("01ARZ3NDEKTSV4RRFFQ69G5FAW", cards[1].SupportCardUid);
-            Assert.AreEqual(20, cards[1].CardId);
+            Assert.AreEqual("01ARZ3NDEKTSV4RRFFQ69G5FAW", cards[1].UniqueId);
+            Assert.AreEqual(20, cards[1].MasterId);
             Assert.AreEqual(21, cards[1].Level);
             Assert.AreEqual(22, cards[1].LimitBreak);
         }

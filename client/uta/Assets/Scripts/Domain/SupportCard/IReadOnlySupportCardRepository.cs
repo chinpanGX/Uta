@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Uta.Client.Domain.Player
+namespace Uta.Client.Domain.SupportCard
 {
     public interface IReadOnlySupportCardRepository
     {
@@ -8,6 +8,6 @@ namespace Uta.Client.Domain.Player
         IReadOnlyList<SupportCardEntity> FindAll();
 
         /// <summary>無ければ null。</summary>
-        SupportCardEntity Find(string uid);
+        SupportCardEntity Find(string uniqueId);
     }
 }

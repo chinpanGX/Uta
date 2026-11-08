@@ -31,10 +31,11 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 種類 | 名前 | 例 | 置き場 |
 |---|---|---|---|
 | エンティティ [ADR 案] | `<名詞>Entity`。所持を表す `Owned` は付けない | `PlayerEntity`、`IdolEntity` | 各側の Domain（ADR 0021） |
+| エンティティの ID [決定。2026-11-08。ユーザーの判断] | サーバーが採番する ULID は `UniqueId`（`string`）、マスタの `int` の ID は `MasterId`（`int`）。持つものだけ持つ（`PlayerEntity` は `UniqueId`、`IdolEntity`・`SupportCardEntity` は両方）。Contracts の DTO の名前（`PlayerId`・`IdolUid`・`SupportCardUid`・`IdolId`・`CardId`）はそのままにし、Mapper で写す | `IdolEntity.UniqueId`、`IdolEntity.MasterId` | クライアントの Domain |
 | リポジトリの IF [ADR 案] | `I<名詞>Repository` | `IPlayerRepository` | 各側の Domain |
 | リポジトリの IF（読み取り専用。クライアント） [ADR 案] | `IReadOnly<名詞>Repository`（`I<名詞>Repository` がこれを継ぐ） | `IReadOnlyPlayerRepository` | クライアントの Domain |
 | リポジトリの実装 | `<名詞>Repository` | `PlayerRepository` | Infrastructure |
-| リポジトリの取得のメソッド [ADR 案] | 1 件は `Find`（無ければ null）、全件は `FindAll`。サーバーは `FindAsync`・`FindAllAsync` | `Find(idolId)`、`FindAll()` | — |
+| リポジトリの取得のメソッド [ADR 案] | 1 件は `Find`（無ければ null）、全件は `FindAll`。サーバーは `FindAsync`・`FindAllAsync` | `Find(uniqueId)`、`FindAll()`。クライアントの 1 件の取得・置き換え・削除は `UniqueId` で行う（2026-11-08） | — |
 | UseCase の IF（クライアント） [ADR 案] | `I<機能>UseCase`。機能ごとに 1 つ（Contracts の `I<機能>Service` と同じ単位） | `IGachaUseCase` | クライアントの Application（ADR 0022） |
 | UseCase の具象（クライアント） [ADR 案] | `<機能>UseCase`（IF から `I` を除いたもの） | `GachaUseCase`、`PlayerUseCase` | クライアントの Infrastructure（ADR 0022） |
 | UseCase の具象（サーバー） | `<動詞><名詞>UseCase`。1 つの操作に 1 つ | `DrawUseCase` | サーバーの Application |
@@ -47,6 +48,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | それ以外の分類（enum） | `<名詞>Kind` | `ItemKind`、`CostKind` | 使う層 |
 
 - リポジトリの名前は、エンティティ名から `Entity` を除いたもの
+- エンティティ・リポジトリのフォルダと名前空間は機能ごとに分ける（クライアントの Domain・Infrastructure の `Player`・`Idol`・`SupportCard`。[repository-layout.md](repository-layout.md) 2章）[決定。2026-11-08。ユーザーの判断]
 - enum の区分の優先: 操作の結果を表すなら `ResultKind`、保存される進行の段階なら `Status`、それ以外の分類なら `Kind`
 - **既にある enum で、上の区分に当たらないものは名前を変えない**。用語集の語・ゲームの語そのもの（`Plan`・`Rarity`・`ProduceRank`）、ゲームの局面（`ProducePhase`・`LessonPhase`。用語集の「局面」）、理由（`LessonEndReason`）、終わり方（Contracts の `ProduceEnding`）、検査の結果（`FormationCheck`）、種類（`CardType`・`SupportType`）、エラー（`UseCaseError`）。新しく作る enum は、上の区分か、この行の語（`Phase`・`Reason`）から選ぶ。`Type` は新しく使わない（`Kind` にする）
 

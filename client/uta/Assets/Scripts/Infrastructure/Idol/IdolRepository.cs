@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Uta.Client.Domain.Player;
+using Uta.Client.Domain.Idol;
 
-namespace Uta.Client.Infrastructure.Player
+namespace Uta.Client.Infrastructure.Idol
 {
     public sealed class IdolRepository : IIdolRepository
     {
@@ -11,15 +11,15 @@ namespace Uta.Client.Infrastructure.Player
         public IReadOnlyList<IdolEntity> FindAll()
         {
             var list = new List<IdolEntity>(items);
-            list.Sort((a, b) => a.IdolId.CompareTo(b.IdolId));
+            list.Sort((a, b) => a.MasterId.CompareTo(b.MasterId));
             return list;
         }
 
-        public IdolEntity Find(int idolId)
+        public IdolEntity Find(string uniqueId)
         {
             foreach (var item in items)
             {
-                if (item.IdolId == idolId)
+                if (item.UniqueId == uniqueId)
                 {
                     return item;
                 }
@@ -37,7 +37,7 @@ namespace Uta.Client.Infrastructure.Player
 
             for (var i = 0; i < items.Count; i++)
             {
-                if (items[i].IdolId == idol.IdolId)
+                if (items[i].UniqueId == idol.UniqueId)
                 {
                     items[i] = idol;
                     return;

@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 
-namespace Uta.Client.Domain.Player
+namespace Uta.Client.Domain.Idol
 {
     public interface IIdolRepository : IReadOnlyIdolRepository
     {
-        /// <summary>IdolId が同じものを置き換え、無ければ足す。null なら ArgumentNullException。</summary>
+        /// <summary>UniqueId が同じものを置き換え、無ければ足す。null なら ArgumentNullException。</summary>
         void Upsert(IdolEntity idol);
 
         /// <summary>全部入れ替える。null なら ArgumentNullException。</summary>

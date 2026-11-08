@@ -9,7 +9,7 @@ namespace Uta.Client.Tests
     {
         private static PlayerEntity Player(int level)
         {
-            return new PlayerEntity(level, 1, 2, 3, 4, false, false);
+            return new PlayerEntity("P1", level, 1, 2, 3, 4, false, false);
         }
 
         [Test]

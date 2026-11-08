@@ -68,9 +68,15 @@ uta/
    └─ uta/                   # [決定] Unity プロジェクトのルート
       └─ Assets/Scripts/     # [決定] 層ごとに asmdef（3章）（作成済み）
          ├─ MasterData/      #   生成したマスタ（asmdef Uta.Client.MasterData。2026-11-08 に Infrastructure から移した。ADR 0020）: Generated/ のクライアント用のソース、MasterDataAssembly.cs、IsExternalInit.cs。バイナリは Assets/StreamingAssets/MasterData/（ADR 0013）
-         ├─ Domain/          #   エンティティ、リポジトリの IF（asmdef Uta.Client.Domain。2026-11-08。ADR 0021）
+         ├─ Domain/          #   エンティティ、リポジトリの IF（asmdef Uta.Client.Domain。2026-11-08。ADR 0021）。機能ごとのフォルダ（名前空間 Uta.Client.Domain.<機能>）
+         │  ├─ Player/       #     PlayerEntity・IPlayerRepository・IReadOnlyPlayerRepository
+         │  ├─ Idol/         #     IdolEntity・IIdolRepository・IReadOnlyIdolRepository
+         │  └─ SupportCard/  #     SupportCardEntity・ISupportCardRepository・IReadOnlySupportCardRepository
          ├─ Application/     #   UseCase の IF とその出力の型、外部に触れない具象（ADR 0022）
-         ├─ Infrastructure/  #   外部に触れる具象: UseCase の具象、API 呼び出し、マスタの読み込み、リポジトリの実装、ローカル保存（ADR 0022）
+         ├─ Infrastructure/  #   外部に触れる具象: UseCase の具象、API 呼び出し、マスタの読み込み、リポジトリの実装、ローカル保存（ADR 0022）。機能ごとのフォルダ（名前空間 Uta.Client.Infrastructure.<機能>）
+         │  ├─ Player/       #     PlayerRepository・PlayerUseCase・PlayerMapper（サインインの応答の詰め替え）
+         │  ├─ Idol/         #     IdolRepository
+         │  └─ SupportCard/  #     SupportCardRepository
          ├─ Presentation/    #   View、Presenter
          ├─ Bootstrap/       #   Composition Root
          └─ Editor/          #   Unity のビルドのコマンド（Editor 専用）
@@ -110,7 +116,7 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 | Shared.Domain | `shared/Uta.Shared.Domain`（テストは `shared/Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
 | Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO）。パッケージ名は `com.uta.shared.contracts` |
 | Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） |
-| Client.Domain | `client/uta/Assets/Scripts/Domain/`（asmdef・名前空間 `Uta.Client.Domain`。2026-11-08 に作った。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。所持データのエンティティとリポジトリの IF を置く |
+| Client.Domain | `client/uta/Assets/Scripts/Domain/`（asmdef・名前空間 `Uta.Client.Domain`。2026-11-08 に作った。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。所持データのエンティティとリポジトリの IF を置く。フォルダと名前空間は機能ごと（`Player/`・`Idol/`・`SupportCard/`、`Uta.Client.Domain.Player` など。Infrastructure のリポジトリの実装も同じ分け方。2026-11-08。ユーザーの判断） |
 
 | アセンブリ | 置き場 | 形式 | 参照してよいもの |
 |---|---|---|---|

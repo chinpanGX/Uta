@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Uta.Client.Domain.Player;
+using Uta.Client.Domain.SupportCard;
 
-namespace Uta.Client.Infrastructure.Player
+namespace Uta.Client.Infrastructure.SupportCard
 {
     public sealed class SupportCardRepository : ISupportCardRepository
     {
@@ -13,11 +13,11 @@ namespace Uta.Client.Infrastructure.Player
             return new List<SupportCardEntity>(items);
         }
 
-        public SupportCardEntity Find(string uid)
+        public SupportCardEntity Find(string uniqueId)
         {
             foreach (var item in items)
             {
-                if (item.SupportCardUid == uid)
+                if (item.UniqueId == uniqueId)
                 {
                     return item;
                 }
@@ -35,7 +35,7 @@ namespace Uta.Client.Infrastructure.Player
 
             for (var i = 0; i < items.Count; i++)
             {
-                if (items[i].SupportCardUid == card.SupportCardUid)
+                if (items[i].UniqueId == card.UniqueId)
                 {
                     items[i] = card;
                     return;
@@ -45,9 +45,9 @@ namespace Uta.Client.Infrastructure.Player
             items.Add(card);
         }
 
-        public void Remove(string uid)
+        public void Remove(string uniqueId)
         {
-            items.RemoveAll(x => x.SupportCardUid == uid);
+            items.RemoveAll(x => x.UniqueId == uniqueId);
         }
 
         public void ReplaceAll(IReadOnlyList<SupportCardEntity> cards)

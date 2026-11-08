@@ -3,7 +3,9 @@ using System.Collections;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine.TestTools;
+using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
+using Uta.Client.Infrastructure.SupportCard;
 using Uta.Shared.Contracts.Player;
 
 namespace Uta.Client.Tests
@@ -29,7 +31,7 @@ namespace Uta.Client.Tests
 
         private static SignInResponse SignIn(int level = 1, OwnedIdolDto[] idols = null, OwnedSupportCardDto[] supportCards = null)
         {
-            return new SignInResponse(level, 2, 3, 4, 5, false, false, idols, supportCards);
+            return new SignInResponse(level, 2, 3, 4, 5, false, false, idols, supportCards, "P1");
         }
 
         private static void StartsWith(string prefix, Exception e)
@@ -141,7 +143,7 @@ namespace Uta.Client.Tests
         {
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
                 7,
-                new[] { new OwnedIdolDto(9, 1, 2, 3), new OwnedIdolDto(4, 5, 6, 7) },
+                new[] { new OwnedIdolDto(9, 1, 2, 3, "U9"), new OwnedIdolDto(4, 5, 6, 7, "U4") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
 
             var result = await useCase.EnterAsync(false);
@@ -152,10 +154,10 @@ namespace Uta.Client.Tests
             Assert.AreEqual(1, result.SupportCardCount);
             var all = idols.FindAll();
             Assert.AreEqual(2, all.Count);
-            Assert.AreEqual(4, all[0].IdolId);
-            Assert.AreEqual(9, all[1].IdolId);
+            Assert.AreEqual(4, all[0].MasterId);
+            Assert.AreEqual(9, all[1].MasterId);
             Assert.AreEqual(1, supportCards.FindAll().Count);
-            Assert.AreEqual(10, supportCards.Find("01ARZ3NDEKTSV4RRFFQ69G5FAV").CardId);
+            Assert.AreEqual(10, supportCards.Find("01ARZ3NDEKTSV4RRFFQ69G5FAV").MasterId);
         });
 
         [UnityTest]
@@ -163,7 +165,7 @@ namespace Uta.Client.Tests
         {
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
                 1,
-                new[] { new OwnedIdolDto(1, 0, 0, 0) },
+                new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Fail<SignInResponse>(PlayerErrors.NotEnoughGold));
@@ -179,18 +181,18 @@ namespace Uta.Client.Tests
         [UnityTest]
         public IEnumerator Refresh_Success_ReplacesRepositories() => UniTask.ToCoroutine(async () =>
         {
-            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1, new[] { new OwnedIdolDto(1, 0, 0, 0) }, null)));
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1, new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") }, null)));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
                 2,
-                new[] { new OwnedIdolDto(2, 0, 0, 0), new OwnedIdolDto(3, 0, 0, 0) },
+                new[] { new OwnedIdolDto(2, 0, 0, 0, "U2"), new OwnedIdolDto(3, 0, 0, 0, "U3") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
 
             await useCase.RefreshAsync();
 
             Assert.AreEqual(2, players.Find().Level);
             Assert.AreEqual(2, idols.FindAll().Count);
-            Assert.IsNull(idols.Find(1));
+            Assert.IsNull(idols.Find("U1"));
             Assert.AreEqual(1, supportCards.FindAll().Count);
         });
 
@@ -199,7 +201,7 @@ namespace Uta.Client.Tests
         {
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
                 1,
-                new[] { new OwnedIdolDto(1, 0, 0, 0) },
+                new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Fail<SignInResponse>(PlayerErrors.NotEnoughGold));
@@ -217,7 +219,7 @@ namespace Uta.Client.Tests
         {
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
                 1,
-                new[] { new OwnedIdolDto(1, 0, 0, 0) },
+                new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Fail<SignInResponse>(PlayerErrors.NotCreated));

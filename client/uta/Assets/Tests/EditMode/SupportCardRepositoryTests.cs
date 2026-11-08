@@ -1,7 +1,7 @@
 ﻿using System;
 using NUnit.Framework;
-using Uta.Client.Domain.Player;
-using Uta.Client.Infrastructure.Player;
+using Uta.Client.Domain.SupportCard;
+using Uta.Client.Infrastructure.SupportCard;
 
 namespace Uta.Client.Tests
 {
@@ -29,9 +29,9 @@ namespace Uta.Client.Tests
             var all = repo.FindAll();
 
             Assert.AreEqual(2, all.Count);
-            Assert.AreEqual("B", all[0].SupportCardUid);
+            Assert.AreEqual("B", all[0].UniqueId);
             Assert.AreEqual(7, all[0].Level);
-            Assert.AreEqual("A", all[1].SupportCardUid);
+            Assert.AreEqual("A", all[1].UniqueId);
         }
 
         [Test]
@@ -65,8 +65,8 @@ namespace Uta.Client.Tests
             repo.ReplaceAll(new[] { Card("B"), Card("A") });
 
             Assert.IsNull(repo.Find("X"));
-            Assert.AreEqual("B", repo.FindAll()[0].SupportCardUid);
-            Assert.AreEqual("A", repo.FindAll()[1].SupportCardUid);
+            Assert.AreEqual("B", repo.FindAll()[0].UniqueId);
+            Assert.AreEqual("A", repo.FindAll()[1].UniqueId);
         }
 
         [Test]

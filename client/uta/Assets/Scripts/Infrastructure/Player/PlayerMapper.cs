@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using Uta.Client.Domain.Idol;
 using Uta.Client.Domain.Player;
+using Uta.Client.Domain.SupportCard;
 using Uta.Shared.Contracts.Player;
 
 namespace Uta.Client.Infrastructure.Player
@@ -10,13 +12,13 @@ namespace Uta.Client.Infrastructure.Player
         public static PlayerEntity ToPlayerEntity(SignInResponse response)
         {
             return new PlayerEntity(
-                response.Level, response.Exp, response.Gold, response.SupportPoints, response.GachaCurrency,
+                response.PlayerId, response.Level, response.Exp, response.Gold, response.SupportPoints, response.GachaCurrency,
                 response.HasActiveProduce, response.DiscardedProduce);
         }
 
         public static IdolEntity ToIdolEntity(OwnedIdolDto dto)
         {
-            return new IdolEntity(dto.IdolId, dto.Training, dto.Awakening, dto.Shards);
+            return new IdolEntity(dto.IdolUid, dto.IdolId, dto.Training, dto.Awakening, dto.Shards);
         }
 
         public static SupportCardEntity ToSupportCardEntity(OwnedSupportCardDto dto)

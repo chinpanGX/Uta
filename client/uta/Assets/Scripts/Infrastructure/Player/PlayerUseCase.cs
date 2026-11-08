@@ -1,7 +1,9 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using Uta.Client.Application.Player;
+using Uta.Client.Domain.Idol;
 using Uta.Client.Domain.Player;
+using Uta.Client.Domain.SupportCard;
 using Uta.Shared.Contracts.Player;
 using VolTech.Client;
 
