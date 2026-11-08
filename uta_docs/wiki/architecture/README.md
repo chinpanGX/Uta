@@ -25,6 +25,7 @@ updated: 2026-11-01
 | マスタのテーブル・列・区分・検証、全テーブルの索引 | [master/](master/README.md) のシステムごとのページ（`*-tables.md`）。索引は master/README.md |
 | RPC の一覧、DTO、エラーの reason、プレイヤーデータのテーブル、ゲームルールの置き場（Shared.Domain / サーバー）、中断・放棄・破棄の流れ | [api-design.md](api-design.md) |
 | 画面一覧・遷移、起動フロー、クライアントの Presentation 層 | [screen-design.md](screen-design.md) |
+| 型の名前の付け方（役割ごとの接尾辞・接頭辞）。書式は CLAUDE.md と `.editorconfig` | [naming.md](naming.md) |
 | レッスンの Shared.Domain の型と責務 | [lesson-domain-types.md](lesson-domain-types.md) |
 | レッスンの enum の名前・数値と、効果の列の対応 | [lesson-enums.md](lesson-enums.md) |
 | レッスンの実装の順番、フェーズごとに変えるコード、テストの置き場、完了条件 | [lesson-phases.md](lesson-phases.md) |
@@ -44,6 +45,10 @@ updated: 2026-11-01
 - [repository-layout.md](repository-layout.md) — 共通・基盤編：リポジトリ構成、ソリューションと NuGet の版、アセンブリと層の依存ルール、共通基盤の扱い、Shared のコードの制約、機能ID、共通の規約、環境構成とデプロイ、実装の進め方（1 番目の計画の中身）
 - [api-design.md](api-design.md) — API設計編：サービスIF、プレイヤーデータ、ゲームルールの置き場
 - [screen-design.md](screen-design.md) — 画面設計編：Presentation 層、画面一覧・遷移、起動フロー
+
+横断の規約:
+
+- [naming.md](naming.md) — 命名規則：役割ごとの型の名前（エンティティ・リポジトリ・UseCase・Request/Response/Result・Presentation の型）と、今のコードとの差
 
 Shared.Domain（`shared/Uta.Shared.Domain`）の機能ごとの実装設計:
 
