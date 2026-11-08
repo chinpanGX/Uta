@@ -9,5 +9,13 @@ namespace Uta.Client.Presentation.Common.Parts
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text subText;
         [SerializeField] private TMP_Text rightText;
+
+        /// <summary>null は空文字にする。</summary>
+        public void SetTexts(string title, string sub, string right)
+        {
+            titleText.text = title ?? string.Empty;
+            subText.text = sub ?? string.Empty;
+            rightText.text = right ?? string.Empty;
+        }
     }
 }

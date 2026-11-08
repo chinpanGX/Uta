@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
-status: ready
+status: in-progress
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -174,8 +174,8 @@ public sealed class HomeEntry : IStartable
 
 ### R5. タスクの読み替え
 
-- タスク 1: `DialogService` → `DialogOpener`。偽は `CallLog`・`FakeScreenNavigator`・`FakeDialogOpener`・`FakeSceneNavigator`・`FakePlayerUseCase`・`FakeDeviceAuthUseCase`（R6）と `Support/TestMasterData.cs`
-- タスク 2: 「マスタの読み取り口」は無い。作るのは `DiscardNoticeState`・`FeaturedIdolPicker`、`PlayerUseCase` への `DiscardNoticeState` の追加、`ErrorDefinitions` の 18 個。テストは `DiscardNoticeStateTests`・`FeaturedIdolPickerTests`・`PlayerUseCaseTests` の 2 本の追加・`ErrorDefinitionsTests`。計画 0 の前提の確認（`Card.Name`・`CardFace.Description`）は、`Assets/Scripts/MasterData/Generated/Lesson/` を見る
+- タスク 1: `DialogService` → `DialogOpener`。偽は `CallLog`・`FakeScreenNavigator`・`FakeDialogOpener`・`FakeSceneNavigator`・`FakeDeviceAuthUseCase`（R6）と `Support/TestMasterData.cs`。`FakePlayerUseCase` はタスク 2 で作る（`DiscardNoticeState`・`IPlayerUseCase.MarkDiscardNoticeShown` がタスク 2 で入るため。2026-11-08 の実装で直した）
+- タスク 2: 「マスタの読み取り口」は無い。作るのは `DiscardNoticeState`・`FeaturedIdolPicker`、R6 の `Tests/EditMode/Fakes/FakePlayerUseCase.cs`（`DiscardNoticeState` と `MarkDiscardNoticeShown` を足したあと）、`PlayerUseCase` への `DiscardNoticeState` の追加、`ErrorDefinitions` の 18 個。テストは `DiscardNoticeStateTests`・`FeaturedIdolPickerTests`・`PlayerUseCaseTests` の 2 本の追加・`ErrorDefinitionsTests`。計画 0 の前提の確認（`Card.Name`・`CardFace.Description`）は、`Assets/Scripts/MasterData/Generated/Lesson/` を見る
 - タスク 3: `HomeViewDto`・`HomeDtoFactory` を作る。`StubIdolMaster` は作らない。テストに `HomeDtoFactoryTests` を足す
 - タスク 4: `IGameMaster` の登録は無い（R4）。止まる条件 B5 の循環の経路は R4 のとおり
 - タスク 6（wiki）: `screen-design.md` 7.5 の「マスタ」の行と 7.4・8 章は移行計画のタスク 3 が ADR 0020〜0022 の形に直している（この計画で直すのは、本文の記述のうち実装と違うところだけ）。この計画で足して直すもの: 7.8 の「`IGameMaster.GetIdol(idolId).Name`」を「`HomeDtoFactory` がマスタから名前を引き、`ICharacterStage.ShowIdol(idolId, name)` に渡す」に。3.3 の共通ルールを `screen-design.md` に移す仕事は ADR 0022 の accepted の後の別の作業（この計画ではしない）
@@ -213,7 +213,7 @@ public sealed class FakePlayerUseCase : IPlayerUseCase
     public Queue<Func<UniTask<EnterPlayerResult>>> EnterResults { get; }
     /// <summary>RefreshAsync の 1 回ごとの振る舞い。空なら完了済み。失敗は () => throw new InvalidOperationException("sign-in failed: x")。log があれば "Refresh" を記録。</summary>
     public Queue<Func<UniTask>> RefreshResults { get; }
-    /// <summary>既定の EnterAsync が返すエンティティ。既定は new PlayerEntity(1, 0, 0, 0, 0, false, false)。</summary>
+    /// <summary>既定の EnterAsync が返すエンティティ。既定は new PlayerEntity("P1", 1, 0, 0, 0, 0, false, false)（先頭は移行計画 R8 の uniqueId。PlayerUseCaseTests と同じ "P1"）。</summary>
     public PlayerEntity Player { get; set; }
     public int RefreshCount { get; }
     // 偽はリポジトリに書かない。テストは本物のリポジトリ（PlayerRepository など）に Upsert・ReplaceAll で値を入れる
@@ -1490,3 +1490,8 @@ Play モード・手動（Editor、サーバー起動済み）:
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - なし（2026-11-07: ユーザーの確認は決めたこと 3・6・12 に移した。P2 の `TitlePage`・`HomePage` の表（3.1・3.3）と 3.9 は突き合わせ済みで一致）
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|

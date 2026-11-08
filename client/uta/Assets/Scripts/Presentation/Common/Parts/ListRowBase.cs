@@ -8,5 +8,14 @@ namespace Uta.Client.Presentation.Common.Parts
     {
         [SerializeField] private Button button;
         [SerializeField] private Image background;
+
+        public Button Button => button;
+
+        protected Image Background => background;
+
+        public void SetInteractable(bool value)
+        {
+            button.interactable = value;
+        }
     }
 }

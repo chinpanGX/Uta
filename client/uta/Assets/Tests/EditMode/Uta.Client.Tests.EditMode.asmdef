@@ -19,7 +19,9 @@
         "Unity.Addressables",
         "Unity.Addressables.Editor",
         "Uta.Client.Domain",
-        "Uta.Client.MasterData"
+        "Uta.Client.MasterData",
+        "Uta.Client.Bootstrap",
+        "VContainer"
     ],
     "includePlatforms": [
         "Editor"
