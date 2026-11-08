@@ -22,6 +22,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 - **`Request` は通信の入力（Contracts）だけ**。UseCase の入力は引数で受け、入力の型を作らない（Contracts の `LevelUpRequest` などと同じ名前の型ができるのを避けるため）
 - **結果は `Result`**。`Outcome` は使わない
 - **Shared.Domain のエンジンへの操作の入力は `Command`**（`LessonCommand`・`ProduceCommand`）
+- **Application の型は、Contracts の型と同じ名前にしない**（Infrastructure とテストは両方を参照するため。Contracts の enum のクライアントの写しも同じ）
 - **表にない役割は、役割を表す名詞を接尾辞にする**。使ってよい接尾辞と意味は 9章。新しい接尾辞を作る前に、9章の語で言えないかを確かめる
 
 ### 2. 層をまたぐ型
@@ -44,7 +45,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 - リポジトリの名前は、エンティティ名から `Entity` を除いたもの
 - enum の区分の優先: 操作の結果を表すなら `ResultKind`、保存される進行の段階なら `Status`、それ以外の分類なら `Kind`
-- **既にある enum で、上の区分に当たらないものは名前を変えない**。用語集の語・ゲームの語そのもの（`Plan`・`Rarity`・`ProduceRank`）、ゲームの局面（`ProducePhase`・`LessonPhase`。用語集の「局面」）、理由（`LessonEndReason`）、検査の結果（`FormationCheck`）、種類（`CardType`・`SupportType`）、エラー（`UseCaseError`）。新しく作る enum は、上の区分か、この行の語（`Phase`・`Reason`）から選ぶ。`Type` は新しく使わない（`Kind` にする）
+- **既にある enum で、上の区分に当たらないものは名前を変えない**。用語集の語・ゲームの語そのもの（`Plan`・`Rarity`・`ProduceRank`）、ゲームの局面（`ProducePhase`・`LessonPhase`。用語集の「局面」）、理由（`LessonEndReason`）、終わり方（Contracts の `ProduceEnding`）、検査の結果（`FormationCheck`）、種類（`CardType`・`SupportType`）、エラー（`UseCaseError`）。新しく作る enum は、上の区分か、この行の語（`Phase`・`Reason`）から選ぶ。`Type` は新しく使わない（`Kind` にする）
 
 ### 3. 通信（`Uta.Shared.Contracts`）
 
@@ -69,6 +70,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | マスタの行と同じ列を持つ入力 | `<名詞>Row` | `CardRow` |
 | 選べるものの 1 つ | 接尾辞なしの名詞 | `ClassOption`、`WeekChoice` |
 
+- Shared.Domain の型と生成したマスタの型が同じ名前になるとき（`ClassOption` と `Uta.MasterData.ClassOption`）は、名前を変えない。同じファイルで両方を使うときは、Shared.Domain の名前空間を `using` し、マスタの型は名前空間付きで書く（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md) の enum と同じ）
 - `Row` は組み立てる前の行（マスタの列そのまま）、`Definition` は組み立てた後（グループの解決・入れ子の組み立て済み）
 - enum の値の名前は [lesson-enums.md](lesson-enums.md) の「命名の規則」が正
 
@@ -93,7 +95,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | Presenter | `<画面>Presenter` | `HomePresenter` |
 | 前の画面から受け取る情報 | `<画面>Args` | `SupportDetailArgs` |
 | View に渡す表示用の値 | 受け取る View の名前 + `Dto`（画面の IF は `I` を除く） | `OwnedRowViewDto`、`WeekViewDto` |
-| 表示用の値を作る役 | `<画面>DtoFactory`（画面ごとに 1 つ）。複数の画面で使う行は、行の View の名前から `View` を除いた `<行>DtoFactory` を作り、画面の Factory から呼ぶ | `WeekDtoFactory`、`SkillCardRowDtoFactory` |
+| 表示用の値を作る役 | `<画面>DtoFactory`（画面ごとに 1 つ）。表示用の Dto を作る役は、入力の数にかかわらず必ず DtoFactory（Mapper にしない）。複数の画面で使う行は、行の View の名前から `View` を除いた `<行>DtoFactory` を作り、画面の Factory から呼ぶ。共用の行の Dto は表示の値だけを持ち、画面ごとの ID（添字・インスタンス ID）は画面の Dto に持たせる | `WeekDtoFactory`、`SkillCardRowDtoFactory` |
 | シーンの DI | `<シーン>LifetimeScope` | `HomeLifetimeScope` |
 
 - Prefab と子の GameObject の名前は [screen-design.md](screen-design.md) 7.4
@@ -102,7 +104,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 | 役 | 名前 | 線引き | 例 |
 |---|---|---|---|
-| 1 対 1 の変換 | `<対象>Mapper` | 変換元が 1 つ（マスタを引くだけなら 1 つと数える）で、別の形の 1 つに写す（DTO ↔ エンティティ、結果 → レスポンス）。`<対象>` は扱う業務の名詞で、変換の向きはメソッド名（`ToEntity`・`ToResponse`）で表す。両側で使う | `ProduceResponseMapper`、`PlayerMapper` |
+| 1 対 1 の変換 | `<対象>Mapper` | 変換元が 1 つ（マスタを引くだけなら 1 つと数える）で、別の形の 1 つに写す（DTO ↔ エンティティ、結果 → レスポンス）。表示用の Dto は 6章の DtoFactory で、Mapper にしない。`<対象>` は扱う業務の名詞で、変換の向きはメソッド名（`ToEntity`・`ToResponse`）で表す。両側で使う | `ProduceResponseMapper`、`PlayerMapper` |
 | 組み立て | `<名詞>Factory` | 変換元が 2 つ以上、または計算を伴って 1 つの値を組み立てる。ファイル・ネットワークの I/O をしない（DI で受けたリポジトリ・マスタを読むのはよい） | `ProduceStateResultFactory`、`CardCatalogFactory`、`ExamTurnFactory`、`WeekDtoFactory` |
 | 読み込み | `<名詞>Loader` | ファイル・リソース・ネットワークから読む（I/O がある） | `MasterDataLoader` |
 | Editor の生成 | `<名詞>Builder` | Editor のスクリプトがアセット（Prefab・シーン・設定）を作る。Editor 専用。型の中の private の組み立て役（`CardCatalog` の入れ子の `Builder`）は対象外 | `SceneBuilder`、`TmpSettingsBuilder` |
@@ -128,6 +130,13 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `Navigator` | 画面・シーンの遷移 | `SceneNavigator`、`ErrorNavigator` |
 | `Executor` / `Evaluator` | Shared.Domain の効果を実行する / 条件を評価する | `EffectExecutor`、`ConditionEvaluator` |
 | `Picker` / `Granter` | 候補から選ぶ / 所持品を付与する | `GachaPicker`、`ItemGranter` |
+| `Calculator` | 表示などのための値を計算する（Shared.Domain の `Formulas` にしない、片側だけの計算） | `GachaRateCalculator`（計画） |
+| `Opener` | ダイアログなどを出して結果を待つ | `DialogOpener`（計画） |
+| `Handler` | 基盤から呼ばれる受け口（エラー・進行中の通知など） | `DefaultCommonErrorHandler` |
+| `Options` | 起動時の設定の値 | `StartupOptions` |
+| `Entry` | シーンの入口 | `BootstrapEntry` |
+
+- `PlayerCommonApplier` は計画にある型（まだコードに無い）
 
 ## 今のコードとの差（改名の対象）
 
@@ -148,7 +157,11 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `UtaServiceAttribute`・`UtaDatabase`・`UtaApiClient`・`UtaErrors`・`UtaMagicOnionClientInitializer`、テストの `UtaServerFactory`・`UtaErrorsTests` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`・`ApiClient`・`ErrorDefinitions`・`MagicOnionClientInitializer`、`ServerFactory`・`ErrorDefinitionsTests`・`Services_HaveGameServiceFilterAttribute` | 1章 |
 | `MasterCardCatalog`・`MasterProduceCatalog`（static の組み立て役） | `CardCatalogFactory`・`ProduceCatalogFactory` | 7章 |
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
-| 計画にある `CardSummaryBuilder`（Application） | 作らない。行の `SkillCardRowDtoFactory` が、マスタを直接読んで作る | 6章、ADR 0020 |
+| 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
+| 計画にある `OwnedListBuilder`・`DialogService` | `OwnedListFactory`・`DialogOpener` | 7章・9章（`Builder` は Editor、`Service` は通信） |
+| 計画にある `OwnedSelectionRequest` | `OwnedSelection` | 1章（`Request` は通信だけ） |
+| 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEnding`（Contracts の型を写さず、Application の結果の型に入れる） | 1章・2章 |
+| 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction` など） | Contracts と同じ名前にしない名前（読み替えのときに決める） | 1章 |
 | クライアントの `GachaLineRow` | `GachaLineRowView` | 6章 |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
@@ -164,6 +177,8 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 - `PlayerApi` は [基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md) が消す
 
 ## 未決事項
+
+- サーバーの `GachaStatus` の新しい名前、Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け、Contracts の enum のクライアントの写しの名前。触る実装計画（読み替え）で決める
 
 - クライアントの UseCase の具象の名前（IF と対にして `<機能>UseCase` にする案）。ADR 0022 を実装する計画で決める
 - サーバーの `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow` を、エンティティにするか `Record` にするか。ADR 0021 を実装する計画で決める

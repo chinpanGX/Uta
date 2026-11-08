@@ -28,15 +28,16 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 
 ### クライアント
 
-- **Domain の層を asmdef `Uta.Client.Domain` で作る**（`Assets/Scripts/Domain/`）。参照するのは `Uta.Shared.Domain` と `Uta.Client.MasterData`（[ADR 0020](0020-masterdata-referenced-outside-shared-domain.md)）だけ。参照されるのは Application・Infrastructure・Presentation・Bootstrap・テスト
-- **リポジトリの IF は同期にする**（UniTask を参照しない）。今の保存先はメモリのキャッシュだけで、非同期にする理由が無い。同期なら、読む側が書き込みの途中の値を見ることもない。非同期が要る保存先（セーブデータなど）は、Infrastructure が起動時に読み込んでからリポジトリに入れる
-- **リポジトリはエンティティごとに分け、処理は取得・Upsert・Remove・全件の置き換え（`ReplaceAll`）だけ**。保存先はローカル（メモリのキャッシュ）。サーバーとの通信はリポジトリに書かない。`ReplaceAll` はサインインで全件を取り直したときに使う（サーバーで消えたものもキャッシュから消える）
+- **Domain の層を asmdef `Uta.Client.Domain` で作る**（`Assets/Scripts/Domain/`）。参照するのは `Uta.Shared.Domain` と `Uta.Client.MasterData`（[ADR 0020](0020-masterdata-referenced-outside-shared-domain.md)。MasterMemory・MessagePack の DLL の参照も ADR 0020 の形）だけ。参照されるのは Application・Infrastructure・Presentation・Bootstrap・テスト
+- **リポジトリの IF は同期にする**（UniTask を参照しない）。今の保存先はメモリのキャッシュだけで、非同期にする理由が無い。同期なら、読む側が書き込みの途中の値を見ることもない。非同期が要る保存先（セーブデータなど）は、Infrastructure が起動時に読み込んでからリポジトリに入れる。前提: リポジトリの読み書きはすべてメインスレッドで行い、共通レスポンスの反映（`PlayerCommonApplier`）は 3 つのリポジトリへの書き込みの間で await しない。基盤が Applier をどのスレッドで呼ぶかは、共通レスポンスの計画で確かめる
+- **リポジトリはエンティティごとに分け、処理は最大で取得・Upsert・Remove・全件の置き換え（`ReplaceAll`）の 4 つ**。各リポジトリは使うものだけを持つ（1 人分の `IPlayerRepository` は取得・Upsert だけ、など）。保存先はローカル（メモリのキャッシュ）。サーバーとの通信はリポジトリに書かない。`ReplaceAll` はサインインで全件を取り直したときに使う（サーバーで消えたものもキャッシュから消える）
 - **リポジトリの IF は、読み取り専用と書き込みに分ける**（.NET の `IReadOnlyList<T>` / `IList<T>` と同じ形）
   - `IReadOnly<名詞>Repository`: 取得だけ
   - `I<名詞>Repository : IReadOnly<名詞>Repository`: Upsert・Remove・`ReplaceAll` を足す
   - 名前はエンティティ名から `Entity` を除いたもの
   - 実装は 1 つのクラスで、DI には両方の IF で登録する（同じインスタンス）
   - 分ける目的は、層として書き込みを禁じたい使い手（Presentation の DtoFactory）に、書けない型を渡すこと。Presentation には `IReadOnly<名詞>Repository` だけを渡す
+  - 両方の IF を DI に登録するので、DtoFactory が `I<名詞>Repository` を受けることは型では止められない。型が止めるのは「`IReadOnly…` を受けた DtoFactory が書くこと」まで。DtoFactory が `IReadOnly…` だけを受けることは、コードレビューで守る（`.claude/skills/requesting-code-review/layers/client.md` に足す）
 - **UI の状態はエンティティに入れない**。今の計画で `PlayerCache` に入る予定の UI の状態（`DiscardNoticeShown` など）と、プロデュース中の状態（計画の `ProduceSession`）は、Application の状態の型に置く（型の名前は実装計画で決める）
 
 ### サーバー
@@ -50,7 +51,7 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 ## 理由
 
 - エンティティと、その保存の口が同じ層に揃い、UseCase は手順だけを持つ形になる（オニオンアーキテクチャの本来の形）
-- クライアントでは、読み取り専用の IF を分けると、書いてはいけない使い手が書けないことを、レビューではなく型で守れる
+- クライアントでは、`IReadOnly…` を受けた使い手は書けないので、書き込みの口を探すレビューが「受ける型が `IReadOnly…` か」の確認だけで済む
 - サーバーの正しさ（二重払いをしない、古い操作で上書きしない）は条件付きの 1 文の更新で守っている。リポジトリの形をクライアントに揃えると、判定をエンティティに移し、ロックを別に持つことになり、壊れやすくなる
 - サーバーとクライアントで、同じ役割に同じ名前を使える
 
@@ -61,7 +62,7 @@ ADR 0008 は「共通の型を各側のエンティティが包む（合成）�
 - 案C: エンティティに接尾辞を付けない（`Player`・`Idol`）。短いが、DTO・マスタの行の型と見分けにくい
 - 案D: サーバーも取得・Upsert・Remove に揃える。両側の形は揃うが、上の理由で採らない
 - 案E: サーバーのリポジトリの IF は Application に残す（Domain が `TxContext` を見ない）。依存の表は今のままで済むが、両側でエンティティとリポジトリの置き場が揃わない
-- 案F: クライアントは `PlayerEntity` が所持の一覧を持つ集約にして、リポジトリを 1 組にする。全件の置き換えは自然に書けるが、アイドル 1 人・カード 1 枚の Upsert が集約全体の書き換えになる
+- 案F: クライアントは `PlayerEntity` が所持の一覧を持つ集約にして、リポジトリを 1 組にする。全件の置き換えは自然に書けるが、サーバーの 3 つのリポジトリ（プレイヤー・アイドル・サポートカード）や、共通レスポンスの差分（アイドル・カードごと）と 1 対 1 で対応しなくなるので採らない
 - 案G: クライアントのリポジトリの IF を非同期（UniTask）にする。将来の非同期の保存先にそのまま対応できるが、読む側がすべて await になり、書き込みの途中を読まれうる
 
 ## 影響・リスク

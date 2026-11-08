@@ -8,7 +8,7 @@ updated: 2026-11-08
 
 [repository-layout.md](../architecture/repository-layout.md) の「生成物を参照してよいのは Infrastructure だけ」（3章）、「マスタの生成物は Infrastructure に置き、Application へはポート越しに必要な値だけを渡す」（4章）の決定と、クライアントの生成物の置き場（3章「生成したマスタの置き場」のクライアントの部分、5章の `IsExternalInit` を `Uta.Client.Infrastructure` に置く決定）を置き換える。[ADR 0008](0008-shared-domain-and-onion.md) の決定（Shared.Domain は MasterMemory・生成物に依存しない）は変えない。ADR 0008 の理由のうち「`Domain` / `Application` をマスタの形式から独立させられる」は、この ADR で当てはまらなくなる。
 
-前提: クライアントの Domain の層は [ADR 0021](0021-domain-entities-and-repositories.md) で作る。決定はどれも 2026-11-08 にユーザーが決めた（経緯は [raw の記録](../../raw/2026-11-08-naming-and-layers-decisions.md) と、設計書のレビューでの判断を書いたコミットのメッセージ）。
+前提: クライアントの Domain の層は [ADR 0021](0021-domain-entities-and-repositories.md) で作る。決定の出どころ: マスタを Shared.Domain 以外から参照してよいこと、`MemoryDatabase` をシングルトンで Inject することは、2026-11-08 にユーザーが決めた（[raw の記録](../../raw/2026-11-08-naming-and-layers-decisions.md)）。`Uta.Client.MasterData` に移すこと、Bootstrap からのやり直し、DB に保存しないこと、Presentation では表示だけにすることは、同じ日の設計書のレビューで Claude が出した案を、ユーザーが推奨どおりに採った（コミット 661131a・a7dff22 のメッセージ）。移すファイルの一覧と寿命の規則は、レビューの指摘で書き足した。
 
 ## 状況
 
@@ -24,13 +24,14 @@ updated: 2026-11-08
   - 移すもの: 生成ソース（`Generated/`）、名前空間を指定する `MasterDataAssembly.cs`（`MasterMemoryGeneratorOptions`。無いと `MemoryDatabase` が `Uta.MasterData` に出ない）、生成ソースのための `IsExternalInit.cs`
   - `masterdata/masterdata.yaml` の client の出力先（`source`）を新しい置き場に変える
   - `Uta.Client.MasterData` が参照するのは MasterMemory・MessagePack（`precompiledReferences`）だけ
-  - 参照する側の asmdef（Domain・Application・Infrastructure・Presentation・テスト）は、`Uta.Client.MasterData` を `references` に足し、`precompiledReferences` に `MasterMemory.dll`・`MasterMemory.Annotations.dll`・`MessagePack.dll` を足す（今のテストの asmdef と同じ形。`overrideReferences: true` は外さない）
+  - 参照する側の asmdef（Domain・Application・Infrastructure・Presentation・Bootstrap・テスト）は、`Uta.Client.MasterData` を `references` に足す
+  - `overrideReferences: true` の asmdef（今の Application・Presentation・テストと、新しく作る Domain）は、`precompiledReferences` に `MasterMemory.dll`・`MessagePack.dll`（要るなら `MasterMemory.Annotations.dll`）を足す（今のテストの asmdef と同じ形）。`overrideReferences: false` の asmdef（今の Infrastructure・Bootstrap）は、DLL が暗黙に参照されるので足さない。どの DLL が要るかは、移す実装計画でコンパイルして確かめる
   - サーバーは 1 プロジェクトなので、置き場（`Infrastructure/MasterData/`）は変えず、アーキテクチャテストだけを変える
 - **`MemoryDatabase` はシングルトンで作り、必要なクラスに Inject する**
   - サーバー: 起動時に読み、DI にシングルトンで登録する（今の `Program.cs` の形）
   - クライアント: 非同期で読み終えてから、ルートの `LifetimeScope`（`BootstrapEntry` が作る）に登録し、それから使うクラスを解決する
   - `MemoryDatabase` から作る Shared.Domain の型（`CardCatalog` など）も、同じ寿命のシングルトンにする
-  - `MemoryDatabase` とそこから作った値を、DI のコンテナの外（static のフィールド、DI に登録していないオブジェクト）で掴まない
+  - `MemoryDatabase` とそこから作った値を、ルートの `LifetimeScope` より長く生きる場所（static のフィールドなど）に置かない。ルートのスコープより先に捨てられるもの（エンティティ、Presenter、要求ごとの値）がマスタの値を持つことは妨げない
   - マスタをダウンロードで更新する方式に移ったら、実行中のインスタンスを差し替えず、Bootstrap からやり直してルートの `LifetimeScope` ごと作り直す
 - **マスタの行の型を DB に保存しない**。保存するのは ID と、プレイヤーごとの値だけ
 - **クライアントの Presentation では、マスタを表示にだけ使う**。マスタの値でゲームのルールを計算しない（それは Shared.Domain かサーバーで行う）。Presentation でマスタを読むのは、表示用の値を作る DtoFactory（[ADR 0022](0022-client-external-concretes-in-infrastructure.md)）
