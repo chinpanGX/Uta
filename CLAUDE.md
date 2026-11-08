@@ -27,6 +27,7 @@
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
 | wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・目次（README）への登録・frontmatter・ADR の番号をスクリプトで点検） |
 | クラウド（Claude Code on the web）で作業する | 下の「クラウドでの作業」 |
+| PR をマージした後、worktree・ブランチを片付ける | `.claude/skills/cleaning-up-worktrees/SKILL.md`（`tools/worktree-pool.sh cleanup`。固定の worktree は消さずに空ける） |
 | egm（`/egm:egm-*`）を使う | `.claude/skills/uta-elephant/SKILL.md`（置き場所・書式・レビューに渡す文脈の Uta 独自ルール） |
 
 ## 常に守ること
@@ -163,7 +164,7 @@ uta/
   - 共通基盤は Uta の開発を通して整え、別のアプリでも使える形でリリースする。Uta 固有のものを共通基盤に入れない。固定はコミット（タグを待たない）。ルールは [repository-layout.md](uta_docs/wiki/architecture/repository-layout.md) 3.1
   - 固定の更新: 共通基盤を push → `tools/pack-foundation.sh <VolTech-MagicOnion|MasterMemoryAddons> <コミット>` → Unity で `unity command package resolve` → commit。`Supplement`・`UnityScreenNavigator` は `client/uta/Packages/manifest.json` のコミットだけを上げる
 - **worktree は固定のものを使い回す**（`../Uta-wt/1` 〜。Unity の Library を worktree ごとに 1 回だけ作り、使い捨てて作り直さないため）。Uta の外に置く。アプリが `.claude/worktrees/` に使い捨ての worktree を作る方式は、Unity を開く作業では使わない
-  - 作成と運用は `tools/worktree-pool.sh`: `init`（固定の worktree を作る。作ったら Unity Hub に登録して 1 回だけ開き、Library を作る）、`start <番号> <新ブランチ> [base]`（base は既定 `origin/main`。前提のタスクがあるときは前提のブランチを渡す）、`release <番号>`（PR のマージ後に `origin/main` へ戻して空ける）、`list`
+  - 作成と運用は `tools/worktree-pool.sh`: `init`（固定の worktree を作る。作ったら Unity Hub に登録して 1 回だけ開き、Library を作る）、`start <番号> <新ブランチ> [base]`（base は既定 `origin/main`。前提のタスクがあるときは前提のブランチを渡す）、`release <番号>`（PR のマージ後に `origin/main` へ戻して空ける）、`cleanup [--apply]`（main にマージ済みのブランチの worktree をまとめて空け・消し、ブランチを消す。既定は予定の表示だけ）、`list`
   - Claude のセッションは、新しい worktree を作らず、固定の worktree のフォルダを開いて始める
   - 同じブランチを複数の worktree で同時に開けない。固定の worktree は detached HEAD で空けておく
 
