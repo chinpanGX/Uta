@@ -11,11 +11,11 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 
 - **前提**: [PR #51](https://github.com/chinpanGX/Uta/pull/51)（Catalog をやめた。ADR 0020 のサーバー側）は 2026-11-08 に main へマージ済み。計画のブランチは main から切った（積み PR にしない）。この計画は #51 の後の `server/Uta.Server/Program.cs`（`ICardCatalog`・`ProduceCatalog` の Factory 2 行が残り、ほかの Catalog の登録が無い形）を前提に書いた
 - **`Program.cs` は起動の入口だけにする**（2026-11-09。ユーザーの判断）: `Program.cs` は `return ServerHost.Run(args);` と `public partial class Program;` だけにする。起動の組み立て（接続文字列の読み込み・`migrate`・ホストの設定・DI の登録・エンドポイント）は、新しく作る `server/Uta.Server/Hosting/ServerHost.cs`（`internal static class ServerHost`。名前空間 `Uta.Server.Hosting`）に閉じる。`Run` の中は、手順ごとの private static メソッド（`Migrate`・`ConfigureHost`・`AddServices`・`MapEndpoints`）を呼ぶ形にし、`Run` を読めば起動の流れが分かるようにする。完成形は 3.1・3.2
-  - 名前: naming.md「型の名前に `Uta` を付けない」に従い `ServerHost`（`UtaServerHost` にしない）。役割（サーバーのホストを組み立てて動かす）の名前にした
+  - 名前: naming.md「型の名前に `Uta` を付けない」に従い `ServerHost`（`UtaServerHost` にしない）。役割（サーバーのホストを組み立てて動かす）の名前にした。接尾辞 `Host` は naming.md 9章の表に無い。9章の語では言えない（いちばん近い `Entry` は「シーンの入口」で、プロセスの入口は `Program.cs`。`ServerHost` は入口から呼ばれてホストを組み立てて動かす側）ので、9章に `Host` の行を足す（3.4 の 7。タスク 3）
   - 置き場: 層（`Api`・`Application`・`Domain`・`Infrastructure`）の外の `Hosting/`。起動の組み立てはすべての層を参照するので、どの層にも入らない（repository-layout.md 3章「起動の組み立て…はすべてを参照してよい」に `Hosting/ServerHost.cs` を足す）。アーキテクチャテストが見るのは `Uta.Server.{層}` の名前空間だけ（`ArchitectureTests` の 12 行目）なので、`Uta.Server.Hosting` はどのルールにも当たらない
   - `internal` にする。呼ぶのは同じアセンブリの `Program` だけで、テストは `WebApplicationFactory<Program>` を通して使う
   - 状態を持たない static class（フィールドなし）。CLAUDE.md の static の規則（`client/`・`shared/`・`masterdata/` が対象）にも当たらない形
-  - **`WebApplicationFactory<Program>` が引き続き使えること**: `WebApplicationFactory` は、入口（`Program` の `Main`）を別のスレッドで呼び、ホストが組み立てられる（`builder.Build()`）のを `DiagnosticListener` で捕まえて差し替える。入口から別のクラスを経由して `WebApplication.CreateBuilder` → `Build()` を呼んでも捕まえられる、と .NET のソースの知識で判断した（確かめていない）。タスク 1 で、既存の結合テストがすべて通ることで確かめる。通らなければ止まる（タスク 1 の止まる条件）
+  - **`WebApplicationFactory<Program>` が引き続き使えること**: `WebApplicationFactory` は、入口（`Program` の `Main`）を別のスレッドで呼び、ホストが組み立てられる（`builder.Build()`）のを `DiagnosticListener` で捕まえて差し替える。入口から別のクラスを経由して `WebApplication.CreateBuilder` → `Build()` を呼んでも捕まえられる（`DiagnosticListener` は呼び出し元のクラスを見ない）、と .NET のソースの知識で判断した（確かめていない）。ただし、テストの設定のうち環境名（`UseEnvironment`）などは `DiagnosticListener` ではなく、入口に渡す引数（`--environment=...`）で届く。そのため、この形が成り立つ条件は 2 つ: (1) `Main` の `args` を加工せずに `WebApplication.CreateBuilder(args)` に渡す、(2) `builder.Build()` と `app.Run()` を入口のスレッドで同期に呼ぶ（`Task.Run` などに逃がさない）。3.1 は両方を満たす（`Run` にコメントで書く）。タスク 1 で、既存の結合テストがすべて通ることで確かめる。通らなければ止まる（タスク 1 の止まる条件）
 - **DI の登録の並べ替え**（2026-11-08。ユーザーの判断。案は入れない（今の並びのまま）と比べ、新しい UseCase の置き場所が決まるほうを選んだ）: `AddServices` の中を、マスタ → Infrastructure → 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー）→ 基盤 → ヘルスチェック の順に並べ、空行と見出しのコメントで区切る。ホストの設定（DI の検査・ログ・Kestrel）は `IServiceCollection` の外なので `ConfigureHost` に分ける。並べ替えで動きは変わらない（同じ型の登録が 2 つ無く、`AddVoltechServer` が `TryAdd` で入れる型（`TimeProvider`・`GameClock`・`ITransactions`）を Uta は登録しない。テストの `ConfigureTestServices` は Uta の登録の後に流れる）
 - **`AddServices` は 1 つのメソッドにし、機能ごとのメソッドや拡張メソッド（`AddProduce()` など）には分けない**。登録は 30 行ほどで、見出しのコメントで機能の区切りは読める。分けると、1 か所で読めた寿命の組み合わせ（シングルトンがスコープを抱えていないか）が散る。機能ごとの登録が 1 機能で 10 行を超えたら見直す
 - **区切りへの振り分け**: `ProduceEngine` はプロデュースの区切りに置く（Shared.Domain の育成の計算。マスタの区切りは `MemoryDatabase` と、マスタから Shared.Domain の型を組み立てる Factory の 2 行だけにする）。`ItemGranter` はガチャ、`ProduceSessionDiscarder` はプロデュースの区切りに置く（置き場のフォルダ `Application/Gacha/`・`Application/Produce/` に合わせる。サインインからも使うが、持ち主はフォルダで決める）。`IRandomSource`（`SecureRandomSource`）は、リポジトリと同じく Application の IF を `Infrastructure/` で実装したものなので Infrastructure の区切りに置く（Infrastructure の区切りは、DB の接続と IF の実装だけ。`Infrastructure/` にあっても、マスタの読み込み・Factory はマスタ、`PlayerDiffCollector` は基盤の区切り）
@@ -28,7 +28,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
   - `AddVoltechServer`（VolTech-MagicOnion `11d9b06`、`src/VolTech.Server/Hosting/VoltechServerExtensions.cs`）が登録するのは、オプションと検証（`VoltechServerOptionsValidator`）・`TimeProvider.System`・`GameClock`・`ITransactions` → `Transactions` のシングルトンと、`AddGrpc()`・`AddMagicOnion()`。環境で登録を変える分岐は無い（`IsDevelopment` などは基盤の `src/` に無い）
   - `AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` は `CommonResponseRegistration` のインスタンスをシングルトンで登録するだけで、`PlayerDiffCollector` は DI に登録しない（`CommonResponseRegistration.CreateCollector` が `ActivatorUtilities.CreateInstance` でリクエストのスコープから作る）。`ValidateOnBuild` は登録された型しか見ないので、`PlayerDiffCollector` は検査の対象にならず、落ちない。`PlayerDiffCollector` の引数の解決は、今どおり実行時に `CommonResponseTests` が確かめる
   - MagicOnion のサービスとフィルターも DI に登録されない（MagicOnion がリクエストごとに作る）ので、同じく対象外
-  - よって、`UtaServerFactory` が Development で `builder.Build()` を通っていること（`ValidateOnBuild` は登録された全記述子を見るので、テストが叩く RPC の範囲には関係ない）が、Production で `ValidateOnBuild` が落ちないことの根拠になる。成り立つ前提は、テストが変える登録が Production の記述子の解決を変えないこと。`UtaServerFactory.ConfigureWebHost` が変えるのは 3 つ: `TimeProvider`・`IRandomSource` はインスタンスで置き換えるだけ、`ConfigureLogging(logging => logging.ClearProviders())` はログのプロバイダー（ZLogger のコンソール）の記述子を外す。よって ZLogger のプロバイダーの登録だけは結合テストで検査されないので、タスク 2 で環境名 Production のまま `dotnet run` で起動し、`builder.Build()` を通ることを確かめる
+  - よって、`UtaServerFactory` が Development で `builder.Build()` を通っていること（`ValidateOnBuild` は登録された全記述子を見るので、テストが叩く RPC の範囲には関係ない）が、Production で `ValidateOnBuild` が落ちないことの根拠になる。成り立つ前提は、テストが変える登録が Production の記述子の解決を変えないこと。`UtaServerFactory.ConfigureWebHost` が変えるのは 3 つ（ほかに `WebApplicationFactory` 自身が `UseTestServer()` で `IServer` を `TestServer` に差し替えるが、Uta の登録の依存には関わらない）: `TimeProvider`・`IRandomSource` はインスタンスで置き換えるだけ、`ConfigureLogging(logging => logging.ClearProviders())` はログのプロバイダー（ZLogger のコンソール）の記述子を外す。よって ZLogger のプロバイダーの登録だけは結合テストで検査されないので、タスク 2 で環境名 Production のまま `dotnet run` で起動し、`builder.Build()` を通ることを確かめる
 - **検査が Production で効くことをテストで固定する**（5章）。既存の結合テストは Development で動くので、`UseDefaultServiceProvider` の行を消しても全部通ってしまい、この変更を守れない。Production で、スコープの型を抱えたシングルトンを足すと起動が失敗することを 1 件だけ確かめる
 - **wiki**: repository-layout.md の 2章（フォルダの木）・3章（起動の組み立て）・12章（サーバーの骨組み）と、server-foundation.md の `Program.cs` と書いた 3 か所を、`Hosting/ServerHost.cs` に合わせて直す（タスク 3。文は 3.4）
 - **後に続く計画**（2026-11-09。ユーザーの判断）: 同じブランチの [サーバーの改名の計画](2026-11-09-server-naming-renames.md) を、この計画の実装の後に、同じセッション・同じブランチで実装する。この計画は今の名前（`ProduceViewBuilder`・`UtaDatabase`・`UtaServerFactory`）のまま書き、改名は後の計画が行う。この計画で `ProduceViewBuilder` の登録と `UtaDatabase.Migrate` の呼び出しは `Program.cs` から `Hosting/ServerHost.cs` に移る
@@ -41,7 +41,7 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 
 `server/Uta.Server/Program.cs` を起動の入口だけにし、起動の組み立てを `Hosting/ServerHost.cs` に移して、手順ごとのメソッドと、読む順に並べた DI の登録にする。起動時の DI の検査を、環境名が Production（Cloud Run の dev 環境）でも効かせる。動き（RPC・`migrate`・ヘルスチェック）は変えない。例外は、スコープの型をルートから解決する誤りの失敗の仕方で、Development 以外でも例外で止まるようになる（今のコードにその経路は無い。「この計画で決めたこと」）。
 
-- 関係する ADR: [0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)（マスタを `MemoryDatabase` のシングルトンで登録する）、[0011](../wiki/decisions/0011-deploy-google-cloud.md)（Cloud Run。環境は dev の 1 つで、ASP.NET Core の環境名は Production）
+- 関係する ADR: [0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)（マスタを `MemoryDatabase` のシングルトンで登録する）、[0011](../wiki/decisions/0011-deploy-google-cloud.md)（Cloud Run。ADR の環境は dev の 1 つ。ASP.NET Core の環境名が Production になるのは、この計画の推論（「この計画で決めたこと」））
 - 設計: [repository-layout.md](../wiki/architecture/repository-layout.md) 3章・12章「サーバーの骨組み」、[server-foundation.md](../wiki/architecture/server/server-foundation.md)（ZLogger・`AddCommonResponse`）、[naming.md](../wiki/architecture/naming.md)（型の名前に `Uta` を付けない）
 
 ### 決めないこと（範囲外）
@@ -58,10 +58,12 @@ spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/ser
 |---|---|---|---|
 | 作成 | `server/Uta.Server/Hosting/ServerHost.cs` | 起動の組み立て（3.1。タスク 1 は `UseDefaultServiceProvider` の文を除く） | 1 |
 | 変更 | `server/Uta.Server/Program.cs` | 入口だけにする（3.2） | 1 |
+| 変更 | `server/Uta.Server.Tests/Integration/Support/UtaServerFactory.cs` | 27 行目のコメントの `Program.cs` を `ServerHost` にする（4章のタスク 1） | 1 |
 | 変更 | `server/Uta.Server/Hosting/ServerHost.cs` | `ConfigureHost` の先頭に `UseDefaultServiceProvider` を足す | 2 |
 | 作成 | `server/Uta.Server.Tests/Integration/ServiceProviderValidationTests.cs` | Production で DI の検査が効くことのテスト（3.3） | 2 |
 | 変更 | `uta_docs/wiki/architecture/repository-layout.md` | 2章のフォルダの木、3章の起動の組み立て、12章「サーバーの骨組み」（3.4） | 3 |
 | 変更 | `uta_docs/wiki/architecture/server/server-foundation.md` | `Program.cs` と書いた 3 か所（3.4） | 3 |
+| 変更 | `uta_docs/wiki/architecture/naming.md` | 9章の表に `Host` の行を足す（3.4） | 3 |
 
 ## 3. 型とシグネチャ
 
@@ -106,6 +108,7 @@ internal static class ServerHost
     /// <returns>終了コード。</returns>
     public static int Run(string[] args)
     {
+        // args は加工せずに渡す（WebApplicationFactory が --environment などを args で渡すため）
         var builder = WebApplication.CreateBuilder(args);
         var connectionString = builder.Configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("ConnectionStrings:Default が設定されていない（ローカルは dotnet user-secrets、Cloud Run は環境変数 ConnectionStrings__Default）");
@@ -279,7 +282,7 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 
 **repository-layout.md**
 
-1. 2章のフォルダの木: `│     ├─ Api/                #   MagicOnion のサービス実装` の行の直前に、次の 1 行を足す（列の位置は前後の行に揃える）
+1. 2章のフォルダの木: `│     ├─ Infrastructure/     #   DB、マスタの読み込み（MasterDataLoader）` の行の直前（`Domain/` の行の後。木はアルファベット順）に、次の 1 行を足す（列の位置は前後の行に揃える）
 
    ```text
    │     ├─ Hosting/            #   起動の組み立て（ServerHost。Program.cs は ServerHost.Run を呼ぶだけ）
@@ -291,7 +294,7 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
    - 起動の組み立て（`Program.cs`・`Hosting/ServerHost.cs`・`AddVoltechServer()`）はすべてを参照してよい。`Hosting/` は層ではないので、アーキテクチャテストの対象にしない
    ```
 
-3. 12章「サーバーの骨組み」の 1 つ目の箇条（`- \`Program.cs\`: \`NpgsqlDataSource\` を 1 つ登録し、…ここで足す`）の先頭の `` `Program.cs`: `` を `` `Program.cs`・`Hosting/ServerHost.cs`（2026-11-09 に、組み立てを `ServerHost` に移した）: `` に置き換え（残りの文は変えない）、その直後に次の 3 つの箇条を足す
+3. 12章「サーバーの骨組み」の 1 つ目の箇条（`- \`Program.cs\`: \`NpgsqlDataSource\` を 1 つ登録し、…ここで足す`）の先頭の `` `Program.cs`: `` を `` `Hosting/ServerHost.cs`（2026-11-09 までは `Program.cs`）: `` に置き換え（残りの文は変えない。登録などの主語が `ServerHost` になる）、その直後に次の 3 つの箇条を足す
 
    ```markdown
    - `Program.cs` は起動の入口だけ（`return ServerHost.Run(args);` と、テストの `WebApplicationFactory<Program>` 用の `public partial class Program;`）（2026-11-09。[計画](../../plans/2026-11-08-server-program-cleanup.md)）。`ServerHost.Run` は、接続文字列を読む → `migrate` なら `Migrate` だけを流して終わる → `ConfigureHost`（DI の検査・ログ・Kestrel）→ `AddServices`（DI の登録）→ `Build` → `MapEndpoints` → `Run` の順に、手順ごとの private static メソッドを呼ぶ
@@ -305,6 +308,14 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 5. 23 行目の `` `Program.cs` で `AddZLoggerConsole` を構成し `` を `` `Hosting/ServerHost.cs` の `ConfigureHost` で `AddZLoggerConsole` を構成し `` に置き換える
 6. 101 行目の `` `Program.cs` で `AddVoltechServer(...).AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` を呼ぶ `` を `` `Hosting/ServerHost.cs` の `AddServices` で `AddVoltechServer(...).AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` を呼ぶ `` に置き換える
 
+**naming.md**
+
+7. 9章の表の最後の行（`` | `Entry` | シーンの入口 | `BootstrapEntry` | ``）の後に、次の 1 行を足す
+
+   ```markdown
+   | `Host` | アプリのホスト（設定・DI の登録・エンドポイント）を組み立てて動かす。プロセスの入口（`Program.cs`）から呼ぶ | `ServerHost` |
+   ```
+
 ## 4. タスク
 
 ### タスク 1: 起動の組み立てを ServerHost に移す
@@ -313,6 +324,7 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 - 手順:
   1. `Hosting/ServerHost.cs` を、3.1 のコードから `ConfigureHost` の先頭のコメント 1 行と `builder.Host.UseDefaultServiceProvider(...)` の文 5 行（計 6 行）を除いたもので作る
   2. `Program.cs` を 3.2 に置き換える
+  3. `server/Uta.Server.Tests/Integration/Support/UtaServerFactory.cs` の 27 行目のコメント `// Program.cs が builder.Configuration から読むので、` を `// ServerHost が builder.Configuration から読むので、` に置き換える（行のほかの文字は変えない）
 - 境界: 登録の行の数が変わっていないこと（`git show HEAD:server/Uta.Server/Program.cs | grep -c "builder.Services.Add"` と `grep -c "services.Add" server/Uta.Server/Hosting/ServerHost.cs` が同じ 29）
 - 確かめ方: `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests`（Docker が要る）がすべて通る
 - 止まる条件: 結合テストが `WebApplicationFactory` のホストの組み立てで失敗するとき（例: 入口がホストを組み立てずに終わった、という例外）。入口から `ServerHost` を経由すると `WebApplicationFactory` がホストを捕まえられない、ということなので、書き方を変えずに止まって報告する（計画を直す）
@@ -342,9 +354,9 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 
 ### タスク 3: wiki に書く
 
-- 触るファイル: `uta_docs/wiki/architecture/repository-layout.md`、`uta_docs/wiki/architecture/server/server-foundation.md`
-- 手順: 3.4 の 1〜6 を行う。2 つのページの frontmatter の `updated` を実装した日にする
-- 確かめ方: `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0。`grep -n "Program.cs" uta_docs/wiki/architecture/repository-layout.md uta_docs/wiki/architecture/server/server-foundation.md` で出る行が、3.4 で書いた文（`Program.cs` と `Hosting/ServerHost.cs` を並べたもの、入口だけと書いたもの）だけであること
+- 触るファイル: `uta_docs/wiki/architecture/repository-layout.md`、`uta_docs/wiki/architecture/server/server-foundation.md`、`uta_docs/wiki/architecture/naming.md`
+- 手順: 3.4 の 1〜7 を行う。3 つのページの frontmatter の `updated` を実装した日にする
+- 確かめ方: `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0。`grep -n "Program.cs" uta_docs/wiki/architecture/repository-layout.md uta_docs/wiki/architecture/server/server-foundation.md` で出る行が、3.4 で書いた文（`Program.cs` と `Hosting/ServerHost.cs` を並べたもの、入口だけと書いたもの、「2026-11-09 までは `Program.cs`」）だけであること
 
 ## 5. テスト
 
