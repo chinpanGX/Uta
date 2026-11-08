@@ -50,16 +50,30 @@ namespace Uta.Client.Infrastructure.SupportCard
             items.RemoveAll(x => x.UniqueId == uniqueId);
         }
 
-        public void ReplaceAll(IReadOnlyList<SupportCardEntity> cards)
+        public void Upsert(IReadOnlyList<SupportCardEntity> cards)
         {
             if (cards == null)
             {
                 throw new ArgumentNullException(nameof(cards));
             }
 
-            var copy = new List<SupportCardEntity>(cards);
+            foreach (var item in cards)
+            {
+                if (item == null)
+                {
+                    throw new ArgumentNullException(nameof(cards), "要素に null がある");
+                }
+            }
+
+            foreach (var item in cards)
+            {
+                Upsert(item);
+            }
+        }
+
+        public void Clear()
+        {
             items.Clear();
-            items.AddRange(copy);
         }
     }
 }

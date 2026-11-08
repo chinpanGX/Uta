@@ -47,16 +47,30 @@ namespace Uta.Client.Infrastructure.Idol
             items.Add(idol);
         }
 
-        public void ReplaceAll(IReadOnlyList<IdolEntity> idols)
+        public void Upsert(IReadOnlyList<IdolEntity> idols)
         {
             if (idols == null)
             {
                 throw new ArgumentNullException(nameof(idols));
             }
 
-            var copy = new List<IdolEntity>(idols);
+            foreach (var item in idols)
+            {
+                if (item == null)
+                {
+                    throw new ArgumentNullException(nameof(idols), "要素に null がある");
+                }
+            }
+
+            foreach (var item in idols)
+            {
+                Upsert(item);
+            }
+        }
+
+        public void Clear()
+        {
             items.Clear();
-            items.AddRange(copy);
         }
     }
 }

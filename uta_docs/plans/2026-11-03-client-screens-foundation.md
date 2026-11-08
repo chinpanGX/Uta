@@ -245,6 +245,7 @@ public sealed class FakePlayerUseCase : IPlayerUseCase
 - `UtaApiClient.Create` の `IApiActivityHandler`（3.8）は、移行計画の `Create`（引数は今のまま）に足す。`ApiCoreBuilder.AddActivityHandler` を使う
 - DTO の ID の名前（`OwnedIdolDto.IdolId` など）は、[移行計画](2026-11-08-client-foundation-migration.md)の R9 の表に読み替える（2026-11-08）
 - クライアントのエンティティ・リポジトリの形（`IdolEntity.IdolId` → `MasterId`、`SupportCardEntity.SupportCardUid`・`CardId` → `UniqueId`・`MasterId`、`PlayerEntity` の `UniqueId`、コンストラクターの先頭の `uniqueId`、`Find(string uniqueId)`、名前空間 `Uta.Client.Domain.Idol`・`…SupportCard`・`Uta.Client.Infrastructure.Idol`・`…SupportCard`）は、[移行計画](2026-11-08-client-foundation-migration.md)の R8 に読み替える（2026-11-08）
+- リポジトリの `ReplaceAll` は、[移行計画](2026-11-08-client-foundation-migration.md)の R10 の `Clear()` のあと `Upsert(IReadOnlyList<T>)` に読み替える（2026-11-08）
 
 ## この計画で決めたこと
 

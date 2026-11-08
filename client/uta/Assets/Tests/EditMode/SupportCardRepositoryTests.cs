@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using Uta.Client.Domain.SupportCard;
 using Uta.Client.Infrastructure.SupportCard;
@@ -57,16 +58,43 @@ namespace Uta.Client.Tests
         }
 
         [Test]
-        public void ReplaceAll_ReplacesEverything_KeepsOrder()
+        public void Clear_RemovesAll()
         {
             var repo = new SupportCardRepository();
             repo.Upsert(Card("X"));
 
-            repo.ReplaceAll(new[] { Card("B"), Card("A") });
+            repo.Clear();
 
-            Assert.IsNull(repo.Find("X"));
-            Assert.AreEqual("B", repo.FindAll()[0].UniqueId);
-            Assert.AreEqual("A", repo.FindAll()[1].UniqueId);
+            Assert.AreEqual(0, repo.FindAll().Count);
+        }
+
+        [Test]
+        public void UpsertList_ReplacesSameUid_AddsToEnd_KeepsOthers()
+        {
+            var repo = new SupportCardRepository();
+            repo.Upsert(Card("X"));
+            repo.Upsert(Card("A"));
+
+            repo.Upsert(new[] { Card("B"), Card("A", 7) });
+
+            var all = repo.FindAll();
+            Assert.AreEqual(3, all.Count);
+            Assert.AreEqual("X", all[0].UniqueId);
+            Assert.AreEqual("A", all[1].UniqueId);
+            Assert.AreEqual(7, all[1].Level);
+            Assert.AreEqual("B", all[2].UniqueId);
+        }
+
+        [Test]
+        public void UpsertList_NullElement_ThrowsAndChangesNothing()
+        {
+            var repo = new SupportCardRepository();
+            repo.Upsert(Card("A"));
+
+            Assert.Throws<ArgumentNullException>(() => repo.Upsert(new[] { Card("A", 7), null }));
+
+            Assert.AreEqual(1, repo.FindAll().Count);
+            Assert.AreEqual(1, repo.Find("A").Level);
         }
 
         [Test]
@@ -85,8 +113,8 @@ namespace Uta.Client.Tests
         public void Null_Arguments_Throw()
         {
             var repo = new SupportCardRepository();
-            Assert.Throws<ArgumentNullException>(() => repo.Upsert(null));
-            Assert.Throws<ArgumentNullException>(() => repo.ReplaceAll(null));
+            Assert.Throws<ArgumentNullException>(() => repo.Upsert((SupportCardEntity)null));
+            Assert.Throws<ArgumentNullException>(() => repo.Upsert((IReadOnlyList<SupportCardEntity>)null));
             Assert.Throws<ArgumentNullException>(() => new SupportCardEntity(null, 1, 1, 0));
         }
     }

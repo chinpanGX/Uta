@@ -109,8 +109,10 @@ namespace Uta.Client.Infrastructure.Player
             var idolEntities = PlayerMapper.ToIdolEntities(response.Idols);
             var supportCardEntities = PlayerMapper.ToSupportCardEntities(response.SupportCards);
             players.Upsert(playerEntity);
-            idols.ReplaceAll(idolEntities);
-            supportCards.ReplaceAll(supportCardEntities);
+            idols.Clear();
+            idols.Upsert(idolEntities);
+            supportCards.Clear();
+            supportCards.Upsert(supportCardEntities);
         }
     }
 }

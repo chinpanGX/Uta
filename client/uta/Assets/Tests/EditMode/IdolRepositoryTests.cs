@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using Uta.Client.Domain.Idol;
 using Uta.Client.Infrastructure.Idol;
@@ -75,24 +76,50 @@ namespace Uta.Client.Tests
         }
 
         [Test]
-        public void ReplaceAll_ReplacesEverything()
+        public void Clear_RemovesAll()
         {
             var repo = new IdolRepository();
             repo.Upsert(Idol("Z", 1));
 
-            repo.ReplaceAll(new[] { Idol("A", 5), Idol("B", 4) });
+            repo.Clear();
 
-            Assert.IsNull(repo.Find("Z"));
-            Assert.AreEqual(2, repo.FindAll().Count);
-            Assert.AreEqual("B", repo.FindAll()[0].UniqueId);
+            Assert.AreEqual(0, repo.FindAll().Count);
+        }
+
+        [Test]
+        public void UpsertList_ReplacesSameUniqueId_KeepsOthers()
+        {
+            var repo = new IdolRepository();
+            repo.Upsert(Idol("Z", 1));
+            repo.Upsert(Idol("A", 1, 1));
+
+            repo.Upsert(new[] { Idol("A", 5, 9), Idol("B", 4) });
+
+            Assert.AreEqual(3, repo.FindAll().Count);
+            Assert.IsNotNull(repo.Find("Z"));
+            Assert.AreEqual(5, repo.Find("A").MasterId);
+            Assert.AreEqual(9, repo.Find("A").Training);
+            Assert.IsNotNull(repo.Find("B"));
+        }
+
+        [Test]
+        public void UpsertList_NullElement_ThrowsAndChangesNothing()
+        {
+            var repo = new IdolRepository();
+            repo.Upsert(Idol("A", 1));
+
+            Assert.Throws<ArgumentNullException>(() => repo.Upsert(new[] { Idol("A", 9), null }));
+
+            Assert.AreEqual(1, repo.Find("A").MasterId);
+            Assert.AreEqual(1, repo.FindAll().Count);
         }
 
         [Test]
         public void Null_Arguments_Throw()
         {
             var repo = new IdolRepository();
-            Assert.Throws<ArgumentNullException>(() => repo.Upsert(null));
-            Assert.Throws<ArgumentNullException>(() => repo.ReplaceAll(null));
+            Assert.Throws<ArgumentNullException>(() => repo.Upsert((IdolEntity)null));
+            Assert.Throws<ArgumentNullException>(() => repo.Upsert((IReadOnlyList<IdolEntity>)null));
             Assert.Throws<ArgumentNullException>(() => new IdolEntity(null, 1, 0, 0, 0));
         }
     }

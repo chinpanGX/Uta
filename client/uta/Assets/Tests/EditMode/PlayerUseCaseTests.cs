@@ -181,7 +181,8 @@ namespace Uta.Client.Tests
         [UnityTest]
         public IEnumerator Refresh_Success_ReplacesRepositories() => UniTask.ToCoroutine(async () =>
         {
-            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1, new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") }, null)));
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1, new[] { new OwnedIdolDto(1, 0, 0, 0, "U1") },
+                new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FB0", 20, 1, 0) })));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
                 2,
@@ -194,6 +195,7 @@ namespace Uta.Client.Tests
             Assert.AreEqual(2, idols.FindAll().Count);
             Assert.IsNull(idols.Find("U1"));
             Assert.AreEqual(1, supportCards.FindAll().Count);
+            Assert.IsNull(supportCards.Find("01ARZ3NDEKTSV4RRFFQ69G5FB0"));
         });
 
         [UnityTest]

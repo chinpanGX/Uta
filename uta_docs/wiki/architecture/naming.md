@@ -37,6 +37,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | リポジトリの IF（読み取り専用。クライアント） [ADR 案] | `IReadOnly<名詞>Repository`（`I<名詞>Repository` がこれを継ぐ） | `IReadOnlyPlayerRepository` | クライアントの Domain |
 | リポジトリの実装 | `<名詞>Repository` | `PlayerRepository` | Infrastructure |
 | リポジトリの取得のメソッド [ADR 案] | 1 件は `Find`（無ければ null）、全件は `FindAll`。サーバーは `FindAsync`・`FindAllAsync` | `Find(uniqueId)`、`FindAll()`。クライアントの 1 件の取得・置き換え・削除は `UniqueId` で行う（2026-11-08） | — |
+| リポジトリの書き込みのメソッド [決定。2026-11-08。ユーザーの判断] | 1 件の追加・置き換えは `Upsert(T)`、まとめては `Upsert(IReadOnlyList<T>)`（同じ規則を渡した順に）、削除は `Remove(uniqueId)`、全部消すのは `Clear()`。「全部消して入れ直す」は `Clear()` のあと `Upsert(list)` と書く（`ReplaceAll` は「一致するものを全部置き換える」とも読めるので使わない） | `idols.Clear(); idols.Upsert(list);` | クライアントのリポジトリ |
 | UseCase の IF（クライアント） [ADR 案] | `I<機能>UseCase`。機能ごとに 1 つ（Contracts の `I<機能>Service` と同じ単位） | `IGachaUseCase` | クライアントの Application（ADR 0022） |
 | UseCase の具象（クライアント） [ADR 案] | `<機能>UseCase`（IF から `I` を除いたもの） | `GachaUseCase`、`PlayerUseCase` | クライアントの Infrastructure（ADR 0022） |
 | UseCase の具象（サーバー） | `<動詞><名詞>UseCase`。1 つの操作に 1 つ | `DrawUseCase` | サーバーの Application |
