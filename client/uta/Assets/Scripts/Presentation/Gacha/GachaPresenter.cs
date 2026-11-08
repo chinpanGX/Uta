@@ -146,12 +146,12 @@ namespace Uta.Client.Presentation.Gacha
             }
         }
 
-        private void Show(GachaViewDto dto)
+        private void Show(GachaViewDto gachaViewDto)
         {
-            gachaView.SetCurrency(dto.CurrencyText);
-            gachaView.SetCosts(dto.SingleLabel, dto.TenLabel);
-            gachaView.SetLineup(dto.LineupText);
-            gachaView.SetExchange(dto.ExchangeText);
+            gachaView.SetCurrency(gachaViewDto.CurrencyText);
+            gachaView.SetCosts(gachaViewDto.SingleLabel, gachaViewDto.TenLabel);
+            gachaView.SetLineup(gachaViewDto.LineupText);
+            gachaView.SetExchange(gachaViewDto.ExchangeText);
         }
 
         private void OnSingleClicked()

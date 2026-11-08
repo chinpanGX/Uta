@@ -9,15 +9,15 @@ namespace Uta.Client.Infrastructure.Gacha
     /// <summary>DTO → Application の型。</summary>
     public static class GachaMapper
     {
-        /// <summary>response.Gachas の中で GachaMasterId == gachaMasterId の最初の行の ExchangePoints。Gachas が null か、行が無ければ 0。</summary>
-        public static int ToExchangePoints(GetGachasResponse response, int gachaMasterId)
+        /// <summary>getGachasResponse.Gachas の中で GachaMasterId == gachaMasterId の最初の行の ExchangePoints。Gachas が null か、行が無ければ 0。</summary>
+        public static int ToExchangePoints(GetGachasResponse getGachasResponse, int gachaMasterId)
         {
-            if (response.Gachas == null)
+            if (getGachasResponse.Gachas == null)
             {
                 return 0;
             }
 
-            foreach (var status in response.Gachas)
+            foreach (var status in getGachasResponse.Gachas)
             {
                 if (status.GachaMasterId == gachaMasterId)
                 {
@@ -29,12 +29,12 @@ namespace Uta.Client.Infrastructure.Gacha
         }
 
         /// <summary>Success に詰め替える。Results は Slot の昇順に並べ直す（null なら空）。</summary>
-        public static DrawResult ToDrawResult(DrawResponse response)
+        public static DrawResult ToDrawResult(DrawResponse drawResponse)
         {
             var results = new List<GachaResult>();
-            if (response.Results != null)
+            if (drawResponse.Results != null)
             {
-                results.AddRange(response.Results
+                results.AddRange(drawResponse.Results
                     .Select(dto => new GachaResult(
                         dto.Slot,
                         (Uta.MasterData.ItemKind)(int)dto.ItemKind,
@@ -45,7 +45,7 @@ namespace Uta.Client.Infrastructure.Gacha
                     .OrderBy(r => r.Slot));
             }
 
-            return DrawResult.Success(results, response.GachaCurrency, response.ExchangePoints);
+            return DrawResult.Success(results, drawResponse.GachaCurrency, drawResponse.ExchangePoints);
         }
     }
 }

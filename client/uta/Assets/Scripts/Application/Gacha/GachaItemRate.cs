@@ -5,10 +5,10 @@ namespace Uta.Client.Application.Gacha
     /// <summary>カード 1 枚分の排出率。</summary>
     public sealed class GachaItemRate
     {
-        public GachaItemRate(Rarity rarity, ItemKind kind, int itemId, string name, int basisPoints)
+        public GachaItemRate(Rarity rarity, ItemKind itemKind, int itemId, string name, int basisPoints)
         {
             Rarity = rarity;
-            Kind = kind;
+            Kind = itemKind;
             ItemId = itemId;
             Name = name;
             BasisPoints = basisPoints;

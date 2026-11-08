@@ -6,9 +6,9 @@ namespace Uta.Client.Application.Gacha
     /// <summary>ガチャを引いた結果。Succeeded のときだけ Results・GachaCurrency・ExchangePoints に値が入る。</summary>
     public sealed class DrawResult
     {
-        private DrawResult(DrawResultKind kind, IReadOnlyList<GachaResult> results, int gachaCurrency, int exchangePoints)
+        private DrawResult(DrawResultKind drawResultKind, IReadOnlyList<GachaResult> results, int gachaCurrency, int exchangePoints)
         {
-            Kind = kind;
+            Kind = drawResultKind;
             Results = results;
             GachaCurrency = gachaCurrency;
             ExchangePoints = exchangePoints;
@@ -29,20 +29,20 @@ namespace Uta.Client.Application.Gacha
         {
             if (results == null)
             {
-                throw new ArgumentNullException("results");
+                throw new ArgumentNullException(nameof(results));
             }
 
             return new DrawResult(DrawResultKind.Succeeded, results, gachaCurrency, exchangePoints);
         }
 
-        public static DrawResult Rejected(DrawResultKind kind)
+        public static DrawResult Rejected(DrawResultKind drawResultKind)
         {
-            if (kind == DrawResultKind.Succeeded)
+            if (drawResultKind == DrawResultKind.Succeeded)
             {
-                throw new ArgumentException("kind must not be Succeeded", nameof(kind));
+                throw new ArgumentException("drawResultKind must not be Succeeded", nameof(drawResultKind));
             }
 
-            return new DrawResult(kind, Array.Empty<GachaResult>(), 0, 0);
+            return new DrawResult(drawResultKind, Array.Empty<GachaResult>(), 0, 0);
         }
     }
 }

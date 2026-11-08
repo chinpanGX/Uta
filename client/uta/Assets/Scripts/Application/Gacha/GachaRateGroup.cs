@@ -5,10 +5,10 @@ namespace Uta.Client.Application.Gacha
     /// <summary>レア度・種別ごとの排出率の合計。</summary>
     public sealed class GachaRateGroup
     {
-        public GachaRateGroup(Rarity rarity, ItemKind kind, int basisPoints)
+        public GachaRateGroup(Rarity rarity, ItemKind itemKind, int basisPoints)
         {
             Rarity = rarity;
-            Kind = kind;
+            Kind = itemKind;
             BasisPoints = basisPoints;
         }
 

@@ -5,10 +5,10 @@ namespace Uta.Client.Application.Gacha
     /// <summary>ガチャの結果の 1 枠分。</summary>
     public sealed class GachaResult
     {
-        public GachaResult(int slot, ItemKind kind, int itemId, bool isNew, int shards, int supportPoints)
+        public GachaResult(int slot, ItemKind itemKind, int itemId, bool isNew, int shards, int supportPoints)
         {
             Slot = slot;
-            Kind = kind;
+            Kind = itemKind;
             ItemId = itemId;
             IsNew = isNew;
             Shards = shards;

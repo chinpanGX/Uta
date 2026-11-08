@@ -25,39 +25,39 @@ namespace Uta.Client.Presentation.Gacha
             }
 
             var lines = new List<GachaLineRowViewDto>();
-            foreach (var result in results)
+            foreach (var gachaResult in results)
             {
-                lines.Add(new GachaLineRowViewDto(CreateText(result), false));
+                lines.Add(new GachaLineRowViewDto(CreateText(gachaResult), false));
             }
 
             return lines;
         }
 
-        private string CreateText(GachaResult result)
+        private string CreateText(GachaResult gachaResult)
         {
             Rarity rarity;
             string name;
             string note;
-            if (result.Kind == ItemKind.Idol)
+            if (gachaResult.Kind == ItemKind.Idol)
             {
-                var idol = memoryDatabase.IdolTable.FindByIdolId(result.ItemId);
+                var idol = memoryDatabase.IdolTable.FindByIdolId(gachaResult.ItemId);
                 rarity = idol.Rarity;
                 name = idol.Name;
-                note = result.IsNew ? "NEW" : "かけら +" + N0(result.Shards);
+                note = gachaResult.IsNew ? "NEW" : "かけら +" + N0(gachaResult.Shards);
             }
-            else if (result.Kind == ItemKind.SupportCard)
+            else if (gachaResult.Kind == ItemKind.SupportCard)
             {
-                var supportCard = memoryDatabase.SupportCardTable.FindBySupportCardId(result.ItemId);
+                var supportCard = memoryDatabase.SupportCardTable.FindBySupportCardId(gachaResult.ItemId);
                 rarity = supportCard.Rarity;
                 name = supportCard.Name;
-                note = result.IsNew ? "所持に追加" : "サポート強化pt +" + N0(result.SupportPoints);
+                note = gachaResult.IsNew ? "所持に追加" : "サポート強化pt +" + N0(gachaResult.SupportPoints);
             }
             else
             {
-                throw new ArgumentOutOfRangeException(nameof(result));
+                throw new ArgumentOutOfRangeException(nameof(gachaResult));
             }
 
-            return result.Slot + ". " + rarity + " " + GachaTexts.Kind(result.Kind) + " " + name + "　" + note;
+            return gachaResult.Slot + ". " + rarity + " " + GachaTexts.Kind(gachaResult.Kind) + " " + name + "　" + note;
         }
 
         private static string N0(int value)

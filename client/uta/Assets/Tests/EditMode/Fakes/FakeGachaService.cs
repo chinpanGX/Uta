@@ -16,6 +16,9 @@ namespace Uta.Client.Tests
         public readonly Queue<Func<UnaryResult<DrawResponse>>> DrawResults = new Queue<Func<UnaryResult<DrawResponse>>>();
         public readonly List<string> Calls = new List<string>();
 
+        /// <summary>最後に WithHeaders へ渡された Metadata（WithHandledCodes のコードの指定が入る）。</summary>
+        public Metadata LastHeaders { get; private set; }
+
         public static Func<UnaryResult<T>> Ok<T>(T value)
         {
             return () => new UnaryResult<T>(value);
@@ -50,6 +53,7 @@ namespace Uta.Client.Tests
 
         public IGachaService WithHeaders(Metadata headers)
         {
+            LastHeaders = headers;
             return this;
         }
 

@@ -7,16 +7,16 @@ namespace Uta.Client.Presentation.Gacha
     public static class GachaTexts
     {
         /// <summary>Idol → "育成アイドル"、SupportCard → "サポートカード"、それ以外 → ArgumentOutOfRangeException。</summary>
-        public static string Kind(ItemKind kind)
+        public static string Kind(ItemKind itemKind)
         {
-            switch (kind)
+            switch (itemKind)
             {
                 case ItemKind.Idol:
                     return "育成アイドル";
                 case ItemKind.SupportCard:
                     return "サポートカード";
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(kind));
+                    throw new ArgumentOutOfRangeException(nameof(itemKind));
             }
         }
 

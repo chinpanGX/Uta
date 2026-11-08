@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -48,11 +49,11 @@ namespace Uta.Client.Presentation.Gacha
             return player == null ? 0 : player.GachaCurrency;
         }
 
-        private string CreateLineup(Uta.MasterData.Gacha master)
+        private string CreateLineup(Uta.MasterData.Gacha gacha)
         {
             var ssr = new List<(ItemKind Kind, int ItemId, string Name)>();
             var entries = memoryDatabase.GachaTableEntryTable.All
-                .Where(e => e.GachaTableId == master.NormalTableId)
+                .Where(e => e.GachaTableId == gacha.NormalTableId)
                 .OrderBy(e => e.Order);
             foreach (var entry in entries)
             {
@@ -74,7 +75,7 @@ namespace Uta.Client.Presentation.Gacha
                 }
                 else
                 {
-                    GachaTexts.Kind(entry.ItemKind);   // 想定外の種別は ArgumentOutOfRangeException
+                    throw new ArgumentOutOfRangeException(nameof(entry), "unsupported ItemKind: " + entry.ItemKind);
                 }
             }
 

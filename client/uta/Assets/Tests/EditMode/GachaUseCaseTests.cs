@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using Cysharp.Threading.Tasks;
+using Grpc.Core;
 using MagicOnion;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -90,6 +91,26 @@ namespace Uta.Client.Tests
 
             Assert.AreEqual(DrawResultKind.NotEnoughCurrency, result.Kind);
             Assert.AreEqual(0, player.RefreshCount);
+        });
+
+        [UnityTest]
+        public IEnumerator Draw_HandlesNotEnoughCurrency() => UniTask.ToCoroutine(async () =>
+        {
+            service.DrawResults.Enqueue(Success());
+
+            await useCase.DrawAsync(1, 1);
+
+            Assert.IsNotNull(service.LastHeaders);
+            var found = false;
+            foreach (var entry in service.LastHeaders)
+            {
+                if (entry.Value != null && entry.Value.Contains("uta/GACHA_NOT_ENOUGH_CURRENCY"))
+                {
+                    found = true;
+                }
+            }
+
+            Assert.IsTrue(found);
         });
 
         [UnityTest]

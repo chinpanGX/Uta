@@ -34,7 +34,7 @@ namespace Uta.Client.Application.Gacha
             }
 
             var items = new List<GachaItemRate>();
-            var groupWeights = new Dictionary<(Rarity, ItemKind), long>();
+            var groupWeights = new Dictionary<(Rarity Rarity, ItemKind Kind), long>();
             foreach (var e in entries)
             {
                 int itemId;
@@ -66,9 +66,9 @@ namespace Uta.Client.Application.Gacha
             }
 
             var groups = groupWeights
-                .OrderByDescending(p => (int)p.Key.Item1)
-                .ThenBy(p => (int)p.Key.Item2)
-                .Select(p => new GachaRateGroup(p.Key.Item1, p.Key.Item2, (int)(p.Value * 10000L / total)))
+                .OrderByDescending(p => (int)p.Key.Rarity)
+                .ThenBy(p => (int)p.Key.Kind)
+                .Select(p => new GachaRateGroup(p.Key.Rarity, p.Key.Kind, (int)(p.Value * 10000L / total)))
                 .ToList();
             var sortedItems = items
                 .OrderByDescending(i => (int)i.Rarity)

@@ -228,6 +228,22 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
+        public IEnumerator InitializeAsync_DisposedDuringExchangePoints_TouchesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            var gate = new UniTaskCompletionSource<int?>();
+            gachaUseCase.ExchangePointsResults.Enqueue(() => gate.Task);
+            var presenter = CreatePresenter();
+            log.Entries.Clear();
+
+            var init = presenter.InitializeAsync();
+            presenter.Dispose();
+            gate.TrySetResult(37);
+            await init;
+
+            Assert.IsEmpty(log.Entries);
+        });
+
+        [UnityTest]
         public IEnumerator ResultRetry_DrawsAgain() => UniTask.ToCoroutine(async () =>
         {
             gachaUseCase.DrawResults.Enqueue(() =>

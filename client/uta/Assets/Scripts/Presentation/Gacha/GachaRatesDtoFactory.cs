@@ -26,10 +26,10 @@ namespace Uta.Client.Presentation.Gacha
             return lines;
         }
 
-        private static void AddFrame(List<GachaLineRowViewDto> lines, string groupsHeading, string itemsHeading, GachaRateResult rates)
+        private static void AddFrame(List<GachaLineRowViewDto> lines, string groupsHeading, string itemsHeading, GachaRateResult gachaRateResult)
         {
             lines.Add(new GachaLineRowViewDto(groupsHeading, true));
-            foreach (var group in rates.Groups)
+            foreach (var group in gachaRateResult.Groups)
             {
                 lines.Add(new GachaLineRowViewDto(
                     group.Rarity + " " + GachaTexts.Kind(group.Kind) + " " + GachaTexts.Percent(group.BasisPoints),
@@ -37,7 +37,7 @@ namespace Uta.Client.Presentation.Gacha
             }
 
             lines.Add(new GachaLineRowViewDto(itemsHeading, true));
-            foreach (var item in rates.Items)
+            foreach (var item in gachaRateResult.Items)
             {
                 lines.Add(new GachaLineRowViewDto(
                     item.Rarity + " " + GachaTexts.Kind(item.Kind) + " " + item.Name + " " + GachaTexts.Percent(item.BasisPoints),
