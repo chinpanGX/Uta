@@ -20,7 +20,7 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
         return await transactions.RunAsync(Context, async tx => new SignUpResponse(await signUp.ExecuteAsync(tx, playerId)));
     }
 
-    [UtaService]
+    [GameServiceFilter]
     public async UnaryResult<SignInResponse> SignInAsync()
     {
         var playerId = Context.GetAuthContext().PlayerId;

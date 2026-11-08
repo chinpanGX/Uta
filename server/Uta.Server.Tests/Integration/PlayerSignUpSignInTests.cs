@@ -15,7 +15,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignUp_NewPlayer_CreatesRow()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -28,7 +28,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignUp_Twice_DoesNothing()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -42,7 +42,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignUp_SameRequestId_ReturnsStoredResponse()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -56,7 +56,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignIn_AfterSignUp_ReturnsInitialGrant()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -95,7 +95,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignIn_Twice_ReturnsSameIdolUniqueIds()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -123,7 +123,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignUp_Twice_DoesNotGrantAgain()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -140,7 +140,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignUp_NewPlayer_CreatesOwnershipRows()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -154,7 +154,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     public async Task SignUp_NewPlayer_WritesOneGameLog()
     {
         const string logSql = "SELECT count(*) FROM game_logs WHERE player_id = $1 AND kind = 'player' AND body->>'reason' = 'sign_up'";
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -178,7 +178,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignIn_BeforeSignUp_ReturnsPlayerNotCreated()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -194,7 +194,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignIn_ThenSignUp_ThenSignIn_Works()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 
@@ -208,7 +208,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignIn_WithoutToken_Unauthenticated()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var client = MagicOnionClient.Create<IPlayerService>(channel);
 
@@ -220,7 +220,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     [Fact]
     public async Task SignIn_WithoutRequestId_InvalidArgument()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
         await player.CallAsync(service => service.SignUpAsync(), "req-1");

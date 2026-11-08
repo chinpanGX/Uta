@@ -10,7 +10,7 @@ using Uta.Server.Application.Common;
 
 namespace Uta.Server.Tests.Integration.Support;
 
-public sealed class UtaServerFactory : WebApplicationFactory<Program>
+public sealed class ServerFactory : WebApplicationFactory<Program>
 {
     private const string ConnectionStringVariable = "ConnectionStrings__Default";
 
@@ -20,7 +20,7 @@ public sealed class UtaServerFactory : WebApplicationFactory<Program>
 
     private readonly Action<IServiceCollection>? configureServices;
 
-    public UtaServerFactory(PostgresFixture postgres, DateTimeOffset? now = null, IRandomSource? randomSource = null, Action<IServiceCollection>? configureServices = null)
+    public ServerFactory(PostgresFixture postgres, DateTimeOffset? now = null, IRandomSource? randomSource = null, Action<IServiceCollection>? configureServices = null)
     {
         this.randomSource = randomSource;
         this.configureServices = configureServices;

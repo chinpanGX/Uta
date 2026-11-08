@@ -13,7 +13,7 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
     [Fact]
     public async Task Build_ProductionWithSingletonCapturingScoped_Throws()
     {
-        await using var factory = new UtaServerFactory(postgres, configureServices: services => services.AddSingleton<ScopedCapturingSingleton>());
+        await using var factory = new ServerFactory(postgres, configureServices: services => services.AddSingleton<ScopedCapturingSingleton>());
         await using var production = factory.WithWebHostBuilder(builder => builder.UseEnvironment(Environments.Production));
 
         var exception = Assert.ThrowsAny<Exception>(() => production.Server);

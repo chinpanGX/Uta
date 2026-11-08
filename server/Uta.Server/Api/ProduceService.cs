@@ -12,7 +12,7 @@ using VolTech.Server.Transaction;
 
 namespace Uta.Server.Api;
 
-[UtaService]
+[GameServiceFilter]
 public sealed class ProduceService(
     ITransactions transactions, StartProduceUseCase start, GetProduceStateUseCase getState, AbandonProduceUseCase abandon,
     ProduceOperationUseCase operation)

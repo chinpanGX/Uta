@@ -64,7 +64,7 @@ internal static class ServerHost
 
         try
         {
-            UtaDatabase.Migrate(connectionString);
+            DatabaseMigrator.Migrate(connectionString);
             return 0;
         }
         catch (InvalidOperationException exception)

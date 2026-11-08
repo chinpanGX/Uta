@@ -12,10 +12,10 @@ namespace Uta.Server.Tests.Integration;
 public class ProduceStartTests(PostgresFixture postgres)
 {
     /// <summary>登録・ログイン済みのプレイヤー。initial の所持IDは SignIn の SupportCards（カード 1〜5）。</summary>
-    private static async Task<(UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player, SignInResponse SignIn)> StartAsync(
+    private static async Task<(ServerFactory Factory, GrpcChannel Channel, PlayerClient Player, SignInResponse SignIn)> StartAsync(
         PostgresFixture postgres, string secret = "0123456789abcdef-secret")
     {
-        var factory = new UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL, 333UL, 444UL));
+        var factory = new ServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL, 333UL, 444UL));
         var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel, secret);
         await player.CallAsync(service => service.SignUpAsync(), "req-1");

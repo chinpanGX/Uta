@@ -11,7 +11,7 @@ using VolTech.Server.Transaction;
 
 namespace Uta.Server.Api;
 
-[UtaService]
+[GameServiceFilter]
 public sealed class GachaService(ITransactions transactions, GetGachasUseCase getGachas, DrawUseCase draw, ExchangeUseCase exchange)
     : ServiceBase<IGachaService>, IGachaService
 {

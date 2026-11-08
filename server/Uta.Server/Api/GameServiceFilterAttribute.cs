@@ -11,7 +11,7 @@ namespace Uta.Server.Api;
 
 /// <summary>IPlayerService 以外のサービスの実装クラスと、PlayerService.SignInAsync のメソッドに付ける。プレイヤー未作成を PLAYER_NOT_CREATED で弾き、UseCaseException を BusinessException に変換する。</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public sealed class UtaServiceAttribute : MagicOnionFilterAttribute
+public sealed class GameServiceFilterAttribute : MagicOnionFilterAttribute
 {
     public override async ValueTask Invoke(ServiceContext context, Func<ServiceContext, ValueTask> next)
     {
