@@ -4,9 +4,9 @@ using Uta.Shared.Domain.Tests.Produce;
 
 namespace Uta.Server.Tests.MasterData;
 
-public class MasterProduceCatalogTests
+public class ProduceCatalogFactoryTests
 {
-    private static readonly ProduceCatalog Catalog = MasterProduceCatalog.Create(MasterDataLoader.Load(), MasterCardCatalog.Create(MasterDataLoader.Load()));
+    private static readonly ProduceCatalog Catalog = ProduceCatalogFactory.Create(MasterDataLoader.Load(), CardCatalogFactory.Create(MasterDataLoader.Load()));
 
     [Fact]
     public void Create_FromMaster_Succeeds()

@@ -7,7 +7,7 @@ namespace Uta.Server.Infrastructure;
 /// マスタの行を Shared.Domain の行の型に詰めて ProduceCatalog を作る。
 /// 検証と組み立ては ProduceCatalog.Create が行う（repository-layout.md 4章）。
 /// </summary>
-public static class MasterProduceCatalog
+public static class ProduceCatalogFactory
 {
     public static ProduceCatalog Create(Uta.MasterData.MemoryDatabase db, ICardCatalog cards)
     {

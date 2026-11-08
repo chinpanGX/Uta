@@ -10,7 +10,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）と、ready の計画の読み替え（2026-11-08）で決めたこと（クライアントの UseCase の具象の名前、`Find`・`FindAll`、Contracts の enum の写しを作らない、Shared.Domain と同名にしない、`Snapshot` の使いどころ、テストの補助の名前）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
 
-印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則のうち、ADR 0021 の分（エンティティとリポジトリの IF を Domain に置く、改名、`FindAllAsync`）は[サーバー側の実装計画](../../plans/2026-11-08-server-domain-entities.md)で済んだ。ADR 0020 の分（Catalog をやめる）は、その実装計画までサーバーのコードは今のまま（[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)「accepted にする時点と、進めてよいこと」）。
+印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則のうち、ADR 0021 の分（エンティティとリポジトリの IF を Domain に置く、改名、`FindAllAsync`）は[サーバー側の実装計画](../../plans/2026-11-08-server-domain-entities.md)で済んだ。ADR 0020 の分（Catalog をやめる）は[サーバー側の実装計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)で済んだ。
 
 ## 決まっていること
 
@@ -162,7 +162,6 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | サーバーの `ProduceEndSummary` | `ProduceEndResult` | 2章 |
 | Shared.Domain の `ClassOptionView`（`ProduceEngine.GetClassOptions` の戻り値） | `ClassOption` | 1章・4章。サーバーとクライアントの利用箇所も直す |
 | `UtaServiceAttribute`・`UtaDatabase`、テストの `UtaServerFactory` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`、`ServerFactory`・`Services_HaveGameServiceFilterAttribute` | 1章 |
-| サーバーの `MasterCardCatalog`・`MasterProduceCatalog`（static の組み立て役） | `CardCatalogFactory`・`ProduceCatalogFactory` | 7章 |
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
 | 計画にある `OwnedListBuilder`・`DialogService` | `OwnedListFactory`・`DialogOpener` | 7章・9章（`Builder` は Editor、`Service` は通信） |
@@ -174,7 +173,6 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | クライアントの `GachaLineRow` | `GachaLineRowView` | 6章 |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
-| サーバーの `I<名詞>Catalog`・`Master<名詞>Catalog`・`GachaDefinition` など | やめる [ADR 案] | ADR 0020 |
 | 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 

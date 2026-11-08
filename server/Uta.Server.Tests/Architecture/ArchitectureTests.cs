@@ -43,12 +43,9 @@ public class ArchitectureTests
     }
 
     [Fact]
-    public void MasterData_IsReferencedOnlyByInfrastructure()
+    public void SharedDomain_DoesNotDependOnMasterData()
     {
-        var result = Types.InAssembly(typeof(PlayerResolver).Assembly).That()
-            .ResideInNamespaceStartingWith("Uta.Server.Api")
-            .Or().ResideInNamespaceStartingWith("Uta.Server.Application")
-            .Or().ResideInNamespaceStartingWith("Uta.Server.Domain")
+        var result = Types.InAssembly(typeof(Uta.Shared.Domain.Lesson.CardCatalog).Assembly)
             .ShouldNot().HaveDependencyOnAny("Uta.MasterData").GetResult();
         Assert.True(result.IsSuccessful);
     }

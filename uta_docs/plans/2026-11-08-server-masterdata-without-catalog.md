@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーの Catalog をやめ、マスタを UseCase から直接読む（ADR 0020 のサーバー側）
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/naming.md
 ---
@@ -404,4 +404,19 @@ public void PlayerLevelExp_AllIsInLevelOrder()
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ |
+|---|---|---|
+| 1 | 319bc03 | なし |
+| 2 | e5d9994 | なし |
+| 3 | b4ec691 | なし |
+| 4 | （wiki と計画を done にしたコミット） | なし。計画のページのほか、repository-layout.md 3章の「生成したマスタの置き場」の段落も、置き場は変えないと書き換えた |
+
+ビルド（`dotnet build Uta.slnx`）は警告 0・エラー 0。テスト（`dotnet test --project server/Uta.Server.Tests`）は結合テストを含めて 308 件成功（Docker 29.9.2）。各タスクの後に進行役が実行した。
+
+コードレビュー（server、1 回目）: Critical 0・Important 1・Minor 5。Important はタスク 4 の wiki がコミットに入っていなかったことで、同じ PR にコミットして解消した。Minor は直さずに残す:
+
+- M1: 初期付与の ID の並び（R の育成アイドルの昇順・初期サポートの Order 順）を固定する単体テストがなくなった（`PlayerSignUpSignInTests` は中身を見ている）
+- M2: 強化の必要量の件数の確認（`LevelUpUseCase` の `InvalidOperationException`）にテストがない（マスタの不備でしか起きない）
+- M3: `GachaItemMapper` に Docker なしで回るテストがない（`GachaTests` の結合テストで通っている）
+- M4: 単発のガチャでも確定枠の行と重みの列を作っている（計画 3.3 のとおり。行数は小さい）
+- M5: 実装メモの表が空だった（この表で解消）

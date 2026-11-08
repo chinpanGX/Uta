@@ -46,8 +46,8 @@ if (args.Length > 0 && args[0] == "migrate")
 }
 
 builder.Services.AddSingleton(MasterDataLoader.Load());
-builder.Services.AddSingleton<ICardCatalog>(sp => MasterCardCatalog.Create(sp.GetRequiredService<MemoryDatabase>()));
-builder.Services.AddSingleton(sp => MasterProduceCatalog.Create(sp.GetRequiredService<MemoryDatabase>(), sp.GetRequiredService<ICardCatalog>()));
+builder.Services.AddSingleton<ICardCatalog>(sp => CardCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>()));
+builder.Services.AddSingleton(sp => ProduceCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>(), sp.GetRequiredService<ICardCatalog>()));
 builder.Services.AddSingleton<ProduceEngine>();
 builder.Logging.ClearProviders();
 builder.Logging.AddZLoggerConsole(options => options.UseJsonFormatter());
@@ -57,15 +57,10 @@ builder.Services.AddScoped<IPlayerResolver, PlayerResolver>();
 builder.Services.AddScoped<IPlayerRepository, PlayerRepository>();
 builder.Services.AddScoped<IIdolRepository, IdolRepository>();
 builder.Services.AddScoped<ISupportCardRepository, SupportCardRepository>();
-builder.Services.AddSingleton<IInitialGrantCatalog, MasterInitialGrantCatalog>();
-builder.Services.AddSingleton<IGachaCatalog, MasterGachaCatalog>();
-builder.Services.AddSingleton<IDuplicateConversionCatalog, MasterDuplicateConversionCatalog>();
 builder.Services.AddSingleton<IRandomSource, SecureRandomSource>();
 builder.Services.AddScoped<IGachaRepository, GachaRepository>();
 builder.Services.AddScoped<IProduceSessionRepository, ProduceSessionRepository>();
 builder.Services.AddSingleton<ProduceViewBuilder>();
-builder.Services.AddSingleton<IProduceRewardCatalog, MasterProduceRewardCatalog>();
-builder.Services.AddSingleton<IPlayerLevelCatalog, MasterPlayerLevelCatalog>();
 builder.Services.AddScoped<ProduceSessionDiscarder>();
 builder.Services.AddScoped<StartProduceUseCase>();
 builder.Services.AddScoped<GetProduceStateUseCase>();
@@ -76,7 +71,6 @@ builder.Services.AddScoped<ItemGranter>();
 builder.Services.AddScoped<GetGachasUseCase>();
 builder.Services.AddScoped<DrawUseCase>();
 builder.Services.AddScoped<ExchangeUseCase>();
-builder.Services.AddSingleton<ISupportCatalog, MasterSupportCatalog>();
 builder.Services.AddScoped<LevelUpUseCase>();
 builder.Services.AddScoped<LimitBreakUseCase>();
 builder.Services.AddScoped<SignUpUseCase>();

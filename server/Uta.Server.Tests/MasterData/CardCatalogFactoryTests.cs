@@ -3,9 +3,9 @@ using Uta.Shared.Domain.Lesson;
 
 namespace Uta.Server.Tests.MasterData;
 
-public class MasterCardCatalogTests
+public class CardCatalogFactoryTests
 {
-    private static readonly CardCatalog Catalog = MasterCardCatalog.Create(MasterDataLoader.Load());
+    private static readonly CardCatalog Catalog = CardCatalogFactory.Create(MasterDataLoader.Load());
 
     [Fact]
     public void Create_Mvp_Has36Cards()
