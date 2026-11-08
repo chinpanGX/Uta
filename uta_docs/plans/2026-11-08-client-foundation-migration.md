@@ -352,3 +352,4 @@ foundation・formation・gacha・owned の 4 本の、タイトル（`# 実装�
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 2(a) | 完了 | `752fb9e` | Uta.Client.MasterData・Domain の precompiledReferences に `MasterMemory.Annotations.dll`・`MessagePack.Annotations.dll` も要った（R1 の 2 つでは足りない）。後ろのアセンブリは旧い API のエラーで (c) までコンパイルされない |
