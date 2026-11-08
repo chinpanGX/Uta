@@ -102,9 +102,13 @@ namespace Uta.Client.Infrastructure.Player
         // リポジトリの読み書きはメインスレッドだけ（ADR 0021）。間で await しない
         private void Apply(SignInResponse response)
         {
-            players.Upsert(PlayerMapper.ToPlayerEntity(response));
-            idols.ReplaceAll(PlayerMapper.ToIdolEntities(response.Idols));
-            supportCards.ReplaceAll(PlayerMapper.ToSupportCardEntities(response.SupportCards));
+            // 詰め替え（例外が出うるもの）を先に済ませ、書き込みは続けて行う
+            var playerEntity = PlayerMapper.ToPlayerEntity(response);
+            var idolEntities = PlayerMapper.ToIdolEntities(response.Idols);
+            var supportCardEntities = PlayerMapper.ToSupportCardEntities(response.SupportCards);
+            players.Upsert(playerEntity);
+            idols.ReplaceAll(idolEntities);
+            supportCards.ReplaceAll(supportCardEntities);
         }
     }
 }

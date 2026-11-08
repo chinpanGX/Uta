@@ -11,9 +11,7 @@ namespace Uta.Client.Infrastructure.Api
 {
     internal static class ServiceClientFactory
     {
-        private static readonly IMagicOnionSerializerProvider serializerProvider = CreateSerializerProvider();
-
-        public static IMagicOnionSerializerProvider SerializerProvider => serializerProvider;
+        public static IMagicOnionSerializerProvider SerializerProvider { get; } = CreateSerializerProvider();
 
         public static IMagicOnionClientFactoryProvider ClientFactoryProvider => MagicOnionClientInitializer.ClientFactoryProvider;
 

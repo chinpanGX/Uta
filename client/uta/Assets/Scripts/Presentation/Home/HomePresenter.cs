@@ -18,7 +18,7 @@ namespace Uta.Client.Presentation.Home
 
         public void Start()
         {
-            view.SetSummary("ホーム（仮）");
+            view.SetSummary("Home (temporary)");
             view.ProduceClicked += OnProduce;
         }
 

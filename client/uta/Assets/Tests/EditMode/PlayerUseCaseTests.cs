@@ -197,7 +197,10 @@ namespace Uta.Client.Tests
         [UnityTest]
         public IEnumerator Refresh_Failed_ThrowsAndKeepsRepositories() => UniTask.ToCoroutine(async () =>
         {
-            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1, new[] { new OwnedIdolDto(1, 0, 0, 0) }, null)));
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
+                1,
+                new[] { new OwnedIdolDto(1, 0, 0, 0) },
+                new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Fail<SignInResponse>(PlayerErrors.NotEnoughGold));
 
@@ -206,12 +209,16 @@ namespace Uta.Client.Tests
             StartsWith("sign-in failed: ", e);
             Assert.AreEqual(1, players.Find().Level);
             Assert.AreEqual(1, idols.FindAll().Count);
+            Assert.AreEqual(1, supportCards.FindAll().Count);
         });
 
         [UnityTest]
         public IEnumerator Refresh_NotCreated_ThrowsAndKeepsRepositories() => UniTask.ToCoroutine(async () =>
         {
-            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(1)));
+            service.SignInResults.Enqueue(FakePlayerService.Ok(SignIn(
+                1,
+                new[] { new OwnedIdolDto(1, 0, 0, 0) },
+                new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 10, 11, 12) })));
             await useCase.EnterAsync(false);
             service.SignInResults.Enqueue(FakePlayerService.Fail<SignInResponse>(PlayerErrors.NotCreated));
 
@@ -220,6 +227,8 @@ namespace Uta.Client.Tests
             Assert.IsInstanceOf<InvalidOperationException>(e);
             Assert.AreEqual("sign-in failed: player not created", e.Message);
             Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, idols.FindAll().Count);
+            Assert.AreEqual(1, supportCards.FindAll().Count);
         });
     }
 }
