@@ -139,7 +139,7 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 - サーバーを1プロジェクトにするのは VolTech-MagicOnion と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは VolTech-MagicOnion の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
 - **Unity に入れる外部パッケージ** [決定。2026-10-31]: VolTech-MagicOnion の利用ガイド（[getting-started.md](https://github.com/chinpanGX/VolTech-MagicOnion/blob/main/docs/guide/getting-started.md)「使う版」）に合わせる。何をどう入れるかの正はこのガイドで、Uta はそれに足すものだけを書く
-  - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`）は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
+  - NuGet のパッケージ（`MagicOnion.Client`・`MessagePack`・`Grpc.Net.Client` などの Grpc・`Google.Protobuf`・`ZLinq`・`ZLinq.DropInGenerator`（LINQ の置き換え。[ADR 0023](../decisions/0023-client-linq-with-zlinq.md)））は **NuGetForUnity** で入れ、版は `Assets/packages.config` で固定する。UPM の `package.json` は NuGet のパッケージを依存に書けないため
   - UPM にあるもの（NuGetForUnity・UniTask・VContainer・`MagicOnion.Client.Unity`・`MessagePack.Unity`・YetAnotherHttpHandler）は UPM の git URL で入れ、版はタグで固定する（`manifest.json`）
   - IL2CPP のビルドに要る `Microsoft.Bcl.AsyncInterfaces` は、ガイドのとおり手で置く（`.meta` の形に注意。unity7-evaluation.md 3.1）
   - MasterMemory の実行時ライブラリの入れ方: MasterMemory は NuGetForUnity。`MasterMemory.Addons.Core` はアドオンの `src/MasterMemory.Addons.Core/` に `package.json`・asmdef を置いて git URL で参照する（2026-11-01 に決定。[Unity に取り込む計画](../../plans/2026-11-01-masterdata-unity.md)）

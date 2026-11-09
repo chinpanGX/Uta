@@ -1,4 +1,6 @@
-﻿using Uta.Client.Domain.Idol;
+﻿using System.Linq;
+using ZLinq;
+using Uta.Client.Domain.Idol;
 using Uta.MasterData;
 
 namespace Uta.Client.Application.Idol
@@ -21,19 +23,11 @@ namespace Uta.Client.Application.Idol
         /// </summary>
         public int Pick()
         {
-            var bestId = 0;
-            var bestRarity = int.MinValue;
-            foreach (var entity in idolRepository.FindAll())
-            {
-                var rarity = (int)memoryDatabase.IdolTable.FindByIdolId(entity.MasterId).Rarity;
-                if (rarity > bestRarity || (rarity == bestRarity && entity.MasterId < bestId))
-                {
-                    bestRarity = rarity;
-                    bestId = entity.MasterId;
-                }
-            }
-
-            return bestId;
+            return idolRepository.FindAll()
+                .OrderByDescending(entity => memoryDatabase.IdolTable.FindByIdolId(entity.MasterId).Rarity)
+                .ThenBy(entity => entity.MasterId)
+                .Select(entity => entity.MasterId)
+                .FirstOrDefault();
         }
     }
 }

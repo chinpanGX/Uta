@@ -39,3 +39,4 @@ updated: 2026-11-01
 - [0020-masterdata-referenced-outside-shared-domain.md](0020-masterdata-referenced-outside-shared-domain.md) — 生成したマスタは Shared.Domain 以外のどの層から参照してもよい。`MemoryDatabase` はシングルトンで Inject する。ADR 0008 の一部を置き換え（accepted）
 - [0021-domain-entities-and-repositories.md](0021-domain-entities-and-repositories.md) — 各側の Domain にエンティティ（`<名詞>Entity`）とリポジトリの IF（読み取り専用と書き込み）を置く。ADR 0008 の一部を置き換え（accepted）
 - [0022-client-external-concretes-in-infrastructure.md](0022-client-external-concretes-in-infrastructure.md) — クライアントは外部に触れる具象を Infrastructure に置き、Application には機能ごとの UseCase の IF を置く。ADR 0008 の一部を置き換え（accepted）
+- [0023-client-linq-with-zlinq.md](0023-client-linq-with-zlinq.md) — クライアントの LINQ 形式の実装は ZLinq を使う（DropInGenerator の Everything。client だけ）（accepted）

@@ -13,7 +13,8 @@
         "MasterMemory.dll",
         "MasterMemory.Annotations.dll",
         "MessagePack.dll",
-        "MessagePack.Annotations.dll"
+        "MessagePack.Annotations.dll",
+        "ZLinq.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [],

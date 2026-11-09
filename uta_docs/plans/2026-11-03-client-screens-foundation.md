@@ -1513,6 +1513,7 @@ Play モード・手動（Editor、サーバー起動済み）:
 | PR #52 のコメント | 完了 | （このコミット） | 8 章のとおり: ダイアログを USN の Overlay（`DialogPresenter`・`PushOverlayAsync`）で出す、Bootstrap の失敗のダイアログは小さいスコープ、変数名を型名に合わせた。Play で、ホームの「準備中です。」と Bootstrap の「マスタを読めませんでした: …」が `UiRoot/Overlays` の下に出ることを確かめた。Editor は Play に入るときのドメインのリロードを切っているので、2 回目以降の Play では USN が static に持つ前の Play の `PageContainer`（破棄済み）に触って Push が例外になる（Editor だけ。基盤の USN の別の作業）。`PrefabBuildCommands.BuildAll` で `OwnedPage.prefab` にも差分が出たので戻した（別のずれ）。`PlaceholderCharacterStage` の `label` は直していない |
 | 9 章（static の禁止） | 完了 | （このコミット） | 9 章のとおり。CLAUDE.md に決まりを足し、`PrefabBuildUtil` の static のシーンを `PrefabBuildSession` にした。計画に無かったところ: `GachaRowBuilders.cs` の内部の補助 `GachaRowPrefab.Build` にも `session` を足した（`CreateRoot` を呼ぶため）。`BuildAll` は `built 35` で、Prefab の中身は変わらない（`OwnedPage.prefab` の前からのずれは戻した） |
 | レビュー 3 | 完了 | （このコミット） | 8.7 のとおり C1（USN の遷移中にダイアログを押せない。ユーザーの判断で Dialog に CanvasGroup の ignoreParentGroups）・I1・M1・M2・M4 を直した。M3（名前の規則の対象外: 計画が指定した builder・session、UiObjects の GameObject・Transform、ローカル変数の扱い）と M5（−1 で終わるのが VContainer の破棄の順に頼っていること）は残した。確かめたのはバッチモード: Prefab の生成（built 35、変わったのは Dialog.prefab だけ）・EditMode 210 件。遷移の最中に押せることの Play での確認はしていない（Editor が使えなかった） |
+| 8.8（ZLinq） | 完了 | （このコミット） | 計画に無かったこと: (1) NuGetForUnity が起動時の復元で `ZLinq.dll` を取り出さなかったので、`packages.config` の ZLinq の行に `targetFramework="netstandard2.1"` を付けた（ADR 0023 に書いた）、(2) LINQ を書くファイルには `using ZLinq;` が要った（`ThenBy`・`ToList` が見えない。client の 7 ファイルに足した。ADR 0023・CLAUDE.md に書いた）。`unity test` の EditMode 210 件が通った |
 
 ## 8. PR #52 のレビューへの対応（2026-11-09。ユーザーのコメント）
 
@@ -1675,6 +1676,41 @@ public sealed class DialogPresenter : IPresenter, IScreenWithArgs<DialogArgs>
   - EditMode の全件が通る
   - wiki の Lint のエラー 0
   - Play での確認（遷移の最中に押せること）は、今回はしない（Editor が使えないため。PR の本文に書く）
+
+### 8.8 ZLinq を入れて、LINQ 形式の実装を ZLinq にする（2026-11-09。ユーザーの依頼）
+
+[ADR 0023](../wiki/decisions/0023-client-linq-with-zlinq.md) のとおり。ユーザーの判断（2026-11-09）:
+
+- 対象は client だけ
+- 置き換える型は `Everything`
+
+1. `client/uta/Assets/packages.config` に 2 行を足す（`manuallyInstalled="true"`。並びはアルファベット順）:
+   - `<package id="ZLinq" version="1.6.1" manuallyInstalled="true" />`
+   - `<package id="ZLinq.DropInGenerator" version="1.6.1" manuallyInstalled="true" />`
+   - 復元（`Assets/Packages/` に DLL が入る）は、進行役が Unity を起動して行う
+2. 対象の asmdef（`Scripts/` の `Domain`・`Application`・`Infrastructure`・`Presentation`・`Bootstrap`・`Editor`、`Tests/EditMode`）に、ZLinq の参照と属性を足す:
+   - `overrideReferences` が true の asmdef は、`precompiledReferences` に `"ZLinq.dll"` を足す（false の asmdef は自動で参照する）
+   - 各 asmdef と同じフォルダに `AssemblyAttributes.cs` を作る。中身は次の 1 行と `using` だけ（名前空間は付けない）:
+     `[assembly: ZLinq.ZLinqDropIn("", ZLinq.DropInGenerateTypes.Everything)]`
+   - `Uta.Client.MasterData`（生成コード）には足さない
+3. `Application/Idol/FeaturedIdolPicker.Pick()` を LINQ の形に書き直す（`using System.Linq;` を足す。キャストと番兵は消す）:
+   ```csharp
+   return idolRepository.FindAll()
+       .OrderByDescending(entity => memoryDatabase.IdolTable.FindByIdolId(entity.MasterId).Rarity)
+       .ThenBy(entity => entity.MasterId)
+       .Select(entity => entity.MasterId)
+       .FirstOrDefault();
+   ```
+4. コンパイルが通らなくなった既存の LINQ（`ValueEnumerable` を `IEnumerable<T>` の引数に渡している所など）は、`ToArray()`・`ToList()` で確定させて直す
+   - 見込みは `CardCatalogFactory`・Editor の 3 ファイル・テストの 2 ファイル
+   - 直し方がそれで済まないもの（ZLinq に無い演算子など）があれば、止まって報告する
+5. `repository-layout.md` の client の依存（NuGet のパッケージ）の記述に、ZLinq の 2 つを足す。`unity7-evaluation.md` 2章に、確かめた結果を進行役が 1 行足す
+6. 確かめ方（進行役が Unity のバッチモードで回す）:
+   - NuGetForUnity の復元
+   - コンパイルのエラー 0
+   - EditMode の全件（`FeaturedIdolPickerTests` を含む）が通る
+   - wiki の Lint のエラー 0
+   - C# 9・Unity 7 で ZLinq の生成コードがコンパイルできなければ、ADR 0023 の「見直す条件」に当たるので、止まってユーザーに報告する
 
 ## 9. 変わる static の状態の禁止（2026-11-09。ユーザーの依頼）
 

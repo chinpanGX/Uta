@@ -36,7 +36,8 @@
         "MessagePack.dll",
         "MagicOnion.Abstractions.dll",
         "MagicOnion.Client.dll",
-        "Grpc.Core.Api.dll"
+        "Grpc.Core.Api.dll",
+        "ZLinq.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [
