@@ -23,6 +23,7 @@ using Uta.Client.Infrastructure.SupportCard;
 using Uta.Client.Presentation.Common;
 using Uta.Client.Presentation.Gacha;
 using Uta.Client.Presentation.Home;
+using Uta.Client.Presentation.Owned;
 using Uta.Client.Presentation.Startup;
 using Uta.MasterData;
 using Uta.Shared.Contracts.Gacha;
@@ -153,6 +154,8 @@ namespace Uta.Client.Bootstrap
             builder.Register<GachaUseCase>(Lifetime.Singleton).As<IGachaUseCase>();
             builder.Register<SupportLevelPlanner>(Lifetime.Singleton);
             builder.Register<OwnedListFactory>(Lifetime.Singleton);
+            builder.Register<OwnedDtoFactory>(Lifetime.Singleton);
+            builder.Register<SupportDetailDtoFactory>(Lifetime.Singleton);
             builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
         }
     }
