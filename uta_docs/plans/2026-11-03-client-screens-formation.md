@@ -835,6 +835,8 @@ public static class TestProduce
 
 ### タスク 1: サーバー・shared の `UsableHand` と wiki
 
+**済み（PR #59。main に先に入れた）**。`ClassOptionView` → `ClassOption` も済み。`ExamOutcome` 系の改名はタスク 2（R6）。コードレビューの Minor（`ProduceDriver.cs` の重複した `using Xunit;`・アサートのメッセージ、`ProduceStateResultFactory.cs` の長い行）は残した。
+
 触る: `LessonDto.cs`、`ProduceView.cs`、`ProduceViewBuilder.cs`、`ProduceResponseMapper.cs`、`ProduceOperationTests.cs`、`produce-server.md`、`lesson-domain-types.md`、`produce-domain.md`。
 
 手順:
