@@ -1278,3 +1278,4 @@ Play モード・手動（タスク 5。Editor、サーバー起動済み。初�
 | 3a | 74a699b | なし |
 | 3b | 0ed0366 | なし（OwnedPresenter の DidPopEnter・SelectRowAsync に disposed・current の null のガードを足した） |
 | 4 | 5b2c58f | テスト名 LevelUpAsync_UsesCacheAtClickTime → LevelUpAsync_UsesRepositoryAtClickTime |
+| 5（Play。進行役） | — | ローカルのサーバーで確かめた: ホームの「アイドル」→ 所持一覧（タブ・下段の出し隠し・絞り込みで 0 件の「ありません」）→ 詳細（4 行・アビリティ・ボタンのラベル）→ +1・最大（確認 → Lv と強化pt・ゴールドが減る）→ 上限解放（素材の一覧はタブ・プラン/タイプの段なし・同じカードだけ・Lv の昇順 → 確認 → 解放 1・最大 Lv 25、一覧に戻ると素材が消えた）→ 素材の無いカードの案内 → ホームへ戻る。Uta のコードの例外なし（コンソールのエラーは Unity.AI.* のパッケージだけ）。確かめていない: 強化pt 不足のダイアログ（EditMode のテストで確認）、素材の一覧の「戻る」で何も起きないこと（素材の一覧を「戻る」で閉じた後、詳細に戻ったことだけ見た）。Editor が背面だとフレームが進まないので、Play 中だけ eval で Application.runInBackground = true にした（プロジェクトの設定は変えていない） |
