@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Produce;
 using Xunit;
 
@@ -19,6 +20,18 @@ namespace Uta.Shared.Domain.Tests.Produce
         public void Validate_Cases_ReturnsExpected(int idolId, int[] cardIds, FormationCheck expected)
         {
             Assert.Equal(expected, FormationValidator.Validate(Catalog, idolId, cardIds));
+        }
+
+        [Theory]
+        [InlineData(Plan.Sense, Plan.Free, true)]
+        [InlineData(Plan.Sense, Plan.Sense, true)]
+        [InlineData(Plan.Sense, Plan.Logic, false)]
+        [InlineData(Plan.Logic, Plan.Sense, false)]
+        [InlineData(Plan.Logic, Plan.Free, true)]
+        [InlineData(Plan.Sense, Plan.Nothing, false)]
+        public void IsPlanCompatible_Cases_ReturnsExpected(Plan idolPlan, Plan supportPlan, bool expected)
+        {
+            Assert.Equal(expected, FormationValidator.IsPlanCompatible(idolPlan, supportPlan));
         }
 
         [Fact]
