@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーの起動の組み立てを ServerHost に移し、DI の検査を常に有効にする
-status: ready
+status: done
 updated: 2026-11-09
 spec: ../wiki/architecture/repository-layout.md, ../wiki/architecture/server/server-foundation.md
 ---
@@ -378,4 +378,9 @@ public class ServiceProviderValidationTests(PostgresFixture postgres)
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ・メモ |
+|---|---|---|
+| 1 | ccf564d | なし。WebApplicationFactory<Program> は ServerHost 経由でも動いた（結合テスト 308 件成功） |
+| 2 | 7892d1a | なし。検査の 2 行を消すと Build_ProductionWithSingletonCapturingScoped_Throws が落ちる（No exception was thrown）ことを確かめて戻した。Production で起動し `Hosting environment: Production`・`Now listening on: http://localhost:5000` が出た（出力は ZLogger の JSON） |
+| 3 | 4472393 | なし |
+| コードレビュー（server、1 回目。2 本の計画をまとめて） | 145614d | Critical 0・Important 0・Minor 4。M3（repository-layout.md 12章に `ServiceProviderValidationTests` を書く）は直した。残す Minor: M2（「この計画で決めたこと」は `Run` に条件 (2)（`Build` と `Run` を入口から同期に呼ぶ）もコメントで書くとしたが、3.1 と実装は条件 (1) のコメントだけ）、M4（Production で正しい登録なら組み立てに成功する側のテスト `Build_Production_Succeeds` は無い。環境で分岐する登録を足すときに足す）。`migrate` の経路・Cloud Run での起動は確かめていない（5章のとおり） |

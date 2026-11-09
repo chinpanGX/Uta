@@ -24,7 +24,7 @@ public sealed class ExchangeUseCase(MemoryDatabase master, IGachaRepository gach
         var result = await granter.GrantAsync(tx, playerId, kind, itemId);
         await gachas.AddHistoryAsync(tx, new GachaHistoryRecord(
             Ulid.NewUlid(), requestId, playerId, gachaId, 0, 0,
-            (int)result.Kind, result.ItemId, (int)result.Outcome, result.Shards, result.SupportPoints));
+            (int)result.Kind, result.ItemId, (int)result.ResultKind, result.Shards, result.SupportPoints));
 
         tx.WriteGameLog(GameLog.Event("gacha", "gacha_exchange")
             .Target(gachaId.ToString())

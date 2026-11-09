@@ -17,7 +17,7 @@ public class ContractsEnumsMatchTests
         Assert.Equal((int)MasterItemKind.Idol, (int)GrantedItemKind.Idol);
         Assert.Equal((int)MasterItemKind.SupportCard, (int)GrantedItemKind.SupportCard);
 
-        Assert.Equal((int)GachaOutcome.New, (int)GrantOutcome.New);
-        Assert.Equal((int)GachaOutcome.Duplicate, (int)GrantOutcome.Duplicate);
+        Assert.Equal((int)GachaOutcome.New, (int)GrantResultKind.New);
+        Assert.Equal((int)GachaOutcome.Duplicate, (int)GrantResultKind.Duplicate);
     }
 }

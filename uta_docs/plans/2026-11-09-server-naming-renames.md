@@ -1,6 +1,6 @@
 ---
 title: 実装計画: サーバーだけで閉じる型の改名（naming.md の差の表のサーバーの行）
-status: ready
+status: done
 updated: 2026-11-09
 spec: ../wiki/architecture/naming.md, ../wiki/architecture/server/server-foundation.md, ../wiki/architecture/server/gacha-support-server.md, ../wiki/architecture/server/produce-server.md
 ---
@@ -271,4 +271,10 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ・メモ |
+|---|---|---|
+| 1 | d1ded85 | なし。ログのキー `["outcome"]` は計画どおり残した |
+| 2 | 756945a | なし |
+| 3 | 26895df | なし |
+| 4 | 6127f59 | なし |
+| コードレビュー（server、1 回目。Program.cs の整理の計画とまとめて） | 145614d | M1: 3.2 が対象から外した `Api/ProduceService.cs` に、ローカル変数 `view` が残っていた（`ProduceStateResult` を受ける）。`result` に直した。ほかの指摘は Program.cs の整理の計画の実装メモ |

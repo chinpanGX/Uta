@@ -3,7 +3,7 @@ using VolTech.Server.Transaction;
 
 namespace Uta.Server.Infrastructure;
 
-public static class UtaDatabase
+public static class DatabaseMigrator
 {
     /// <summary>VolTech-MagicOnion のテーブル、Uta のテーブルの順に流す。失敗したら InvalidOperationException。</summary>
     public static void Migrate(string connectionString)
@@ -13,7 +13,7 @@ public static class UtaDatabase
         var upgrader = DeployChanges.To
             .PostgresqlDatabase(connectionString)
             .WithScriptsEmbeddedInAssembly(
-                typeof(UtaDatabase).Assembly,
+                typeof(DatabaseMigrator).Assembly,
                 name => name.StartsWith("Uta.Server.Migrations.", StringComparison.Ordinal))
             .WithTransactionPerScript()
             .LogToConsole()

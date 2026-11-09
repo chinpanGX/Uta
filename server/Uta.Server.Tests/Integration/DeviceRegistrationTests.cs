@@ -16,7 +16,7 @@ public class DeviceRegistrationTests(PostgresFixture postgres)
     [Fact]
     public async Task Register_ThenIssueToken_ReturnsIdsAndToken()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var client = MagicOnionClient.Create<IDeviceService>(channel);
 
@@ -34,7 +34,7 @@ public class DeviceRegistrationTests(PostgresFixture postgres)
     [Fact]
     public async Task IssueToken_WrongSecret_ReturnsUnauthenticated()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var client = MagicOnionClient.Create<IDeviceService>(channel);
         var registered = await client.RegisterAsync(Secret);
@@ -47,7 +47,7 @@ public class DeviceRegistrationTests(PostgresFixture postgres)
     [Fact]
     public async Task Register_TooShortSecret_ReturnsInvalidArgument()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var client = MagicOnionClient.Create<IDeviceService>(channel);
 
@@ -59,7 +59,7 @@ public class DeviceRegistrationTests(PostgresFixture postgres)
     [Fact]
     public async Task Players_AreNotCreatedUntilRowExists()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var client = MagicOnionClient.Create<IDeviceService>(channel);
         var registered = await client.RegisterAsync(Secret);
@@ -84,7 +84,7 @@ public class DeviceRegistrationTests(PostgresFixture postgres)
     public async Task GameDay_ResetsAtNoonJst()
     {
         // FakeTimeProvider は過去に戻せないので、JST 11:59 を初期値にして作り、あとで 12:00 に進める
-        await using var factory = new UtaServerFactory(postgres, new DateTimeOffset(2026, 11, 1, 2, 59, 0, TimeSpan.Zero));
+        await using var factory = new ServerFactory(postgres, new DateTimeOffset(2026, 11, 1, 2, 59, 0, TimeSpan.Zero));
         using var channel = factory.CreateGrpcChannel();
         var client = MagicOnionClient.Create<IDeviceService>(channel);
 
@@ -104,7 +104,7 @@ public class DeviceRegistrationTests(PostgresFixture postgres)
     [Fact]
     public async Task Health_Check_ReturnsServing()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var health = new Health.HealthClient(channel);
 

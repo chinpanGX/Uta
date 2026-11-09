@@ -96,7 +96,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 - **サーバーの型の変更**:
   - `PlayerEntity(int Exp, int Gold, int SupportPoints, int GachaCurrency)`(`Level` を消す。`Exp` は累計)。`PlayerRepository.FindAsync` の `SELECT` から `level` を消す
   - `IPlayerRepository.GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int exp)`(`level` の引数を消す。`exp` は付与したあとの累計)。`UPDATE` から `level = @level` を消す
-  - `ProduceEndSummary` から `PlayerLevel` を消す。`PlayerExp` は付与したあとの累計(放棄は今の累計)
+  - `ProduceEndResult`（2026-11-09 に `ProduceEndSummary` から改名）から `PlayerLevel` を消す。`PlayerExp` は付与したあとの累計(放棄は今の累計)
   - `PlayerDiffCollector` は `Level` を詰めない(`PlayerDiffDto` から消すため)
   - 4章 6 の `level_after` は `PlayerLevelCatalog.GetLevel(exp_after)`
   - `ProduceSnapshot.PlayerLevel`(開始時の入力の写し)は変えない
@@ -197,8 +197,8 @@ Response:
 | 層 | 置くもの |
 |---|---|
 | `Uta.Shared.Contracts/Produce/` | `IProduceService`、Request・Response・DTO、enum 3 つ、`ProduceErrors` |
-| `Uta.Server/Api/` | `ProduceService`(`[UtaService]`)、`AppVersionHeader`、`ProduceResponseMapper`(`ProduceView` → `ProduceStateResponse` / `ProduceResultResponse`) |
-| `Uta.Server/Application/Produce/` | `ProduceVersions`、`ProduceView`、`ProduceViewBuilder`、`ProduceCommandNormalizer`、`ProduceSessionDiscarder`、`StartProduceUseCase`、`GetProduceStateUseCase`、`AbandonProduceUseCase`、`ProduceOperationUseCase`、`ProduceCompletion` |
+| `Uta.Server/Api/` | `ProduceService`(`[GameServiceFilter]`)、`AppVersionHeader`、`ProduceResponseMapper`(`ProduceStateResult` → `ProduceStateResponse`、`ProduceEndResult` → `ProduceResultResponse`) |
+| `Uta.Server/Application/Produce/` | `ProduceVersions`、`ProduceStateResult`、`ProduceEndResult`、`ProduceStateResultFactory`、`ProduceCommandNormalizer`、`ProduceSessionDiscarder`、`StartProduceUseCase`、`GetProduceStateUseCase`、`AbandonProduceUseCase`、`ProduceOperationUseCase`、`ProduceCompletion` |
 | `Uta.Server/Domain/Produce/` | `RandomStreamState`、`SessionRandomStreams`、`ProduceSessionStatus`、`ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`、`IProduceSessionRepository`、`ProduceReward`(2026-11-08。[ADR 0021](../../decisions/0021-domain-entities-and-repositories.md)) |
 | `Uta.Server/Domain/Player/` | `PlayerExpRules`(2026-11-09。`Domain/Produce/PlayerLevelRules` を置き換える。4.1) |
 | `Uta.Shared.Domain/Player/` | `PlayerLevelCatalog`(2026-11-09。4.1) |
@@ -214,7 +214,7 @@ Response:
 
 - **スナップショットの置き場**: `LessonSnapshot` も `shared/Uta.Shared.Domain/Produce/LessonSnapshot.cs`(produce-domain.md 6.1)。`From` に渡すカードのカタログは、エンジンの `ProduceCatalog.Cards` と同じインスタンスでなければならない(持続効果の由来を参照一致で見つけるため。サーバーは `ProduceCatalog` を Singleton で 1 つ持つ)
 - **古いセッション**: `ProduceVersions.IsCurrent` は `Data != null` も条件に含む。`state_version` が違う・`state` が読めないときは `Data = null` で、`GetState` は `Nothing`、`SignInAsync`・`StartAsync` が破棄する。`ToState` が例外を投げる状態(マスタからカードが消えたなど)は、`rule_version` を上げる運用で防ぐ前提で、内部エラーのまま
-- **`[UtaService]`**: `AttributeUsage` を Class | Method に広げ、`PlayerService.SignInAsync` のメソッドにだけ付けた(`SignUpAsync` を弾かないため)。`ToErrorCode` は `internal static`
+- **`[GameServiceFilter]`**: `AttributeUsage` を Class | Method に広げ、`PlayerService.SignInAsync` のメソッドにだけ付けた(`SignUpAsync` を弾かないため)。`ToErrorCode` は `internal static`
 - **操作の流れ**: `ProduceOperationUseCase`(古いセッション → 操作番号 → 復元 → 正規化 → `Apply` → 終了なら `ProduceCompletion` → 楽観ロックつき保存 → 応答)。`ExamResult` は `LastExam` の参照が変わったときと局面が `ExamResult` のときだけ。最後の応答(`DecideExamRetry` の応答)の `ExamResult` は `null`
 - **楽観ロックの競合**: `FindActiveAsync` は行ロックを取らないので、事前に `version` を進めても競合にならない(読んだ値で更新に成功する)。競合になるのは読んだあとの割り込みだけで、テストは `IProduceSessionRepository` を包んで読んだ直後に別接続で `version` を進める(`ConflictingSessionRepository`)
 - **テストの支え**: `ProduceDriver`(局面を見て次の RPC を呼ぶ自動プレイ)、`PlayerClient.WithAppVersion` / `OnChannel`、`RpcAssert`。保存した操作列を再生して保存した最終状態と一致することを `ProducePlayTests.Replay_FromSavedOperations_MatchesSavedState` で確かめる

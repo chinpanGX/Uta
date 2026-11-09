@@ -16,28 +16,28 @@ public sealed class ItemGranter(
         if (kind == GrantedItemKind.Idol)
         {
             var owned = await idols.ExistsAsync(tx, playerId, itemId);            // 枠ごとに読む（同じ 10 連で同じアイドルが 2 回出ても正しい）
-            if (ItemGrantRules.Decide(kind, owned, false) == GrantOutcome.New)
+            if (ItemGrantRules.Decide(kind, owned, false) == GrantResultKind.New)
             {
                 await idols.TryInsertAsync(tx, playerId, itemId);
-                return new GachaResult(0, kind, itemId, GrantOutcome.New, 0, 0, null);
+                return new GachaResult(0, kind, itemId, GrantResultKind.New, 0, 0, null);
             }
 
             var shards = GetConversionAmount(kind, itemId);
             await idols.AddShardsAsync(tx, playerId, itemId, shards);
-            return new GachaResult(0, kind, itemId, GrantOutcome.Duplicate, shards, 0, null);
+            return new GachaResult(0, kind, itemId, GrantResultKind.Duplicate, shards, 0, null);
         }
 
         var maxed = await supportCards.HasMaxLimitBreakAsync(tx, playerId, itemId);
-        if (ItemGrantRules.Decide(kind, false, maxed) == GrantOutcome.Duplicate)
+        if (ItemGrantRules.Decide(kind, false, maxed) == GrantResultKind.Duplicate)
         {
             var points = GetConversionAmount(kind, itemId);
             await players.AddSupportPointsAsync(tx, playerId, points);
-            return new GachaResult(0, kind, itemId, GrantOutcome.Duplicate, 0, points, null);
+            return new GachaResult(0, kind, itemId, GrantResultKind.Duplicate, 0, points, null);
         }
 
         var uid = Ulid.NewUlid();
         await supportCards.InsertAsync(tx, playerId, uid, itemId);
-        return new GachaResult(0, kind, itemId, GrantOutcome.New, 0, 0, uid);
+        return new GachaResult(0, kind, itemId, GrantResultKind.New, 0, 0, uid);
     }
 
     /// <summary>重複したときの変換量。育成アイドルはかけら、サポートカードは完凸後の強化pt。</summary>

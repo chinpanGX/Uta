@@ -1,7 +1,7 @@
 ---
 title: ガチャ・サポートカードのサーバー処理
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # ガチャ・サポートカードのサーバー処理
@@ -80,8 +80,8 @@ updated: 2026-11-08
 
 実装 [2026-11-01。計画 `plans/2026-11-01-server-initial-grant.md`・`server-gacha.md`・`server-support-upgrade.md`]。設計とのズレと、設計に足したこと:
 
-- **業務エラー**: Application は `Uta.Shared.Contracts` を参照しないので、`UseCaseException(UseCaseError)` を投げ、Api の共通フィルター `[UtaService]`(`UtaServiceAttribute`)が `BusinessException(ErrorCode)` に変換する(ユーザーの判断)。例外はサービスの本体から `RunAsync` を抜けて出るので、ロールバックは変換の前に済む
-- **`[UtaService]`** は同時に、`AuthContext.PlayerCreated` が false なら `PLAYER_NOT_CREATED` で弾く。`IPlayerService` 以外のサービスの実装クラスに付ける(`PlayerService` は `SignInAsync` のメソッドにだけ付ける。2026-11-03。付け忘れは `ArchitectureTests.Services_HaveUtaServiceAttribute` で検出)
+- **業務エラー**: Application は `Uta.Shared.Contracts` を参照しないので、`UseCaseException(UseCaseError)` を投げ、Api の共通フィルター `[GameServiceFilter]`(`GameServiceFilterAttribute`)が `BusinessException(ErrorCode)` に変換する(ユーザーの判断)。例外はサービスの本体から `RunAsync` を抜けて出るので、ロールバックは変換の前に済む
+- **`[GameServiceFilter]`** は同時に、`AuthContext.PlayerCreated` が false なら `PLAYER_NOT_CREATED` で弾く。`IPlayerService` 以外のサービスの実装クラスに付ける(`PlayerService` は `SignInAsync` のメソッドにだけ付ける。2026-11-03。付け忘れは `ArchitectureTests.Services_HaveGameServiceFilterAttribute` で検出)
 - **乱数**: `IRandomSource`(Application のポート)越しに要求ごとに作る。実装は `SecureRandomSource`(`GachaRandom.CreateSecure`)。結合テストは `ScriptedRandomSource` に差し替えて、決まった値(`r + 重みの合計`)で結果を確かめる
 - **New / Duplicate の判定**は `Uta.Server.Domain.Gacha.ItemGrantRules.Decide`(純粋な関数)。DB を読み書きする手順は Application の `ItemGranter`。育成アイドルの所持は枠ごとに `ExistsAsync` で読む
 - **ゲームログ**(`game_logs`)は 1 RPC 1 件: `SignUpAsync`(kind `player`・reason `sign_up`)、`DrawAsync`(`gacha`・`gacha_draw`)、`ExchangeAsync`(`gacha`・`gacha_exchange`)、`LevelUpAsync`(`support`・`support_level_up`)、`LimitBreakAsync`(`support`・`support_limit_break`)。中身は各ユースケースの `GameLog.Event(...).Field(...)`

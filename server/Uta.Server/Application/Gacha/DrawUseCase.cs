@@ -52,7 +52,7 @@ public sealed class DrawUseCase(
             var result = (await granter.GrantAsync(tx, playerId, kind, itemId)) with { Slot = slot };
             await gachas.AddHistoryAsync(tx, new GachaHistoryRecord(
                 Ulid.NewUlid(), requestId, playerId, gachaId, slot, tableId,
-                (int)result.Kind, result.ItemId, (int)result.Outcome, result.Shards, result.SupportPoints));
+                (int)result.Kind, result.ItemId, (int)result.ResultKind, result.Shards, result.SupportPoints));
             results.Add(result);
         }
 

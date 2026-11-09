@@ -75,14 +75,14 @@ public class ArchitectureTests
     }
 
     [Fact]
-    public void Services_HaveUtaServiceAttribute()
+    public void Services_HaveGameServiceFilterAttribute()
     {
         var services = typeof(PlayerResolver).Assembly.GetTypes()
             .Where(t => !t.IsAbstract && IsServiceBase(t) && t != typeof(PlayerService))
             .ToList();
 
         Assert.NotEmpty(services);
-        Assert.All(services, t => Assert.NotNull(t.GetCustomAttribute<UtaServiceAttribute>()));
+        Assert.All(services, t => Assert.NotNull(t.GetCustomAttribute<GameServiceFilterAttribute>()));
     }
 
     private static bool IsServiceBase(Type type)

@@ -7,9 +7,9 @@ namespace Uta.Server.Application.Produce;
 
 public sealed class ProduceOperationUseCase(
     IProduceSessionRepository sessions, ProduceEngine engine, ProduceCatalog catalog,
-    ProduceViewBuilder viewBuilder, ProduceCompletion completion)
+    ProduceStateResultFactory resultFactory, ProduceCompletion completion)
 {
-    public async Task<ProduceView> ExecuteAsync(TxContext tx, Ulid playerId, int appVersion, int operationNumber, ProduceCommand command)
+    public async Task<ProduceStateResult> ExecuteAsync(TxContext tx, Ulid playerId, int appVersion, int operationNumber, ProduceCommand command)
     {
         var session = await sessions.FindActiveAsync(tx, playerId)
             ?? throw new UseCaseException(UseCaseError.ProduceNotInProgress, "not in progress");
@@ -37,7 +37,7 @@ public sealed class ProduceOperationUseCase(
                 throw new UseCaseException(UseCaseError.ProduceInvalidArgument, "invalid argument");
         }
 
-        ProduceEndSummary? end = null;
+        ProduceEndResult? end = null;
         var status = ProduceSessionStatus.InProgress;
         if (state.Phase == ProducePhase.Finished)
         {
@@ -52,6 +52,6 @@ public sealed class ProduceOperationUseCase(
         }
 
         var examResult = ReferenceEquals(lastExam, state.LastExam) ? null : state.LastExam;
-        return viewBuilder.Build(state, examResult, end);
+        return resultFactory.Create(state, examResult, end);
     }
 }

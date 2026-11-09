@@ -11,7 +11,7 @@ public sealed class ProduceCompletion(
     IPlayerRepository players, IProduceSessionRepository sessions, MemoryDatabase master)
 {
     /// <summary>Phase が Finished の state の報酬・Lv・produce_results・ゲームログを 1 回分書く。セッションの status は呼び出し側が更新する。</summary>
-    public async Task<ProduceEndSummary> CompleteAsync(TxContext tx, Ulid playerId, Ulid sessionId, ProduceState state)
+    public async Task<ProduceEndResult> CompleteAsync(TxContext tx, Ulid playerId, Ulid sessionId, ProduceState state)
     {
         var result = state.Result ?? throw new InvalidOperationException("result missing");
         var row = master.EvaluationRankRewardTable.FindByRank((Uta.MasterData.ProduceRank)(int)result.Rank);
@@ -33,7 +33,7 @@ public sealed class ProduceCompletion(
             .Field("exp", reward.Exp)
             .Field("level_after", level)
             .Field("exp_after", exp));
-        return new ProduceEndSummary(
+        return new ProduceEndResult(
             ProduceSessionStatus.Completed, result.Outcome, result.EvaluationValue, result.Rank, result.FinalScore, result.FinalRank,
             reward.GachaCurrency, reward.Gold, reward.SupportPoints, reward.Exp, level, exp);
     }

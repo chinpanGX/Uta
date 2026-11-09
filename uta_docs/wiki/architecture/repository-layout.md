@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
@@ -60,6 +60,7 @@ uta/
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
 │     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）、エンティティとリポジトリの IF（ADR 0021）
+│     ├─ Hosting/            #   起動の組み立て（ServerHost。Program.cs は ServerHost.Run を呼ぶだけ）
 │     ├─ Infrastructure/     #   DB、マスタの読み込み（MasterDataLoader）
 │     │  └─ MasterData/      #   生成物（サーバー用）: Generated/ のソース、masterdata.bytes（埋め込みリソース）、masterdata.manifest.json（ADR 0013）
 │     └─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
@@ -186,7 +187,7 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
 - **例外: `Infrastructure/PlayerDiffCollector.cs` は `Uta.Shared.Contracts` の DTO（`AppCommonDto`・`PlayerDiffDto`・`OwnedIdolDto`・`OwnedSupportCardDto`）を参照してよい** [決定。2026-11-08。ユーザーの判断]。基盤の `TxContext.GetCollector<T>` が具象型の完全一致を要求し、リポジトリ（Infrastructure）が書き込みの中で記録するため、コレクターを Infrastructure に置くしかない。この 1 ファイル以外では Infrastructure から DTO を参照しない。DTO への写し（2 行）は `Api/PlayerService.cs` の SignIn と重複させる（[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）
 - **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーの置き場（`Infrastructure/MasterData/`）は、参照してよい層を広げた後（ADR 0020。2026-11-08）も変えない。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
-- 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
+- 起動の組み立て（`Program.cs`・`Hosting/ServerHost.cs`・`AddVoltechServer()`）はすべてを参照してよい。`Hosting/` は層ではないので、アーキテクチャテストの対象にしない
 - 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする（層ごとに 1 件。型がまだ無い層のルールは空の集合で通るので、その層に最初の型が入る計画が「型が 1 つ以上ある」テストを足す）。動作の確認（2026-11-01）: NetArchTest.Rules 1.3.2 は .NET 10・xunit.v3（Microsoft.Testing.Platform）で動き、違反を検出できる
 - クライアントの `Application` の asmdef は **`noEngineReferences` を使わない**。UniTask を参照するため（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)・[ADR 0009](../decisions/0009-client-stack.md)）。UnityEngine の API を使わないことは、コードレビュー（[layers/client.md](../../../.claude/skills/requesting-code-review/layers/client.md)）で守る [決定。2026-10-31。2026-10-28 の「`true` にする」は ADR と食い違っていたので戻した]
 - DI は VContainer、非同期処理は UniTask [決定。[ADR 0009](../decisions/0009-client-stack.md)]
@@ -438,7 +439,10 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 **サーバーの骨組み**（手順 4。VolTech-MagicOnion の `docs/guide/server.md` の形に従う）[決定。2026-10-31]:
 
-- `Program.cs`: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
+- `Hosting/ServerHost.cs`（2026-11-09 までは `Program.cs`）: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
+- `Program.cs` は起動の入口だけ（`return ServerHost.Run(args);` と、テストの `WebApplicationFactory<Program>` 用の `public partial class Program;`）（2026-11-09。[計画](../../plans/2026-11-08-server-program-cleanup.md)）。`ServerHost.Run` は、接続文字列を読む → `migrate` なら `Migrate` だけを流して終わる → `ConfigureHost`（DI の検査・ログ・Kestrel）→ `AddServices`（DI の登録）→ `Build` → `MapEndpoints` → `Run` の順に、手順ごとの private static メソッドを呼ぶ
+- `AddServices` の登録の並び（2026-11-08）: マスタ（`MemoryDatabase` と Shared.Domain の型の Factory）→ Infrastructure（DB の接続と、Domain・Application・基盤の IF を `Infrastructure/` で実装したもの。リポジトリ・`IPlayerResolver`・`IRandomSource`）→ 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー。`Application/` の置き場のフォルダで分け、Shared.Domain の計算（`ProduceEngine`）は使う機能の区切りに置く）→ 基盤（`AddVoltechServer`）→ ヘルスチェック の順に並べ、見出しのコメントで区切る。1 つのメソッドにし、機能ごとのメソッドや拡張メソッドには分けない（登録は約 30 行で、寿命の組み合わせを 1 か所で読むため）
+- DI の検査（2026-11-08）: `ValidateScopes`・`ValidateOnBuild` は環境名によらず有効にする（ASP.NET Core の既定は Development だけ）。DI に登録しない `PlayerDiffCollector`・MagicOnion のサービスとフィルターは検査の対象外で、実行時に結合テストが確かめる。Production で検査が効くことは `ServiceProviderValidationTests.Build_ProductionWithSingletonCapturingScoped_Throws` が確かめる（既存の結合テストは Development で動くので、検査の行を消しても落ちない）
 - **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、別のマイグレーションとして足す（`players` の Lv（2026-11-09 に消す。[produce-server.md](server/produce-server.md) 4.1）・経験値・通貨の列は 5a の計画、育成アイドル・サポートカードなどのテーブルは 5 番目の計画（プレイヤー・ガチャ・強化））。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
 - **設定**（`appsettings.json`）: `Voltech:GameDay:ResetHour` は `12`、`Voltech:GameDay:TimeZone` は `"Asia/Tokyo"`（10.2。既定は 0 時・UTC なので必ず書く）。`Voltech:AccessTokenLifetime` は既定の 1 時間のまま
 - **接続文字列**は `ConnectionStrings:Default`（VolTech-MagicOnion のガイドと同じ名前）。リポジトリに入れない。ローカルは `dotnet user-secrets`、Cloud Run は環境変数 `ConnectionStrings__Default`（Secret Manager から渡す。11.4）。`server/.env` は Compose の PostgreSQL のパスワードだけに使う

@@ -14,7 +14,7 @@ namespace Uta.Server.Tests.Integration;
 [Collection(PostgresCollection.Name)]
 public class ProducePlayTests(PostgresFixture postgres)
 {
-    private static UtaServerFactory NewFactory(PostgresFixture postgres) =>
+    private static ServerFactory NewFactory(PostgresFixture postgres) =>
         new(postgres, randomSource: new ScriptedRandomSource(12345UL, 23456UL, 34567UL, 45678UL, 56789UL, 67890UL));
 
     private static async Task<(PlayerClient Player, SignInResponse SignIn)> NewPlayerAsync(GrpcChannel channel, string secret = "0123456789abcdef-secret")
@@ -157,7 +157,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         AssertSameLesson(current.Lesson, state.Lesson);
 
         // サーバーを作り直す（古い factory は破棄しない）。乱数源は既定
-        await using var factory2 = new UtaServerFactory(postgres);
+        await using var factory2 = new ServerFactory(postgres);
         using var channel2 = factory2.CreateGrpcChannel();
         var resumed = player.OnChannel(channel2);
         var final = await new ProduceDriver(resumed).PlayToEndAsync(state);

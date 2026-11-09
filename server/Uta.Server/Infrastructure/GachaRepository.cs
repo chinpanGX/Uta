@@ -54,7 +54,7 @@ public sealed class GachaRepository : IGachaRepository
                 gachaTableId = row.GachaTableId,
                 itemKind = row.ItemKind,
                 itemId = row.ItemId,
-                outcome = row.Outcome,
+                outcome = row.ResultKind,
                 shards = row.Shards,
                 supportPoints = row.SupportPoints,
             },

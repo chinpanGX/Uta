@@ -14,10 +14,10 @@ public class CommonResponseTests(PostgresFixture postgres)
 
     private static DrawRequest Single(int gachaId = 1, int expectedCost = 250) => new DrawRequest(gachaId, 1, expectedCost);
 
-    private static async Task<(UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player)> StartAsync(
+    private static async Task<(ServerFactory Factory, GrpcChannel Channel, PlayerClient Player)> StartAsync(
         PostgresFixture postgres, params ulong[]? values)
     {
-        var factory = values is null ? new UtaServerFactory(postgres) : new UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(values));
+        var factory = values is null ? new ServerFactory(postgres) : new ServerFactory(postgres, randomSource: new ScriptedRandomSource(values));
         var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
         await player.CallAsync(service => service.SignUpAsync(), "req-1");
@@ -150,7 +150,7 @@ public class CommonResponseTests(PostgresFixture postgres)
     [Fact]
     public async Task ProduceComplete_ReturnsCommon_WithReward()
     {
-        var factory = new UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(12345UL, 23456UL, 34567UL, 45678UL, 56789UL, 67890UL));
+        var factory = new ServerFactory(postgres, randomSource: new ScriptedRandomSource(12345UL, 23456UL, 34567UL, 45678UL, 56789UL, 67890UL));
         await using var _ = factory;
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
