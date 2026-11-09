@@ -1,4 +1,6 @@
-﻿namespace Uta.Server.Application.Produce;
+﻿using Uta.Server.Domain.Produce;
+
+namespace Uta.Server.Application.Produce;
 
 public static class ProduceVersions
 {

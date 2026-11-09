@@ -1,12 +1,12 @@
 ---
 title: サーバー基盤（MagicOnion + PostgreSQL）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # サーバー基盤（MagicOnion + PostgreSQL）
 
-Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使うか**の正 [決定。2026-11-01。ユーザーの判断]。基盤そのものの仕様・構成・使い方の正は VolTech-MagicOnion のリポジトリの docs（仕様は `VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）で、このページは要点だけを書いてリンクする。基盤の docs と食い違ったら基盤を正とし、このページを直す。Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）はこのページが正。`Program.cs`・マイグレーション・設定の骨組みは [repository-layout.md](../repository-layout.md) 12章。
+Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使うか**の正 [決定。2026-11-01。ユーザーの判断]。基盤そのものの仕様・構成・使い方の正は VolTech-MagicOnion のリポジトリの docs（仕様は `VolTech-MagicOnion/docs/spec/`、構成は `docs/design/`、使い方は `docs/guide/`）で、このページは要点だけを書いてリンクする。基盤の docs と食い違ったら基盤を正とし、このページを直す。Uta の決めごと（ログ・ゲームログ・プレイヤー未作成の扱い・SQL の層・冪等性の対象）はこのページが正。`Program.cs`・`Hosting/ServerHost.cs`・マイグレーション・設定の骨組みは [repository-layout.md](../repository-layout.md) 12章。
 最初の原典は設計書「C#サーバー基盤 設計書(MagicOnion + PostgreSQL)」（[Claude Docs](https://claude.ai/artifact/STu2PxLjvuAajZwaMNqURq)、2026-10-23 版）。採用の判断は [ADR 0004](../../decisions/0004-server-foundation.md)。
 
 ## 決まっていること
@@ -20,10 +20,10 @@ Uta のサーバーが**サーバー基盤（VolTech-MagicOnion）をどう使�
 
 ## Uta の決めごと [決定。2026-11-01。ユーザーの判断]
 
-- **ログの出力は ZLogger**。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める。標準出力に JSON で出す（Cloud Run が Cloud Logging に送る）。`Program.cs` で `AddZLoggerConsole` を構成し、版は 2.5.10（2026-11-01 に決めた。VolTech-MagicOnion と衝突しない）
+- **ログの出力は ZLogger**。VolTech-MagicOnion は `ILogger` に出すだけで、出力先と形式はアプリが決める。標準出力に JSON で出す（Cloud Run が Cloud Logging に送る）。`Hosting/ServerHost.cs` の `ConfigureHost` で `AddZLoggerConsole` を構成し、版は 2.5.10（2026-11-01 に決めた。VolTech-MagicOnion と衝突しない）
 - **ゲームログ（`game_logs`）は書く**。所持品・通貨を変える RPC（`DrawAsync`・`ExchangeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`SignUpAsync` の初期付与・プロデュースの報酬の付与）は、本体と同じトランザクションで 1 件書く。中身（種類・増減した量・関係する ID）は各 RPC の実装計画で決めた（2026-11-01。kind と reason は [gacha-support-server.md](gacha-support-server.md) 実装メモ）
-- **プレイヤーがまだいないとき**: `AuthFilter` はプレイヤー未作成（`NotCreated`）でも RPC を通す。`SignInAsync` は、`players` の行が無ければ `PLAYER_NOT_CREATED`（domain `uta`）の `BusinessException` を自分で投げて未作成を知らせ（基盤の「サインアップ済みかはサインインの結果で判断する」に合わせる）、クライアントは `SignUpAsync` を呼んでからサインインし直す [決定。2026-11-01。ユーザーの判断]。`SignUpAsync` 以外の Uta の RPC を弾く共通のフィルターは、ガチャの計画で作った（2026-11-01）: `[UtaService]`（`Api/UtaServiceAttribute.cs`）を `IPlayerService` 以外のサービスの実装クラスに付ける形（`SignUpAsync` を弾かないため `PlayerService` のクラスには付けず、`SignInAsync` のメソッドにだけ付ける。2026-11-03）で、付け忘れは `ArchitectureTests.Services_HaveUtaServiceAttribute` が検出する。同じフィルターが `UseCaseException` を `BusinessException` に変換する（[gacha-support-server.md](gacha-support-server.md) 実装メモ）。クライアントは `SignInAsync` を呼ぶとき `handledCodes` に `PLAYER_NOT_CREATED` を渡す（渡さないと共通ハンドラーに回り、既定ではタイトルへ戻る）
-- **SQL を書く層**: SQL（Dapper）は Infrastructure のリポジトリに置き、Application はポート（インターフェース）越しに呼ぶ。ガチャの New / Duplicate の判定などの決まりはサーバーの Domain に置く。トランザクション（VolTech-MagicOnion の `TxContext`）は Api が `RunAsync` で開き、`TxContext` をユースケースの引数としてリポジトリまで渡す（[repository-layout.md](../repository-layout.md) 3章の依存の表）
+- **プレイヤーがまだいないとき**: `AuthFilter` はプレイヤー未作成（`NotCreated`）でも RPC を通す。`SignInAsync` は、`players` の行が無ければ `PLAYER_NOT_CREATED`（domain `uta`）の `BusinessException` を自分で投げて未作成を知らせ（基盤の「サインアップ済みかはサインインの結果で判断する」に合わせる）、クライアントは `SignUpAsync` を呼んでからサインインし直す [決定。2026-11-01。ユーザーの判断]。`SignUpAsync` 以外の Uta の RPC を弾く共通のフィルターは、ガチャの計画で作った（2026-11-01）: `[GameServiceFilter]`（`Api/GameServiceFilterAttribute.cs`）を `IPlayerService` 以外のサービスの実装クラスに付ける形（`SignUpAsync` を弾かないため `PlayerService` のクラスには付けず、`SignInAsync` のメソッドにだけ付ける。2026-11-03）で、付け忘れは `ArchitectureTests.Services_HaveGameServiceFilterAttribute` が検出する。同じフィルターが `UseCaseException` を `BusinessException` に変換する（[gacha-support-server.md](gacha-support-server.md) 実装メモ）。クライアントは `SignInAsync` を呼ぶとき `handledCodes` に `PLAYER_NOT_CREATED` を渡す（渡さないと共通ハンドラーに回り、既定ではタイトルへ戻る）
+- **SQL を書く層**: SQL（Dapper）は Infrastructure のリポジトリに置き、Application は Domain のリポジトリの IF 越しに呼ぶ（[ADR 0021](../../decisions/0021-domain-entities-and-repositories.md)）。ガチャの New / Duplicate の判定などの決まりはサーバーの Domain に置く。トランザクション（VolTech-MagicOnion の `TxContext`）は Api が `RunAsync` で開き、`TxContext` をユースケースの引数としてリポジトリまで渡す（[repository-layout.md](../repository-layout.md) 3章の依存の表）
 
 ## プロジェクト構成
 
@@ -96,13 +96,13 @@ RPC ごとの設定（認証不要、副作用なし）は、共有インター�
 
 ## 共通レスポンス項目（player_diff）[決定。2026-11-08。ユーザーの判断]
 
-基盤の共通レスポンス項目（VolTech-MagicOnion の `docs/spec/common-response.md`・`docs/guide/server.md`「共通レスポンス項目」）を使い、所持品・通貨・レベルを変える RPC のレスポンスに、変更後の値を `Common` として載せる。計画は [common-response-player-diff](../../../plans/2026-11-08-common-response-player-diff.md)。
+基盤の共通レスポンス項目（VolTech-MagicOnion の `docs/spec/common-response.md`・`docs/guide/server.md`「共通レスポンス項目」）を使い、所持品・通貨・経験値を変える RPC のレスポンスに、変更後の値を `Common` として載せる。計画は [common-response-player-diff](../../../plans/2026-11-08-common-response-player-diff.md)。
 
-- **Uta は `AppCommonDto` に player_diff だけを持つ**（`Uta.Shared.Contracts/Common/AppCommonDto.cs`・`PlayerDiffDto.cs`）。バッジと通知は MVP に仕様が無いので持たない（後で `Key(1)`・`Key(2)` に足せる）。`Program.cs` で `AddVoltechServer(...).AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` を呼ぶ。`PlayerDiffCollector` は DI に登録しない（基盤がトランザクションごとにリクエストの ServiceProvider から作り、コンストラクターの引数のリポジトリはスコープのものが解決される）
-- **player_diff の中身は「変更後の値」**: `HasBalance`（真なら次の 5 つが有効）・`Level`・`Exp`・`Gold`・`SupportPoints`・`GachaCurrency`、触ったアイドル `Idols`、触ったサポートカード `SupportCards`、無くなったサポートカードの ID `RemovedSupportCardUniqueIds`。変化量は持たない。`Common.PlayerDiff` が null なら変化なし
+- **Uta は `AppCommonDto` に player_diff だけを持つ**（`Uta.Shared.Contracts/Common/AppCommonDto.cs`・`PlayerDiffDto.cs`）。バッジと通知は MVP に仕様が無いので持たない（後で `Key(1)`・`Key(2)` に足せる）。`Hosting/ServerHost.cs` の `AddServices` で `AddVoltechServer(...).AddCommonResponse<AppCommonDto, PlayerDiffCollector>()` を呼ぶ。`PlayerDiffCollector` は DI に登録しない（基盤がトランザクションごとにリクエストの ServiceProvider から作り、コンストラクターの引数のリポジトリはスコープのものが解決される）
+- **player_diff の中身は「変更後の値」**: `HasBalance`（真なら次の 4 つが有効）・`Exp`（経験値の累計。Lv は持たない。2026-11-09 に `Level` を消した。[produce-server.md](produce-server.md) 4.1）・`Gold`・`SupportPoints`・`GachaCurrency`、触ったアイドル `Idols`、触ったサポートカード `SupportCards`、無くなったサポートカードの ID `RemovedSupportCardUniqueIds`。変化量は持たない。`Common.PlayerDiff` が null なら変化なし
 - **`Common` を載せるレスポンス**（`IApiResponse<AppCommonDto>` を実装）: `DrawResponse`・`ExchangeResponse`・`LevelUpResponse`・`LimitBreakResponse`・`ProduceStateResponse`。載せない: `SignInResponse`（全件を返すので呼び出し側が置き換える）、`SignUpResponse`、`GetGachasResponse`、`ProduceResultResponse`（`ProduceStateResponse.Result` に入る入れ子の型で、`AbandonAsync` が単独で返すときも所持品は変わらない）。既存の項目（`DrawResponse.GachaCurrency` など）は消さない
 - **記録は `PlayerDiffCollector`**（`Infrastructure/PlayerDiffCollector.cs`）。リポジトリの書き込みが成功した後に、`tx.GetCollector<PlayerDiffCollector>()` の `TouchBalance`／`TouchIdol`／`TouchSupportCard`／`RemoveSupportCard` を 1 行呼ぶ。リポジトリの書き込みメソッドの引数と戻り値は変えない。何も書かない（失敗を含む）RPC は何も記録されず、`Common` は null
-- **`BuildAsync` が読み直す**: 記録したキーについて、DB から現在の値を読んで DTO にする（`TouchBalance` → `players`、`TouchIdol` → `idols.ListAsync` から該当、`TouchSupportCard` → `supportCards.FindAsync`）。記録の対象が DB に無いのは取りこぼしの不具合なので `InvalidOperationException`（基盤が `INTERNAL` にしてロールバックする）。1 つのトランザクションで記録できるプレイヤーは 1 人で、違う ID が来ても `InvalidOperationException`。何も記録されていなければ null を返す。`RemoveSupportCard` は同じ ID の upsert の記録を外す（逆も同じ）
+- **`BuildAsync` が読み直す**: 記録したキーについて、DB から現在の値を読んで DTO にする（`TouchBalance` → `players`、`TouchIdol` → `idols.FindAllAsync` から該当、`TouchSupportCard` → `supportCards.FindAsync`）。記録の対象が DB に無いのは取りこぼしの不具合なので `InvalidOperationException`（基盤が `INTERNAL` にしてロールバックする）。1 つのトランザクションで記録できるプレイヤーは 1 人で、違う ID が来ても `InvalidOperationException`。何も記録されていなければ null を返す。`RemoveSupportCard` は同じ ID の upsert の記録を外す（逆も同じ）
 - 冪等性の再送では、保存済みのレスポンス（`Common` を含む）がそのまま返る
 - コレクターは Infrastructure から DTO を参照する唯一の例外（[repository-layout.md](../repository-layout.md) 3章）
 - クライアントの反映は [screen-design.md](../screen-design.md) 7.5（`CommonResponseApplier` → `PlayerDiffApplier`）

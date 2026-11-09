@@ -1,11 +1,13 @@
-﻿using Uta.Server.Application.Common;
+﻿using Uta.MasterData;
+using Uta.Server.Application.Common;
+using Uta.Server.Domain.Support;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Support;
 
 public sealed record LimitBreakResult(int LimitBreak, int MaxLevel);
 
-public sealed class LimitBreakUseCase(ISupportCardRepository supportCards, ISupportCatalog catalog)
+public sealed class LimitBreakUseCase(ISupportCardRepository supportCards, MemoryDatabase master)
 {
     public async Task<LimitBreakResult> ExecuteAsync(TxContext tx, Ulid playerId, Ulid uid, Ulid materialUid)
     {
@@ -30,6 +32,7 @@ public sealed class LimitBreakUseCase(ISupportCardRepository supportCards, ISupp
             .Target(uid.ToString())
             .Field("card_id", target.MasterId).Field("material_uid", materialUid.ToString()).Field("limit_break", limitBreak));
 
-        return new LimitBreakResult(limitBreak, catalog.GetMaxLevel(target.MasterId, limitBreak));
+        var rarity = master.SupportCardTable.FindBySupportCardId(target.MasterId).Rarity;
+        return new LimitBreakResult(limitBreak, master.SupportLevelCapTable.FindByRarityAndLimitBreak((rarity, limitBreak)).MaxLevel);
     }
 }

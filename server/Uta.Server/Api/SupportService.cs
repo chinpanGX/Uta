@@ -10,7 +10,7 @@ using VolTech.Server.Transaction;
 
 namespace Uta.Server.Api;
 
-[UtaService]
+[GameServiceFilter]
 public sealed class SupportService(ITransactions transactions, LevelUpUseCase levelUp, LimitBreakUseCase limitBreak)
     : ServiceBase<ISupportService>, ISupportService
 {

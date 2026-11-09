@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Uta.Server.Application.Produce;
+using Uta.Server.Domain.Produce;
 using Uta.Server.Infrastructure.Produce;
 using VolTech.Server.Transaction;
 

@@ -10,7 +10,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）と、ready の計画の読み替え（2026-11-08）で決めたこと（クライアントの UseCase の具象の名前、`Find`・`FindAll`、Contracts の enum の写しを作らない、Shared.Domain と同名にしない、`Snapshot` の使いどころ、テストの補助の名前）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
 
-印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則は、サーバー側の実装計画までサーバーのコードは今のまま（[ADR 0022](../decisions/0022-client-external-concretes-in-infrastructure.md)「accepted にする時点と、進めてよいこと」）。
+印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則のうち、ADR 0021 の分（エンティティとリポジトリの IF を Domain に置く、改名、`FindAllAsync`）は[サーバー側の実装計画](../../plans/2026-11-08-server-domain-entities.md)で済んだ。ADR 0020 の分（Catalog をやめる）は[サーバー側の実装計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)で済んだ。サーバーだけで閉じる改名（`GrantResultKind`・`GachaEntryResult`・`ProduceStateResult`・`ProduceStateResultFactory`・`ProduceEndResult`・`GameServiceFilterAttribute`・`DatabaseMigrator`・テストの `ServerFactory`）は[サーバーの改名の計画](../../plans/2026-11-09-server-naming-renames.md)で済んだ。
 
 ## 決まっていること
 
@@ -32,8 +32,8 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 種類 | 名前 | 例 | 置き場 |
 |---|---|---|---|
 | エンティティ [ADR 案] | `<名詞>Entity`。所持を表す `Owned` は付けない | `PlayerEntity`、`IdolEntity` | 各側の Domain（ADR 0021） |
-| エンティティの ID [決定。2026-11-08。ユーザーの判断] | サーバーが採番する ULID は `UniqueId`（`string`）、マスタの `int` の ID は `MasterId`（`int`）。持つものだけ持つ（`PlayerEntity` は `UniqueId`、`IdolEntity`・`SupportCardEntity` は両方）。Contracts の DTO も同じ名前にし（下の「Contracts の ID」）、Mapper は同じ名前どうしで写す（`PlayerEntity.UniqueId` は `SignInResponse.PlayerId` から）[2026-11-08。R9 で改めた] | `IdolEntity.UniqueId`、`IdolEntity.MasterId` | クライアントの Domain |
-| Contracts の ID（DTO・RPC のリクエスト・レスポンス）[決定。2026-11-08。ユーザーの判断] | 名前はクライアントとサーバーで統一する。DB の列名は今のまま（C# では Dapper の `AS` で写す）。1. DTO（またはサーバーの型）がそのものを表すときは `UniqueId`（サーバーが採番する ULID。`string`、サーバーの型では `Ulid`）・`MasterId`（マスタの `int`）。2. ほかのものを指すときは `<名詞>UniqueId`・`<名詞>MasterId`（配列は `…UniqueIds`）。3. `PlayerId` はそのまま。プロデュースの中で振る番号（`InstanceId`・`CardInstanceId`）は ULID でもマスタの ID でもないので変えない。4. MessagePack の `[Key(n)]` の番号は変えない（プロパティ名とコンストラクターの引数名だけを変える）。コンストラクターの引数名・IService の RPC の引数も同じ規則（camelCase）。サーバーの所持品の型 `OwnedIdol`・`OwnedSupportCard` も `UniqueId`・`MasterId`。それ以外のサーバーの内部の型・DB の列・マスタの列は対象外（改名の一覧は [移行計画](../../plans/2026-11-08-client-foundation-migration.md) の R9） | `OwnedIdolDto.UniqueId`・`OwnedIdolDto.MasterId`、`DrawResultDto.ItemMasterId`、`LimitBreakRequest.MaterialUniqueId`、`StartProduceRequest.SupportCardUniqueIds` | `Uta.Shared.Contracts`、サーバーの `OwnedIdol`・`OwnedSupportCard`。マスタの ID の配列も規則 2 に従う（`ProduceStateResponse.CardOffers` → `CardChoiceMasterIds`。2026-11-08。ユーザーの判断） |
+| エンティティの ID [決定。2026-11-08。ユーザーの判断] | サーバーが採番する ULID は `UniqueId`（`string`）、マスタの `int` の ID は `MasterId`（`int`）。持つものだけ持つ（`PlayerEntity` は `UniqueId`、`IdolEntity`・`SupportCardEntity` は両方）。Contracts の DTO も同じ名前にし（下の「Contracts の ID」）、Mapper は同じ名前どうしで写す（`PlayerEntity.UniqueId` は `SignInResponse.PlayerId` から）[2026-11-08。R9 で改めた]。サーバーのエンティティは `UniqueId` を `Ulid` で持ち、サーバーの `PlayerEntity` は `UniqueId` を持たない（呼ぶ側が `playerId` を持っているため。2026-11-08。ユーザーの判断） | `IdolEntity.UniqueId`、`IdolEntity.MasterId` | クライアントの Domain、サーバーの Domain |
+| Contracts の ID（DTO・RPC のリクエスト・レスポンス）[決定。2026-11-08。ユーザーの判断] | 名前はクライアントとサーバーで統一する。DB の列名は今のまま（C# では Dapper の `AS` で写す）。1. DTO（またはサーバーの型）がそのものを表すときは `UniqueId`（サーバーが採番する ULID。`string`、サーバーの型では `Ulid`）・`MasterId`（マスタの `int`）。2. ほかのものを指すときは `<名詞>UniqueId`・`<名詞>MasterId`（配列は `…UniqueIds`）。3. `PlayerId` はそのまま。プロデュースの中で振る番号（`InstanceId`・`CardInstanceId`）は ULID でもマスタの ID でもないので変えない。4. MessagePack の `[Key(n)]` の番号は変えない（プロパティ名とコンストラクターの引数名だけを変える）。コンストラクターの引数名・IService の RPC の引数も同じ規則（camelCase）。サーバーの所持品の型 `IdolEntity`・`SupportCardEntity` も `UniqueId`・`MasterId`。それ以外のサーバーの内部の型・DB の列・マスタの列は対象外（改名の一覧は [移行計画](../../plans/2026-11-08-client-foundation-migration.md) の R9） | `OwnedIdolDto.UniqueId`・`OwnedIdolDto.MasterId`、`DrawResultDto.ItemMasterId`、`LimitBreakRequest.MaterialUniqueId`、`StartProduceRequest.SupportCardUniqueIds` | `Uta.Shared.Contracts`、サーバーの `IdolEntity`・`SupportCardEntity`。マスタの ID の配列も規則 2 に従う（`ProduceStateResponse.CardOffers` → `CardChoiceMasterIds`。2026-11-08。ユーザーの判断） |
 | リポジトリの IF [ADR 案] | `I<名詞>Repository` | `IPlayerRepository` | 各側の Domain |
 | リポジトリの IF（読み取り専用。クライアント） [ADR 案] | `IReadOnly<名詞>Repository`（`I<名詞>Repository` がこれを継ぐ） | `IReadOnlyPlayerRepository` | クライアントの Domain |
 | リポジトリの実装 | `<名詞>Repository` | `PlayerRepository` | Infrastructure |
@@ -89,9 +89,10 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 |---|---|---|
 | MagicOnion のサービスの実装 | `<機能>Service` | `GachaService` |
 | サーバー固有のルール | `<機能>Rules`、役割の名前（9章） | `SupportRules`、`GachaPicker` |
-| DB の 1 行の写し（エンティティにしないもの） | `<名詞>Record` | `GachaHistoryRecord` |
+| DB の 1 行の写し（エンティティにしないもの） | `<名詞>Record` | `GachaHistoryRecord`、`ProduceSessionRecord`、`ProduceResultRecord` |
 
-- DB の 1 行の写しをエンティティにするか `Record` にするかは、ADR 0021 を実装する計画で型ごとに決める（未決事項）
+- **エンティティにするのは、クライアントにも同じエンティティがある所持データ（`PlayerEntity`・`IdolEntity`・`SupportCardEntity`）だけ。ほかの DB の行の写しは `<名詞>Record`** [決定。2026-11-08。ユーザーの判断]。履歴・結果・セッションはサーバーだけが持ち、クライアントのリポジトリや player_diff と対応しない。振る舞いも持たず、更新の正しさは 1 文の SQL（条件付きの更新・楽観ロック）が守っている
+- 例外: `ProduceSessionData` は DB の行の写しではなく `state` 列の中身なので、上の区分の対象外。名前はそのまま [決定。2026-11-08。ユーザーの判断]
 
 ### 6. クライアントの Presentation
 
@@ -145,6 +146,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | `Handler` | 基盤から呼ばれる受け口（エラー・進行中の通知など） | `DefaultCommonErrorHandler` |
 | `Options` | 起動時の設定の値 | `StartupOptions` |
 | `Entry` | シーンの入口 | `BootstrapEntry` |
+| `Host` | アプリのホスト（設定・DI の登録・エンドポイント）を組み立てて動かす。プロセスの入口（`Program.cs`）から呼ぶ | `ServerHost` |
 
 
 ## 今のコードとの差（改名の対象）
@@ -154,16 +156,10 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 今 | 新 | 根拠 |
 |---|---|---|
 | Contracts の `GachaOutcome` | `GachaResultKind` | 1章・2章。正は [api-design.md](api-design.md) 1.1 なので、そこも直す |
-| Shared.Domain の `ExamOutcome`、サーバーの `GrantOutcome` | `ExamResultKind`・`GrantResultKind` | 2章 |
+| Shared.Domain の `ExamOutcome` | `ExamResultKind` | 2章 |
 | Shared.Domain の enum の `UseCheckResult`・`LessonApplyResult`・`ProduceApplyResult` | `UseCheckResultKind`・`LessonApplyResultKind`・`ProduceApplyResultKind` | 2章 |
-| プロパティ名の `Outcome`・`ExamOutcome`（`DrawResultDto.Outcome`、`ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない |
-| サーバーの `GachaStatus`（record。`GetGachasUseCase` の戻り値の 1 件分） | `<名詞>Result` の形の名前（`GachaResult` は使用済みなので、触る実装計画で決める） | 2章（`Status` は enum） |
-| サーバーの `ProduceView`・`ProduceViewBuilder` | `ProduceStateResult`・`ProduceStateResultFactory` | 1章（`View` はクライアントだけ）・7章 |
-| サーバーの `ProduceEndSummary` | `ProduceEndResult` | 2章 |
+| プロパティ名の `Outcome`・`ExamOutcome`（`DrawResultDto.Outcome`、`ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない。サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome` は、Shared.Domain の `ExamOutcome` の改名と同じ計画で直す |
 | Shared.Domain の `ClassOptionView`（`ProduceEngine.GetClassOptions` の戻り値） | `ClassOption` | 1章・4章。サーバーとクライアントの利用箇所も直す |
-| サーバーの `GachaHistoryRow` | `GachaHistoryRecord`（エンティティにしないとき） | 5章 |
-| `UtaServiceAttribute`・`UtaDatabase`、テストの `UtaServerFactory` と `Services_HaveUtaServiceAttribute` | `GameServiceFilterAttribute`・`DatabaseMigrator`、`ServerFactory`・`Services_HaveGameServiceFilterAttribute` | 1章 |
-| サーバーの `MasterCardCatalog`・`MasterProduceCatalog`（static の組み立て役） | `CardCatalogFactory`・`ProduceCatalogFactory` | 7章 |
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
 | 計画にある `OwnedListBuilder`・`DialogService` | `OwnedListFactory`・`DialogOpener` | 7章・9章（`Builder` は Editor、`Service` は通信） |
@@ -172,15 +168,11 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction`・`MasterItemKind`） | 作らない（`IProduceUseCase` のメソッドを操作ごとに分ける。`MasterItemKind` はマスタの `ItemKind`） | 1章 |
 | 計画にある `ProduceProgress`・`ProduceSession` | `ProduceStateResult`・`ProduceSessionState` | 1章（Shared.Domain の `ProduceSnapshot` と同名にしない）・2章 |
 | 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus`・`SupportStatus` など。gacha の `DrawStatus` は `DrawResultKind` にした） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
-| サーバーのリポジトリの `ListAsync` | `FindAllAsync` [ADR 案] | 2章、ADR 0021 |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
-| サーバーの `I<名詞>Catalog`・`Master<名詞>Catalog`・`GachaDefinition` など | やめる [ADR 案] | ADR 0020 |
-| サーバーの `OwnedIdol`・`OwnedSupportCard`・`PlayerSnapshot` | `IdolEntity`・`SupportCardEntity`・`PlayerEntity` [ADR 案] | 2章、ADR 0021 |
 | 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み。gacha では作らなかった）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 
 ## 未決事項
 
-- サーバーの `GachaStatus` の新しい名前、Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け、`OwnedSelectionRequest` の新しい名前。触る実装計画（読み替え）で決める
-- サーバーの `ProduceSessionData`・`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRow` を、エンティティにするか `Record` にするか。ADR 0021 を実装する計画で決める
+- Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け、`OwnedSelectionRequest` の新しい名前。触る実装計画（読み替え）で決める

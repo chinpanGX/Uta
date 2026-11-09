@@ -1,4 +1,5 @@
 ﻿using Uta.Server.Application.Common;
+using Uta.Server.Domain.Produce;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Produce;

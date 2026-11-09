@@ -1,7 +1,7 @@
 ---
 title: 用語集
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # 用語集
@@ -43,7 +43,7 @@ updated: 2026-11-08
 | 審査比率 | アイドルごとの3パラメータの比率。試験のターン割り振りとスコアボーナスに使う |
 | 審査の型 | 審査比率と試験のターン割り振りの組。4 種類からアイドルごとに選ぶ（[idol-support](systems/idol-support.md) 1.4） |
 | 最短シナリオ | 確認用の 3 週だけの週構成（レッスン → 仕上げ → 最終試験。[game-spec](overview/game-spec.md)） |
-| プレイヤー経験値 | プロデュースの報酬で得て、プレイヤーLv を上げる値（[produce](systems/produce.md) 7章） |
+| プレイヤー経験値 | プロデュースの報酬で得て、プレイヤーLv を上げる値。累計で持ち、Lv は累計から求める（[produce](systems/produce.md) 7章） |
 | 初期の所持品 | アカウントを作ったときに付与する育成アイドル・サポートカード・ガチャ通貨・ゴールド・サポート強化pt（[game-spec](overview/game-spec.md)） |
 | 信頼度 | アイドルごとの永続レベル。試験のスコアボーナスなどが増える（MVP では作らない） |
 | プレイヤーLv | アカウント単位のレベル。カードや機能が解放される |
@@ -114,12 +114,12 @@ updated: 2026-11-08
 | Shared | `shared/` にある、クライアントとサーバーの両方から使うコード（Shared.Domain と Shared.Contracts）。「共有」とは書かず Shared と書く（「共通」と見間違えないため） | [repository-layout](architecture/repository-layout.md) 3章・5章 |
 | Shared.Domain（`Uta.Shared.Domain`） | クライアントとサーバーで共有する純粋なゲームルール（計算式、状態遷移、判定）。コードも `Uta.Shared.Domain`（2026-11-01 に改名） | [repository-layout](architecture/repository-layout.md) 3章・6章 |
 | Shared.Contracts（`Uta.Shared.Contracts`） | 通信契約。サービスIF・DTO・エラーコード。コードは `Uta.Shared.Contracts`（未作成） | [api-design](architecture/api-design.md) |
-| Server.Domain | サーバー固有のルール（ガチャ抽選、天井、シード生成、報酬付与など）。`server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`） | [repository-layout](architecture/repository-layout.md) 6.1 |
+| Server.Domain | サーバー固有のルール（ガチャ抽選、天井、シード生成、報酬付与など）と、エンティティ・リポジトリの IF（[ADR 0021](decisions/0021-domain-entities-and-repositories.md)）。`server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`） | [repository-layout](architecture/repository-layout.md) 6.1 |
 | Client.Domain（`Uta.Client.Domain`） | クライアントの Domain の層。`client/uta/Assets/Scripts/Domain/`（asmdef `Uta.Client.Domain`。2026-11-08 に作った）。所持データのエンティティとリポジトリの IF を置く。参照するのは `Uta.Shared.Domain` と `Uta.Client.MasterData` だけ | [repository-layout](architecture/repository-layout.md) 3章・6.1、[ADR 0021](decisions/0021-domain-entities-and-repositories.md) |
-| エンティティ | Domain に置く、データを表す型。名前は `<名詞>Entity`（`PlayerEntity`・`IdolEntity`・`SupportCardEntity`）。所持を表す `Owned` は付けない。UI の状態は入れない。クライアントでは、サーバーの確定値（サインインなどの応答）の写し。ID は、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの ID を `MasterId`（`int`）として持つ（`PlayerEntity` は `UniqueId`、`IdolEntity`・`SupportCardEntity` は両方。2026-11-08） | [ADR 0021](decisions/0021-domain-entities-and-repositories.md) |
-| リポジトリ | エンティティの保存と取得の IF と、その実装。IF は Domain の `I<名詞>Repository`、実装は Infrastructure の `<名詞>Repository`。クライアントは読み取り専用の `IReadOnly<名詞>Repository` と分け（DI には同じインスタンスを両方の IF で登録する）、同期で、保存先はメモリ。取得は `Find`（1 件。無ければ null）・`FindAll`（全件）。クライアントでは、1 件の取得・置き換え・削除はエンティティの `UniqueId` で行う（2026-11-08）。サーバーは、ADR 0021 のサーバー側を実装するまで、Application が IF を定義している（下の「ポート」） | 同上 |
+| エンティティ | Domain に置く、データを表す型。名前は `<名詞>Entity`（`PlayerEntity`・`IdolEntity`・`SupportCardEntity`）。所持を表す `Owned` は付けない。UI の状態は入れない。クライアントでは、サーバーの確定値（サインインなどの応答）の写し。ID は、クライアントでは、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの ID を `MasterId`（`int`）として持つ（`PlayerEntity` は `UniqueId`、`IdolEntity`・`SupportCardEntity` は両方。2026-11-08）。サーバーのエンティティは `UniqueId` を `Ulid` で持ち、サーバーの `PlayerEntity` は `UniqueId` を持たない（2026-11-08）。サーバーでエンティティにするのは所持データ（プレイヤー・育成アイドル・サポートカード）だけで、ほかの DB の行の写しは `<名詞>Record`（[naming.md](architecture/naming.md) 5章） | [ADR 0021](decisions/0021-domain-entities-and-repositories.md) |
+| リポジトリ | エンティティの保存と取得の IF と、その実装。IF は Domain の `I<名詞>Repository`、実装は Infrastructure の `<名詞>Repository`。クライアントは読み取り専用の `IReadOnly<名詞>Repository` と分け（DI には同じインスタンスを両方の IF で登録する）、同期で、保存先はメモリ。取得は `Find`（1 件。無ければ null）・`FindAll`（全件）。クライアントでは、1 件の取得・置き換え・削除はエンティティの `UniqueId` で行う（2026-11-08）。サーバーも Domain が IF を定義する（非同期。取得は `FindAsync`・`FindAllAsync`、読み取り専用の IF は無い） | 同上 |
 | オニオンアーキテクチャ | 依存を常に内側（Domain）へ向ける層の構成 | [ADR 0008](decisions/0008-shared-domain-and-onion.md) |
-| ポート | `Application` が定義し、`Infrastructure` が実装する、外部とのやりとりのインターフェース。**クライアントでは使わない**（Application の UseCase の IF `I<機能>UseCase` と、Infrastructure の具象 `<機能>UseCase`。2026-11-08。[ADR 0022](decisions/0022-client-external-concretes-in-infrastructure.md)）。サーバーは ADR 0021 のサーバー側を実装するまで、Application が定義するリポジトリの IF を指す | |
+| ポート | `Application` が定義し、`Infrastructure` が実装する、外部とのやりとりのインターフェース。**クライアントでは使わない**（Application の UseCase の IF `I<機能>UseCase` と、Infrastructure の具象 `<機能>UseCase`。2026-11-08。[ADR 0022](decisions/0022-client-external-concretes-in-infrastructure.md)）。サーバーでは、Application が定義する外部の IF（`IRandomSource`）を指す | |
 | Composition Root | すべての層を組み立てる場所。クライアントでは `Bootstrap` | |
 | 予測の表示 | クライアントが Shared.Domain で出す、確定前の値（使用可否・スコアの見込みなど）。確定はサーバー | シードは使わない |
 | 機能ID | 仕様の機能に付ける ID（`PRD-xx` / `GAC-xx` / `IDL-xx` / `SUP-xx`）。設計書4編の横断に使う | |

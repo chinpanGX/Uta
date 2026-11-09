@@ -43,12 +43,9 @@ public class ArchitectureTests
     }
 
     [Fact]
-    public void MasterData_IsReferencedOnlyByInfrastructure()
+    public void SharedDomain_DoesNotDependOnMasterData()
     {
-        var result = Types.InAssembly(typeof(PlayerResolver).Assembly).That()
-            .ResideInNamespaceStartingWith("Uta.Server.Api")
-            .Or().ResideInNamespaceStartingWith("Uta.Server.Application")
-            .Or().ResideInNamespaceStartingWith("Uta.Server.Domain")
+        var result = Types.InAssembly(typeof(Uta.Shared.Domain.Lesson.CardCatalog).Assembly)
             .ShouldNot().HaveDependencyOnAny("Uta.MasterData").GetResult();
         Assert.True(result.IsSuccessful);
     }
@@ -78,14 +75,14 @@ public class ArchitectureTests
     }
 
     [Fact]
-    public void Services_HaveUtaServiceAttribute()
+    public void Services_HaveGameServiceFilterAttribute()
     {
         var services = typeof(PlayerResolver).Assembly.GetTypes()
             .Where(t => !t.IsAbstract && IsServiceBase(t) && t != typeof(PlayerService))
             .ToList();
 
         Assert.NotEmpty(services);
-        Assert.All(services, t => Assert.NotNull(t.GetCustomAttribute<UtaServiceAttribute>()));
+        Assert.All(services, t => Assert.NotNull(t.GetCustomAttribute<GameServiceFilterAttribute>()));
     }
 
     private static bool IsServiceBase(Type type)

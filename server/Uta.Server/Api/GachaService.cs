@@ -11,7 +11,7 @@ using VolTech.Server.Transaction;
 
 namespace Uta.Server.Api;
 
-[UtaService]
+[GameServiceFilter]
 public sealed class GachaService(ITransactions transactions, GetGachasUseCase getGachas, DrawUseCase draw, ExchangeUseCase exchange)
     : ServiceBase<IGachaService>, IGachaService
 {
@@ -48,5 +48,5 @@ public sealed class GachaService(ITransactions transactions, GetGachasUseCase ge
     }
 
     private static DrawResultDto ToDto(GachaResult x) => new DrawResultDto(
-        x.Slot, (ItemKind)(int)x.Kind, x.ItemId, (GachaOutcome)(int)x.Outcome, x.Shards, x.SupportPoints, x.SupportCardUid?.ToString() ?? "");
+        x.Slot, (ItemKind)(int)x.Kind, x.ItemId, (GachaOutcome)(int)x.ResultKind, x.Shards, x.SupportPoints, x.SupportCardUid?.ToString() ?? "");
 }

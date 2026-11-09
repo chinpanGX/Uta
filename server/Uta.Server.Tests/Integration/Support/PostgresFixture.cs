@@ -13,9 +13,9 @@ public sealed class PostgresFixture : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await container.StartAsync();
-        UtaDatabase.Migrate(ConnectionString);
+        DatabaseMigrator.Migrate(ConnectionString);
         // 2 回目は何もしない
-        UtaDatabase.Migrate(ConnectionString);
+        DatabaseMigrator.Migrate(ConnectionString);
     }
 
     public async ValueTask DisposeAsync()

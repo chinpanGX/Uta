@@ -1,24 +1,24 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Uta.Server.Application.Produce;
+using Microsoft.Extensions.DependencyInjection;
+using Uta.Server.Domain.Produce;
 using Uta.Server.Infrastructure;
 using Uta.Server.Tests.Integration.Support;
-using VolTech.Server.Transaction;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Produce;
+using VolTech.Server.Transaction;
 
 namespace Uta.Server.Tests.Integration;
 
 [Collection(PostgresCollection.Name)]
 public class ProduceOperationTests(PostgresFixture postgres)
 {
-    private static async Task<(UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player)> StartAsync(PostgresFixture postgres)
+    private static async Task<(ServerFactory Factory, GrpcChannel Channel, PlayerClient Player)> StartAsync(PostgresFixture postgres)
     {
-        var factory = new UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL));
+        var factory = new ServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL));
         var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel, "0123456789abcdef-secret");
         await player.CallAsync(service => service.SignUpAsync(), "req-1");
@@ -217,7 +217,7 @@ public class ProduceOperationTests(PostgresFixture postgres)
             "PRODUCE_INVALID_ARGUMENT");
     }
 
-    private async Task<(ProduceStateResponse Offer, UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player)> StartCardOfferAsync()
+    private async Task<(ProduceStateResponse Offer, ServerFactory Factory, GrpcChannel Channel, PlayerClient Player)> StartCardOfferAsync()
     {
         var (factory, channel, player) = await StartAsync(postgres);
         var current = await StartProduceAsync(player, "req-3", scenarioId: 2);
@@ -325,10 +325,10 @@ public class ProduceOperationTests(PostgresFixture postgres)
         public Task InsertResultAsync(TxContext tx, ProduceResultRecord result) => inner.InsertResultAsync(tx, result);
     }
 
-    private async Task<(UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player, ConflictInjector Injector)> StartConflictableAsync()
+    private async Task<(ServerFactory Factory, GrpcChannel Channel, PlayerClient Player, ConflictInjector Injector)> StartConflictableAsync()
     {
         var injector = new ConflictInjector();
-        var factory = new UtaServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL), configureServices: services =>
+        var factory = new ServerFactory(postgres, randomSource: new ScriptedRandomSource(111UL, 222UL), configureServices: services =>
         {
             services.RemoveAll<IProduceSessionRepository>();
             services.AddScoped<IProduceSessionRepository>(sp =>
