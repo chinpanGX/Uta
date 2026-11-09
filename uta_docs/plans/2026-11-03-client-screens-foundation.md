@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
-status: in-progress
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
