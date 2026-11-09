@@ -1,4 +1,5 @@
-﻿using Uta.Shared.Domain.Produce;
+﻿using Uta.Shared.Domain.Lesson;
+using Uta.Shared.Domain.Produce;
 
 namespace Uta.Server.Application.Produce;
 
@@ -10,6 +11,7 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
         var npcScores = state.Phase == ProducePhase.Exam
             ? ProduceFormulas.NpcScores(catalog.GetScenario(state.Input.ScenarioId).GetWeek(state.Week).RivalBaseScore)
             : [];
+        var usableHand = state.Lesson is null ? [] : state.Lesson.Zones.Hand.Select(id => engine.CanUse(state, id) == UseCheckResult.Ok).ToArray();
         var report = examResult ?? (state.Phase == ProducePhase.ExamResult ? state.LastExam : null);
         return new ProduceStateResult(
             state,
@@ -17,6 +19,7 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
             weekSelect ? engine.GetClassOptions(state) : [],
             npcScores,
             report,
-            end);
+            end,
+            usableHand);
     }
 }

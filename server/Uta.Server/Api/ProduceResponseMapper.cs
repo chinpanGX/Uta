@@ -35,7 +35,7 @@ public static class ProduceResponseMapper
             result.WeekChoices.Select(x => new WeekActionDto(x.SlotIndex, x.Kind, x.Selectable)).ToArray(),
             result.ClassOptions.Select(x => new ClassOptionDto(x.Index, x.HpCost, x.Param, x.ParamGain, x.GivesCard, x.Selectable)).ToArray(),
             state.OfferCards.ToArray(),
-            state.Lesson is null ? null! : ToLessonDto(state.Lesson, result.NpcScores),
+            state.Lesson is null ? null! : ToLessonDto(state.Lesson, result.NpcScores, result.UsableHand),
             exam is null ? null! : new ExamResultDto(exam.Kind, exam.Attempt, exam.Score, exam.Rank, exam.NpcScores.ToArray(), exam.Passed),
             result.End is null ? null! : ToResultResponse(result.End));
     }
@@ -44,7 +44,7 @@ public static class ProduceResponseMapper
         (ProduceEnding)(int)end.Ending, end.ExamOutcome, end.EvaluationValue, end.Rank, end.FinalScore, end.FinalRank,
         end.GachaCurrency, end.Gold, end.SupportPoints, end.Exp, end.PlayerLevel, end.PlayerExp);
 
-    private static LessonDto ToLessonDto(LessonState lesson, IReadOnlyList<int> npcScores)
+    private static LessonDto ToLessonDto(LessonState lesson, IReadOnlyList<int> npcScores, IReadOnlyList<bool> usableHand)
     {
         var setup = lesson.Setup;
         var examTurns = setup.Exam is null
@@ -70,6 +70,7 @@ public static class ProduceResponseMapper
             lesson.ParamBonuses.Select(x => new ParamBonusDto(x.Percent, x.RemainingTurns)).ToArray(),
             lesson.Persistents.Select(x => new PersistentDto(x.Trigger, x.RemainingTurns, x.RemainingCount)).ToArray(),
             lesson.LessonEnhanced.ToArray(),
-            npcScores.ToArray());
+            npcScores.ToArray(),
+            usableHand.ToArray());
     }
 }

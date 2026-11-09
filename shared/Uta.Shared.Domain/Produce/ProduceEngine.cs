@@ -21,9 +21,9 @@ namespace Uta.Shared.Domain.Produce
     }
 
     /// <summary>授業の選択肢の表示用の値。</summary>
-    public readonly struct ClassOptionView
+    public readonly struct ClassOption
     {
-        public ClassOptionView(int index, int hpCost, ParamKind param, int paramGain, bool givesCard, bool selectable)
+        public ClassOption(int index, int hpCost, ParamKind param, int paramGain, bool givesCard, bool selectable)
         {
             Index = index;
             HpCost = hpCost;
@@ -288,17 +288,17 @@ namespace Uta.Shared.Domain.Produce
         }
 
         /// <summary>授業の選択肢。Phase が WeekSelect でなければ InvalidOperationException。授業の枠が無い週は空。</summary>
-        public IReadOnlyList<ClassOptionView> GetClassOptions(ProduceState state)
+        public IReadOnlyList<ClassOption> GetClassOptions(ProduceState state)
         {
             RequireWeekSelect(state);
             var scenario = catalog.GetScenario(state.Input.ScenarioId);
             var week = scenario.GetWeek(state.Week);
-            var views = new List<ClassOptionView>();
+            var views = new List<ClassOption>();
             for (var i = 0; i < week.ClassOptions.Count; i++)
             {
                 var option = week.ClassOptions[i];
                 var selectable = option.HpCost == 0 || state.Hp > option.HpCost;
-                views.Add(new ClassOptionView(i, option.HpCost, (ParamKind)state.ClassOptionParams[i], option.ParamGain, option.GivesCard, selectable));
+                views.Add(new ClassOption(i, option.HpCost, (ParamKind)state.ClassOptionParams[i], option.ParamGain, option.GivesCard, selectable));
             }
 
             return views;

@@ -10,7 +10,7 @@ updated: 2026-11-09
 
 ## 1. 前提 [決定]
 
-- サーバー権威。結果の確定は常にサーバー。クライアントはシードと乱数を持たず、Shared.Domain で使用可否の判定と予測の表示までを行う。乱数が絡む結果は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))
+- サーバー権威。結果の確定は常にサーバー。クライアントはシードと乱数を持たず、Shared.Domain で使用可否の判定と予測の表示までを行う。乱数が絡む結果は予測しない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))(MVP の使用可否はサーバーの `LessonDto.UsableHand` を使う: [screen-design.md](screen-design.md) 6章)
 - 乱数は `xoshiro256**`。`System.Random` は使わない。シードはサーバーが生成する([repository-layout.md](repository-layout.md) 10.3)
 - `float` / `double` を使わない([lesson-card.md](../systems/lesson-card.md) 9.6)
 - セッションは検索用の列と、状態を丸ごと入れた1列(MessagePack の `bytea`)に分け、バージョン列で楽観ロックをかける([ADR 0010](../decisions/0010-database.md)、[api-design.md](api-design.md) 3章)
