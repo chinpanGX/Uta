@@ -457,6 +457,27 @@ builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
 - 5 章の冒頭（偽の View の書き方）・「共通の前提」の期待の文字列・`OwnedPresenterTests`・`SupportDetailPresenterTests` の表（O7 の読み替えのうえで）・Play・手動の確認の項目
 - 無効: 2 章の表、3.3・3.5・3.8 の `BootstrapEntry` の 3 行、3.4 の `OwnedRowData`・`OwnedSelectionRequest`・`OwnedListBuilder` のシグネチャ、5 章の `ServerReasonsTests`・`SupportSnapshotEditsTests`・`LevelUpSupportUseCaseTests`・`LimitBreakSupportUseCaseTests` の行、「基盤 11d9b06 への読み替え」の `SupportGateway` に関わる行
 
+### O10. コードレビュー（1 回目）への対応（2026-11-09。この節は O0〜O9 より優先）
+
+報告は `uta_docs/reviews/.raw/2026-11-09-client-screens-owned/code-client-1.md`（Git に入れない）。直すのは I1・M1・M2・M3・M6・M7・M8・M9。I2（エラーのあとの取り直し）と M5（足りないときの +1・+5）はユーザーの判断を待ち、この PR では直さない。M4 はタスク 6 の wiki で書く。
+
+- **M9** `SupportDetailPresenter` の 2 本目のコンストラクターで、`supportDetailArgs` が null なら `ArgumentNullException(nameof(supportDetailArgs))`（`OwnedPresenter` と同じ）
+- **M1** `SupportDetailPresenter.LimitBreakAsync` の手順 3: `PushPageAsync` の `await` のあと、`WaitForPopAsync` の前に `if (disposed) { return; }`
+- **M2** `SupportLevelPlanner.PlanTarget` の `Max`: 結果は同じまま、手順を「`t = card.Level` から始め、`t < maxLevel` のあいだ、レベル `t` の 1 段の費用（`SupportLevelCost` の行。レア度・`Level == t`）を合計に足して、合計が `supportPoints` と `gold` の両方に収まるなら `t + 1` を目標にして続け、収まらなければ止める」1 回のループにする（費用は 0 以上なので、下から積んでも上から探しても同じ答え）。`GetLevelUpCost`・1 段の行の引き方は、ループの前に `Where(Rarity == rarity)` の行を `Level` をキーにした `Dictionary<int, …>` へ 1 回だけ入れて使う（行が無ければ今と同じ `InvalidOperationException`）。`SupportLevelPlannerTests` は変えずに通る
+- **M3** 「素材にできるカードがあるか」を `OwnedListFactory` の 1 か所にする: `public bool HasLimitBreakMaterial(int supportCardId, string targetUid)` を足し（`CreateSupportCards` の手順 (1) と同じ条件の所持が 1 つ以上あるか）、`CreateSupportCards` の (1) と `SupportDetailDtoFactory` の `HasMaterial` の両方がこれ（または同じ private の判定）を使う。`SupportDetailDtoFactory` のコンストラクターの最後に `OwnedListFactory ownedListFactory` を足す（テストの組み立てと DI は型で解決されるので、テストの `new` だけ直す）。`OwnedListFactoryTests` に `HasLimitBreakMaterial_TrueWhenSameCardExists`・`_FalseWhenOnlyTarget` を足す
+- **M6** `SupportUseCaseTests` に `LevelUp_HandlesCodes`・`LimitBreak_HandlesCodes` を足す（`GachaUseCaseTests.Draw_HandlesNotEnoughCurrency` と同じ書き方。`FakeSupportService.LastHeaders` で、4 つ・3 つのコードが渡ったことを確かめる）
+- **M7** `OwnedPresenterTests` の偽の View に `public bool HasSubscribers`（7 つのイベントのどれかに購読者がいるか）を足し、`Dispose_UnsubscribesEvents` で `Dispose()` のあと `HasSubscribers == false` も確かめる。`SupportDetailPresenterTests` の偽の View も同じ（5 つ）
+- **M8** `OwnedPresenterTests` に `DidPopEnter_RefreshesRows` を足す: サポートのタブにしてから `supportCardRepository.Remove("01D")` → `log.Entries.Clear()` → `DidPopEnter()` → 最後の `SetRows` に `"Lv 1　解放 0/True"` の `サポートA` の行が 1 つだけ（01D が無い）
+- **I1** `SupportDetailPresenterTests` に足す（`FakeSupportUseCase` の `LevelUpResults`・`LimitBreakResults` に `() => gate.Task`（`UniTaskCompletionSource<…>`）を積む形と、`FakeScreenNavigator.PopGates`。gacha の `DrawAsync_WhileRunning_Ignored`・`_DisposedDuringDraw_TouchesNothing` と同じ形）:
+  - `LevelUpAsync_WhileRunning_Ignored`: 1 回目を gate で止めたまま 2 回目を呼ぶ → `Calls` が 1 件
+  - `LevelUpAsync_DisposedDuringCall_TouchesNothing`: gate で止めて `Dispose()` → `Success(…)` で開ける → `"LevelUp:01A,4"` のあとに記録が無い
+  - `LevelUpAsync_Failed_ShowsNothing`: `Rejected(Failed)` → `"Confirm:…"`, `"LevelUp:01A,4"` のあとに `"Info:"` も `Set…` も無い
+  - `LevelUpAsync_NotEnoughGold_ShowsInfo`・`_InvalidTarget_ShowsInfo`・`_NotOwned_ShowsInfo`: 本文 3.7 の文言の `"Info:…"`
+  - `LimitBreakAsync_MaxLimitBreak_ShowsInfo`・`_InvalidMaterial_ShowsInfo`・`_NotOwned_ShowsInfo`: `PopResults` に `OwnedSelection.ForSupportCard("01D")`、結果の `Rejected(…)` → 本文 3.7 の文言の `"Info:…"`
+  - `LimitBreakAsync_DisposedDuringSelection_TouchesNothing`: `PopGates` に gate → `LimitBreakAsync()` を始める → `Dispose()` → gate を `OwnedSelection.ForSupportCard("01D")` で開ける → `"WaitForPop"` のあとに記録が無く、`Calls` が空
+  - `BackAsync_PopsPageOnce`: `BackAsync()` を 2 回 → `"PopPage:SupportDetailPresenter"` が 1 回
+  - `Plus1Clicked_RunsLevelUp`: `RaisePlus1Clicked()` → `"Confirm:…"` が記録される（イベントの購読）。`Dispose_UnsubscribesEvents`: `Dispose()` のあと `HasSubscribers == false`
+
 ## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
 
 - `XxxApi`（`ApiServiceBase<…>` のラッパー。`GachaApi`・`SupportApi`・`ProduceApi`）は**作らない**。`UtaApiClient` が `public IGachaService Gacha { get; }`（`ISupportService Support`・`IProduceService Produce`）を持ち、`Create` の中で `core.CreateClient<I…Service>()` で作る。本文の「`ServiceClientFactory.Create<I…Service>(callInvoker)` で作って `new XxxApi(core, client)`」は「`core.CreateClient<I…Service>()`」に読み替える。private コンストラクターの引数の型は `XxxApi` ではなく `I…Service`
