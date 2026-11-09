@@ -2,6 +2,7 @@
 using System.Linq;
 using Uta.Client.Domain.Player;
 using Uta.Shared.Contracts.Gacha;
+using ZLinq;
 
 namespace Uta.Client.Tests
 {
@@ -119,7 +120,7 @@ namespace Uta.Client.Tests
         /// <summary>共通の前提のマスタ。</summary>
         public static Uta.MasterData.MemoryDatabase CreateMaster()
         {
-            return Build(Idols(), SupportCards(), NormalEntries().Concat(GuaranteedEntries()));
+            return Build(Idols(), SupportCards(), NormalEntries().Concat(GuaranteedEntries()).ToArray());
         }
 
         public static PlayerEntity Player(int gachaCurrency)

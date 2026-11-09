@@ -8,6 +8,7 @@ using Uta.Client.Application.Gacha;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Presentation.Common;
 using Uta.Client.Presentation.Gacha;
+using ZLinq;
 
 namespace Uta.Client.Tests
 {

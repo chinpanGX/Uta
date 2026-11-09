@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using Uta.Client.Application.Gacha;
 using Uta.MasterData;
+using ZLinq;
 
 namespace Uta.Client.Tests
 {

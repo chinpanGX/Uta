@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Uta.Client.Application.Gacha;
 using Uta.Shared.Contracts.Gacha;
+using ZLinq;
 
 namespace Uta.Client.Infrastructure.Gacha
 {
@@ -42,7 +43,8 @@ namespace Uta.Client.Infrastructure.Gacha
                         dto.Outcome == GachaOutcome.New,
                         dto.Shards,
                         dto.SupportPoints))
-                    .OrderBy(r => r.Slot));
+                    .OrderBy(r => r.Slot)
+                    .ToArray());
             }
 
             return DrawResult.Success(results, drawResponse.GachaCurrency, drawResponse.ExchangePoints);
