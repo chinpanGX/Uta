@@ -273,7 +273,7 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 
 2026-11-01 に順 4(`Uta.Shared.Domain` の週の進行)を実装した([計画](../../plans/2026-11-01-produce-week-progress.md))。`shared/Uta.Shared.Domain/Produce/`、テストは `shared/Uta.Shared.Domain.Tests/Produce/`。
 
-- 型: `ProduceEngine`(`Start`・`Apply`・`GetWeekChoices`・`GetClassOptions`・`CanUse`)、`ProduceState`、`ProduceCommand`/`OperationRecord`、`ProduceStartInput`、`ProduceCatalog`(マスタの行の型 `ProduceRows` から `Create`。検査は構造と、計算が壊れる列だけ。値の妥当性は masterdata の `IValidatable`)、`OfferPool`(選択肢の候補と抽選)、`ExamTurnBuilder`(審査ターンの列)、`ProduceFormulas`(加算・回復・配分・スコアボーナス・NPC・順位・評価)、`FormationValidator`(編成の検証 5・6)、`ProduceStateComparer`(状態の比較)
+- 型: `ProduceEngine`(`Start`・`Apply`・`GetWeekChoices`・`GetClassOptions`・`CanUse`)、`ProduceState`、`ProduceCommand`/`OperationRecord`、`ProduceStartInput`、`ProduceCatalog`(マスタの行の型 `ProduceRows` から `Create`。検査は構造と、計算が壊れる列だけ。値の妥当性は masterdata の `IValidatable`)、`OfferPool`(選択肢の候補と抽選)、`ExamTurnBuilder`(審査ターンの列)、`ProduceFormulas`(加算・回復・配分・スコアボーナス・NPC・順位・評価)、`FormationValidator`(編成の検証 5・6。プランの適合の `IsPlanCompatible` はクライアントの所持一覧・編成の表示も使う)、`ProduceStateComparer`(状態の比較)
 - 5章の操作の表し方(`ProduceCommand` ＋ `OperationRecord`)、操作番号の判定は `Api`、`ProduceStartInput` は育成アイドルの ID だけ、は実装したとおりで確定とする
 - `IRandomStreamSource` の契約: 同じ `ProduceState` に対して、要求をまたいでも同じキーには前の続きから引けるストリームを返す。`Apply` は拒否する要求でも `Get` を呼ぶことがある(レッスン・試験中の操作。引かずに拒否する)。サーバーは、受け付けた要求のあとだけストリームの状態を保存する
 - `Attempt` は Exam / ExamResult の間だけ意味を持ち、試験を出ると 0 に戻る。直近の試験の挑戦回数は `LastExam.Attempt`

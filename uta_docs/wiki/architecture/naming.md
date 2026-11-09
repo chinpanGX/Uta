@@ -162,17 +162,15 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | Shared.Domain の `ClassOptionView`（`ProduceEngine.GetClassOptions` の戻り値） | `ClassOption` | 1章・4章。サーバーとクライアントの利用箇所も直す |
 | Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
-| 計画にある `OwnedListBuilder`・`DialogService` | `OwnedListFactory`・`DialogOpener` | 7章・9章（`Builder` は Editor、`Service` は通信） |
-| 計画にある `OwnedSelectionRequest` | `Request` を外した名前（`OwnedSelection` は owned の計画の結果の型と同じ名前なので使わない。owned の読み替えで決める） | 1章（`Request` は通信だけ） |
 | 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEndKind`（Contracts の `ProduceEnding` と同じ名前にしない） | 1章・2章 |
 | 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction`・`MasterItemKind`） | 作らない（`IProduceUseCase` のメソッドを操作ごとに分ける。`MasterItemKind` はマスタの `ItemKind`） | 1章 |
 | 計画にある `ProduceProgress`・`ProduceSession` | `ProduceStateResult`・`ProduceSessionState` | 1章（Shared.Domain の `ProduceSnapshot` と同名にしない）・2章 |
-| 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus`・`SupportStatus` など。gacha の `DrawStatus` は `DrawResultKind` にした） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
+| 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus` など。gacha の `DrawStatus` は `DrawResultKind`、owned の `SupportStatus` は `SupportResultKind` にした） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
 | `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
-| 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み。gacha では作らなかった）[ADR 案] | 2章、ADR 0022 |
+| 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み。gacha・owned では作らなかった）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 
 ## 未決事項
 
-- Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け、`OwnedSelectionRequest` の新しい名前。触る実装計画（読み替え）で決める
+- Bootstrap の `ErrorDialogView` の置き場か名前、古い View 4 つの片付け。触る実装計画（読み替え）で決める
