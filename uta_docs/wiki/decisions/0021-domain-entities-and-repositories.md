@@ -8,6 +8,7 @@ updated: 2026-11-08
 
 > **accepted**（2026-11-08。ユーザーの判断。[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR [#44](https://github.com/chinpanGX/Uta/pull/44) で 0020〜0022 をまとめて accepted にした）。クライアントの「accepted にしたら直すもの」は同じ PR で直した。サーバーに関わるものは、[ADR 0022](0022-client-external-concretes-in-infrastructure.md) の「accepted にする時点と、進めてよいこと」のとおり、サーバー側の実装計画で直す
 > リポジトリのメソッドの名前は [naming.md](../architecture/naming.md) 2 章が正。本文の `ReplaceAll`（全件の置き換え）は、`Clear()` と `Upsert(IReadOnlyList<T>)` に分けた（2026-11-08。ユーザーの判断。[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の R10）
+> サーバー側は[サーバー側の実装計画](../../plans/2026-11-08-server-domain-entities.md)で実装した（2026-11-08）。「影響・リスク」の未決（エンティティにするか Record にするか）は、[naming.md](../architecture/naming.md) 5章の区分で決めた: エンティティはクライアントにも同じエンティティがある所持データだけ。`ProduceSessionRecord`・`ProduceResultRecord`・`GachaHistoryRecord`（旧 `GachaHistoryRow`）は Record。`ProduceSessionData` は `state` 列の中身なので区分の対象外で、名前はそのまま（2026-11-08。ユーザーの判断）
 
 [repository-layout.md](../architecture/repository-layout.md) の層の決定のうち、Domain の責務（4章の表の Domain の行）、クライアントの Domain の層を作らないこと（3章の Client.Domain の行、6.1 の「Client.Domain は今は作らない」）、サーバーの依存の向き（3章の表の Domain・Infrastructure の行）を置き換える。[ADR 0008](0008-shared-domain-and-onion.md) の「共通の型を各側のエンティティが包む（合成）」は変えず、そのエンティティの置き場と名前を決める。
 

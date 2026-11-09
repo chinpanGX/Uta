@@ -1,5 +1,4 @@
 ﻿using MessagePack;
-using Uta.Server.Application.Produce;
 using Uta.Server.Domain.Produce;
 using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Produce;

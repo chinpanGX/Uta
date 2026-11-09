@@ -1,7 +1,7 @@
 ---
 title: プロデュースのマスタ
 status: draft
-updated: 2026-11-03
+updated: 2026-11-09
 ---
 
 # プロデュースのマスタ
@@ -25,8 +25,9 @@ updated: 2026-11-03
 | `EvaluationRank` | `Rank`(enum: `Nothing` / `F` … `SSPlus`) | `MinValue`(この評価値以上) |
 | `EvaluationRankReward` | `Rank` | `GachaCurrency`、`Gold`、`SupportPoints`、`Exp`([produce.md](../../systems/produce.md) 6.1 の報酬) |
 | `OfferRarityWeight` | `Rarity` | `Weight`([produce.md](../../systems/produce.md) 8章) |
-| `PlayerLevelExp` | `Level` | `RequiredExp`(Level → Level+1 に要る経験値。[produce.md](../../systems/produce.md) 7章) |
+| `PlayerLevelExp` | `Level` | `FromExp`・`ToExp`(この Lv である経験値の累計の範囲。両端を含む。[produce.md](../../systems/produce.md) 7章) [決定。2026-11-09。ユーザーの判断。それまでは `RequiredExp`(Level → Level+1 に要る経験値)] |
 
+- **`PlayerLevelExp` の範囲** [決定。2026-11-09。ユーザーが From/To の形を決め、両端を含むことと最大 Lv の行の書き方は Claude が決めた]: 行は Lv 1 から最大 Lv まで 1 行ずつ(初期値は 100 行)。Lv 1 の `FromExp` は 0。最大 Lv でない行は `FromExp` < `ToExp` で、`ToExp` = 次の行の `FromExp` − 1。最大 Lv の行(最後の行)は `FromExp` = `ToExp` で、この値が経験値の累計の上限([produce.md](../../systems/produce.md) 7章の「上限に達したら経験値は増やさない」)。初期値は Lv L の `FromExp` = `20 × L × (L − 1)`、L < 100 の `ToExp` = `20 × L × (L + 1) − 1`、Lv 100 は 198000 / 198000
 - 区分 [決定。2026-10-31]: `EvaluationRankReward` だけ ServerOnly(報酬の付与はサーバー専用。[api-design.md](../api-design.md) 4章)。ほかは Common。`ScenarioWeek`(NPC のスコア `RivalBaseScore` を含む)を Common にするのは、試験中の順位の表示と順位の判定を `Uta.Shared.Domain` で行うため(NPC のスコアはクライアントにも見える)
 - `LessonSetting`・`ExamRivalScore` は別のテーブルにせず `ScenarioWeek` の列にした [決定。2026-11-01。ユーザーの判断]。どちらも週と 1 対 1 で、別にすると参照の検証と「全列 0 の行」が増えるため
 - 行動の効果は、行動の種類ごとの専用の表(`ClassOption`)で持つ。支給は MVP では選択肢を引くだけなので表を持たない(育成pt を扱うときに `SupplySetting` を足す。[produce.md](../../systems/produce.md) 3.3)。カードの効果グループ([lesson-enums.md](../lesson-enums.md))は使わない。MVP の行動は 3 種類だけで、専用の列のほうが読みやすく検証もしやすいため
@@ -43,6 +44,6 @@ updated: 2026-11-03
 
 - 実装 [2026-11-01。計画 `plans/2026-11-01-masterdata-rest.md`]: `masterdata/Definitions/Produce/`（2026-11-03 に 1 型 1 ファイルに分けた）、CSV 12 ファイル。MVP はシナリオ 2 つ（最短 3 週、初級 13 週）
 - この計画で名前を付けた enum（メンバーは 0 の `Nothing` のあと、書かれた順に 1 から）: `Difficulty`（`Beginner` / `Intermediate` / `Advanced`）、`WeekKind`（`Action` / `Finishing` / `MidExam` / `FinalExam`）、`ActionKind`（`Lesson` / `Class` / `Supply` / `Outing` / `Consult`）、`ExamKind`（`Mid` / `Final`）、`ProduceRank`（`F` / `E` / `D` / `C` / `CPlus` / `B` / `BPlus` / `A` / `APlus` / `S` / `SPlus` / `SS` / `SSPlus` = 1〜13）。`Uta.Shared.Domain` に元の enum を作るときはこの名前・数値に合わせる
-- 検証の置き場: 行の検査は `IValidatable`、表をまたぐ検査はサーバーのテスト（`MasterDataInvariantTests`）。上の検証に加えて次を検査する: `FinalExam` は `ExamEarlyEndScore` も 0、`ExamPattern` の比率の合計 100(`IValidatable` で、比率がそれぞれ 0 以上、`FirstPercent` が 45 以上なら `FirstTurnSecondRatePerTenThousand` が 0 も検査する)、`EvaluationScoreBand` は `Order` が 1 から連続で `MinScore` が単調増加、`EvaluationRank` は 13 ランクがそろい `MinValue` が単調増加、`EvaluationRankReward` も 13 ランクがそろう、`ExamRankReward` は `Mid`・`Final` それぞれに Rank 1〜3、`PlayerLevelExp` は `Level` が 1 から連続
+- 検証の置き場: 行の検査は `IValidatable`、表をまたぐ検査はサーバーのテスト（`MasterDataInvariantTests`）。上の検証に加えて次を検査する: `FinalExam` は `ExamEarlyEndScore` も 0、`ExamPattern` の比率の合計 100(`IValidatable` で、比率がそれぞれ 0 以上、`FirstPercent` が 45 以上なら `FirstTurnSecondRatePerTenThousand` が 0 も検査する)、`EvaluationScoreBand` は `Order` が 1 から連続で `MinScore` が単調増加、`EvaluationRank` は 13 ランクがそろい `MinValue` が単調増加、`EvaluationRankReward` も 13 ランクがそろう、`ExamRankReward` は `Mid`・`Final` それぞれに Rank 1〜3、`PlayerLevelExp` は `Level` が 1 から連続で、Lv 1 の `FromExp` が 0、各行が `FromExp` ≤ `ToExp`、最後の行でない行は `FromExp` < `ToExp` かつ次の行の `FromExp` = `ToExp` + 1、最後の行は `FromExp` = `ToExp`(`IValidatable` で行ごとに `FromExp` ≥ 0 と `FromExp` ≤ `ToExp` も検査する。2026-11-09)
 - `EvaluationRankReward.Rank` には `[Exists]` を付けない（ServerOnly の表から Common の表への `[Exists]` は未確認。[repository-layout.md](../repository-layout.md) 8章）。13 ランクがそろうことはテストで確かめる
-- `playerLevelExp`（99 行、`40 × Level`）はテストで全行の式を確かめる。報酬・`MinValue` の値は仮
+- `playerLevelExp`（100 行。Lv L の `FromExp` = `20 × L × (L − 1)`。2026-11-09 に 99 行の `RequiredExp` = `40 × Level` から作り直す）はテストで全行の式を確かめる。報酬・`MinValue` の値は仮

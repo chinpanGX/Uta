@@ -1,7 +1,8 @@
 ﻿using System.Text.Json.Nodes;
+using Uta.MasterData;
 using Uta.Server.Application.Common;
-using Uta.Server.Application.Player;
 using Uta.Server.Domain.Gacha;
+using Uta.Server.Domain.Player;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Application.Gacha;
@@ -9,7 +10,7 @@ namespace Uta.Server.Application.Gacha;
 public sealed record DrawResult(IReadOnlyList<GachaResult> Results, int GachaCurrency, int ExchangePoints);
 
 public sealed class DrawUseCase(
-    IGachaCatalog catalog, IPlayerRepository players, IGachaRepository gachas, ItemGranter granter, IRandomSource randomSource)
+    MemoryDatabase master, IPlayerRepository players, IGachaRepository gachas, ItemGranter granter, IRandomSource randomSource)
 {
     public async Task<DrawResult> ExecuteAsync(TxContext tx, Ulid playerId, string requestId, int gachaId, int count, int expectedCost)
     {
@@ -18,8 +19,11 @@ public sealed class DrawUseCase(
             throw new UseCaseException(UseCaseError.GachaInvalidCount, "count must be 1 or 10");
         }
 
-        var gacha = catalog.Find(gachaId)
-            ?? throw new UseCaseException(UseCaseError.GachaNotFound, "gacha not found");
+        if (!master.GachaTable.TryFindByGachaId(gachaId, out var gacha))
+        {
+            throw new UseCaseException(UseCaseError.GachaNotFound, "gacha not found");
+        }
+
         var cost = count == 1 ? gacha.SingleCost : gacha.TenCost;
         if (expectedCost != cost)
         {
@@ -29,16 +33,26 @@ public sealed class DrawUseCase(
         var remaining = await players.TrySpendGachaCurrencyAsync(tx, playerId, cost)
             ?? throw new UseCaseException(UseCaseError.GachaNotEnoughCurrency, "not enough gacha currency");
 
+        var normal = master.GachaTableEntryTable
+            .FindRangeByGachaTableIdAndOrder((gacha.NormalTableId, int.MinValue), (gacha.NormalTableId, int.MaxValue)).ToList();
+        var guaranteed = master.GachaTableEntryTable
+            .FindRangeByGachaTableIdAndOrder((gacha.GuaranteedTableId, int.MinValue), (gacha.GuaranteedTableId, int.MaxValue)).ToList();
+        var normalWeights = normal.Select(x => x.Weight).ToList();
+        var guaranteedWeights = guaranteed.Select(x => x.Weight).ToList();
+
         var random = randomSource.Create();
         var results = new List<GachaResult>();
         for (var slot = 1; slot <= count; slot++)
         {
-            var table = (count == 10 && slot == 10) ? gacha.Guaranteed : gacha.Normal;
-            var item = table.Items[GachaPicker.Pick(random, table.Weights)];
-            var result = (await granter.GrantAsync(tx, playerId, item.Kind, item.ItemId)) with { Slot = slot };
-            await gachas.AddHistoryAsync(tx, new GachaHistoryRow(
-                Ulid.NewUlid(), requestId, playerId, gachaId, slot, table.GachaTableId,
-                (int)result.Kind, result.ItemId, (int)result.Outcome, result.Shards, result.SupportPoints));
+            var isGuaranteed = count == 10 && slot == 10;
+            var entries = isGuaranteed ? guaranteed : normal;
+            var weights = isGuaranteed ? guaranteedWeights : normalWeights;
+            var tableId = isGuaranteed ? gacha.GuaranteedTableId : gacha.NormalTableId;
+            var (kind, itemId) = GachaItemMapper.ToGrantedItem(entries[GachaPicker.Pick(random, weights)]);
+            var result = (await granter.GrantAsync(tx, playerId, kind, itemId)) with { Slot = slot };
+            await gachas.AddHistoryAsync(tx, new GachaHistoryRecord(
+                Ulid.NewUlid(), requestId, playerId, gachaId, slot, tableId,
+                (int)result.Kind, result.ItemId, (int)result.ResultKind, result.Shards, result.SupportPoints));
             results.Add(result);
         }
 

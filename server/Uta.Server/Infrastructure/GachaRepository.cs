@@ -1,5 +1,5 @@
 ﻿using Dapper;
-using Uta.Server.Application.Gacha;
+using Uta.Server.Domain.Gacha;
 using VolTech.Server.Transaction;
 
 namespace Uta.Server.Infrastructure;
@@ -38,7 +38,7 @@ public sealed class GachaRepository : IGachaRepository
         return rows.ToDictionary(x => x.GachaId, x => x.Points);
     }
 
-    public async Task AddHistoryAsync(TxContext tx, GachaHistoryRow row)
+    public async Task AddHistoryAsync(TxContext tx, GachaHistoryRecord row)
     {
         await tx.Connection.ExecuteAsync(new CommandDefinition(
             "INSERT INTO gacha_histories " +
@@ -54,7 +54,7 @@ public sealed class GachaRepository : IGachaRepository
                 gachaTableId = row.GachaTableId,
                 itemKind = row.ItemKind,
                 itemId = row.ItemId,
-                outcome = row.Outcome,
+                outcome = row.ResultKind,
                 shards = row.Shards,
                 supportPoints = row.SupportPoints,
             },

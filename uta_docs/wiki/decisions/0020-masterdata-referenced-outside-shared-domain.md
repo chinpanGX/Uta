@@ -6,7 +6,7 @@ updated: 2026-11-08
 
 # ADR 0020: 生成したマスタは Shared.Domain 以外のどの層から参照してもよい
 
-> **accepted**（2026-11-08。ユーザーの判断。[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR [#44](https://github.com/chinpanGX/Uta/pull/44) で 0020〜0022 をまとめて accepted にした）。クライアントの「accepted にしたら直すもの」は同じ PR で直した。サーバーに関わるものは、[ADR 0022](0022-client-external-concretes-in-infrastructure.md) の「accepted にする時点と、進めてよいこと」のとおり、サーバー側の実装計画で直す
+> **accepted**（2026-11-08。ユーザーの判断。[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR [#44](https://github.com/chinpanGX/Uta/pull/44) で 0020〜0022 をまとめて accepted にした）。クライアントの「accepted にしたら直すもの」は同じ PR で直した。サーバーに関わるものは、[ADR 0022](0022-client-external-concretes-in-infrastructure.md) の「accepted にする時点と、進めてよいこと」のとおり、サーバー側の実装計画で直す。サーバー側は[この計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)で実装した
 
 [repository-layout.md](../architecture/repository-layout.md) の「生成物を参照してよいのは Infrastructure だけ」（3章）、「マスタの生成物は Infrastructure に置き、Application へはポート越しに必要な値だけを渡す」（4章）の決定と、クライアントの生成物の置き場（3章「生成したマスタの置き場」のクライアントの部分、5章の `IsExternalInit` を `Uta.Client.Infrastructure` に置く決定）を置き換える。[ADR 0008](0008-shared-domain-and-onion.md) の決定（Shared.Domain は MasterMemory・生成物に依存しない）は変えない。ADR 0008 の理由のうち「`Domain` / `Application` をマスタの形式から独立させられる」は、この ADR で当てはまらなくなる。
 

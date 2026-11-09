@@ -5,12 +5,12 @@ using Uta.Shared.Domain.Produce;
 
 namespace Uta.Server.Api;
 
-/// <summary>ProduceView / ProduceEndSummary を Contracts のレスポンスに変える。</summary>
+/// <summary>ProduceStateResult / ProduceEndResult を Contracts のレスポンスに変える。</summary>
 public static class ProduceResponseMapper
 {
-    public static ProduceStateResponse ToStateResponse(ProduceView view)
+    public static ProduceStateResponse ToStateResponse(ProduceStateResult result)
     {
-        var state = view.State;
+        var state = result.State;
         if (state is null)
         {
             return new ProduceStateResponse(
@@ -18,7 +18,7 @@ public static class ProduceResponseMapper
                 [], [], [], [], null!, null!, null!);
         }
 
-        var exam = view.ExamResult;
+        var exam = result.ExamResult;
         return new ProduceStateResponse(
             state.NextOperationNumber,
             state.Phase,
@@ -32,15 +32,15 @@ public static class ProduceResponseMapper
             state.MaxHp,
             state.ExamRetryLeft,
             state.Deck.OrderBy(x => x.InstanceId).Select(x => new DeckCardDto(x.InstanceId, x.CardId, x.Enhanced)).ToArray(),
-            view.WeekChoices.Select(x => new WeekActionDto(x.SlotIndex, x.Kind, x.Selectable)).ToArray(),
-            view.ClassOptions.Select(x => new ClassOptionDto(x.Index, x.HpCost, x.Param, x.ParamGain, x.GivesCard, x.Selectable)).ToArray(),
+            result.WeekChoices.Select(x => new WeekActionDto(x.SlotIndex, x.Kind, x.Selectable)).ToArray(),
+            result.ClassOptions.Select(x => new ClassOptionDto(x.Index, x.HpCost, x.Param, x.ParamGain, x.GivesCard, x.Selectable)).ToArray(),
             state.OfferCards.ToArray(),
-            state.Lesson is null ? null! : ToLessonDto(state.Lesson, view.NpcScores),
+            state.Lesson is null ? null! : ToLessonDto(state.Lesson, result.NpcScores),
             exam is null ? null! : new ExamResultDto(exam.Kind, exam.Attempt, exam.Score, exam.Rank, exam.NpcScores.ToArray(), exam.Passed),
-            view.End is null ? null! : ToResultResponse(view.End));
+            result.End is null ? null! : ToResultResponse(result.End));
     }
 
-    public static ProduceResultResponse ToResultResponse(ProduceEndSummary end) => new(
+    public static ProduceResultResponse ToResultResponse(ProduceEndResult end) => new(
         (ProduceEnding)(int)end.Ending, end.ExamOutcome, end.EvaluationValue, end.Rank, end.FinalScore, end.FinalRank,
         end.GachaCurrency, end.Gold, end.SupportPoints, end.Exp, end.PlayerLevel, end.PlayerExp);
 

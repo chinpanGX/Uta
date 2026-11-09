@@ -15,3 +15,4 @@
 - [2026-11-08-naming-and-layers-decisions.md](2026-11-08-naming-and-layers-decisions.md) — 命名規則と層の中身（マスタの参照範囲、エンティティと Repository、クライアントの Application）の相談で決まったこと
 - [2026-11-08-presentation-rules-decisions.md](2026-11-08-presentation-rules-decisions.md) — 上の続き。Presentation 層のルール（Args と ViewDto、DtoFactory、読み取り専用のリポジトリの IF）
 - [2026-11-08-naming-remaining-decisions.md](2026-11-08-naming-remaining-decisions.md) — 上の 2 本の続き。Request と Result、`ProduceView` と `Uta` 接頭辞の改名、Catalog の IF をやめる、命名規則の置き場、ADR の分け方
+- [2026-11-09-player-level-from-exp.md](2026-11-09-player-level-from-exp.md) — プレイヤー Lv を経験値の累計から計算する決定（2026-11-03。wiki に未反映）と論点

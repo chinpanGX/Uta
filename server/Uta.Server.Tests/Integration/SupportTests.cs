@@ -18,10 +18,10 @@ public class SupportTests(PostgresFixture postgres)
         "SELECT count(*) FROM game_logs WHERE player_id = $1 AND kind = 'support' AND body->>'reason' = 'support_limit_break'";
 
     /// <summary>登録・ログイン済みのプレイヤーと、カード 1 の初期の所持ID。</summary>
-    private static async Task<(UtaServerFactory Factory, GrpcChannel Channel, PlayerClient Player, string Uid)> StartAsync(
+    private static async Task<(ServerFactory Factory, GrpcChannel Channel, PlayerClient Player, string Uid)> StartAsync(
         PostgresFixture postgres)
     {
-        var factory = new UtaServerFactory(postgres);
+        var factory = new ServerFactory(postgres);
         var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
         await player.CallAsync(service => service.SignUpAsync(), "req-1");
@@ -209,7 +209,7 @@ public class SupportTests(PostgresFixture postgres)
     [Fact]
     public async Task LevelUp_BeforeSignUp_ReturnsPlayerNotCreated()
     {
-        await using var factory = new UtaServerFactory(postgres);
+        await using var factory = new ServerFactory(postgres);
         using var channel = factory.CreateGrpcChannel();
         var player = await PlayerClient.CreateAsync(channel);
 

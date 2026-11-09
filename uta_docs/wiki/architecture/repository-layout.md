@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
@@ -59,7 +59,8 @@ uta/
 │  └─ Uta.Server/            # [決定] 1プロジェクト。フォルダで層を分ける
 │     ├─ Api/                #   MagicOnion のサービス実装
 │     ├─ Application/        #   ユースケース
-│     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）
+│     ├─ Domain/             #   サーバー固有のルール（抽選、天井など）、エンティティとリポジトリの IF（ADR 0021）
+│     ├─ Hosting/            #   起動の組み立て（ServerHost。Program.cs は ServerHost.Run を呼ぶだけ）
 │     ├─ Infrastructure/     #   DB、マスタの読み込み（MasterDataLoader）
 │     │  └─ MasterData/      #   生成物（サーバー用）: Generated/ のソース、masterdata.bytes（埋め込みリソース）、masterdata.manifest.json（ADR 0013）
 │     └─ Migrations/         # [決定] DbUp の SQL（ADR 0012）
@@ -115,7 +116,7 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 |---|---|
 | Shared.Domain | `shared/Uta.Shared.Domain`（テストは `shared/Uta.Shared.Domain.Tests`）。Unity のパッケージ名は `com.uta.shared.domain` |
 | Shared.Contracts | `shared/Uta.Shared.Contracts`（サービスIF・DTO）。パッケージ名は `com.uta.shared.contracts` |
-| Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`。未作成） |
+| Server.Domain | `server/Uta.Server/Domain/`（名前空間 `Uta.Server.Domain`） |
 | Client.Domain | `client/uta/Assets/Scripts/Domain/`（asmdef・名前空間 `Uta.Client.Domain`。2026-11-08 に作った。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。所持データのエンティティとリポジトリの IF を置く。フォルダと名前空間は機能ごと（`Player/`・`Idol/`・`SupportCard/`、`Uta.Client.Domain.Player` など。Infrastructure のリポジトリの実装も同じ分け方。2026-11-08。ユーザーの判断） |
 
 | アセンブリ | 置き場 | 形式 | 参照してよいもの |
@@ -176,17 +177,17 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 
 | フォルダ（名前空間） | 参照してよいもの | 禁止 |
 |---|---|---|
-| `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain` | `Infrastructure` |
-| `Application` | `Domain`、`Uta.Shared.Domain`、`TxContext`（`VolTech.Server.Transaction`。ポートの引数に使う） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
-| `Domain` | `Uta.Shared.Domain` | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
-| `Infrastructure` | `Application`（ポートを実装する）、`Domain`、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、例外として `PlayerDiffCollector.cs` の 1 ファイルだけ `Uta.Shared.Contracts`（下） | `Api` |
+| `Api` | `Application`、`Uta.Shared.Contracts`（DTO）、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`） | `Infrastructure` |
+| `Application` | `Domain`、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、`TxContext`（`VolTech.Server.Transaction`。リポジトリの IF の引数として受け渡す） | `Api`、`Infrastructure`、`Uta.Shared.Contracts` |
+| `Domain` | `Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、`TxContext`（リポジトリの IF の引数。`Connection` に触れない。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | `Api`、`Application`、`Infrastructure`、`Uta.Shared.Contracts`、Npgsql・Dapper |
+| `Infrastructure` | `Application`、`Domain`（リポジトリの IF を実装する）、`Uta.Shared.Domain`、生成したマスタ（`Uta.MasterData`）、例外として `PlayerDiffCollector.cs` の 1 ファイルだけ `Uta.Shared.Contracts`（下） | `Api` |
 
-`Uta.MasterData` を参照してよいのは Infrastructure だけ。Api・Application・Domain は禁止（`ArchitectureTests.MasterData_IsReferencedOnlyByInfrastructure`）。これはサーバーの規則（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md) のサーバー側を実装する計画まで今のまま）。クライアントは下の「生成したマスタの置き場」。
+`Uta.MasterData` は Shared.Domain 以外のどの層から参照してもよい（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。2026-11-08 までは Infrastructure だけだった。[サーバー側の計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)）。`Uta.Shared.Domain` は参照しない（`ArchitectureTests.SharedDomain_DoesNotDependOnMasterData`）。使う側は `MemoryDatabase`（シングルトン）を DI で受ける。クライアントは下の「生成したマスタの置き場」。
 
 - DTO ↔ ドメインの変換は `Api` で行う。`Application` は DTO を知らない
 - **例外: `Infrastructure/PlayerDiffCollector.cs` は `Uta.Shared.Contracts` の DTO（`AppCommonDto`・`PlayerDiffDto`・`OwnedIdolDto`・`OwnedSupportCardDto`）を参照してよい** [決定。2026-11-08。ユーザーの判断]。基盤の `TxContext.GetCollector<T>` が具象型の完全一致を要求し、リポジトリ（Infrastructure）が書き込みの中で記録するため、コレクターを Infrastructure に置くしかない。この 1 ファイル以外では Infrastructure から DTO を参照しない。DTO への写し（2 行）は `Api/PlayerService.cs` の SignIn と重複させる（[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）
-- **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーでは生成物を参照してよいのは Infrastructure だけ。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
-- 起動の組み立て（`Program.cs`・`AddVoltechServer()`）はすべてを参照してよい
+- **生成したマスタの置き場** [決定。2026-11-01。ユーザーの判断]: 生成したマスタ（名前空間 `Uta.MasterData`）は、各側の Infrastructure の下に置く（サーバーは `server/Uta.Server/Infrastructure/MasterData/`）。名前空間を置き場に合わせない（両側で同じ名前空間にして生成を 1 つにするため）のは、「ルート名前空間はアセンブリ名と同じ」の規則の例外として扱う。サーバーの置き場（`Infrastructure/MasterData/`）は、参照してよい層を広げた後（ADR 0020。2026-11-08）も変えない。**クライアントは 2026-11-08 に、専用の asmdef `Uta.Client.MasterData`（`Assets/Scripts/MasterData/`）に移した**（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)）。Shared.Domain 以外の層（Domain・Application・Infrastructure・Presentation・Bootstrap）から参照してよい
+- 起動の組み立て（`Program.cs`・`Hosting/ServerHost.cs`・`AddVoltechServer()`）はすべてを参照してよい。`Hosting/` は層ではないので、アーキテクチャテストの対象にしない
 - 上の「禁止」を、アーキテクチャテストのルール 1 つずつにする（層ごとに 1 件。型がまだ無い層のルールは空の集合で通るので、その層に最初の型が入る計画が「型が 1 つ以上ある」テストを足す）。動作の確認（2026-11-01）: NetArchTest.Rules 1.3.2 は .NET 10・xunit.v3（Microsoft.Testing.Platform）で動き、違反を検出できる
 - クライアントの `Application` の asmdef は **`noEngineReferences` を使わない**。UniTask を参照するため（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)・[ADR 0009](../decisions/0009-client-stack.md)）。UnityEngine の API を使わないことは、コードレビュー（[layers/client.md](../../../.claude/skills/requesting-code-review/layers/client.md)）で守る [決定。2026-10-31。2026-10-28 の「`true` にする」は ADR と食い違っていたので戻した]
 - DI は VContainer、非同期処理は UniTask [決定。[ADR 0009](../decisions/0009-client-stack.md)]
@@ -245,7 +246,7 @@ Uta で足す制約 [決定。[ADR 0008](../decisions/0008-shared-domain-and-oni
 | 種類 | 置き場 | 例 |
 |---|---|---|
 | 両側で一致させるルール | Shared.Domain（`shared/Uta.Shared.Domain`） | カード効果、ターン処理順、計算式、使用可否の判定 |
-| サーバー固有 | Server.Domain（`server/Uta.Server/Domain/`） | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与 |
+| サーバー固有 | Server.Domain（`server/Uta.Server/Domain/`） | ガチャ抽選、交換pt・天井、シード生成、レンタル候補の決定、報酬付与、エンティティ・リポジトリの IF（[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） |
 | クライアント固有 | クライアントの `Application` / `Presentation`。所持データのエンティティとリポジトリの IF は Client.Domain（`Uta.Client.Domain`。2026-11-08。3章、[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)） | 表示用の整形、並び順、演出の制御、UI の状態、ローカル設定。所持データのキャッシュ（エンティティ・リポジトリ） |
 
 置き場の判断基準（上から順に当てはめる）:
@@ -438,8 +439,11 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 **サーバーの骨組み**（手順 4。VolTech-MagicOnion の `docs/guide/server.md` の形に従う）[決定。2026-10-31]:
 
-- `Program.cs`: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
-- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、別のマイグレーションとして足す（`players` の Lv・経験値・通貨の列は 5a の計画、育成アイドル・サポートカードなどのテーブルは 5 番目の計画（プレイヤー・ガチャ・強化））。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
+- `Hosting/ServerHost.cs`（2026-11-09 までは `Program.cs`）: `NpgsqlDataSource` を 1 つ登録し、`IPlayerResolver` の実装（`Infrastructure` の `PlayerResolver`。scoped）を登録して、`AddVoltechServer()` を呼ぶ。Kestrel は HTTP/2 だけで待ち受ける（h2c）。gRPC のヘルスチェック（11.4）もここで足す
+- `Program.cs` は起動の入口だけ（`return ServerHost.Run(args);` と、テストの `WebApplicationFactory<Program>` 用の `public partial class Program;`）（2026-11-09。[計画](../../plans/2026-11-08-server-program-cleanup.md)）。`ServerHost.Run` は、接続文字列を読む → `migrate` なら `Migrate` だけを流して終わる → `ConfigureHost`（DI の検査・ログ・Kestrel）→ `AddServices`（DI の登録）→ `Build` → `MapEndpoints` → `Run` の順に、手順ごとの private static メソッドを呼ぶ
+- `AddServices` の登録の並び（2026-11-08）: マスタ（`MemoryDatabase` と Shared.Domain の型の Factory）→ Infrastructure（DB の接続と、Domain・Application・基盤の IF を `Infrastructure/` で実装したもの。リポジトリ・`IPlayerResolver`・`IRandomSource`）→ 機能ごとのアプリケーション（プロデュース・ガチャ・サポートカード・プレイヤー。`Application/` の置き場のフォルダで分け、Shared.Domain の計算（`ProduceEngine`）は使う機能の区切りに置く）→ 基盤（`AddVoltechServer`）→ ヘルスチェック の順に並べ、見出しのコメントで区切る。1 つのメソッドにし、機能ごとのメソッドや拡張メソッドには分けない（登録は約 30 行で、寿命の組み合わせを 1 か所で読むため）
+- DI の検査（2026-11-08）: `ValidateScopes`・`ValidateOnBuild` は環境名によらず有効にする（ASP.NET Core の既定は Development だけ）。DI に登録しない `PlayerDiffCollector`・MagicOnion のサービスとフィルターは検査の対象外で、実行時に結合テストが確かめる。Production で検査が効くことは `ServiceProviderValidationTests.Build_ProductionWithSingletonCapturingScoped_Throws` が確かめる（既存の結合テストは Development で動くので、検査の行を消しても落ちない）
+- **`players` テーブルは最小の形で作る**: 列は `player_id char(26) PRIMARY KEY` と `created_at timestamptz NOT NULL DEFAULT now()` だけ。所持品・通貨の列（[api-design.md](api-design.md) 3章）は、別のマイグレーションとして足す（`players` の Lv（2026-11-09 に消す。[produce-server.md](server/produce-server.md) 4.1）・経験値・通貨の列は 5a の計画、育成アイドル・サポートカードなどのテーブルは 5 番目の計画（プレイヤー・ガチャ・強化））。`PlayerResolver` は、行があれば `Active`、無ければ `NotCreated` を返す
 - **設定**（`appsettings.json`）: `Voltech:GameDay:ResetHour` は `12`、`Voltech:GameDay:TimeZone` は `"Asia/Tokyo"`（10.2。既定は 0 時・UTC なので必ず書く）。`Voltech:AccessTokenLifetime` は既定の 1 時間のまま
 - **接続文字列**は `ConnectionStrings:Default`（VolTech-MagicOnion のガイドと同じ名前）。リポジトリに入れない。ローカルは `dotnet user-secrets`、Cloud Run は環境変数 `ConnectionStrings__Default`（Secret Manager から渡す。11.4）。`server/.env` は Compose の PostgreSQL のパスワードだけに使う
 - **`migrate`**: 最初の引数が `migrate` なら、Web ホストを起動せずに、`VoltechDatabase.Migrate(接続文字列)` → Uta の DbUp（`Migrations/*.sql` を埋め込みリソースにし、記録は DbUp の既定の `schemaversions`）の順に流して、終了コード 0 で終わる。失敗したら 0 以外。ほかの引数は取らない（接続文字列は上と同じ経路）
