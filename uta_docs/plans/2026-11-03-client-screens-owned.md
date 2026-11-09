@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
-status: done
+status: in-progress
 updated: 2026-11-09
 spec: ../wiki/systems/idol-support.md
 ---
@@ -477,6 +477,13 @@ builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
   - `LimitBreakAsync_DisposedDuringSelection_TouchesNothing`: `PopGates` に gate → `LimitBreakAsync()` を始める → `Dispose()` → gate を `OwnedSelection.ForSupportCard("01D")` で開ける → `"WaitForPop"` のあとに記録が無く、`Calls` が空
   - `BackAsync_PopsPageOnce`: `BackAsync()` を 2 回 → `"PopPage:SupportDetailPresenter"` が 1 回
   - `Plus1Clicked_RunsLevelUp`: `RaisePlus1Clicked()` → `"Confirm:…"` が記録される（イベントの購読）。`Dispose_UnsubscribesEvents`: `Dispose()` のあと `HasSubscribers == false`
+
+### O11. I2・M5 の直し（2026-11-09。ユーザーの判断「両方直す」。この節は O0〜O10 より優先）
+
+- **I2（業務エラーのあとも取り直す）**: `SupportUseCase` の `LevelUpAsync`・`LimitBreakAsync` で、業務エラー（`handledCodes` に入れたコード。`Failed` 以外の `SupportResultKind` に写したもの）のときも、`Rejected(…)` を返す前に `try { await playerUseCase.RefreshAsync(); } catch (InvalidOperationException) { }` を呼ぶ（手元の所持データが古いとき、次の表示を直すため。Presenter は文言のあと `Refresh()` するので、取り直した値が出る）。`Failed`（ほかのエラー・通信の失敗。共通のダイアログは `ApiCore` が出している）では取り直さない。`ISupportUseCase` の `<summary>` も「業務エラーのときも取り直す（失敗しても結果は変えない）」に直す
+  - テスト（`SupportUseCaseTests`）: `LevelUp_ErrorCodes_MapToKinds`・`LimitBreak_ErrorCodes_MapToKinds` は、業務エラーごとに `RefreshCount` が 1 ずつ増えることも確かめる（4 つなら最後に 4、3 つなら 3）。`LevelUp_OtherError_ReturnsFailed` は `RefreshCount == 0`。`LevelUp_BusinessErrorRefreshFails_StillReturnsKind` を足す（`Fail(SupportErrors.NotOwned)` と `RefreshResults` に `() => throw new InvalidOperationException("sign-in failed: x")` → `NotOwned`）
+- **M5（足りない +1・+5 は押せなくする）**: `SupportDetailDtoFactory.Create` の `LevelSteps` で、`target > card.Level` でも `cost = GetLevelUpCost(card.MasterId, card.Level, target)` が `cost.SupportPoints > sp` か `cost.Gold > gold` なら、`Label = 名前 + " → Lv " + target + "（足りません）"`、`Enabled = false`、`TargetLevel = card.Level`、`ConfirmText = null`（`最大` は今のまま。`PlanTarget` が払える目標だけを返すので当たらない）。`SupportLevelPlanner.PlanTarget` は変えない
+  - テスト: `SupportDetailPresenterTests.InitializeAsync_MaxNotAffordable_ShowsShortage` の期待を `"SetLevelButtons:+1 → Lv 4（足りません）,+5 → Lv 8（足りません）,最大（足りません）,False,False,False"` に直す。`SupportDetailDtoFactoryTests` に `Create_NotAffordable_DisablesStep` を足す（`SetPlayer(gold: 1000, supportPoints: 300)` → `+1` は有効（費用 100）、`+5` は `"+5 → Lv 8（足りません）"`・無効・`TargetLevel == 3`・`ConfirmText == null`、`最大` は `"最大 → Lv 6（強化pt 300 / G 150）"`）。`LevelUpAsync_NotEnoughPoints_ShowsInfo` はそのまま（サーバーが断る場合の文言の確かめとして残す）
 
 ## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
 
