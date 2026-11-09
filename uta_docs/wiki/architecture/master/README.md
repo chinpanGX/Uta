@@ -1,7 +1,7 @@
 ---
 title: architecture/master（マスタ設計）の目次
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # architecture/master（マスタ設計）の目次
@@ -53,7 +53,7 @@ MVP で使うマスタのテーブルの一覧。**列と検証の正は「正�
 | `EvaluationRank` | `Rank` | Common | 評価値ごとのランク |
 | `EvaluationRankReward` | `Rank` | **ServerOnly** | ランクごとの報酬 |
 | `OfferRarityWeight` | `Rarity` | Common | カードの選択肢のレアリティの重み |
-| `PlayerLevelExp` | `Level` | Common | プレイヤー Lv に要る経験値 |
+| `PlayerLevelExp` | `Level` | Common | プレイヤー Lv ごとの経験値の累計の範囲（From 〜 To） |
 
 ### 3. 育成アイドル・サポートカード（9 テーブル）
 

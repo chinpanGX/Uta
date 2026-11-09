@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -173,6 +173,7 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 ### 7.5 通信・状態・マスタの扱い [Uta案]
 
 - **所持データのキャッシュ**: Domain のリポジトリ（`IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository`。読むだけの使い手には `IReadOnly<名詞>Repository` を渡す。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。サインインの応答で `IPlayerUseCase` の具象が 3 つとも置き換える（プレイヤーは `Upsert`、アイドル・サポートカードは `Clear()` のあと `Upsert(IReadOnlyList<T>)`）。エンティティは、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの ID を `MasterId`（`int`）として持つ（`PlayerEntity` は `UniqueId` だけ、`IdolEntity`・`SupportCardEntity` は両方）。1 件を引く・置き換える・消すのは `UniqueId` で行い（`IReadOnlyIdolRepository.Find(string uniqueId)`、`IIdolRepository.Upsert` は `UniqueId` が同じものを置き換える）、`FindAll` は `MasterId` の昇順 [決定。2026-11-08。ユーザーの判断。[naming.md](naming.md) 2章]。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`IPlayerUseCase.RefreshAsync`）。サーバーの確定値と食い違わせないため。`Common` を返す RPC では、`Common` の player_diff が先にリポジトリへ反映される（基盤が呼び出し側に返す前に `CommonResponseApplier` が `PlayerDiffApplier` に渡す。[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）。`RefreshAsync` は安全網
+- **プレイヤーLv** [決定。2026-11-09。ユーザーの判断]: サーバーは経験値の累計だけを送り、`PlayerEntity` も `Level` を持たない（`PlayerEntity(uniqueId, exp, gold, supportPoints, gachaCurrency, hasActiveProduce, discardedProduce)`。`Exp` は累計）。表示する Lv は、表示用の値を作る DtoFactory が `Uta.Shared.Domain.Player.PlayerLevelCatalog.GetLevel(exp)` で求める（`PlayerLevelCatalog` は `MemoryDatabase` から Factory が 1 度だけ作り、ルートのスコープにシングルトンで登録する。`ICardCatalog` と同じ扱い）。ホームの上部のステータスはまだ無いので、クライアントの Factory・登録・表示は、それを作る計画で足す [2026-11-09。ユーザーの判断]。計算は Shared.Domain に置いた式を呼ぶだけなので、下の「マスタの値でゲームのルールを計算しない」に当たらない。式とサーバー側の扱いは [produce-server.md](server/produce-server.md) 4.1
 - **マスタ**: 画面が使うマスタの値は、`MemoryDatabase`（`Uta.MasterData`。ルートのスコープにシングルトンで登録してある）を直接読む。Presentation でマスタを読むのは表示用の値を作る DtoFactory で、マスタの値でゲームのルールを計算しない（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。`IGameMaster` は作らない）
 - **スキルカードの表示**: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類・消費・強化済みの印・説明文を出す。効果の予測値は出さない
 - **ブロッカー**: VolTech-MagicOnion の `IApiActivityHandler` を `BusyIndicator` につなぐ（進行中は全面の透明な Image で入力を止める）。画面は個別に包まない
