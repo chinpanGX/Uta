@@ -16,9 +16,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Formation", "FormationPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<FormationPage>("FormationPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<FormationPage>(session, "FormationPage", out var body);
             ScreenLayout.SetupBody(body);
             var header = PrefabBuildUtil.AddHeader(body, "編成");
             var main = ScreenLayout.AddMain(body);

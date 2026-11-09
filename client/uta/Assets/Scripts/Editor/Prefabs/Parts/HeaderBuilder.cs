@@ -17,9 +17,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Header"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Header");
+            var root = session.CreateRoot("Header");
             PrefabBuildUtil.SetRect((RectTransform)root.transform, RectSpec.Top(UiTheme.HeaderHeight));
             PrefabBuildUtil.AddImage(root, UiTheme.Header, true);
             PrefabBuildUtil.AddHorizontal(root, new LayoutSpec(16f, 24, 24, 10, 10, TextAnchor.MiddleCenter, true, true, false, true));

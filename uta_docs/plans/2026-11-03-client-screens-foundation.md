@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 1/6 土台・タイトル・ホーム
-status: ready
+status: done
 updated: 2026-11-08
 spec: ../wiki/architecture/screen-design.md
 ---
@@ -171,11 +171,17 @@ public sealed class HomeEntry : IStartable
   ```
   本文の 6 行（`DeviceAuthGateway`・`PlayerGateway`・`PlayerCache`・`SignInUseCase`・`EnterPlayerUseCase`・`RefreshPlayerUseCase`）は無い
 - `ActiveSceneUi.Dialogs`・`SceneUiInstaller`・`ErrorDialogView` の `DialogService` は `DialogOpener`
+- **取り直しの中で遷移したら、外側はホームへ行かない**（2026-11-08。コードレビュー I1 をユーザーが「この PR で直す」と判断。決めたこと 11 に足す）: `ApiCore` は遷移を await してから例外を投げるので、取り直しの RPC のエラーでユーザーが「タイトルへ」を選んだあとにも、外側の `GoToHomeAsync` がホームを読み込んでいた（内側も「ホームへ」なら 2 回）。`ErrorNavigator` に `private int navigations;` を足す:
+  - `GoToTitleAsync`: `navigations++;` のあと `return scenes.GoToTitleAsync();`
+  - `GoToHomeAsync`: `refreshing` が false のとき、`var before = navigations;` を覚えてから取り直す（`refreshing`・`catch` のログ・`finally` は今のまま）。取り直しのあと `navigations != before` なら（取り直しの中で遷移済み）`return;`。それ以外（`refreshing` が true の再入を含む）は `navigations++;` のあと `await scenes.GoToHomeAsync();`
+  - `OpenStoreAsync` は数えない（シーンを読み込まない）
+  - テスト（`ErrorNavigatorTests`）: `_WhileRefreshing_SkipsRefresh` の期待を直す: `await first` のあとの `log` は `"Refresh"`, `"GoToHome"`（1 回。外側は内側の遷移を見て飛ばす）。最後の `GoToHomeAsync()` で `RefreshCount == 2` は今のまま（ログは `"Refresh"`, `"GoToHome"`, `"Refresh"`, `"GoToHome"`）。新しく `GoToHomeAsync_TitleDuringRefresh_StaysOnTitle`: `fake.RefreshResults.Enqueue(async () => { await navigator.GoToTitleAsync(); throw new InvalidOperationException("sign-in failed: x"); })` → `await navigator.GoToHomeAsync();` → `log` が `"Refresh"`, `"GoToTitle"` だけ（`FakeSceneNavigator` の `GoToTitleAsync` の記録名は既存のものに合わせる）
+  - wiki: `screen-design.md` 8章の `ErrorNavigator` の「ホームへ」の説明に「取り直しの中で別の遷移（タイトルへ・ホームへ）が起きたら、外側はホームを読み込まない [2026-11-08]」を足す
 
 ### R5. タスクの読み替え
 
-- タスク 1: `DialogService` → `DialogOpener`。偽は `CallLog`・`FakeScreenNavigator`・`FakeDialogOpener`・`FakeSceneNavigator`・`FakePlayerUseCase`・`FakeDeviceAuthUseCase`（R6）と `Support/TestMasterData.cs`
-- タスク 2: 「マスタの読み取り口」は無い。作るのは `DiscardNoticeState`・`FeaturedIdolPicker`、`PlayerUseCase` への `DiscardNoticeState` の追加、`ErrorDefinitions` の 18 個。テストは `DiscardNoticeStateTests`・`FeaturedIdolPickerTests`・`PlayerUseCaseTests` の 2 本の追加・`ErrorDefinitionsTests`。計画 0 の前提の確認（`Card.Name`・`CardFace.Description`）は、`Assets/Scripts/MasterData/Generated/Lesson/` を見る
+- タスク 1: `DialogService` → `DialogOpener`。偽は `CallLog`・`FakeScreenNavigator`・`FakeDialogOpener`・`FakeSceneNavigator`・`FakeDeviceAuthUseCase`（R6）と `Support/TestMasterData.cs`。`FakePlayerUseCase` はタスク 2 で作る（`DiscardNoticeState`・`IPlayerUseCase.MarkDiscardNoticeShown` がタスク 2 で入るため。2026-11-08 の実装で直した）
+- タスク 2: 「マスタの読み取り口」は無い。作るのは `DiscardNoticeState`・`FeaturedIdolPicker`、R6 の `Tests/EditMode/Fakes/FakePlayerUseCase.cs`（`DiscardNoticeState` と `MarkDiscardNoticeShown` を足したあと）、`PlayerUseCase` への `DiscardNoticeState` の追加、`ErrorDefinitions` の 18 個。テストは `DiscardNoticeStateTests`・`FeaturedIdolPickerTests`・`PlayerUseCaseTests` の 2 本の追加・`ErrorDefinitionsTests`。計画 0 の前提の確認（`Card.Name`・`CardFace.Description`）は、`Assets/Scripts/MasterData/Generated/Lesson/` を見る
 - タスク 3: `HomeViewDto`・`HomeDtoFactory` を作る。`StubIdolMaster` は作らない。テストに `HomeDtoFactoryTests` を足す
 - タスク 4: `IGameMaster` の登録は無い（R4）。止まる条件 B5 の循環の経路は R4 のとおり
 - タスク 6（wiki）: `screen-design.md` 7.5 の「マスタ」の行と 7.4・8 章は移行計画のタスク 3 が ADR 0020〜0022 の形に直している（この計画で直すのは、本文の記述のうち実装と違うところだけ）。この計画で足して直すもの: 7.8 の「`IGameMaster.GetIdol(idolId).Name`」を「`HomeDtoFactory` がマスタから名前を引き、`ICharacterStage.ShowIdol(idolId, name)` に渡す」に。3.3 の共通ルールを `screen-design.md` に移す仕事は ADR 0022 の accepted の後の別の作業（この計画ではしない）
@@ -213,7 +219,7 @@ public sealed class FakePlayerUseCase : IPlayerUseCase
     public Queue<Func<UniTask<EnterPlayerResult>>> EnterResults { get; }
     /// <summary>RefreshAsync の 1 回ごとの振る舞い。空なら完了済み。失敗は () => throw new InvalidOperationException("sign-in failed: x")。log があれば "Refresh" を記録。</summary>
     public Queue<Func<UniTask>> RefreshResults { get; }
-    /// <summary>既定の EnterAsync が返すエンティティ。既定は new PlayerEntity(1, 0, 0, 0, 0, false, false)。</summary>
+    /// <summary>既定の EnterAsync が返すエンティティ。既定は new PlayerEntity("P1", 1, 0, 0, 0, 0, false, false)（先頭は移行計画 R8 の uniqueId。PlayerUseCaseTests と同じ "P1"）。</summary>
     public PlayerEntity Player { get; set; }
     public int RefreshCount { get; }
     // 偽はリポジトリに書かない。テストは本物のリポジトリ（PlayerRepository など）に Upsert・ReplaceAll で値を入れる
@@ -1490,3 +1496,290 @@ Play モード・手動（Editor、サーバー起動済み）:
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - なし（2026-11-07: ユーザーの確認は決めたこと 3・6・12 に移した。P2 の `TitlePage`・`HomePage` の表（3.1・3.3）と 3.9 は突き合わせ済みで一致）
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
+| 1 | 完了 | `63d3742` | `FakePlayerUseCase` をタスク 2 に移した（計画の書き漏れ。R5 を直した）。`DialogOpenerTests` は `UnityEditor.DialogResult` と曖昧になるので別名 `using` |
+| 2 | 完了 | `26f2834` | なし（前提の `Card.Name`・`CardFace.Description` は読み替えのパスで確かめた） |
+| 3 | 完了 | `55fc04f` | 境界のテストを 4 本追加。`SignInUseCase.cs`・`StubIdolMaster.cs` は R1・R5 で無効なので触っていない。`SceneBuilder` はコンパイルだけ（実行はタスク 4） |
+| 4 | 完了 | `9123490` | `ApiClient.Create` の `activityHandler` は `errorHandler` の直後。ProjectSettings は Editor を閉じず API で入れた。Play は Editor が背面だとループが進まないので `EditorApplication.Step()` でフレームを送って確かめた（手順 5 の 2〜4 は期待どおり）。見た目の手動確認は未 |
+| 5 | 完了 | （コードの変更なし） | IL2CPP のビルド（別の worktree `../Uta-wt/build-foundation`。Editor を閉じない）は成功。`-uta-quit-after-check` は終了コード 0・`connectivity check: OK`。手順 3（引数なしの起動で、タイトル → ホーム → 「準備中です。」・540×960 のウィンドウ）はユーザーが手動で確かめた（2026-11-08） |
+| 6 | 完了 | `da54140` | `Uta.Client.Bootstrap` の参照は「すべて」なので UnityScreenNavigator は足していない。IL2CPP の行は進行役が足した |
+| レビュー 1 | 完了 | `ec998f2`・`63be66e` | C1（Bootstrap に UiRoot が無い）・I1（取り直しの中の遷移のあとに外側がホームへ行く。ユーザーの判断で R4 に足した）・I2（screen-design の古い記述）・M1・M4（一部）を直した。C1 は Play でマスタのバイナリを一時的に外し、Bootstrap に「マスタを読めませんでした: …」が出ることを確かめた。M2（破棄の知らせの順序のテスト）・M3（`ErrorDialogView` の Ok・Home・Title・Store のテスト）・M4 の `ErrorDialogViewTests` の余分な `{ }` は残した |
+| レビュー 2 | 完了 | （このコミット） | Critical 0・Important 1（screen-design.md 8章の `ErrorNavigator` の説明が古い）を直した。Minor 3 件は残した: M1 `navigations` で飛ばす理由のコメント、M2 飛ばしたあとの次の「ホームへ」のログでの確認、M3 `SceneContractTests`・`SceneBuilder` の細部（報告は `uta_docs/reviews/.raw/2026-11-08-client-screens-foundation/code-client-2.md`。Git には入れない） |
+| 最後 | 完了 | （このコミット） | `UiRoot` を足したあとの Bootstrap（`63be66e`）でも、Windows の IL2CPP のビルドと `-uta-quit-after-check`（終了コード 0・`connectivity check: OK`）が通った。引数なしの起動の手動の確認は、`UiRoot` を足す前（`4d30930` の時点）のもの |
+| PR #52 のコメント | 完了 | （このコミット） | 8 章のとおり: ダイアログを USN の Overlay（`DialogPresenter`・`PushOverlayAsync`）で出す、Bootstrap の失敗のダイアログは小さいスコープ、変数名を型名に合わせた。Play で、ホームの「準備中です。」と Bootstrap の「マスタを読めませんでした: …」が `UiRoot/Overlays` の下に出ることを確かめた。Editor は Play に入るときのドメインのリロードを切っているので、2 回目以降の Play では USN が static に持つ前の Play の `PageContainer`（破棄済み）に触って Push が例外になる（Editor だけ。基盤の USN の別の作業）。`PrefabBuildCommands.BuildAll` で `OwnedPage.prefab` にも差分が出たので戻した（別のずれ）。`PlaceholderCharacterStage` の `label` は直していない |
+| 9 章（static の禁止） | 完了 | （このコミット） | 9 章のとおり。CLAUDE.md に決まりを足し、`PrefabBuildUtil` の static のシーンを `PrefabBuildSession` にした。計画に無かったところ: `GachaRowBuilders.cs` の内部の補助 `GachaRowPrefab.Build` にも `session` を足した（`CreateRoot` を呼ぶため）。`BuildAll` は `built 35` で、Prefab の中身は変わらない（`OwnedPage.prefab` の前からのずれは戻した） |
+| レビュー 3 | 完了 | （このコミット） | 8.7 のとおり C1（USN の遷移中にダイアログを押せない。ユーザーの判断で Dialog に CanvasGroup の ignoreParentGroups）・I1・M1・M2・M4 を直した。M3（名前の規則の対象外: 計画が指定した builder・session、UiObjects の GameObject・Transform、ローカル変数の扱い）と M5（−1 で終わるのが VContainer の破棄の順に頼っていること）は残した。確かめたのはバッチモード: Prefab の生成（built 35、変わったのは Dialog.prefab だけ）・EditMode 210 件。遷移の最中に押せることの Play での確認はしていない（Editor が使えなかった） |
+| 8.8（ZLinq） | 完了 | （このコミット） | 計画に無かったこと: (1) NuGetForUnity が起動時の復元で `ZLinq.dll` を取り出さなかったので、`packages.config` の ZLinq の行に `targetFramework="netstandard2.1"` を付けた（ADR 0023 に書いた）、(2) LINQ を書くファイルには `using ZLinq;` が要った（`ThenBy`・`ToList` が見えない。client の 7 ファイルに足した。ADR 0023・CLAUDE.md に書いた）。`unity test` の EditMode 210 件が通った |
+
+## 8. PR #52 のレビューへの対応（2026-11-09。ユーザーのコメント）
+
+この章は本文・読み替えの節より優先する。ユーザーの判断（2026-11-09）:
+
+- ダイアログだけを USN の Overlay に移す（`BusyIndicator` は UiRoot の層のまま）
+- Bootstrap の失敗のダイアログは、小さいスコープで USN を使う
+- 変数名の直しは、この PR で書いたコード全部
+
+### 8.1 ダイアログを USN の Overlay で出す（コメント: `DialogOpener.cs`「USN の管理外で UI の表示はしないで」）
+
+決めたこと 3・4 の「ダイアログは USN の遷移の外の素の層（`UiRoot.DialogLayer`）に出す」をやめ、基盤の `IScreenNavigator.PushOverlayAsync`（`OverlayContainer`）で出す。`BusyIndicator`（通信中のブロッカー）は UiRoot の層のまま。通信のたびに同期で出し入れするので、Addressables の読み込みと遷移の順番待ちを挟まないため（ユーザーの判断）。
+
+```csharp
+// Presentation/Common/DialogArgs.cs
+public sealed class DialogArgs
+{
+    public DialogArgs(string message, IReadOnlyList<string> labels, IReadOnlyList<Color> colors);   // labels と colors は同じ長さ（DialogOpener が作る）
+    public string Message { get; }
+    public IReadOnlyList<string> Labels { get; }
+    public IReadOnlyList<Color> Colors { get; }
+}
+
+// Presentation/Common/DialogPresenter.cs
+[AssetAddress("Dialog")]   // Parts/Dialog.prefab を Addressables の Screens グループに "Dialog" で登録する（8.3）
+public sealed class DialogPresenter : IPresenter, IScreenWithArgs<DialogArgs>
+{
+    [Inject] public DialogPresenter(DialogView dialogView, DialogArgs dialogArgs, IScreenNavigator screenNavigator);
+    // InitializeAsync: dialogView.SetMessage(Message)。Labels を上から dialogView.AddButton("Button" + i, Labels[i], Colors[i]) で並べ、onClick に OnClicked(i) を付ける。完了済みの UniTask を返す
+    // OnClicked(int index): 既に押されていれば何もしない（二度押し）。selectedIndex = index; screenNavigator.PopOverlayAsync(this, playAnimation: false).Forget();
+    // CompleteAsync(): UniTask.FromResult<object>(selectedIndex)。selectedIndex の初期値は -1（押されずに閉じた: シーンを閉じて ScreenNavigator が Dispose された）
+    // Dispose(): 何もしない
+}
+```
+
+- `DialogView`（`Presentation/Common/Parts/`）を `ModalBase` の派生にする（`public sealed class DialogView : ModalBase`）
+  - `SetMessage`・`AddButton` は今のまま
+  - `Destroyed` のイベントと `OnDestroy` は消す（閉じたことは `ScreenNavigator` の Pop／Dispose で分かる）
+  - `ModalBase.panel` には Prefab の子 `Panel` を入れる（8.3）
+- `DialogOpener`:
+  - コンストラクターを `DialogOpener(IScreenNavigator screenNavigator)` にする（C# の null を許す。`FakeDialogOpener` が `base(null)` で作る）。`IDisposable` を実装する
+  - 公開メソッド（`ShowInfoAsync`・`ConfirmAsync`・`ChooseAsync`）・色・`ArgumentException`・FIFO の待ち行列は今のまま
+  - 1 件の表示: `screenNavigator` が null なら `InvalidOperationException("screen navigator is not set")`。そうでなければ次の順に呼ぶ:
+    1. `var presenter = await screenNavigator.PushOverlayAsync<DialogPresenter, DialogArgs>(new DialogArgs(message, labels, colors), playAnimation: false);`
+    2. `var result = await screenNavigator.WaitForPopAsync<object>(presenter);`
+    3. `result is int index ? index : -1` を返す
+  - `Dispose()` で `disposed = true`。待ち行列の順番が来たとき `disposed` なら、Push せずに −1（今の `IsLayerDestroyed` の代わり。シーンのスコープの破棄で呼ばれる）
+- `UiRoot`: `dialogLayer`・`dialogPrefab` のフィールドと `DialogLayer`・`DialogPrefab` のプロパティを消す
+- `SceneUiInstaller`:
+  - `public static void InstallScreens(IContainerBuilder builder, UiRoot uiRoot)` を足す。中身は次のとおり:
+    - null の確かめ（今の `Install` の例外の文のまま）
+    - `RegisterComponent` の 4 行
+    - `ScreenNavigator` の登録
+    - `builder.Register<DialogOpener>(Lifetime.Singleton);`（スコープの破棄で `Dispose` される）
+  - `Install` は `InstallScreens` を呼んでから `PageStack`・`SceneUiActivation` を登録する（`RegisterInstance(new DialogOpener(...))` の行は無くなる）
+- `BootstrapEntry`（Bootstrap の失敗のダイアログ）:
+  - `ShowFailureDialog(UiRoot uiRoot, string message)` は、`uiRoot` が null か破棄済みなら今のまま `false`
+  - そうでなければ `var scope = LifetimeScope.Create(builder => SceneUiInstaller.InstallScreens(builder, uiRoot));` を作り、`scope.Container.Resolve<DialogOpener>().ShowInfoAsync(message).Forget();` を呼んで `true` を返す
+  - マスタの失敗（今の `await new DialogOpener(uiRoot.DialogLayer, ...)` の行）も `ShowFailureDialog(uiRoot, "マスタを読めませんでした: " + e.Message); return;` にする
+  - スコープは Bootstrap のシーンに残す（失敗のあとは先へ進まないので破棄しない）
+
+### 8.2 層の順（`UiRootBuilder`）
+
+- `Overlays` を `BusyBlocker` より後ろ（手前）に置く: `Pages` → `Modals` → `BusyBlocker`（`Busy`）→ `Overlays` → `EventSystem`。通信中でもダイアログを押せるようにするため（今の `Dialogs` の層と同じ理由）
+- 消すもの: `Dialogs` の子、`dialogPrefab` の読み込み、`SetRef` の 2 行（`dialogLayer`・`dialogPrefab`）
+- 「Uta は Overlay に画面を出さない」のコメントは、「ダイアログ（`DialogPresenter`）を出す」に直す
+
+### 8.3 Prefab と Addressables（`DialogBuilder`）
+
+- ルートの `DialogView` は `ModalBase` の派生になるので、`root.AddComponent<DialogView>()` のまま（`Modal` が要るコンポーネントは `RequireComponent` で付く）。`PrefabBuildUtil.SetRef(view, "panel", panel);` を足す。ルートの暗幕の `Image` は今のまま
+- 保存のあと `PrefabBuildUtil.RegisterScreen(AssetPath);`（アドレスは `Dialog`）
+- 生成: Editor を開いたまま `PrefabBuildCommands.BuildAll()` を eval で呼ぶ（CLAUDE.md「ビルド・テスト・実行」）
+  - `NotoSansJP` の差分は `git restore` で戻す（CLAUDE.md）
+  - 変わるのは `Dialog.prefab`・`UiRoot.prefab`・Addressables の `Screens` グループの設定だけのはず。ほかの Prefab の中身が変わったら止まって報告する
+- シーン: `UiRoot` の Prefab のインスタンスなので作り直さなくてよい（`SceneContractTests` が通ること）
+
+### 8.4 テスト
+
+- `DialogOpenerTests` を書き直す。`FakeScreenNavigator` を使い、足りないもの（`PushOverlayAsync` で返す Presenter、`WaitForPopAsync` の結果）は `FakeScreenNavigator` に足す:
+  - `ShowInfo_PushesOverlayWithOk`（Args の Message・Labels が `"OK"`・Colors が `ButtonPrimary`）
+  - `Confirm_Labels_AndResult`（0 → `Positive`、1 → `Negative`）
+  - `Choose_ReturnsIndex`
+  - `Choose_InvalidLabels_Throws`（null・0 個・5 個）
+  - `Queue_SecondWaitsForFirst`（1 つ目の `WaitForPopAsync` が終わるまで 2 つ目を Push しない）
+  - `Result_NotInt_ReturnsMinusOne`
+  - `NullNavigator_Throws`（`InvalidOperationException`）
+  - `Disposed_QueuedRequest_ReturnsMinusOneWithoutPush`
+- `DialogPresenterTests`（新）:
+  - `Initialize_SetsMessageAndButtons`（`Dialog.prefab` を `AssetDatabase.LoadAssetAtPath` で読んで Instantiate し、子の `Button0`… と文字を見る。最後に破棄）
+  - `Click_PopsOnce`（2 回押しても `PopOverlayAsync(this)` は 1 回）
+  - `Complete_ReturnsClickedIndex`
+  - `Complete_NotClicked_ReturnsMinusOne`
+- `PrefabContractTests` を書き直す。確かめること:
+  - `UiRoot` に `dialogLayer`・`dialogPrefab` が無い
+  - `Overlays` が `Busy` より後ろ
+  - `Dialog.prefab` のルートに `DialogView`（`Modal`）があり、`panel` が入っている
+  - Addressables の `Screens` グループに、アドレス `Dialog` がある
+- 引数の形が変わるもの: `ActiveSceneUiTests`・`ErrorDialogViewTests`・`HomePresenterTests`・`ApiActivityBridgeTests`・`FakeDialogOpener`（`base(null)`）。期待する記録は変えない
+- Play（進行役が確かめる）:
+  - タイトル → ホーム →「準備中です。」が `Overlays` の下に出て、閉じる
+  - マスタを外すと、Bootstrap に「マスタを読めませんでした: …」が出る
+
+### 8.5 変数名を型名に合わせる（コメント: `FeaturedIdolPicker.cs`「型名と変数名があっていない」）
+
+- 規則: フィールド・コンストラクターとメソッドの引数の名前は、**型名から先頭の `I` と `ReadOnly` を除き、先頭を小文字にしたもの**にする
+  - 例: `IReadOnlyIdolRepository idolRepository`、`MemoryDatabase memoryDatabase`、`IPlayerUseCase playerUseCase`、`DialogOpener dialogOpener`、`HomeDtoFactory homeDtoFactory`、`ISceneNavigator sceneNavigator`、`IScreenNavigator screenNavigator`、`IObjectResolver objectResolver`、`ITitleView titleView`、`TitlePage titlePage`
+  - 同じ型を 2 つ受けるときは、型名の前に役割の語を足す（無ければ足さない）
+  - 対象外:
+    - コレクション（`IReadOnlyList<T>` など。複数形の名詞にする）
+    - 組み込みの型（`int`・`string`・`bool`）・`UniTask`・`Action`
+    - ループの変数と、短い一時の値のローカル変数
+    - テストのコード（今回は直さない）
+- 範囲:
+  - この PR で作った `Scripts/` のファイルは、全部
+  - この PR で変えた既存のファイル（`PlayerUseCase`・`ApiClient`・`BootstrapEntry`・`SceneBuilder`・`BusyIndicator`・`Parts/` など）は、この PR が足した名前だけ（例: `PlayerUseCase` の `notice` → `discardNoticeState`）
+  - main にある既存の名前は直さない
+- [naming.md](../wiki/architecture/naming.md) に、この規則を 1 項目足す（書き方の決まりの近く。[決定。2026-11-09。ユーザーの判断]）
+- Presenter の `[Inject]` のコンストラクターの引数名も、同じ規則に従う
+
+### 8.6 wiki
+
+- `screen-design.md` で、ダイアログを「素の層（`UiRoot.DialogLayer`）」「USN の遷移の外」に出すと書いた所（7.4・7.5・8章・実装メモ）を、8.1・8.2 の形に直す
+- `BusyIndicator` が UiRoot の層に残る理由を 1 文書く
+- `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0
+
+### 8.7 3 回目のコードレビューへの対応（2026-11-09）
+
+報告は `uta_docs/reviews/.raw/2026-11-08-client-screens-foundation/code-client-3.md`（Git には入れない）。直すのは C1・I1・M1・M2・M4。M3（規則の対象外の扱い）と M5 は直さず、実装メモに残す。
+
+- **C1. USN の遷移の最中もダイアログを押せるようにする**（ユーザーの判断 2026-11-09: 直し方 (a)）
+  - 起きていたこと:
+    - 基盤の USN は、どれかのコンテナーが遷移している間、`Overlays` を含む全部のコンテナーの `CanvasGroup.interactable` を false にする（設定の既定値）
+    - そのため、ページの `InitializeAsync` の通信でエラーのダイアログが出ると、押せずに画面が固まる
+  - `DialogBuilder`: ルートに `CanvasGroup` を付け、`ignoreParentGroups = true` にする（`interactable`・`blocksRaycasts` は true、`alpha` は 1）
+    - USN の `Modal` は `GetOrAddComponent<CanvasGroup>()` で同じものを使う
+    - 二度押しは `DialogPresenter` が止める
+  - `DialogOpener` のクラスの `<summary>` は、実際の動きに合わせる: 「USN の Overlay に出す。ダイアログの Prefab の `CanvasGroup` が `ignoreParentGroups` なので、ページの遷移の最中（`InitializeAsync` の通信のエラーなど）にも押せる」
+  - `PrefabContractTests` に足す: `Dialog` のルートに `CanvasGroup` があり、`ignoreParentGroups` が true
+  - `screen-design.md`（ダイアログの項。181 行付近）に足す: 遷移の最中もダイアログを押せること、その理由と仕組み（USN は遷移中に全コンテナーを止めるので、ダイアログだけ `ignoreParentGroups` で外す）
+- **M2. 暗幕が二重になる**
+  - `DialogBuilder`: ルートの暗幕の `Image`（`PrefabBuildUtil.AddImage(root, UiTheme.Overlay, true)` の行）を消す
+  - 暗幕と入力の遮断は、USN の `DefaultModalBackdrop` に任せる（ほかのモーダルの `ModalBase` と同じ）
+- **I1. 名前の規則の漏れ**（8.5 の規則。テストは対象外）
+  - `ActiveSceneUi`: `Attach(UiRoot root, …)`・`Detach(UiRoot root)` の `root` → `uiRoot`
+    - 中の参照、`nameof(root)` → `nameof(uiRoot)`、`<summary>` の `root` も直す
+    - プロパティ `Root` は今のまま
+  - `StartupLogs`: `SignUp(EnterPlayerResult entered)`・`SignIn(EnterPlayerResult e)` → `enterPlayerResult`、`Failed(Exception e)` → `exception`
+- **M1. Push の途中でシーンが閉じたとき**
+  - `DialogOpener` の 1 件の表示で、`PushOverlayAsync` と `WaitForPopAsync` の 2 つの `await` を `try` で包む
+  - `catch (Exception) when (disposed) { return -1; }` にする（スコープの破棄のあとに届く例外だけを −1 にする）
+  - `DialogOpenerTests` に `PushThrows_AfterDispose_ReturnsMinusOne` を足す
+    - `FakeScreenNavigator` に、`PushOverlayAsync` で例外を投げる口を足す（例: `public Exception PushOverlayException { get; set; }`。null でなければ投げる）
+    - テストの手順: 例外を設定する → `Dispose` してから要求する。順番が来たときに `disposed` だと Push しないので、Push の途中で `Dispose` したのと同じになるよう、`PushOverlayAsync` の中で `Dispose` を呼んでから投げる。具体的には、`FakeScreenNavigator` に `Action OnPushOverlay` を足し、テストで `() => opener.Dispose()` を入れる
+    - 期待: 結果は −1 で、例外は外へ出ない
+- **M4. `PrefabBuildSession` の `<summary>`**: 「PrefabBuildCommands が using で作り」を「`PrefabBuildCommands.BuildAll` が作り、`finally` で `Dispose` する」に直す
+- 確かめ方（進行役が Unity のバッチモードで回す。実装担当は Unity を起動しない）:
+  - `PrefabBuildCommands.BuildAllBatch` で Prefab を作り直す
+    - 変わるのは `Dialog.prefab` だけのはず
+    - `OwnedPage.prefab`・`NotoSansJP` の差分は戻す
+  - EditMode の全件が通る
+  - wiki の Lint のエラー 0
+  - Play での確認（遷移の最中に押せること）は、今回はしない（Editor が使えないため。PR の本文に書く）
+
+### 8.8 ZLinq を入れて、LINQ 形式の実装を ZLinq にする（2026-11-09。ユーザーの依頼）
+
+[ADR 0023](../wiki/decisions/0023-client-linq-with-zlinq.md) のとおり。ユーザーの判断（2026-11-09）:
+
+- 対象は client だけ
+- 置き換える型は `Everything`
+
+1. `client/uta/Assets/packages.config` に 2 行を足す（`manuallyInstalled="true"`。並びはアルファベット順）:
+   - `<package id="ZLinq" version="1.6.1" manuallyInstalled="true" />`
+   - `<package id="ZLinq.DropInGenerator" version="1.6.1" manuallyInstalled="true" />`
+   - 復元（`Assets/Packages/` に DLL が入る）は、進行役が Unity を起動して行う
+2. 対象の asmdef（`Scripts/` の `Domain`・`Application`・`Infrastructure`・`Presentation`・`Bootstrap`・`Editor`、`Tests/EditMode`）に、ZLinq の参照と属性を足す:
+   - `overrideReferences` が true の asmdef は、`precompiledReferences` に `"ZLinq.dll"` を足す（false の asmdef は自動で参照する）
+   - 各 asmdef と同じフォルダに `AssemblyAttributes.cs` を作る。中身は次の 1 行と `using` だけ（名前空間は付けない）:
+     `[assembly: ZLinq.ZLinqDropIn("", ZLinq.DropInGenerateTypes.Everything)]`
+   - `Uta.Client.MasterData`（生成コード）には足さない
+3. `Application/Idol/FeaturedIdolPicker.Pick()` を LINQ の形に書き直す（`using System.Linq;` を足す。キャストと番兵は消す）:
+   ```csharp
+   return idolRepository.FindAll()
+       .OrderByDescending(entity => memoryDatabase.IdolTable.FindByIdolId(entity.MasterId).Rarity)
+       .ThenBy(entity => entity.MasterId)
+       .Select(entity => entity.MasterId)
+       .FirstOrDefault();
+   ```
+4. コンパイルが通らなくなった既存の LINQ（`ValueEnumerable` を `IEnumerable<T>` の引数に渡している所など）は、`ToArray()`・`ToList()` で確定させて直す
+   - 見込みは `CardCatalogFactory`・Editor の 3 ファイル・テストの 2 ファイル
+   - 直し方がそれで済まないもの（ZLinq に無い演算子など）があれば、止まって報告する
+5. `repository-layout.md` の client の依存（NuGet のパッケージ）の記述に、ZLinq の 2 つを足す。`unity7-evaluation.md` 2章に、確かめた結果を進行役が 1 行足す
+6. 確かめ方（進行役が Unity のバッチモードで回す）:
+   - NuGetForUnity の復元
+   - コンパイルのエラー 0
+   - EditMode の全件（`FeaturedIdolPickerTests` を含む）が通る
+   - wiki の Lint のエラー 0
+   - C# 9・Unity 7 で ZLinq の生成コードがコンパイルできなければ、ADR 0023 の「見直す条件」に当たるので、止まってユーザーに報告する
+
+## 9. 変わる static の状態の禁止（2026-11-09。ユーザーの依頼）
+
+この章は本文・読み替えの節・8 章より優先する。ユーザーの判断（2026-11-09）:
+
+- 禁止するのは「値が変わる static の状態」だけ。const、不変の static readonly、状態を持たない static メソッドは使ってよい
+- 対象は client・shared・masterdata（Unity のドメインに入るコード）。server は対象外
+
+理由: Editor は Play に入るときのドメインのリロードを切っている（`DisableDomainReload`）。そのため static の値は Play をまたいで残る（基盤の USN の static で、2 回目の Play の Push が例外になった。8 章の実装メモ）。状態は DI のスコープ（VContainer）に持たせ、寿命をスコープに合わせる（ADR 0020「マスタをルートのスコープより長く生きる場所に置かない」と同じ考え）。
+
+### 9.1 決まり（CLAUDE.md の「C# コーディング規約」に足す。下の文のとおり）
+
+```markdown
+- **値が変わる static の状態を持たない**（`client/`・`shared/`・`masterdata/`。2026-11-09。ユーザーの判断）。Editor は Play に入るときのドメインのリロードを切っているので、static の値は Play をまたいで残るため。状態は DI のスコープ（VContainer）に持たせる
+  - 禁止: `readonly` でない static のフィールド・自動プロパティ（setter のあるもの）、中身を書き換える static のコレクション、static のイベント、自前のシングルトン（`static Instance`）
+  - 使ってよい: `const`、不変の値の `static readonly`・get だけの static プロパティ（一度だけ作って書き換えない。配列・コレクションは中身を書き換えない。公開するなら `IReadOnlyList<T>` などで出す）、状態を持たない static メソッド・static class（`<機能>Mapper`・`<名詞>Factory.Create`・拡張メソッド・テストの `Test<名詞>`）、static ラムダ
+  - 対象外: 生成コード（MagicOnion・MasterMemory の Source Generator・`masterdata/gen.ps1` の出力）と、パッケージ・共通基盤のコード（共通基盤の static は、その基盤のリポジトリで直す）
+```
+
+### 9.2 既存の設計の見直し（2026-11-09 に洗った結果）
+
+| 場所 | 中身 | 判定 | すること |
+|---|---|---|---|
+| `Scripts/Editor/Prefabs/PrefabBuildUtil.cs` の `private static Scene sessionScene` | Prefab を作る作業用のプレビューのシーン。`BeginSession`・`EndSession` が書き換える | 禁止に当たる | 9.3 のとおりインスタンスに直す |
+| `Scripts/Infrastructure/Api/ServiceClientFactory.SerializerProvider`（get だけの static プロパティ） | 一度だけ作るシリアライザーの設定。書き換えない | 使ってよい | なし |
+| `Scripts/Presentation/Common/UiTheme` の `static readonly Color`・`Vector2` | 不変の値 | 使ってよい | なし |
+| `shared/Uta.Shared.Contracts` の `<機能>Errors` の `static readonly ErrorCode` | 不変の値 | 使ってよい | なし |
+| `shared/Uta.Shared.Domain` の `CardDefinition.NoConditions`・`NoChildren`（長さ 0 の配列）、`OfferPool.RarityOrder`（配列） | private で、書き換えない | 使ってよい | なし |
+| `MagicOnionClientInitializer`（`[MagicOnionClientGeneration]` の生成コードの static） | 生成コード | 対象外 | なし |
+| 基盤の UnityScreenNavigator のコンテナーの一覧（static） | 前の Play の破棄済みのコンテナーが残る | 対象外（共通基盤） | 別の作業（基盤のリポジトリで直す） |
+| まだ実装していない計画（gacha・owned・formation・week・lesson）の static | owned の `OwnedSelection.Cancelled`（不変の 1 インスタンス）、各計画の `static (c, r) => …` のラムダ、テストの `Test<名詞>`・`GachaFixtures` の static メソッド | 使ってよい | なし（`OwnedSelection` は不変の型のままにする） |
+| 計画 `2026-11-03-client-scenes.md` の `BootstrapPlayMode` の static コンストラクター | Unity の `EditorSceneManager.playModeStartScene` に入れるだけで、自分の static の状態は持たない | 使ってよい | なし |
+
+### 9.3 `PrefabBuildSession`（`Scripts/Editor/Prefabs/PrefabBuildSession.cs`。名前空間 `Uta.Client.Editor.Prefabs`）
+
+```csharp
+/// <summary>Prefab を作る間だけ開くプレビューのシーン。PrefabBuildCommands が using で作り、各 Builder に渡す。</summary>
+public sealed class PrefabBuildSession : IDisposable
+{
+    public PrefabBuildSession();                 // EditorSceneManager.NewPreviewScene() を開いて持つ
+    /// <summary>今の PrefabBuildUtil.CreateRoot の中身（RectTransform 付きの GameObject を作り、このシーンへ移し、Stretch にして scale 1）。Dispose のあとなら InvalidOperationException("prefab build session is disposed: " + name)。</summary>
+    public GameObject CreateRoot(string name);
+    public void Dispose();                        // シーンが有効なら ClosePreviewScene。2 回目は何もしない
+}
+```
+
+- `PrefabBuildUtil`:
+  - `sessionScene`・`BeginSession`・`EndSession`・`CreateRoot` を消す
+  - `CreatePage<TPage>(string name, out RectTransform body)`・`CreateModal<TModal>(string name, out RectTransform panel)` は、先頭に `PrefabBuildSession session` を足し、中の `CreateRoot(name)` を `session.CreateRoot(name)` にする
+  - ほかのメソッドは今のまま（static のまま。状態を持たない）
+- `IPrefabBuilder.Build()` を `Build(PrefabBuildSession session)` にする
+- 各 Builder（`Scripts/Editor/Prefabs/Parts/`・`Screens/` の全部）:
+  - `Build()` → `Build(PrefabBuildSession session)`
+  - `PrefabBuildUtil.CreateRoot(` → `session.CreateRoot(`
+  - `PrefabBuildUtil.CreatePage<…>(` → `PrefabBuildUtil.CreatePage<…>(session, `（`CreateModal` も同じ）
+  - 中身はほかに変えない
+- `PrefabBuildCommands`:
+  - `PrefabBuildUtil.BeginSession();` と `RunCleanup(PrefabBuildUtil.EndSession)` をやめる
+  - `var session = new PrefabBuildSession();` を作って各 `builder.Build(session)` に渡し、今 `EndSession` を呼んでいる場所（`finally` の中の `RunCleanup`）で `RunCleanup(session.Dispose)` を呼ぶ（呼ぶ順は今のまま）
+- ほかに `PrefabBuildUtil.CreateRoot`・`BeginSession`・`EndSession`・`IPrefabBuilder.Build()` を呼ぶ所（Editor・テスト）があれば、同じ形に直す。Grep で 0 件にする
+- 確かめ方:
+  - `unity recompile` のエラー 0
+  - `PrefabBuildCommands.BuildAll()` が `built 35` を返し、Prefab の中身が変わらない（`git status` で `client/uta/Assets/Prefabs/` に差分が無い。`OwnedPage.prefab` の `TabSupport`・`TabIdols` の入れ替えは前からのずれなので、出たら戻す。`NotoSansJP` も戻す）
+  - EditMode の全件が通る
+
+### 9.4 ほかに直すもの
+
+- コードレビューのチェックリスト `.claude/skills/requesting-code-review/layers/client.md`・`layers/shared.md` に、9.1 の決まりを 1 項目ずつ足す（「値が変わる static の状態が無いか（CLAUDE.md の C# コーディング規約）」）
+- `uta_docs/wiki/architecture/unity7-evaluation.md`:
+  - 4章の「Editor が背面だと Play のループが進まない」の項の近くに、1 項目足す。中身は次の 3 つ: Enter Play Mode Options でドメインのリロードを切っていること、そのため static の値が Play をまたいで残ること、基盤の USN の static で 2 回目の Play の Push が例外になったこと（`EditorUtility.RequestScriptReload()` で直る）
+  - 82 行の `UAL0010`・`UAL0013` の項に、「Uta のコードは値が変わる static の状態を持たない（CLAUDE.md）。警告が出ている `CardDefinition` の static は不変の値」と足す
+- `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0

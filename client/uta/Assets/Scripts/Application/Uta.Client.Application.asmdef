@@ -13,7 +13,8 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "MasterMemory.dll",
-        "MessagePack.dll"
+        "MessagePack.dll",
+        "ZLinq.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [],

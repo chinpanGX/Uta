@@ -18,9 +18,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("ListRow"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("ListRow");
+            var root = session.CreateRoot("ListRow");
             var image = PrefabBuildUtil.AddImage(root, UiTheme.Panel, true);
             var button = PrefabBuildUtil.AddButton(root, image);
             PrefabBuildUtil.SetLayout(root, minHeight: UiTheme.RowHeight, preferredHeight: UiTheme.RowHeight);

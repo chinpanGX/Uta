@@ -13,9 +13,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot(Name);
+            var root = session.CreateRoot(Name);
             var text = PrefabBuildUtil.AddText(root, "山札 0 枚",
                 ScreenLayout.Heading);
             PrefabBuildUtil.SetLayout(root, minHeight: 60f, preferredHeight: 60f);

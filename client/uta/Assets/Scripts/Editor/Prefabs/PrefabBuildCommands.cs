@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ZLinq;
 using UnityEditor;
 using UnityEngine;
 
@@ -22,18 +23,18 @@ namespace Uta.Client.Editor.Prefabs
 
             var builders = CollectBuilders();
 
-            PrefabBuildUtil.BeginSession();
+            var session = new PrefabBuildSession();
             try
             {
                 foreach (var builder in builders)
                 {
-                    builder.Build();
+                    builder.Build(session);
                 }
             }
             finally
             {
                 // 後片付けの失敗はログに出すだけにし、Build の元の例外を隠さない
-                RunCleanup(PrefabBuildUtil.EndSession);
+                RunCleanup(session.Dispose);
                 RunCleanup(FontAssets.ClearDynamicData);
                 RunCleanup(AssetDatabase.SaveAssets);
             }

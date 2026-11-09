@@ -8,12 +8,12 @@ namespace Uta.Client.Bootstrap
 {
     public sealed class SceneNavigator : ISceneNavigator
     {
-        private readonly LifetimeScope root;
+        private readonly LifetimeScope lifetimeScope;
         private bool loading;
 
-        public SceneNavigator(LifetimeScope root)
+        public SceneNavigator(LifetimeScope lifetimeScope)
         {
-            this.root = root;
+            this.lifetimeScope = lifetimeScope;
         }
 
         public UniTask GoToTitleAsync()
@@ -41,7 +41,7 @@ namespace Uta.Client.Bootstrap
             loading = true;
             try
             {
-                using (LifetimeScope.EnqueueParent(root))
+                using (LifetimeScope.EnqueueParent(lifetimeScope))
                 {
                     var operation = SceneManager.LoadSceneAsync(sceneName);
                     if (operation == null)

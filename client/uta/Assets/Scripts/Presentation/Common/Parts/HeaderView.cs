@@ -9,5 +9,14 @@ namespace Uta.Client.Presentation.Common.Parts
         [SerializeField] private ButtonView backButton;
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private RectTransform rightSlot;
+
+        public ButtonView BackButton => backButton;
+
+        public RectTransform RightSlot => rightSlot;
+
+        public void SetTitle(string text)
+        {
+            titleText.text = text;
+        }
     }
 }

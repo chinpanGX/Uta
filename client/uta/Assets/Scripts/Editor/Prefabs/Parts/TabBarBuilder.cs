@@ -17,9 +17,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("TabBar"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("TabBar");
+            var root = session.CreateRoot("TabBar");
             PrefabBuildUtil.SetRect((RectTransform)root.transform, RectSpec.Top(UiTheme.TabHeight));
             PrefabBuildUtil.AddImage(root, UiTheme.Header, true);
             PrefabBuildUtil.AddHorizontal(root, new LayoutSpec(0f, 0, 0, 0, 0, TextAnchor.MiddleCenter, true, true, true, true));

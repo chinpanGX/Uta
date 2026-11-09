@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using ZLinq;
 using NUnit.Framework;
 using Uta.Client.Infrastructure;
 using DomainLesson = Uta.Shared.Domain.Lesson;

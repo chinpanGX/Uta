@@ -13,9 +13,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot(Name);
+            var root = session.CreateRoot(Name);
             var text = PrefabBuildUtil.AddText(root, "カード名　消費 4\n説明文",
                 new TextSpec(UiTheme.FontSmall, UiTheme.Text, TextAlignmentOptions.TopLeft, true, false));
             // 高さは TMP の preferredHeight（親の VLG が制御する）。最小だけ決める

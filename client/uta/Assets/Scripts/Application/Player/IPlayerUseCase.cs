@@ -20,5 +20,8 @@ namespace Uta.Client.Application.Player
         /// 応答の ID が null のときは EnterAsync と同じく ArgumentNullException（リポジトリは変えない）。
         /// </summary>
         UniTask RefreshAsync();
+
+        /// <summary>破棄の知らせを出したと記録する（DiscardNoticeState.MarkShown）。通信しない。</summary>
+        void MarkDiscardNoticeShown();
     }
 }

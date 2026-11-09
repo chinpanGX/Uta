@@ -6,7 +6,7 @@ using Uta.Client.Presentation.Common.Parts;
 
 namespace Uta.Client.Editor.Prefabs.Parts
 {
-    /// <summary>共通部品 Dialog（確認・お知らせ・選択。ボタンは DialogService が実行時に並べる）を作る。</summary>
+    /// <summary>Dialog（確認・お知らせ・選択。USN の Overlay に出る。ボタンは DialogPresenter が実行時に並べる）を作る。</summary>
     public sealed class DialogBuilder : IPrefabBuilder
     {
         public int Order
@@ -19,11 +19,15 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Dialog"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Dialog");
-            // 下の入力を止める
-            PrefabBuildUtil.AddImage(root, UiTheme.Overlay, true);
+            var root = session.CreateRoot("Dialog");
+            // USN の遷移の最中も押せるよう、親の CanvasGroup（遷移中は interactable=false）を外す。暗幕と入力の遮断は USN の DefaultModalBackdrop に任せる
+            var canvasGroup = root.AddComponent<CanvasGroup>();
+            canvasGroup.ignoreParentGroups = true;
+            canvasGroup.interactable = true;
+            canvasGroup.blocksRaycasts = true;
+            canvasGroup.alpha = 1f;
             var view = root.AddComponent<DialogView>();
 
             // 高さは ContentSizeFitter が決める
@@ -43,10 +47,12 @@ namespace Uta.Client.Editor.Prefabs.Parts
                 throw new InvalidOperationException("part not found: Button");
             }
 
+            PrefabBuildUtil.SetRef(view, "panel", panel);
             PrefabBuildUtil.SetRef(view, "messageText", messageText);
             PrefabBuildUtil.SetRef(view, "buttonList", buttonList);
             PrefabBuildUtil.SetRef(view, "buttonPrefab", buttonPrefab.GetComponent<ButtonView>());
             PrefabBuildUtil.SavePrefab(root, AssetPath);
+            PrefabBuildUtil.RegisterScreen(AssetPath);
         }
     }
 }

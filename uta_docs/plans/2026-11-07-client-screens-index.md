@@ -37,7 +37,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 | 1 | [計画 0 マスタ スキルカードの名前と説明文](2026-11-03-masterdata-card-text.md) | `Card.Name`・`CardFace.Description` の列と 36 枚の値（masterdata・サーバーのテスト） | なし | `main` | done |
 | 2 | [P1 共通部品・Addressables・TextMeshPro](2026-11-07-client-prefabs-common.md) | スパイク、TMP Settings、共通部品の Prefab 10 個（`UiRoot` を含む）、生成の補助 `PrefabBuildUtil`、`PrefabContractTests`、`BuildCommands` の `BuildPlayerContent` | なし（計画 0 の型は使わない）。PR #28・#29 と計画 0 の実装 PR が main にマージ済み | `main`（PR #28・#29 と計画 0 がマージ済みのとき。3章・確認 1） | done |
 | 3 | [P2 Title・Home・ガチャ・所持一覧の Prefab](2026-11-07-client-prefabs-screens-a.md) | 画面の Prefab 7 個・行の Prefab 3 個・View の骨格 8 型、画面の補助 `ScreenLayout` | P1 | P1 の実装ブランチ | done |
-| 4 | [foundation 土台・タイトル・ホーム](2026-11-03-client-screens-foundation.md) | ダイアログ・ブロッカー・`PageStack`・シーンのスコープへの登録、`IGameMaster`、業務エラー、タイトル・ホーム、`Bootstrap`・`Title`・`Home` シーンの `UiRoot` | 計画 0・P1・P2 | P2 の実装ブランチ（計画 0 は main にある前提） | ready |
+| 4 | [foundation 土台・タイトル・ホーム](2026-11-03-client-screens-foundation.md) | ダイアログ・ブロッカー・`PageStack`・シーンのスコープへの登録、`IGameMaster`、業務エラー、タイトル・ホーム、`Bootstrap`・`Title`・`Home` シーンの `UiRoot` | 計画 0・P1・P2 | P2 の実装ブランチ（計画 0 は main にある前提） | done |
 | 5 | [gacha ガチャ](2026-11-03-client-screens-gacha.md) | ガチャのページ・排出率・結果のモーダル、`IGachaPort`、`PortResult<T>`・`ServerReasons`・`FakeGameMaster` | foundation・P2 | foundation の実装ブランチ | ready |
 | 6 | [owned 所持一覧・サポートカードの強化](2026-11-03-client-screens-owned.md) | 所持一覧（選択モード付き）・サポートカードの詳細と強化、`DisplayText`、`FormationValidator.IsPlanCompatible`（shared/） | gacha | gacha の実装ブランチ | ready |
 | 7 | [P3 編成・プロデュースの Prefab](2026-11-07-client-prefabs-screens-b.md) | 画面の Prefab 10 個・行の Prefab 5 個・View の骨格 | P1・P2（C# の型には依存しない） | owned の実装ブランチ | done |

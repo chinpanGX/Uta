@@ -17,9 +17,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Button"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Button");
+            var root = session.CreateRoot("Button");
             PrefabBuildUtil.SetRect((UnityEngine.RectTransform)root.transform, RectSpec.Center(600f, UiTheme.ButtonHeight));
             var image = PrefabBuildUtil.AddImage(root, UiTheme.ButtonPrimary, true);
             var button = PrefabBuildUtil.AddButton(root, image);

@@ -19,7 +19,9 @@
         "Unity.Addressables",
         "Unity.Addressables.Editor",
         "Uta.Client.Domain",
-        "Uta.Client.MasterData"
+        "Uta.Client.MasterData",
+        "Uta.Client.Bootstrap",
+        "VContainer"
     ],
     "includePlatforms": [
         "Editor"
@@ -34,7 +36,8 @@
         "MessagePack.dll",
         "MagicOnion.Abstractions.dll",
         "MagicOnion.Client.dll",
-        "Grpc.Core.Api.dll"
+        "Grpc.Core.Api.dll",
+        "ZLinq.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

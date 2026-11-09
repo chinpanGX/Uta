@@ -15,13 +15,15 @@ namespace Uta.Client.Infrastructure.Player
         private readonly IPlayerRepository players;
         private readonly IIdolRepository idols;
         private readonly ISupportCardRepository supportCards;
+        private readonly DiscardNoticeState discardNoticeState;
 
-        public PlayerUseCase(IPlayerService player, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards)
+        public PlayerUseCase(IPlayerService player, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards, DiscardNoticeState discardNoticeState)
         {
             this.player = player;
             this.players = players;
             this.idols = idols;
             this.supportCards = supportCards;
+            this.discardNoticeState = discardNoticeState;
         }
 
         /// <summary>
@@ -85,6 +87,11 @@ namespace Uta.Client.Infrastructure.Player
             Apply(signIn.Value);
         }
 
+        public void MarkDiscardNoticeShown()
+        {
+            discardNoticeState.MarkShown();
+        }
+
         private async UniTask<bool> SignUpOrThrowAsync()
         {
             var result = await player.SignUpAsync().ToResult();
@@ -113,6 +120,7 @@ namespace Uta.Client.Infrastructure.Player
             idols.Upsert(idolEntities);
             supportCards.Clear();
             supportCards.Upsert(supportCardEntities);
+            discardNoticeState.Reset();
         }
     }
 }

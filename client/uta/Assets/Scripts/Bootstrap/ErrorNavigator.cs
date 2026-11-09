@@ -1,27 +1,61 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Uta.Client.Application.Navigation;
+using Uta.Client.Application.Player;
+using VContainer;
 using VolTech.Client;
 
 namespace Uta.Client.Bootstrap
 {
     public sealed class ErrorNavigator : IErrorNavigator
     {
-        private readonly ISceneNavigator scenes;
+        private readonly ISceneNavigator sceneNavigator;
+        private readonly IObjectResolver objectResolver;
+        private bool refreshing;
+        private int navigations;
 
-        public ErrorNavigator(ISceneNavigator scenes)
+        // IPlayerUseCase をコンストラクターで受けない:
+        // ApiClient のファクトリー → IErrorNavigator → IPlayerUseCase → IPlayerService → ApiClient の循環になるため
+        public ErrorNavigator(ISceneNavigator sceneNavigator, IObjectResolver objectResolver)
         {
-            this.scenes = scenes;
+            this.sceneNavigator = sceneNavigator;
+            this.objectResolver = objectResolver;
         }
 
         public UniTask GoToTitleAsync()
         {
-            return scenes.GoToTitleAsync();
+            navigations++;
+            return sceneNavigator.GoToTitleAsync();
         }
 
-        public UniTask GoToHomeAsync()
+        public async UniTask GoToHomeAsync()
         {
-            return scenes.GoToHomeAsync();
+            if (!refreshing)
+            {
+                var before = navigations;
+                refreshing = true;
+                try
+                {
+                    await objectResolver.Resolve<IPlayerUseCase>().RefreshAsync();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[Uta] refresh on go-to-home failed: " + e.Message);
+                }
+                finally
+                {
+                    refreshing = false;
+                }
+
+                if (navigations != before)
+                {
+                    return;
+                }
+            }
+
+            navigations++;
+            await sceneNavigator.GoToHomeAsync();
         }
 
         public UniTask OpenStoreAsync()

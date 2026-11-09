@@ -1,60 +1,58 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityScreenNavigator;
 using Uta.Client.Application.Auth;
-using Uta.Client.Application.Navigation;
 using Uta.Client.Application.Player;
-using Uta.Client.Presentation.Startup;
-using VContainer.Unity;
+using VContainer;
+using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;
 
 namespace Uta.Client.Presentation.Title
 {
-    public sealed class TitlePresenter : IStartable, IDisposable
+    [AssetAddress(nameof(TitlePage))]
+    public sealed class TitlePresenter : IPresenter
     {
-        private readonly TitleView view;
-        private readonly IDeviceAuthUseCase deviceAuth;
-        private readonly IPlayerUseCase player;
-        private readonly ConnectivityCheck connectivityCheck;
-        private readonly ISceneNavigator navigator;
-        private readonly StartupOptions options;
+        private readonly ITitleView titleView;
+        private readonly IDeviceAuthUseCase deviceAuthUseCase;
+        private readonly IPlayerUseCase playerUseCase;
+        private readonly ISceneNavigator sceneNavigator;
         private bool running;
         private bool disposed;
 
-        public TitlePresenter(TitleView view, IDeviceAuthUseCase deviceAuth, IPlayerUseCase player, ConnectivityCheck connectivityCheck, ISceneNavigator navigator, StartupOptions options)
+        [Inject]
+        public TitlePresenter(TitlePage titlePage, IDeviceAuthUseCase deviceAuthUseCase, IPlayerUseCase playerUseCase, ISceneNavigator sceneNavigator)
+            : this((ITitleView)titlePage, deviceAuthUseCase, playerUseCase, sceneNavigator)
         {
-            this.view = view;
-            this.deviceAuth = deviceAuth;
-            this.player = player;
-            this.connectivityCheck = connectivityCheck;
-            this.navigator = navigator;
-            this.options = options;
         }
 
-        public void Start()
+        public TitlePresenter(ITitleView titleView, IDeviceAuthUseCase deviceAuthUseCase, IPlayerUseCase playerUseCase, ISceneNavigator sceneNavigator)
         {
-            view.Tapped += OnTapped;
-            view.SetStatus("Tap to start");
-            if (options.QuitAfterCheck)
-            {
-                RunAsync(true).Forget();
-            }
+            this.titleView = titleView;
+            this.deviceAuthUseCase = deviceAuthUseCase;
+            this.playerUseCase = playerUseCase;
+            this.sceneNavigator = sceneNavigator;
+        }
+
+        public UniTask InitializeAsync()
+        {
+            titleView.StartClicked += OnStartClicked;
+            titleView.SetStatus("タップしてスタート");
+            titleView.SetStartInteractable(true);
+            return UniTask.CompletedTask;
         }
 
         public void Dispose()
         {
             disposed = true;
-            if (view != null)
-            {
-                view.Tapped -= OnTapped;
-            }
+            titleView.StartClicked -= OnStartClicked;
         }
 
-        private void OnTapped()
+        private void OnStartClicked()
         {
-            RunAsync(false).Forget();
+            StartAsync().Forget();
         }
 
-        private async UniTaskVoid RunAsync(bool diagnostic)
+        public async UniTask StartAsync()
         {
             if (running)
             {
@@ -62,64 +60,47 @@ namespace Uta.Client.Presentation.Title
             }
 
             running = true;
-            view.SetInteractable(false);
-            view.SetStatus("Connecting...");
-            var succeeded = false;
             try
             {
-                Log("startup: start");
-                var registered = await deviceAuth.SignInAsync();
-                if (disposed || view == null)
+                titleView.SetStartInteractable(false);
+                titleView.SetStatus("接続中…");
+                Debug.Log("[Uta] startup: start");
+                try
                 {
+                    var registered = await deviceAuthUseCase.SignInAsync();
+                    if (disposed)
+                    {
+                        return;
+                    }
+
+                    Debug.Log("[Uta] " + StartupLogs.Device(registered));
+                    var entered = await playerUseCase.EnterAsync(registered);
+                    if (disposed)
+                    {
+                        return;
+                    }
+
+                    Debug.Log("[Uta] " + StartupLogs.SignUp(entered));
+                    Debug.Log("[Uta] " + StartupLogs.SignIn(entered));
+                    await sceneNavigator.GoToHomeAsync();
                     return;
                 }
-                Log(registered ? "device: registered" : "device: token issued");
-                var entered = await player.EnterAsync(registered);
-                if (disposed || view == null)
+                catch (Exception e)
                 {
-                    return;
-                }
-                Log("sign-up: " + (!entered.SignedUp ? "skipped" : entered.Created ? "created" : "already exists"));
-                var s = entered.Player;
-                Log("sign-in: ok level=" + s.Level + " exp=" + s.Exp + " gold=" + s.Gold + " supportPoints=" + s.SupportPoints + " gachaCurrency=" + s.GachaCurrency + " idols=" + entered.IdolCount + " supportCards=" + entered.SupportCardCount + " hasActiveProduce=" + s.HasActiveProduce + " discardedProduce=" + s.DiscardedProduce);
+                    if (disposed)
+                    {
+                        return;
+                    }
 
-                if (diagnostic)
-                {
-                    succeeded = await connectivityCheck.RunAsync(Log);
-                }
-                else
-                {
-                    await navigator.GoToHomeAsync();
-                    return;
+                    Debug.Log("[Uta] " + StartupLogs.Failed(e));
+                    titleView.SetStatus("接続に失敗しました: " + e.Message + "\nタップしてもう一度");
+                    titleView.SetStartInteractable(true);
                 }
             }
-            catch (Exception e)
+            finally
             {
-                Log("start: FAILED " + e.GetType().FullName + ": " + e.Message);
-                if (view != null)
-                {
-                    view.SetStatus("Failed: " + e.Message + "\nTap to retry");
-                }
+                running = false;
             }
-
-            if (diagnostic)
-            {
-                UnityEngine.Application.Quit(succeeded ? 0 : 1);
-                return;
-            }
-
-            if (view == null)
-            {
-                return;
-            }
-
-            view.SetInteractable(true);
-            running = false;
-        }
-
-        private static void Log(string line)
-        {
-            Debug.Log("[Uta] " + line);
         }
     }
 }

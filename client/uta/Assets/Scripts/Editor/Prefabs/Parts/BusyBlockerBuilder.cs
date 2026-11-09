@@ -15,9 +15,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("BusyBlocker"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("BusyBlocker");
+            var root = session.CreateRoot("BusyBlocker");
             var image = PrefabBuildUtil.AddImage(root, UiTheme.Transparent, true);
             // 通信中だけ BusyIndicator が有効にする
             image.enabled = false;

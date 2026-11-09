@@ -14,9 +14,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.PartPath(Name);
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot(Name);
+            var root = session.CreateRoot(Name);
             PrefabBuildUtil.AddImage(root, UiTheme.Panel, false);
             // flexibleHeight 0: HLG の伸ばす H が true なので、明示しないと flexibleHeight 1 になり、親の VLG の余りを吸う
             PrefabBuildUtil.SetLayout(root, minHeight: 130f, preferredHeight: 130f, flexibleHeight: 0f);

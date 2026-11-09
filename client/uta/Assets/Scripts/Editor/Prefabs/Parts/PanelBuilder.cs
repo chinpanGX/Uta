@@ -15,9 +15,9 @@ namespace Uta.Client.Editor.Prefabs.Parts
             get { return PrefabBuildUtil.PartPath("Panel"); }
         }
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var root = PrefabBuildUtil.CreateRoot("Panel");
+            var root = session.CreateRoot("Panel");
             PrefabBuildUtil.AddImage(root, UiTheme.Panel, true);
             PrefabBuildUtil.AddVertical(root, LayoutSpec.Column);
             PrefabBuildUtil.SavePrefab(root, AssetPath);

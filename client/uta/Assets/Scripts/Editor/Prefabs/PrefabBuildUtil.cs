@@ -17,8 +17,6 @@ namespace Uta.Client.Editor.Prefabs
         public const string PartsFolder = "Assets/Prefabs/Parts";
         public const string ScreensFolder = "Assets/Prefabs/Screens";
 
-        private static Scene sessionScene;
-
         public static string PartPath(string partName)
         {
             return PartsFolder + "/" + partName + ".prefab";
@@ -31,42 +29,7 @@ namespace Uta.Client.Editor.Prefabs
 
         // --- 作業用のシーン ---
 
-        /// <summary>プレビューのシーンを開いて保持する。既に開いていれば何もしない。</summary>
-        public static void BeginSession()
-        {
-            if (sessionScene.IsValid())
-            {
-                return;
-            }
-            sessionScene = EditorSceneManager.NewPreviewScene();
-        }
-
-        /// <summary>保持しているプレビューのシーンを閉じる。</summary>
-        public static void EndSession()
-        {
-            if (!sessionScene.IsValid())
-            {
-                sessionScene = default;
-                return;
-            }
-            EditorSceneManager.ClosePreviewScene(sessionScene);
-            sessionScene = default;
-        }
-
         // --- 作成・保存 ---
-
-        public static GameObject CreateRoot(string name)
-        {
-            if (!sessionScene.IsValid())
-            {
-                throw new InvalidOperationException("prefab build session is not started: " + name);
-            }
-            var root = new GameObject(name, typeof(RectTransform));
-            SceneManager.MoveGameObjectToScene(root, sessionScene);
-            SetRect((RectTransform)root.transform, RectSpec.Stretch());
-            root.transform.localScale = Vector3.one;
-            return root;
-        }
 
         public static void EnsureFolder(string folderPath)
         {
@@ -416,9 +379,9 @@ namespace Uta.Client.Editor.Prefabs
 
         // --- 画面の雛形 ---
 
-        public static TPage CreatePage<TPage>(string name, out RectTransform body) where TPage : PageBase
+        public static TPage CreatePage<TPage>(PrefabBuildSession session, string name, out RectTransform body) where TPage : PageBase
         {
-            var root = CreateRoot(name);
+            var root = session.CreateRoot(name);
             AddImage(root, UiTheme.Background, true);
             var page = root.AddComponent<TPage>();
             body = AddChild(root.transform, "Body");
@@ -427,9 +390,9 @@ namespace Uta.Client.Editor.Prefabs
             return page;
         }
 
-        public static TModal CreateModal<TModal>(string name, out RectTransform panel) where TModal : ModalBase
+        public static TModal CreateModal<TModal>(PrefabBuildSession session, string name, out RectTransform panel) where TModal : ModalBase
         {
-            var root = CreateRoot(name);
+            var root = session.CreateRoot(name);
             var modal = root.AddComponent<TModal>();
             panel = AddChild(root.transform, "Panel", RectSpec.Center(UiTheme.ModalWidth, 0f));
             AddImage(panel.gameObject, UiTheme.Panel, true);

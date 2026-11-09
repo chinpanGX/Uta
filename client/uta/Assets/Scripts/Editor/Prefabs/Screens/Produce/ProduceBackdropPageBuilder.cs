@@ -9,9 +9,9 @@ namespace Uta.Client.Editor.Prefabs.Screens
 
         public string AssetPath => PrefabBuildUtil.ScreenPath("Produce", "ProduceBackdropPage");
 
-        public void Build()
+        public void Build(PrefabBuildSession session)
         {
-            var page = PrefabBuildUtil.CreatePage<ProduceBackdropPage>("ProduceBackdropPage", out var body);
+            var page = PrefabBuildUtil.CreatePage<ProduceBackdropPage>(session, "ProduceBackdropPage", out var body);
             ScreenLayout.SetupBody(body);
             var main = ScreenLayout.AddMain(body);
 
