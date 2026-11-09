@@ -293,15 +293,15 @@ namespace Uta.Shared.Domain.Produce
             RequireWeekSelect(state);
             var scenario = catalog.GetScenario(state.Input.ScenarioId);
             var week = scenario.GetWeek(state.Week);
-            var views = new List<ClassOption>();
+            var options = new List<ClassOption>();
             for (var i = 0; i < week.ClassOptions.Count; i++)
             {
                 var option = week.ClassOptions[i];
                 var selectable = option.HpCost == 0 || state.Hp > option.HpCost;
-                views.Add(new ClassOption(i, option.HpCost, (ParamKind)state.ClassOptionParams[i], option.ParamGain, option.GivesCard, selectable));
+                options.Add(new ClassOption(i, option.HpCost, (ParamKind)state.ClassOptionParams[i], option.ParamGain, option.GivesCard, selectable));
             }
 
-            return views;
+            return options;
         }
 
         /// <summary>レッスン・試験中のカードの使用可否。Lesson が null なら NotPlayerPhase。</summary>

@@ -1,7 +1,7 @@
 ---
 title: レッスンの Shared.Domain の型（Uta.Shared.Domain）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # レッスンの Shared.Domain の型（Uta.Shared.Domain）
