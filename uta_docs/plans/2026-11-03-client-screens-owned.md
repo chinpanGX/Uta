@@ -1276,3 +1276,4 @@ Play モード・手動（タスク 5。Editor、サーバー起動済み。初�
 | 1 | 02926fc | なし（OwnedFixtures の Idol・SupportCard の行は private の補助で作った） |
 | 2 | 4266039 | なし |
 | 3a | 74a699b | なし |
+| 3b | 0ed0366 | なし（OwnedPresenter の DidPopEnter・SelectRowAsync に disposed・current の null のガードを足した） |
