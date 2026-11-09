@@ -1,7 +1,7 @@
 ---
 title: Unity 7 の検証結果
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # Unity 7 の検証結果
@@ -64,8 +64,8 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 ### 3.3 そのほか未確認
 
 - ~~`ApiCore` 経由の再送と、`ApiServiceBase` の属性のリフレクションの IL2CPP~~ → Windows の IL2CPP で通った（上の表。2026-11-03）。iOS（AOT）は未確認 → 新しい呼び方（`RpcSettings`／`ApiCallFilter`）での確認は[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)のタスク 5
-- **`ICommonResponseApplier.ApplyAsync` を呼ぶスレッド**（ADR 0021 の前提。2026-11-08 に基盤のソースを読んだ）: `ApiCore.CompleteAsync` → `ApplyCommonFieldsAsync` が `await applyCommonResponse(...)` で呼ぶ。経路の `await` は `ConfigureAwait(false)` も `SwitchToThreadPool` も `Task.Run` も使わず、Unity の `SynchronizationContext` に戻る既定の継続なので、別のスレッドには移していない（読んだだけ）。実行での確認（`ApplyAsync` の先頭で `Thread.CurrentThread.ManagedThreadId` を出し、Play でメインスレッドの 1 を見る）は、`Common` を返す RPC を呼ぶ gacha の計画に申し送る
-- **`AppCommonDto`／`PlayerDiffDto` の IL2CPP でのシリアライズは未確認**。`Uta.Shared.Contracts` の asmdef には MessagePack の Source Generator（`Assets/Packages/MessagePackAnalyzer.3.1.12`）がかかっており、Editor のコンパイル結果の `Library/ScriptAssemblies/Uta.Shared.Contracts.dll` に `AppCommonDtoFormatter`・`PlayerDiffDtoFormatter`・各レスポンスの Formatter・`GeneratedMessagePackResolver` があることを確かめた（2026-11-08。`SignInResponse` と同じ経路）。IL2CPP のプレイヤーでの送受信は gacha の計画の IL2CPP の確認で確かめる。EditMode の往復テスト（`AppCommonDtoSerializationTests`）は IL2CPP の保証にならない
+- **`ICommonResponseApplier.ApplyAsync` を呼ぶスレッド**（ADR 0021 の前提。2026-11-08 に基盤のソースを読んだ）: `ApiCore.CompleteAsync` → `ApplyCommonFieldsAsync` が `await applyCommonResponse(...)` で呼ぶ。経路の `await` は `ConfigureAwait(false)` も `SwitchToThreadPool` も `Task.Run` も使わず、Unity の `SynchronizationContext` に戻る既定の継続なので、別のスレッドには移していない（読んだだけ）。実行での確認（`ApplyAsync` の先頭で `Thread.CurrentThread.ManagedThreadId` を出し、Play でメインスレッドの 1 を見る）は、`Common` を返す RPC を呼ぶ gacha の計画に申し送る。**実行で確かめた**（2026-11-09。gacha の計画の Play）: ガチャを引いたときの `ApplyAsync` の `ManagedThreadId` は 2 で、`unity command eval` で見たメインスレッドの値（2）と同じだった。サインインの応答は `Common` が null なので呼ばれない
+- **`AppCommonDto`／`PlayerDiffDto` の IL2CPP でのシリアライズは未確認**。`Uta.Shared.Contracts` の asmdef には MessagePack の Source Generator（`Assets/Packages/MessagePackAnalyzer.3.1.12`）がかかっており、Editor のコンパイル結果の `Library/ScriptAssemblies/Uta.Shared.Contracts.dll` に `AppCommonDtoFormatter`・`PlayerDiffDtoFormatter`・各レスポンスの Formatter・`GeneratedMessagePackResolver` があることを確かめた（2026-11-08。`SignInResponse` と同じ経路）。IL2CPP のプレイヤーでの送受信は、順 7 の 6 本目（lesson）の通しのビルドで確かめる（gacha の計画は IL2CPP のビルドをしない。Editor では、ガチャの `DrawResponse` の `Common` を受け取り、リポジトリに反映されたことを 2026-11-09 に確かめた）。EditMode の往復テスト（`AppCommonDtoSerializationTests`）は IL2CPP の保証にならない
 - **`ReturnToTitle` で `Title` が読み込み直される経路（`ErrorNavigator`）**: 通信エラーを起こして `ApiCore` に遷移させる場面を作れず、Play でも通っていない。コードレビューで見つけた競合（古い `TitlePresenter` の続きが新しい `Title` を押しのける）は、破棄後に打ち切る処理で防いだが、実行では確かめていない
 - **`ErrorDialogView`（いまのシーンの `DialogOpener`。`-uta-quit-after-check` では自動で閉じる）が自動で閉じる経路**: `ApiCore` を通る呼び出しが失敗する場面を作れず（サーバーを止めると端末の認証が先に失敗する）、通っていない
 - ~~`PlayerGateway` が `ApiResult` の失敗を `Failure` に直す経路~~ → 2026-11-08 に、`PlayerUseCase`（`PlayerGateway` の後継）が `ApiResult` の失敗を `InvalidOperationException` に直す経路と、`PLAYER_NOT_CREATED` を受けてサインアップし直す経路を、偽の `IPlayerService`（`Tests/EditMode/Fakes/FakePlayerService.cs`。失敗は基盤の `FakeRpcErrors.ApiFailureResult<T>`）を使う EditMode のテスト（`PlayerUseCaseTests`）で確かめられるようになった（EditMode の全体 102 件が成功）。偽物は `ApiCore` を通らないので、`WithHandledCodes` のコードを `ApiCore` が共通ハンドラーに回さないことは、このテストでは確かめない
@@ -74,7 +74,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - **Managed Stripping を上げたとき・iOS / Android での VContainer のコンストラクター注入**（リフレクション。既定の Stripping の Windows IL2CPP では通った）。`[Preserve]`・`link.xml`・VContainer の Source Generator のどれかが要りうる
 - **MasterMemory・MasterMemoryAddons**（2026-11-01 に[別の計画](../../plans/2026-11-01-masterdata-unity.md)で入れた。Windows の Editor で読み込みを確認。IL2CPP・実機は未確認）
 - UnityScreenNavigator は基盤の `Runtime/ChinpanGX`（`ScreenNavigator`）を画面に使った（上の表。2026-11-08）。Supplement は使っていない
-- **モーダル（`ModalBase`・`DefaultModalBackdrop`）**: 順 7 の 1 本目（[計画](../../plans/2026-11-03-client-screens-foundation.md)）では出していない。2 本目で確かめる
+- **モーダル（`ModalBase`・`DefaultModalBackdrop`）**: 順 7 の 2 本目（ガチャ）で、Editor の Play でモーダルを積んで閉じられることを確かめた（2026-11-09）。Windows の IL2CPP のプレイヤーでの `IGachaService`（`DrawResponse`・`DrawResultDto[]`）の送受信とモーダルは未確認（6 本目の通しのビルドで確かめる）
 - Windows の IL2CPP のプレイヤーを引数なしで起動し、タイトル → ホーム → 「準備中です。」と 540×960 のウィンドウをユーザーが手で確かめた（2026-11-08。画面 1/6）
 
 ## 4. 警告・注意

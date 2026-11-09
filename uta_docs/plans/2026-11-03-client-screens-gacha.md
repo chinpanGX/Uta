@@ -1,11 +1,495 @@
 ---
 title: 実装計画: client/ の画面 2/6 ガチャ
-status: ready
-updated: 2026-11-08
+status: done
+updated: 2026-11-09
 spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 ---
 
 # 実装計画: client/ の画面 2/6 ガチャ
+
+## ADR 0020〜0022・naming.md への読み替え（2026-11-08。この節が本文・「基盤 11d9b06 への読み替え」の節と食い違ったら、この節が正）
+
+[ADR 0020](../wiki/decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../wiki/decisions/0021-domain-entities-and-repositories.md)・[0022](../wiki/decisions/0022-client-external-concretes-in-infrastructure.md)（3 本とも accepted）と [naming.md](../wiki/architecture/naming.md) に合わせる。**画面の計画に共通の読み替えは [foundation の計画](2026-11-03-client-screens-foundation.md)の R0 が正**で、この節は gacha に固有のことだけを書く。**この節の G1〜G6 に書いた型・シグネチャ・手順・テストは完成形**で、本文の 2〜5 章のうち、この節に出てくる型・ファイル・テストの記述は読まずに、この節だけで書く。本文のうち、この節が触れていないもの（3.4 の View の `Awake` の購読の書き方、Presenter の実行中フラグ・`disposed` の決まり、遷移の `playAnimation: false`、`GachaRatesPresenter` の見出しの文と順、`GachaResultPresenter` の行の文、5 章の Play・手動の確認の項目）は本文のまま。前提: foundation（PR #52）の実装が済んでいる（`ApiClient`・`ErrorDefinitions`・`DialogOpener`・`HomeDtoFactory`・`FakePlayerUseCase`・`FakeDialogOpener`・`FakeScreenNavigator`・`CallLog`・`TestMasterData`・`PlayerRepository`）。
+
+### G0. 決めた名前（foundation の R0 に書き戻した）
+
+`DrawResult` を 1 つにまとめることと、引いた後のガチャ通貨を応答の値ではなく player_diff を反映したリポジトリの値で出すことは、2026-11-08 にユーザーが決めた（未 push の書きかけの節 `claude/plan-readthrough-2-52b82e` の `4115e7f` に記録がある。この節はそれを foundation の実装後の形で書き直したもの）。
+
+| 本文 | 読み替え | 理由 |
+|---|---|---|
+| `IGachaPort`・`GachaGateway`・`GachaApi`・`GetGachaStatusUseCase`・`DrawUseCase`（クライアント） | Application の `IGachaUseCase`、Infrastructure の具象 `GachaUseCase`、詰め替えの `GachaMapper`（static） | R0 |
+| `PortResult<T>`・`ServerReasons`（と `PortResultTests`・`ServerReasonsTests`） | **作らない**。Presenter が reason で文言を分ける操作が無い（ガチャの業務エラーで画面ごとの文言を出すのは通貨不足だけで、`DrawResultKind` に写す） | R0（ユーザーの判断 2026-11-08） |
+| `GachaStatus`（class） | **作らない**。`IGachaUseCase.GetExchangePointsAsync(int gachaId)` が `int?` を返す（一覧の型が要らない。サーバーの `GachaStatus` の改名はサーバーを触る計画で決める） | naming.md 2章（`Status` は enum） |
+| `DrawItem` | `GachaResult`（1 枠分。サーバーの `GachaResult` と同じ役割・同じ名前） | naming.md 1・2章 |
+| `DrawCallResult` と `DrawOutcome` | 1 つにまとめて **`DrawResult`**（`Kind`（`DrawResultKind`）と、成功のときの `Results`・`GachaCurrency`・`ExchangePoints`。サーバーの `DrawResult` の 3 つのメンバーと同じ名前） | R0「値も返すなら enum と値を持つ `<操作>Result`」 |
+| `DrawStatus` | `DrawResultKind`（値は `Succeeded`・`NotEnoughCurrency`・`Failed`） | naming.md 2章 |
+| `DrawOutcome.RefreshFailed` | 無い（取り直しの失敗は具象が握りつぶす） | R0 |
+| `GachaRateRow`（Application） | `GachaItemRate`（カード 1 枚分の率） | naming.md 4章（`Row` はマスタの行） |
+| `GachaRates` | `GachaRateResult`（`Groups`・`Items`） | naming.md 2章（操作の戻り値は `Result`） |
+| `GachaRateGroup` | そのまま | — |
+| `GachaRateCalculator`（static） | `MemoryDatabase` を受けるインスタンス。`FormatPercent` は Presentation の `GachaTexts.Percent` へ | R0、ADR 0022（文言は Presentation） |
+| `GachaRateLine` | `GachaLineRowViewDto`（排出率・結果の両方のモーダルが使う） | R0 |
+| `GachaLineRow`（P2 の行の View） | `GachaLineRowView`（G4 の改名の手順） | naming.md 6章 |
+| `IGameMaster`・`GachaInfo`・`GachaEntryInfo`・`IdolInfo`・`SupportCardInfo`・`MasterItemKind` | 作らない。`MemoryDatabase` の `GachaTable`・`GachaTableEntryTable`・`IdolTable`・`SupportCardTable` と `Uta.MasterData.ItemKind`・`Uta.MasterData.Rarity` | R0、ADR 0020 |
+| Presenter が組み立てる文字（ラインナップ・排出率の行・結果の行・確認の文）とページが組み立てる数値の書式 | `GachaDtoFactory`・`GachaRatesDtoFactory`・`GachaResultDtoFactory`（Presentation。ルートのスコープにシングルトン）。View は文字を入れるだけ | R0、ADR 0022 |
+| `FakeGameMaster`・`StubPlayerPort`・`FakeGachaPort` | `TestMasterData`・`GachaFixtures.CreateMaster()`、`FakePlayerUseCase`、`FakeGachaUseCase`（Presenter のテスト）・`FakeGachaService`（具象のテスト） | R0 |
+| Contracts の `GachaOutcome` → `GachaResultKind`、`DrawResultDto.Outcome` → `ResultKind`（索引の申し送り・R0 では gacha が行う） | **この計画では行わない**。改名はサーバーのコード（`server/Uta.Server/Api/GachaService.cs`・`Uta.Server.Tests` の `GachaTests.cs`・`ContractsEnumsMatchTests.cs`）も直す必要があり、この計画の実装は `server/` に触らない（進行役の指示 2026-11-08）。naming.md「今のコードとの差」の行は残し、サーバーを触る計画が行う | — |
+
+### G1. 名前空間と `using` の決まり
+
+- フォルダと名前空間は本文 3 章のとおり（`Application/Gacha` → `Uta.Client.Application.Gacha`、`Infrastructure/Gacha` → `Uta.Client.Infrastructure.Gacha`、`Presentation/Gacha` → `Uta.Client.Presentation.Gacha`）。
+- 名前空間 `Uta.Client.<層>.Gacha`・`…Idol`・`…SupportCard`・`…Player` があるので、その中ではマスタの型 `Gacha`・`Idol`・`SupportCard` を**型名だけで書かない**（CS0118 になる）。変数は `var` で受けるか、`Uta.MasterData.Gacha` と名前空間付きで書く（naming.md 2章）
+- Contracts（`Uta.Shared.Contracts.Gacha`）とマスタ（`Uta.MasterData`）は、どちらにも `ItemKind` がある。**両方を使うファイル（`GachaMapper`・`GachaUseCase`・`GachaFixtures`・`GachaMapperTests`・`GachaUseCaseTests`）は `using Uta.MasterData;` を書かず**、マスタの型を `Uta.MasterData.ItemKind`・`Uta.MasterData.MemoryDatabase` と名前空間付きで書く。マスタだけを使うファイルは `using Uta.MasterData;` を書いてよい（`ItemKind`・`Rarity` はマスタの enum）
+- **変数名**（[foundation の計画](2026-11-03-client-screens-foundation.md) 8.5。2026-11-09。ユーザーの判断。この節のシグネチャ・手順の短い名前より優先する）: `Scripts/` のフィールド・コンストラクターとメソッドの引数の名前は、型名から先頭の `I` と `ReadOnly` を除いて先頭を小文字にしたもの。この節の名前は次のように読む: `view` → `gachaView`・`gachaRatesView`・`gachaResultView`（`[Inject]` 側は `gachaPage`・`gachaRatesModal`・`gachaResultModal`）、`args` → `gachaRatesArgs`・`gachaResultArgs`、`dtoFactory` → `gachaDtoFactory`・`gachaRatesDtoFactory`・`gachaResultDtoFactory`、`gacha`（`IGachaUseCase`）→ `gachaUseCase`、`gacha`（`IGachaService`）→ `gachaService`、`dialogs` → `dialogOpener`、`navigator` → `screenNavigator`、`db` → `memoryDatabase`、`players` → `playerRepository`、`player`（`IPlayerUseCase`）→ `playerUseCase`、`calculator` → `gachaRateCalculator`。`HomePresenter` に足す引数・フィールドは `screenNavigator`（既存の `homeView`・`dialogOpener` などは c7265e5 の名前のまま）。コレクション・組み込みの型・ループと短い一時のローカル変数・テストのコードは対象外
+- ガチャのファイルは Shared.Domain の enum を使わない（レア度・種別はマスタの enum。表示は `rarity.ToString()` で "SSR"・"SR"・"R"・"N"）
+- 書式は C# 9 の範囲・BOM 付き UTF-8・LF（CLAUDE.md）。`N0(x)` は `x.ToString("N0", CultureInfo.InvariantCulture)`
+
+### G2. Application（`Uta.Client.Application.Gacha`）
+
+本文 3.1・3.2 の型は全部作らない。代わりに次の 7 つ（1 ファイル 1 型。ファイル名 = 型名）。
+
+```csharp
+public enum DrawResultKind { Succeeded, NotEnoughCurrency, Failed }
+
+public sealed class GachaResult
+{
+    public GachaResult(int slot, ItemKind kind, int itemId, bool isNew, int shards, int supportPoints);
+    public int Slot { get; }              // 1〜10
+    public ItemKind Kind { get; }         // Uta.MasterData.ItemKind（Idol・SupportCard）
+    public int ItemId { get; }            // 育成アイドルなら IdolId、サポートカードなら SupportCardId
+    public bool IsNew { get; }            // 応答の Outcome が New（育成アイドルは初めて得た、サポートカードは所持の行が 1 つ増えた）
+    public int Shards { get; }            // 育成アイドルの重複で得たかけら（それ以外は 0）
+    public int SupportPoints { get; }     // サポートカードの完凸後の重複で変換した強化pt（それ以外は 0）
+}
+
+public sealed class DrawResult
+{
+    public DrawResultKind Kind { get; }
+    public IReadOnlyList<GachaResult> Results { get; }   // Succeeded のとき Slot の昇順。それ以外は空のリスト（Array.Empty<GachaResult>()）
+    public int GachaCurrency { get; }                    // Succeeded のとき引いた後の残り（DrawResponse.GachaCurrency）。それ以外は 0
+    public int ExchangePoints { get; }                   // Succeeded のとき引いた後のこのガチャの交換pt。それ以外は 0
+    public static DrawResult Success(IReadOnlyList<GachaResult> results, int gachaCurrency, int exchangePoints);   // results が null なら ArgumentNullException("results")
+    public static DrawResult Rejected(DrawResultKind kind);                                                       // kind が Succeeded なら ArgumentException
+    // コンストラクターは private 1 本（kind, results, gachaCurrency, exchangePoints）
+}
+
+public interface IGachaUseCase
+{
+    /// <summary>ガチャの一覧（GetGachasAsync）を取り、gachaId の交換pt を返す。一覧に無ければ 0。通信の失敗は null（共通のダイアログは ApiCore が出している）。</summary>
+    UniTask<int?> GetExchangePointsAsync(int gachaId);
+
+    /// <summary>
+    /// count は 1 か 10（それ以外は ArgumentOutOfRangeException）。費用はマスタの SingleCost／TenCost。
+    /// 所持のガチャ通貨（リポジトリ）が費用より少なければ通信せず NotEnoughCurrency。
+    /// サーバーの通貨不足は NotEnoughCurrency、ほかの失敗は Failed（共通のダイアログは ApiCore が出している）。
+    /// 成功したら所持データを取り直し（失敗しても成功を返す）、Succeeded を返す。
+    /// </summary>
+    UniTask<DrawResult> DrawAsync(int gachaId, int count);
+}
+
+public sealed class GachaRateGroup
+{
+    public GachaRateGroup(Rarity rarity, ItemKind kind, int basisPoints);
+    public Rarity Rarity { get; }      // Uta.MasterData.Rarity
+    public ItemKind Kind { get; }
+    public int BasisPoints { get; }    // 0.01% 単位（10000 = 100%）
+}
+
+public sealed class GachaItemRate
+{
+    public GachaItemRate(Rarity rarity, ItemKind kind, int itemId, string name, int basisPoints);
+    public Rarity Rarity { get; }
+    public ItemKind Kind { get; }
+    public int ItemId { get; }
+    public string Name { get; }
+    public int BasisPoints { get; }
+}
+
+public sealed class GachaRateResult
+{
+    public GachaRateResult(IReadOnlyList<GachaRateGroup> groups, IReadOnlyList<GachaItemRate> items);
+    public IReadOnlyList<GachaRateGroup> Groups { get; }   // レア別・種別の合計
+    public IReadOnlyList<GachaItemRate> Items { get; }     // カードごと
+}
+
+/// <summary>排出率の計算。外部に触れない具象（ルートのスコープにシングルトン）。</summary>
+public sealed class GachaRateCalculator
+{
+    public GachaRateCalculator(MemoryDatabase db);
+    public GachaRateResult Calculate(int gachaTableId);
+}
+```
+
+- `using`: `System`・`System.Collections.Generic`・`System.Linq`・`Cysharp.Threading.Tasks`（`IGachaUseCase`）・`Uta.MasterData`（G1。マスタだけを使う）
+- `GachaRateCalculator.Calculate(gachaTableId)` の手順（本文 3.2 の `Calculate` の 1〜4 と同じ規則。[gacha.md](../wiki/systems/gacha.md) 3.1: 重みを合計してから切り捨てる）:
+  1. `var entries = db.GachaTableEntryTable.All.Where(e => e.GachaTableId == gachaTableId).OrderBy(e => e.Order).ToList();`
+  2. `total` = `entries` の `Weight` の合計（`long`）。`entries` が空か `total == 0` なら、`Groups`・`Items` とも空の `GachaRateResult` を返す
+  3. 各エントリー: `ItemKind.Idol` は `itemId = e.IdolId`、`var idol = db.IdolTable.FindByIdolId(itemId);` の `Rarity`・`Name`。`ItemKind.SupportCard` は `itemId = e.SupportCardId`、`db.SupportCardTable.FindBySupportCardId(itemId)`。それ以外の `ItemKind` は `ArgumentException`。マスタに無い ID で `FindBy…` が投げる例外は捕まえない
+  4. `Groups`: (レア度, 種別) ごとに重みを足し、`(int)(合計 * 10000 / total)`。エントリーが 1 つでもある組だけ（重み 0 だけの組は 0 で出す）。並びはレア度の数値の降順（SSR → SR → R → N）、同じレアは種別の数値の昇順（育成アイドル → サポートカード）
+  5. `Items`: エントリーごとに `(int)(weight * 10000 / total)`（重み 0 も 0 で出す）。並びは `Groups` と同じ順のあと `ItemId` の昇順（LINQ の `OrderBy`／`ThenBy` は安定なので、同じ ID は `Order` の順のまま）
+
+### G3. Infrastructure
+
+`Infrastructure/Gacha/GachaMapper.cs`・`GachaUseCase.cs`（名前空間 `Uta.Client.Infrastructure.Gacha`）。`using`: `System`・`System.Collections.Generic`・`System.Linq`・`Cysharp.Threading.Tasks`・`Uta.Client.Application.Gacha`・`Uta.Client.Application.Player`・`Uta.Client.Domain.Player`・`Uta.Shared.Contracts.Gacha`・`VolTech.Client`（G1: `Uta.MasterData` は `using` しない）。
+
+```csharp
+/// <summary>DTO → Application の型。</summary>
+public static class GachaMapper
+{
+    /// <summary>response.Gachas の中で GachaMasterId == gachaMasterId の最初の行の ExchangePoints。Gachas が null か、行が無ければ 0。</summary>
+    public static int ToExchangePoints(GetGachasResponse response, int gachaMasterId);
+
+    /// <summary>
+    /// DrawResult.Success(results, response.GachaCurrency, response.ExchangePoints)。results は response.Results（null なら空）の各 dto を
+    /// new GachaResult(dto.Slot, (Uta.MasterData.ItemKind)(int)dto.ItemKind, dto.ItemMasterId, dto.Outcome == GachaOutcome.New, dto.Shards, dto.SupportPoints)
+    /// にして、Slot の昇順に並べ直した List。
+    /// </summary>
+    public static DrawResult ToDrawResult(DrawResponse response);
+}
+
+public sealed class GachaUseCase : IGachaUseCase
+{
+    public GachaUseCase(IGachaService gacha, IReadOnlyPlayerRepository players, IPlayerUseCase player, Uta.MasterData.MemoryDatabase db);
+    public UniTask<int?> GetExchangePointsAsync(int gachaId);   // async
+    public UniTask<DrawResult> DrawAsync(int gachaId, int count); // async
+}
+```
+
+- `GetExchangePointsAsync`: `var result = await gacha.GetGachasAsync().ToResult();` → `result.IsError` なら `null`、それ以外は `GachaMapper.ToExchangePoints(result.Value, gachaId)`
+- `DrawAsync` の手順（`async`。1 の例外は `await` したときに出る）:
+  1. `count` が 1・10 以外なら `throw new ArgumentOutOfRangeException(nameof(count));`
+  2. `var master = db.GachaTable.FindByGachaId(gachaId);`（無い ID の例外は捕まえない）。`var cost = count == 1 ? master.SingleCost : master.TenCost;`
+  3. `var p = players.Find();` が null か `p.GachaCurrency < cost` なら、通信せず `DrawResult.Rejected(DrawResultKind.NotEnoughCurrency)`（リポジトリが古くて多めに見えていても、サーバーが同じ業務エラーで断る）
+  4. `var result = await gacha.WithHandledCodes(GachaErrors.NotEnoughCurrency).DrawAsync(new DrawRequest(gachaId, count, cost)).ToResult();`（`PlayerUseCase` の `SignInAsync` と同じ書き方。`handledCodes` は通貨不足だけ。ほかの 4 つは `ErrorDefinitions` に `Stay` で登録済みなので、共通のダイアログが出て `Failed` になる: 本文 3.3）
+  5. `result.IsError` のとき: `result.ErrorCode == GachaErrors.NotEnoughCurrency` なら `Rejected(NotEnoughCurrency)`、それ以外は `Rejected(Failed)`。取り直しはしない
+  6. 成功: `var drawn = GachaMapper.ToDrawResult(result.Value);`（詰め替えを先に）→ `try { await player.RefreshAsync(); } catch (InvalidOperationException) { }`（握りつぶす。取り直しの通信の失敗のダイアログは ApiCore が出している。R0）→ `return drawn;`
+- **Common の player_diff**: `DrawResponse` は `Common` を持ち、基盤が呼び出し側に返す前に `CommonResponseApplier` → `PlayerDiffApplier` がリポジトリへ反映する（[api-design.md](../wiki/architecture/api-design.md) 1.3・[screen-design.md](../wiki/architecture/screen-design.md) 7.5）。`RefreshAsync` は安全網。具象は player_diff を自分で当てない
+- `ApiClient`（`Infrastructure/Api/ApiClient.cs`）: `public IGachaService Gacha { get; }` を `Player` の次に足す。private コンストラクターの引数の最後に `IGachaService gacha` を足して `Gacha = gacha;`。`Create` の `var playerClient = core.CreateClient<IPlayerService>();` の次に `var gachaClient = core.CreateClient<IGachaService>();` を足し、`new ApiClient(..., playerClient, gachaClient)`。`using Uta.Shared.Contracts.Gacha;` を足す
+- `MagicOnionClientInitializer`: `[MagicOnionClientGeneration(typeof(IDeviceService), typeof(IPlayerService), typeof(IGachaService))]`、`using Uta.Shared.Contracts.Gacha;`
+- 本文 3.3 の `GachaApi`・`GachaGateway`・`drawHandled`・「`ApiResult` はテストから作れない」は無効（偽の `IGachaService` が `FakeRpcErrors.ApiFailureResult<T>` で失敗を作れるので、`GachaUseCase` の分岐もテストする）
+
+### G4. Presentation（`Uta.Client.Presentation.Gacha`）
+
+**行の View の改名**（最初に行う）: `git mv client/uta/Assets/Scripts/Presentation/Gacha/GachaLineRow.cs client/uta/Assets/Scripts/Presentation/Gacha/GachaLineRowView.cs` と同じ名前の `.meta` も `git mv`（GUID を保つので、Prefab の参照は切れない。Prefab は作り直さない）。クラス名を `GachaLineRowView` にし、`GachaLineRow` を参照する 6 か所（`GachaRatesModal.cs`・`GachaResultModal.cs`・`Editor/Prefabs/Screens/Gacha/GachaRatesModalBuilder.cs`・`GachaResultModalBuilder.cs`・`GachaRowBuilders.cs`・`Tests/EditMode/GachaPrefabTests.cs`。Grep `GachaLineRow\b` で探す）を直す。`screen-design.md` の `GachaLineRow` の記述（267 行付近）も `GachaLineRowView` に直す（タスク 4）。
+
+View（P2 の骨格に足す。フィールドは足さない・名前を変えない。`Awake` の購読の書き方は本文 3.4 のまま）:
+
+```csharp
+[DisallowMultipleComponent]
+public sealed class GachaLineRowView : MonoBehaviour
+{
+    // フィールドは P2 の骨格のまま（text）
+    public void SetText(string value);   // text.text = value ?? ""
+}
+
+/// <summary>ガチャの 1 行（排出率・結果のモーダル）の表示の値。</summary>
+public sealed class GachaLineRowViewDto
+{
+    public GachaLineRowViewDto(string text, bool isHeading);
+    public string Text { get; }
+    public bool IsHeading { get; }   // 排出率のモーダルだけが見る（結果のモーダルは常に false）
+}
+
+public interface IGachaView
+{
+    void SetCurrency(string text);                        // currencyText.text = text
+    void SetExchange(string text);                        // exchangeText.text = text
+    void SetCosts(string singleLabel, string tenLabel);   // singleButton.SetLabel(singleLabel); tenButton.SetLabel(tenLabel);
+    void SetLineup(string text);                          // lineupText.text = text
+    event Action SingleClicked; event Action TenClicked; event Action RatesClicked; event Action BackClicked;
+}
+
+public interface IGachaRatesView
+{
+    void SetLines(IReadOnlyList<GachaLineRowViewDto> lines);   // 本文 3.4 の GachaRatesModal.SetLines（IsHeading で headingRowPrefab／lineRowPrefab、名前は "Line" + i）
+    event Action CloseClicked;
+}
+
+public interface IGachaResultView
+{
+    void SetLines(IReadOnlyList<GachaLineRowViewDto> lines);   // 本文 3.4 の GachaResultModal.SetLines（いつも rowPrefab。lines[i].Text を SetText）
+    event Action CloseClicked; event Action RetryClicked;
+}
+```
+
+- `GachaPage : PageBase, IGachaView`・`GachaRatesModal : ModalBase, IGachaRatesView`・`GachaResultModal : ModalBase, IGachaResultView`。`GachaPage` は数値の書式を持たない（`System.Globalization` は要らない）
+- `UiObjects.AddRow` の型引数は `GachaLineRowView`
+
+表示の値と文字（ルートのスコープにシングルトン。状態を持たず、リポジトリに書かず、通信・遷移・View に触れない。`using Uta.MasterData;` を書いてよい（G1）。マスタの `Gacha` は `Uta.MasterData.Gacha` か `var`）:
+
+```csharp
+public static class GachaTexts   // 本文の internal を public に（テストから呼ぶ）
+{
+    /// <summary>Idol → "育成アイドル"、SupportCard → "サポートカード"、それ以外 → ArgumentOutOfRangeException。</summary>
+    public static string Kind(ItemKind kind);
+    /// <summary>本文の GachaRateCalculator.FormatPercent と同じ。basisPoints / 100 + "." + (basisPoints % 100) を 2 桁 + "%"。例 0 → "0.00%"、5 → "0.05%"、1234 → "12.34%"、10000 → "100.00%"。負なら ArgumentOutOfRangeException。</summary>
+    public static string Percent(int basisPoints);
+}
+
+public sealed class GachaViewDto
+{
+    public GachaViewDto(int gachaId, string currencyText, string exchangeText, string singleLabel, string tenLabel, string lineupText);
+    public int GachaId { get; } public string CurrencyText { get; } public string ExchangeText { get; }
+    public string SingleLabel { get; } public string TenLabel { get; } public string LineupText { get; }
+}
+
+public sealed class GachaDtoFactory
+{
+    public GachaDtoFactory(IReadOnlyPlayerRepository players, MemoryDatabase db);
+    /// <summary>
+    /// ガチャはマスタの GachaTable の GachaId の最小の 1 本（MVP はガチャ 1 本: 本文 1章「決めないこと」）。
+    /// currency = players.Find() の GachaCurrency（null なら 0。player_diff と取り直しが反映済みの値）。
+    /// CurrencyText = "ガチャ通貨 " + N0(currency)。ExchangeText = "交換pt " + (exchangePoints.HasValue ? N0(exchangePoints.Value) : "-") + " / " + N0(CeilingPoints)。
+    /// SingleLabel = "単発 " + N0(SingleCost)、TenLabel = "10連 " + N0(TenCost)。
+    /// LineupText = 通常枠（NormalTableId の GachaTableEntry）のうちレア度が Rarity.SSR のものを、種別の数値の昇順 → ItemId の昇順に並べ、同じ (種別, ID) は 1 つにして、
+    ///   1 行ずつ "SSR " + GachaTexts.Kind(kind) + ": " + name を "\n" でつないだもの（SSR が無ければ ""）。名前・レア度は IdolTable／SupportCardTable の FindBy…。
+    /// </summary>
+    public GachaViewDto Create(int? exchangePoints);
+    /// <summary>"ガチャ通貨 " + N0(cost) + " を使って " + count + " 回引きます。（所持 " + N0(currency) + "）"。cost は Create と同じガチャの count == 1 ? SingleCost : TenCost、currency は Create と同じ。</summary>
+    public string CreateDrawConfirmText(int count);
+}
+
+public sealed class GachaRatesDtoFactory
+{
+    public GachaRatesDtoFactory(MemoryDatabase db, GachaRateCalculator calculator);
+    /// <summary>
+    /// var gacha = db.GachaTable.FindByGachaId(gachaId)。本文 3.4 の GachaRatesPresenter.InitializeAsync の 1〜8 の順の行（見出しは isHeading = true）:
+    /// 合計の行 = rarity + " " + GachaTexts.Kind(kind) + " " + GachaTexts.Percent(bp)、カードごとの行 = rarity + " " + GachaTexts.Kind(kind) + " " + name + " " + GachaTexts.Percent(bp)。
+    /// 通常枠は calculator.Calculate(gacha.NormalTableId)、確定枠は calculator.Calculate(gacha.GuaranteedTableId)。
+    /// </summary>
+    public IReadOnlyList<GachaLineRowViewDto> Create(int gachaId);
+}
+
+public sealed class GachaResultDtoFactory
+{
+    public GachaResultDtoFactory(MemoryDatabase db);
+    /// <summary>
+    /// results の各 r を本文 3.4 の GachaResultPresenter の行の文（item → r、name・rarity は IdolTable／SupportCardTable の FindBy…）にした、isHeading = false の行。
+    /// results が null なら ArgumentNullException。
+    /// </summary>
+    public IReadOnlyList<GachaLineRowViewDto> Create(IReadOnlyList<GachaResult> results);
+}
+```
+
+Args・Presenter（実行中フラグ・`disposed`・購読・`Dispose` の決まりは本文 3.4 の前置きのまま。`using UnityScreenNavigator;`・`using VContainer;`・`using Cysharp.Threading.Tasks;`）:
+
+```csharp
+public sealed class GachaRatesArgs { public GachaRatesArgs(int gachaId); public int GachaId { get; } }   // 本文のまま
+
+public sealed class GachaResultArgs
+{
+    public GachaResultArgs(IReadOnlyList<GachaResult> results, Func<UniTask> retry);   // results が null なら ArgumentNullException。retry は null を許す
+    public IReadOnlyList<GachaResult> Results { get; }
+    public Func<UniTask> Retry { get; }
+}
+
+[AssetAddress(nameof(GachaPage))]
+public sealed class GachaPresenter : IPresenter
+{
+    [Inject]
+    public GachaPresenter(GachaPage view, GachaDtoFactory dtoFactory, IGachaUseCase gacha, DialogOpener dialogs, IScreenNavigator navigator)
+        : this((IGachaView)view, dtoFactory, gacha, dialogs, navigator) { }
+    public GachaPresenter(IGachaView view, GachaDtoFactory dtoFactory, IGachaUseCase gacha, DialogOpener dialogs, IScreenNavigator navigator);
+    public UniTask InitializeAsync(); public void Dispose();
+    public UniTask DrawAsync(int count); public UniTask OpenRatesAsync(); public UniTask BackAsync();
+}
+
+[AssetAddress(nameof(GachaRatesModal))]
+public sealed class GachaRatesPresenter : IScreenWithArgs<GachaRatesArgs>
+{
+    [Inject]
+    public GachaRatesPresenter(GachaRatesModal view, GachaRatesArgs args, GachaRatesDtoFactory dtoFactory, IScreenNavigator navigator)
+        : this((IGachaRatesView)view, args, dtoFactory, navigator) { }
+    public GachaRatesPresenter(IGachaRatesView view, GachaRatesArgs args, GachaRatesDtoFactory dtoFactory, IScreenNavigator navigator);
+    public UniTask InitializeAsync(); public void Dispose(); public UniTask CloseAsync();
+}
+
+[AssetAddress(nameof(GachaResultModal))]
+public sealed class GachaResultPresenter : IScreenWithArgs<GachaResultArgs>
+{
+    [Inject]
+    public GachaResultPresenter(GachaResultModal view, GachaResultArgs args, GachaResultDtoFactory dtoFactory, IScreenNavigator navigator)
+        : this((IGachaResultView)view, args, dtoFactory, navigator) { }
+    public GachaResultPresenter(IGachaResultView view, GachaResultArgs args, GachaResultDtoFactory dtoFactory, IScreenNavigator navigator);
+    public UniTask InitializeAsync(); public void Dispose(); public UniTask CloseAsync(); public UniTask RetryAsync();
+}
+```
+
+- **`GachaPresenter`**（本文の手順を次に読み替える）:
+  - フィールド: `int gachaId`、`int? exchangePoints`、`bool running`、`bool disposed`（本文の `GachaInfo gacha`・`int currency` は無い。通貨は毎回 `GachaDtoFactory` がリポジトリから読む: player_diff と取り直しで、引いた後のリポジトリは応答の残りと同じ値になる。本文の決めたこと 6 の「通貨は `DrawResponse` の値で出す」はこれに読み替える）
+  - private `Show(GachaViewDto dto)`: この順に `view.SetCurrency(dto.CurrencyText); view.SetCosts(dto.SingleLabel, dto.TenLabel); view.SetLineup(dto.LineupText); view.SetExchange(dto.ExchangeText);`
+  - `InitializeAsync`（`async`）: 1. 4 つのイベントを購読（本文のまま）→ 2. `gachaId = dtoFactory.Create(null).GachaId;` → 3. `exchangePoints = await gacha.GetExchangePointsAsync(gachaId); if (disposed) return;` → 4. `Show(dtoFactory.Create(exchangePoints));`
+  - `DrawAsync(count)`（実行中フラグの中）: 1. `var answer = await dialogs.ConfirmAsync(dtoFactory.CreateDrawConfirmText(count), "引く", "やめる"); if (disposed) return;` `DialogResult.Negative` なら終わる → 2. `var result = await gacha.DrawAsync(gachaId, count); if (disposed) return;` → 3. `Succeeded`: `exchangePoints = result.ExchangePoints; Show(dtoFactory.Create(exchangePoints)); await navigator.PushModalAsync<GachaResultPresenter, GachaResultArgs>(new GachaResultArgs(result.Results, () => DrawAsync(count)), playAnimation: false);` → `NotEnoughCurrency`: `await dialogs.ShowInfoAsync("ガチャ通貨が足りません。");` → `Failed`: 何もしない。`catch` は書かない
+  - `OpenRatesAsync`: `PushModalAsync<GachaRatesPresenter, GachaRatesArgs>(new GachaRatesArgs(gachaId), playAnimation: false)`。`BackAsync`・`Dispose` は本文のまま
+- **`GachaRatesPresenter.InitializeAsync`**: `view.CloseClicked += OnCloseClicked; view.SetLines(dtoFactory.Create(args.GachaId));` `UniTask.CompletedTask` を返す。`CloseAsync`・`Dispose` は本文のまま
+- **`GachaResultPresenter.InitializeAsync`**: 2 つを購読し、`view.SetLines(dtoFactory.Create(args.Results));`。`CloseAsync`・`RetryAsync`・`Dispose` は本文のまま
+- **`HomePresenter`**（本文 3.5 を読み替える）: 2 本のコンストラクターの最後に `IScreenNavigator navigator` を足す（`[Inject] HomePresenter(HomePage view, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs, IScreenNavigator navigator) : this((IHomeView)view, view.CreateStage(), dtoFactory, player, dialogs, navigator)`、`HomePresenter(IHomeView view, ICharacterStage stage, HomeDtoFactory dtoFactory, IPlayerUseCase player, DialogOpener dialogs, IScreenNavigator navigator)`）。`OpenGachaAsync` を次にする（`OpenProduceAsync`・`OpenOwnedAsync` は `ShowNotReadyAsync` のまま）:
+  ```csharp
+  public async UniTask OpenGachaAsync()
+  {
+      if (running) { return; }
+      running = true;
+      try { await navigator.PushPageAsync<GachaPresenter>(playAnimation: false); }
+      finally { running = false; }
+  }
+  ```
+  `using Uta.Client.Presentation.Gacha;` を足す（`using UnityScreenNavigator;` はある）
+
+### G5. Bootstrap（本文 3.5 の `RegisterUseCases` の 3 行を読み替える）
+
+`BootstrapEntry.RegisterUseCases` の `builder.Register<IPlayerService>(…)` の次の行に `builder.Register<IGachaService>(resolver => resolver.Resolve<ApiClient>().Gacha, Lifetime.Singleton);`、最後（`PlayerUseCase` の次）にこの順で 5 行:
+
+```csharp
+builder.Register<GachaRateCalculator>(Lifetime.Singleton);
+builder.Register<GachaDtoFactory>(Lifetime.Singleton);
+builder.Register<GachaRatesDtoFactory>(Lifetime.Singleton);
+builder.Register<GachaResultDtoFactory>(Lifetime.Singleton);
+builder.Register<GachaUseCase>(Lifetime.Singleton).As<IGachaUseCase>();
+```
+
+`using Uta.Client.Application.Gacha;`・`using Uta.Client.Infrastructure.Gacha;`・`using Uta.Client.Presentation.Gacha;`・`using Uta.Shared.Contracts.Gacha;` を足す（`BootstrapEntry` は `ItemKind` を使わないので曖昧にならない）。
+
+### G6. テスト（本文 5 章の表を置き換える。置き場 `Tests/EditMode/`、名前空間 `Uta.Client.Tests`）
+
+偽と補助（`Tests/EditMode/Fakes/` は public、1 ファイル 1 型）:
+
+- `Fakes/FakeGachaUseCase.cs`（`IGachaUseCase`）: `FakeGachaUseCase(CallLog log = null)`。`Queue<Func<UniTask<int?>>> ExchangePointsResults`（空なら `UniTask.FromResult<int?>(0)`）、`Queue<Func<UniTask<DrawResult>>> DrawResults`（空なら `InvalidOperationException("FakeGachaUseCase: no draw result")`）、`List<string> DrawCalls`（`DrawAsync` のたびに `gachaId + "," + count`）。`log` があれば `DrawAsync` の入口で `"Draw:" + count` を記録（`GetExchangePointsAsync` は記録しない）。`Dequeue` した `Func` を呼んでその `UniTask` を返す
+- `Fakes/FakeGachaService.cs`（`IGachaService`。`FakePlayerService` と同じ形）: `Queue<Func<UnaryResult<GetGachasResponse>>> GetGachasResults`、`Queue<Func<UnaryResult<DrawResponse>>> DrawResults`、`List<string> Calls`（`"GetGachas"`、`"Draw:" + r.GachaMasterId + "," + r.Count + "," + r.ExpectedCost`）、static の `Ok<T>`・`Fail<T>(ErrorCode)`（`FakeRpcErrors.ApiFailureResult<T>`）。`ExchangeAsync` と `WithHost` は `NotSupportedException`、`WithOptions`・`WithHeaders`・`WithDeadline`・`WithCancellationToken` は `this`。キューが空なら `InvalidOperationException("FakeGachaService: no result")`
+- `Support/GachaFixtures.cs`（本文 5.1 を置き換える。`public static class`。G1 のとおり `using Uta.MasterData;` を書かず、`using Uta.Shared.Contracts.Gacha;`・`using Uta.Client.Domain.Player;`）:
+  ```csharp
+  public const int GachaId = 1, NormalTableId = 10, GuaranteedTableId = 11, SingleCost = 250, TenCost = 2500, CeilingPoints = 200, Currency = 3250;
+  /// <summary>new SupportCard { SupportCardId, Name, Rarity, Type = SupportType.Singing, Plan = Plan.Free }（Uta.MasterData の型）。</summary>
+  public static Uta.MasterData.SupportCard SupportCard(int supportCardId, string name, Uta.MasterData.Rarity rarity);
+  /// <summary>new GachaTableEntry { GachaTableId = tableId, Order = order, ItemKind = Idol, IdolId = idolId, Weight = weight }。</summary>
+  public static Uta.MasterData.GachaTableEntry IdolEntry(int tableId, int order, int idolId, int weight);
+  /// <summary>同じく ItemKind = SupportCard、SupportCardId = supportCardId。</summary>
+  public static Uta.MasterData.GachaTableEntry SupportCardEntry(int tableId, int order, int supportCardId, int weight);
+  /// <summary>TestMasterData.Build で、idols・supportCards・entries と、ガチャ 1 行 new Gacha { GachaId, SingleCost, TenCost, NormalTableId, GuaranteedTableId, CeilingPoints } を Append した MemoryDatabase（Append は表ごとに 1 回）。</summary>
+  public static Uta.MasterData.MemoryDatabase Build(IEnumerable<Uta.MasterData.Idol> idols, IEnumerable<Uta.MasterData.SupportCard> supportCards, IEnumerable<Uta.MasterData.GachaTableEntry> entries);
+  /// <summary>新しい List: TestMasterData.Idol(1, "アイドルA", SSR)・TestMasterData.Idol(3, "アイドルC", R)。</summary>
+  public static List<Uta.MasterData.Idol> Idols();
+  /// <summary>新しい List: SupportCard(2, "サポートB", SSR)・SupportCard(4, "サポートD", SR)。</summary>
+  public static List<Uta.MasterData.SupportCard> SupportCards();
+  /// <summary>新しい List（通常枠。表 10）: IdolEntry(10, 1, 1, 1)・SupportCardEntry(10, 2, 2, 1)・IdolEntry(10, 3, 3, 8)。</summary>
+  public static List<Uta.MasterData.GachaTableEntry> NormalEntries();
+  /// <summary>新しい List（確定枠。表 11）: SupportCardEntry(11, 1, 4, 3)・IdolEntry(11, 2, 1, 1)。</summary>
+  public static List<Uta.MasterData.GachaTableEntry> GuaranteedEntries();
+  /// <summary>共通の前提のマスタ: Build(Idols(), SupportCards(), NormalEntries().Concat(GuaranteedEntries()))。</summary>
+  public static Uta.MasterData.MemoryDatabase CreateMaster();
+  /// <summary>new PlayerEntity("P1", 1, 0, 0, 0, gachaCurrency, false, false)。</summary>
+  public static PlayerEntity Player(int gachaCurrency);
+  /// <summary>new DrawResultDto(slot, ItemKind.Idol, idolId, outcome, shards, 0, "")（Contracts の ItemKind）。</summary>
+  public static DrawResultDto IdolResult(int slot, int idolId, GachaOutcome outcome, int shards);
+  /// <summary>new DrawResultDto(slot, ItemKind.SupportCard, supportCardId, outcome, 0, supportPoints, "uid" + slot)。</summary>
+  public static DrawResultDto SupportCardResult(int slot, int supportCardId, GachaOutcome outcome, int supportPoints);
+  ```
+  - 本体のマスタの型・enum は全部 `Uta.MasterData.` 付きで書く（`Uta.MasterData.Rarity.SSR`・`Uta.MasterData.ItemKind.Idol`・`Uta.MasterData.SupportType.Singing`・`Uta.MasterData.Plan.Free`。Contracts の `ItemKind` と曖昧になるため）。`using System.Collections.Generic;`・`using System.Linq;` を書く
+  - **マスタを変えるテストの組み立て**: 共通の前提を少し変えるテストは `GachaFixtures.Build(idols, supportCards, entries)` に、`Idols()` などで作った List に足したもの・差し替えたものを渡す（下の表に、テストごとに渡すものを書いた）
+  ガチャのテストはマスタの行と DTO を直接 `new` せず、これと `TestMasterData` を使う。`GachaResult`・`DrawResult`（Application の型で、引数がどれも期待に出る値）は直接 `new` してよい
+- 共通の前提: マスタは `GachaFixtures.CreateMaster()`、リポジトリは本物の `PlayerRepository` に `GachaFixtures.Player(GachaFixtures.Currency)` を `Upsert`、偽の View は本文 5 章のとおり（記録の書式は `"<メソッド名>:<引数を , でつないだもの>"`。`SetLines` は `"SetLines:" + 行数` を記録して `LastLines` に入れる）
+
+| ファイル | テスト | 内容 |
+|---|---|---|
+| `GachaRateCalculatorTests.cs` | `Calculate_ItemsToBasisPoints` | `CreateMaster()` の `Calculate(10)` → `Items` の `BasisPoints` が 1000・1000・8000 |
+| | `Calculate_GroupsSumWeightsBeforeTruncating` | `Build` に渡すもの: `Idols()` に `TestMasterData.Idol(5, "アイドルE", Uta.MasterData.Rarity.SSR)` を足した List、`SupportCards()`、`new[] { IdolEntry(20, 1, 1, 1), IdolEntry(20, 2, 5, 1), IdolEntry(20, 3, 3, 5) }` → `Calculate(20)` の (SSR, Idol) の `Groups` が 2857 |
+| | `Calculate_SortedByRarityDescThenKindThenId` | `CreateMaster()` → `Calculate(10)` の `Groups` が (SSR, Idol)・(SSR, SupportCard)・(R, Idol)、`Calculate(11)` の `Items` の `ItemId` が 1 → 4 |
+| | `Calculate_ZeroWeightItem_Included` | `Build(Idols(), SupportCards(), new[] { IdolEntry(20, 1, 1, 0), IdolEntry(20, 2, 3, 4) })` → `Calculate(20)` の `Items` が 2 行で、Idol 1 の `BasisPoints == 0` |
+| | `Calculate_EmptyOrZeroTotal_ReturnsEmpty` | `CreateMaster()` の `Calculate(99)`（無い表）と、`Build(Idols(), SupportCards(), new[] { IdolEntry(20, 1, 1, 0) })` の `Calculate(20)` → `Groups`・`Items` とも空 |
+| | `Calculate_UnknownId_Throws` | `Build(Idols(), SupportCards(), new[] { IdolEntry(20, 1, 99, 1) })` の `Calculate(20)` → `Assert.Catch(() => ...)`（例外の型は問わない） |
+| `GachaTextsTests.cs` | `Percent_Formats` | 0 → "0.00%"、5 → "0.05%"、1234 → "12.34%"、10000 → "100.00%"。-1 は `ArgumentOutOfRangeException` |
+| `GachaMapperTests.cs` | `ToDrawResult_MapsOutcomeAndSortsBySlot` | `new DrawResponse(new[] { SupportCardResult(2, 2, Duplicate, 10), IdolResult(1, 1, New, 0) }, 750, 47)` → `Kind == Succeeded`、`Results` が Slot 1・2、`IsNew` が true・false、`Kind` が Idol・SupportCard、`ItemId` 1・2、`SupportPoints` 0・10、`GachaCurrency == 750`、`ExchangePoints == 47` |
+| | `ToDrawResult_NullResults_ReturnsEmpty` | `Results.Count == 0` |
+| | `ToExchangePoints_FindsRowOrZero` | `[(2, 5), (1, 37)]` で 1 → 37、3 → 0、`Gachas == null` → 0 |
+| `GachaUseCaseTests.cs`（`FakeGachaService`・本物の `PlayerRepository`・`FakePlayerUseCase`・`CreateMaster()`。成功の応答は `FakeGachaService.Ok(new DrawResponse(new[] { GachaFixtures.IdolResult(1, 1, GachaOutcome.New, 0) }, 3000, 1))`） | `Draw_Success_RefreshesAndReturnsResult` | 成功の応答 → `Succeeded`、`Results.Count == 1`、`GachaCurrency == 3000`、`ExchangePoints == 1`、`player.RefreshCount == 1` |
+| | `Draw_RefreshFails_StillSucceeds` | `player.RefreshResults` に `() => throw new InvalidOperationException("sign-in failed: x")` → `Succeeded` |
+| | `Draw_NotEnoughCurrencyInRepository_DoesNotCall` | 所持 100 → `NotEnoughCurrency`、`service.Calls` が空 |
+| | `Draw_NoPlayer_ReturnsNotEnoughCurrency` | 空のリポジトリ → `NotEnoughCurrency`、`Calls` が空 |
+| | `Draw_ServerNotEnoughCurrency_DoesNotRefresh` | `Fail<DrawResponse>(GachaErrors.NotEnoughCurrency)` → `NotEnoughCurrency`、`RefreshCount == 0` |
+| | `Draw_OtherError_ReturnsFailed` | `Fail<DrawResponse>(GachaErrors.CostMismatch)` → `Failed`、`RefreshCount == 0` |
+| | `Draw_InvalidCount_Throws` | `try { await useCase.DrawAsync(1, 2); Assert.Fail(); } catch (ArgumentOutOfRangeException) { }`、`Calls` が空 |
+| | `Draw_PassesExpectedCost` | 単発と 10 連 → `Calls` が `"Draw:1,1,250"`・`"Draw:1,10,2500"` |
+| | `GetExchangePoints_FoundNotFoundAndFailure` | `[(1, 37)]` で 1 → 37、2 → 0、`Fail<GetGachasResponse>(GachaErrors.NotFound)` → null |
+| `GachaDtoFactoryTests.cs` | `Create_FormatsTexts` | `Create(37)` → `GachaId == 1`、"ガチャ通貨 3,250"、"交換pt 37 / 200"、"単発 250"、"10連 2,500"、"SSR 育成アイドル: アイドルA\nSSR サポートカード: サポートB" |
+| | `Create_NullPoints_ShowsDash` | "交換pt - / 200" |
+| | `Create_LineupDistinctAndNoSsr` | `Build(Idols(), SupportCards(), entries)` で、entries = `NormalEntries()` に `IdolEntry(10, 4, 1, 1)`（同じ ID）を足した List → `LineupText` は共通の前提と同じ 2 行。entries = `new[] { IdolEntry(10, 1, 3, 1) }`（SSR の無い通常枠）→ "" |
+| | `Create_NoPlayer_ZeroCurrency` | 空のリポジトリ → "ガチャ通貨 0" |
+| | `CreateDrawConfirmText_UsesCostAndCurrency` | 10 → "ガチャ通貨 2,500 を使って 10 回引きます。（所持 3,250）"、1 → "ガチャ通貨 250 を使って 1 回引きます。（所持 3,250）" |
+| `GachaRatesDtoFactoryTests.cs` | `Create_BuildsGroupsThenItems` | 本文 5 章の `InitializeAsync_BuildsGroupsThenRows` の 14 行（`Text` と `IsHeading`）と同じ |
+| `GachaResultDtoFactoryTests.cs` | `Create_BuildsLines` | 本文 5 章の `InitializeAsync_BuildsLines` の 4 件 → 4 行の `Text` が本文の 4 つの文、`IsHeading` が全部 false |
+| `GachaPresenterTests.cs`（`FakeGachaUseCase(log)`・`FakeDialogOpener(log)`・`FakeScreenNavigator(log)`・本物の `GachaDtoFactory`） | `InitializeAsync_ShowsCurrencyCostsLineupAndExchange` | `ExchangePointsResults` に 37 → `log` が `"SetCurrency:ガチャ通貨 3,250"`, `"SetCosts:単発 250,10連 2,500"`, `"SetLineup:SSR 育成アイドル: アイドルA\nSSR サポートカード: サポートB"`, `"SetExchange:交換pt 37 / 200"` |
+| | `InitializeAsync_StatusFails_ShowsDash` | `ExchangePointsResults` に null → 最後が `"SetExchange:交換pt - / 200"` |
+| | `DrawAsync_Confirmed_PushesResultModal` | `DrawResults` に `() => { players.Upsert(GachaFixtures.Player(750)); return UniTask.FromResult(DrawResult.Success(2 件, 750, 47)); }`（player_diff の代わり）→ `InitializeAsync` のあとの `log` が `"Confirm:ガチャ通貨 2,500 を使って 10 回引きます。（所持 3,250）"`, `"Draw:10"`, `"SetCurrency:ガチャ通貨 750"`, `"SetCosts:単発 250,10連 2,500"`, `"SetLineup:…"`（初期化と同じ）, `"SetExchange:交換pt 47 / 200"`, `"PushModal:GachaResultPresenter"`。`navigator.Args[0]` が `GachaResultArgs` で `Results.Count == 2`、`Retry != null` |
+| | `DrawAsync_Declined_DoesNotDraw` | `ConfirmResults` に `Negative` → `"Draw:"` も `"PushModal:"` も無い |
+| | `DrawAsync_NotEnoughCurrency_ShowsInfo` | `Rejected(NotEnoughCurrency)` → 最後が `"Info:ガチャ通貨が足りません。"`、`"PushModal:"` が無い |
+| | `DrawAsync_Failed_ShowsNothing` | `Rejected(Failed)` → `"Confirm:…"`, `"Draw:10"` のあとに何も無い |
+| | `DrawAsync_WhileRunning_Ignored` | `DrawResults` に `() => gate.Task`（`UniTaskCompletionSource<DrawResult>`）→ `var first = presenter.DrawAsync(1);` → `await presenter.DrawAsync(1);` → `gate.TrySetResult(DrawResult.Rejected(DrawResultKind.Failed))` → `await first` → `"Draw:1"` が 1 回 |
+| | `DrawAsync_DisposedDuringDraw_TouchesNothing` | 同じ源で `first` → `presenter.Dispose()` → `TrySetResult(Success(1 件, 3000, 1))` → `await first` → `"Draw:1"` のあとに記録が無い |
+| | `ResultRetry_DrawsAgain` | `DrawResults` に 1 回目（`Player(750)` を Upsert して `Success(2 件, 750, 47)`）と 2 回目（`Success(2 件, 750, 48)`）。`DrawAsync(10)` のあと `await ((GachaResultArgs)navigator.Args[0]).Retry();` → `"Confirm:"` で始まる行が 2 回（2 回目は `"Confirm:ガチャ通貨 2,500 を使って 10 回引きます。（所持 750）"`）、`"Draw:10"` が 2 回、`"PushModal:GachaResultPresenter"` が 2 回、`"Info:"` が無い |
+| | `OpenRatesAsync_PushesRatesModal` | `"PushModal:GachaRatesPresenter"`、`Args[0]` が `GachaRatesArgs` で `GachaId == 1` |
+| | `BackAsync_PopsPage` | `"PopPage:GachaPresenter"` |
+| | `Dispose_UnsubscribesEvents` | `Dispose()` のあと `RaiseBack()` → `"PopPage:"` が無い |
+| `GachaRatesPresenterTests.cs` | `InitializeAsync_SetsLines` | `"SetLines:14"`、`LastLines[0].IsHeading`・`LastLines[0].Text == "通常枠（単発・10連の1〜9枠目）"` |
+| | `CloseAsync_PopsModal` | `"PopModal:GachaRatesPresenter"` |
+| `GachaResultPresenterTests.cs` | `InitializeAsync_SetsLines` | 2 件 → `"SetLines:2"` |
+| | `RetryAsync_PopsModalThenCallsRetry`・`RetryAsync_NullRetry_OnlyPops`・`CloseAsync_PopsModal` | 本文 5 章のまま |
+| `HomePresenterTests.cs`（変更） | 組み立て | `CreatePresenter` の `new HomePresenter(...)` の最後に `navigator`（同じ `log` の `FakeScreenNavigator`） |
+| | `GachaClicked_ShowsNotReady` → `GachaClicked_PushesGachaPage` | `InitializeAsync` のあと `RaiseGachaClicked()` → 初期化の後の記録が `"PushPage:GachaPresenter"` だけ |
+| | `OpenGachaAsync_WhileRunning_Ignored`（あれば） → `OpenProduceAsync_WhileRunning_Ignored` | 呼ぶメソッドを `OpenProduceAsync` にする。無ければ足さない |
+| | `OpenGachaAsync_PushesGachaPage`（足す） | `await presenter.OpenGachaAsync();` → 初期化の後の `log` が `"PushPage:GachaPresenter"` だけ |
+
+### G7. タスクの読み替え
+
+- **タスク 1**（Application と排出率・補助）: G2 の 7 型、`Fakes/FakeGachaUseCase.cs`、`Support/GachaFixtures.cs`、`GachaRateCalculatorTests`。前提の確認は foundation の型（`DialogOpener`・`UiObjects`・`FakePlayerUseCase`・`TestMasterData`・`PlayerRepository`）があること。本文の `FakeGameMaster`・`PortResult`・`ServerReasons` とそのテストは作らない。`TestMasterData.Build` での `Append`（`Gacha`・`GachaTableEntry`・`SupportCard` の表）の実在の形はコンパイルで確かめ、違えば止まって報告する
+- **タスク 2**（Infrastructure・DI）: G3 の `GachaMapper`・`GachaUseCase`・`ApiClient`・`MagicOnionClientInitializer`、G5 の登録（`GachaUseCase` と `GachaRateCalculator` の 2 行と `IGachaService` の行。DtoFactory の 3 行はタスク 3a で型ができてから足す）、`Fakes/FakeGachaService.cs`、`GachaMapperTests`・`GachaUseCaseTests`。止まる条件・確かめ方は本文のまま
+- **タスク 3a**（ページとホーム）: G4 の改名（最初に）、`GachaLineRowViewDto`・`GachaTexts`・`IGachaView`・`GachaViewDto`・`GachaDtoFactory`・`GachaPresenter`・`GachaPage` の実装、`GachaRatesArgs`・`IGachaRatesView`・`GachaResultArgs`・`IGachaResultView`、仮の `GachaRatesPresenter`・`GachaResultPresenter`（本文の手順 3 の形で、`[Inject]` のコンストラクターの引数は G4 のもの: `(GachaRatesModal view, GachaRatesArgs args, GachaRatesDtoFactory dtoFactory, IScreenNavigator navigator)`。そのため **`GachaRatesDtoFactory`・`GachaResultDtoFactory` もタスク 3a で G4 の完成形として作る**）、`HomePresenter`、G5 の DtoFactory の 3 行、`GachaTextsTests`・`GachaDtoFactoryTests`・`GachaRatesDtoFactoryTests`・`GachaResultDtoFactoryTests`・`GachaPresenterTests`・`HomePresenterTests`。Play の手順 7 は本文のまま（式の型名は `Uta.Client.Presentation.Gacha.GachaPage`）
+- **タスク 3b**（モーダル）: `GachaLineRowView.SetText`、`GachaRatesModal`・`GachaResultModal` の実装、`GachaRatesPresenter`・`GachaResultPresenter` の本体、`GachaRatesPresenterTests`・`GachaResultPresenterTests`。Play の手順 4 は本文のまま、式の `GachaLineRow` は `GachaLineRowView`。**Play の手順 4 の 3（単発を引く）で、次も確かめる**:
+  - **player_diff の反映**: 引く前と後に `unity command eval` で `VContainer` のルートのリポジトリは引けないので、ガチャのページの通貨の表示で見る: `unity command eval 'return UnityEngine.GameObject.Find("CurrencyText").GetComponent<TMPro.TMP_Text>().text;'`（子の名前は P2 3.3 の表で確かめる）が、引いた後に費用の 250 だけ減っている
+  - **`CommonResponseApplier.ApplyAsync` のスレッド**（共通レスポンスの計画からの申し送り）: Play の前に `CommonResponseApplier.ApplyAsync` の先頭へ一時的に `UnityEngine.Debug.Log("[Uta] common-apply thread=" + System.Threading.Thread.CurrentThread.ManagedThreadId);` を足し、引いたあと `unity command console get --tail 50 --format json` でその値を読み、`unity command eval 'return System.Threading.Thread.CurrentThread.ManagedThreadId;'`（メインスレッドで動く）と同じであることを確かめ、**行を消してから**コミットする。違えば止まって報告する（ADR 0021 の前提が崩れるため、勝手に直さない）。`Common` が null の応答では呼ばれないので、ログが出なければ「確かめられなかった」と報告する
+- 本文 4 章の「止まる条件」の `G1`〜`G3` は、この節の G1〜G9 と別物（本文のリスクの番号）。報告では「止まる条件 G2」のように書く
+- `GachaDtoFactory` のガチャは `db.GachaTable.All.OrderBy(x => x.GachaId).First()`。マスタにガチャが無いときの例外は捕まえない（マスタの検証で起きない）
+- **タスク 4**（記録）: **実装担当に渡さず、進行役（メインのセッション）が `uta-implement` の 6「ズレを wiki に反映する」と一緒に行う**（実装の結果・Play の結果で文面が決まるため）。本文のタスク 4 は無効で、次を行う:
+  1. `screen-design.md`: 2 章の表の「ガチャ（結果）」を「モーダル」に。267 行付近の `GachaLineRow` を `GachaLineRowView` に。7.5 の「所持データのキャッシュ」の最後に「ガチャの画面は、引いた後のガチャ通貨をリポジトリ（player_diff を反映済み）から出す [2026-11-08]」を足す。「実装メモ」に、決めたこと 13 の叩き台との差 4 つと実装のズレを書く
+  2. `unity7-evaluation.md`: 2 章の表に Play で確かめたもの（`IGachaService` の `GetGachasAsync`・`DrawAsync` を `ApiCore` 経由で呼べた、モーダルを積んで閉じられた、`Common` の player_diff が反映された）を 1 行。3.3 の `ApplyAsync` のスレッドの行（66 行）に実行の結果を足す。3.3 の `AppCommonDto` の IL2CPP の行（67 行）と「モーダル」の行（76 行）は、「IL2CPP での送受信は順 7 の 6 本目（lesson）の通しのビルドで確かめる」「2 本目で確かめた」に直す
+  3. `naming.md`: 「今のコードとの差」の `GachaLineRow` の行を消す。`<名詞>Status` の行と `PortResult<T>` の行から gacha の例（`DrawStatus`）を消す（`PortResult<T>` の行は「gacha では作らなかった」と書き足す）。9 章の `GachaRateCalculator（計画）`・`DialogOpener（計画）` の「（計画）」を消す
+  4. `api-design.md` 1.1 の `DrawAsync` の行の後ろに「クライアントは Infrastructure の `GachaUseCase`（`IGachaUseCase`）が呼ぶ」を足す
+  5. 索引 `2026-11-07-client-screens-index.md` の 1 章の順 5 の行を `done` にし、「何を作るか」を `IGachaUseCase`・`GachaUseCase`・DtoFactory の形に直す
+  6. `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0。計画を `status: done`
+- G2 の型は 8 つ（`DrawResultKind`・`GachaResult`・`DrawResult`・`IGachaUseCase`・`GachaRateGroup`・`GachaItemRate`・`GachaRateResult`・`GachaRateCalculator`）
+- `GachaPresenterTests` は、どのテストも先に `await presenter.InitializeAsync();`（`ExchangePointsResults` が空なら交換pt 0）を呼び、`InitializeAsync` の記録のあとを確かめる（`log.Entries.Clear()` してからでよい）。「2 件」の結果は `new GachaResult(1, Uta.MasterData.ItemKind.Idol, 1, true, 0, 0)` と `new GachaResult(2, Uta.MasterData.ItemKind.SupportCard, 2, true, 0, 0)`、`DrawAsync` の `count` は 10（`WhileRunning`・`Disposed` は 1）
+- 改名の Grep は `.cs` だけ（`--include=*.cs`）。Prefab の名前 `GachaRateRow` などは変えない
+- 本文 5 章の偽の View の「リストは要素を `/` でつなぐ」は無い（G4 の View は文字を受ける。`SetLines` は行数を記録）
+- `GachaDtoFactory` のラインナップの `ItemKind` が Idol・SupportCard 以外なら、`GachaTexts.Kind` の `ArgumentOutOfRangeException` のまま（捕まえない）
+
+### G8. 触るファイル（本文 2 章の表を置き換える）
+
+パスは `client/uta/Assets/` からの相対（`uta_docs/` で始まるものはリポジトリのルートから）。新しい `.cs` には、再コンパイルで生成された `.meta` をコミットする。Prefab・Addressables の設定・`server/`・`shared/` は触らない。
+
+| タスク | 操作 | パス |
+|---|---|---|
+| 1 | 作成 | `Scripts/Application/Gacha/DrawResultKind.cs`・`GachaResult.cs`・`DrawResult.cs`・`IGachaUseCase.cs`・`GachaRateGroup.cs`・`GachaItemRate.cs`・`GachaRateResult.cs`・`GachaRateCalculator.cs` |
+| 1 | 作成 | `Tests/EditMode/Fakes/FakeGachaUseCase.cs`、`Tests/EditMode/Support/GachaFixtures.cs`、`Tests/EditMode/GachaRateCalculatorTests.cs` |
+| 2 | 作成 | `Scripts/Infrastructure/Gacha/GachaMapper.cs`・`GachaUseCase.cs`、`Tests/EditMode/Fakes/FakeGachaService.cs`、`Tests/EditMode/GachaMapperTests.cs`・`GachaUseCaseTests.cs` |
+| 2 | 変更 | `Scripts/Infrastructure/Api/ApiClient.cs`・`MagicOnionClientInitializer.cs`、`Scripts/Bootstrap/BootstrapEntry.cs` |
+| 3a | 改名（`git mv`。`.meta` も） | `Scripts/Presentation/Gacha/GachaLineRow.cs` → `GachaLineRowView.cs` |
+| 3a | 変更（改名に合わせる） | `Scripts/Presentation/Gacha/GachaRatesModal.cs`・`GachaResultModal.cs`、`Scripts/Editor/Prefabs/Screens/Gacha/GachaRatesModalBuilder.cs`・`GachaResultModalBuilder.cs`・`GachaRowBuilders.cs`、`Tests/EditMode/GachaPrefabTests.cs` |
+| 3a | 作成 | `Scripts/Presentation/Gacha/GachaLineRowViewDto.cs`・`GachaTexts.cs`・`IGachaView.cs`・`GachaViewDto.cs`・`GachaDtoFactory.cs`・`GachaPresenter.cs`・`GachaRatesArgs.cs`・`IGachaRatesView.cs`・`GachaRatesDtoFactory.cs`・`GachaRatesPresenter.cs`（仮）・`GachaResultArgs.cs`・`IGachaResultView.cs`・`GachaResultDtoFactory.cs`・`GachaResultPresenter.cs`（仮） |
+| 3a | 変更 | `Scripts/Presentation/Gacha/GachaPage.cs`、`Scripts/Presentation/Home/HomePresenter.cs`、`Scripts/Bootstrap/BootstrapEntry.cs`（DtoFactory の 3 行） |
+| 3a | 作成・変更 | `Tests/EditMode/GachaTextsTests.cs`・`GachaDtoFactoryTests.cs`・`GachaRatesDtoFactoryTests.cs`・`GachaResultDtoFactoryTests.cs`・`GachaPresenterTests.cs`（作成）、`Tests/EditMode/HomePresenterTests.cs`（変更） |
+| 3b | 変更 | `Scripts/Presentation/Gacha/GachaLineRowView.cs`・`GachaRatesModal.cs`・`GachaResultModal.cs`・`GachaRatesPresenter.cs`・`GachaResultPresenter.cs`（仮を置き換える）。Play の確認のあいだだけ `Scripts/Infrastructure/Api/CommonResponseApplier.cs`（ログの 1 行。コミットしない） |
+| 3b | 作成 | `Tests/EditMode/GachaRatesPresenterTests.cs`・`GachaResultPresenterTests.cs` |
+| 4 | 変更 | `uta_docs/wiki/architecture/screen-design.md`・`unity7-evaluation.md`・`naming.md`・`api-design.md`、この計画の frontmatter |
+
+本文 2 章の表と、本文 1 章の「後続が使うもの」（`PortResult<T>`・`ServerReasons`・`FakeGameMaster`）は無効。後続が使うのは偽の形（`FakeGachaUseCase`・`FakeGachaService`。owned 以降は同じ形で自分の偽を作る）だけ。
+
+### G9. 本文のうち有効なもの（ここに無い本文の記述は無効。G0〜G8 が正）
+
+- 「この計画で決めたこと」1・2・3（型名は G0 で読む）・7・8・9（コンストラクターは G4）・13・14
+- 1 章の前提 2・3 と「決めないこと」。前提 1 は foundation の型があることだけを確かめる（`IGameMaster`・`PlayerCache`・`RefreshPlayerUseCase`・`StubPlayerPort` は無いのが正しい。確かめるのは G7 のタスク 1 の型）
+- 3.4 の「View（P2 の骨格に足す）」の P2 のフィールドの表と `Awake` の購読の書き方、`SetLines` の行の作り方（`GachaLineRow` は `GachaLineRowView`）
+- 3.4 の Presenter の前置き（購読・`Dispose`・実行中フラグ・`disposed`・`playAnimation: false`・`using`）、`GachaPresenter` の `BackAsync`、`GachaRatesPresenter` の見出しの文と順（`GachaRatesDtoFactory` が使う）、`GachaResultPresenter` の行の文と `note`（`GachaResultDtoFactory` が使う）・`CloseAsync`・`RetryAsync`
+- 4 章のタスクの「止まる条件」「境界」「Play の手順」と、各タスクの終わりの確かめ方（G7 の読み替えのうえで）
+- 5 章の冒頭の偽の View の書き方（`private sealed class`、`CallLog` の共有、`[UnityTest]` + `UniTask.ToCoroutine`。**名前空間は `Uta.Client.Tests`**）、Play・手動の確認の項目
+- 無効: 3.1〜3.3・3.5、5.1（名前空間 `Uta.Client.Infrastructure.Tests`・`internal` の `GachaFixtures`）、5.2 の表（G6 の表が正。`GachaResultPresenterTests` の 3 本は G6 の表が「本文のまま」と言うので本文の行を使う）
 
 ## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
 
@@ -727,3 +1211,14 @@ Play・手動（Editor、サーバー起動済み・初期付与済みのプレ�
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - なし
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
+| 1 | 完了 | `10df9ce` | 止めた実装担当の書きかけを引き継いだ。BOM を付けた。EditMode 215 件通過 |
+| 2 | 完了 | `d773807` | なし。EditMode 227 件通過 |
+| 3a | 完了 | `786ffbd` | テストを 2 本足した（`GachaTextsTests` の `Kind_Texts`、`GachaResultDtoFactoryTests` の `Create_NullResults_Throws`）。EditMode 250 件通過。Play の手順 7 は、Bash から `EditorApplication.Step()` の eval を繰り返して Editor の Pipeline に接続できなくなり、タスク 3b のときに確かめた（期待どおり） |
+| 3b | 完了 | `8b22946` | モーダルの Presenter は `disposed` を持たない（読まれないので CS0414 を避けた）。Play: 排出率 35 行、単発の結果 1 行、通貨 3,000 → 2,750（player_diff）、`ApplyAsync` のスレッドはメイン（2 で一致）。計画の式 `Find("Dialog")` は実物が `Dialog(Clone)` で当たらない（`DialogView` の有無で見た）。10 連・「もう一度」・見た目・サーバー停止時のダイアログ・IL2CPP は未確認。Play 中にローカルの DB の `gacha_currency` が 2500 → 0 に変わっていた（原因不明。別のセッションの可能性） |
+| 4 | 完了 | `c30be79` | 進行役が行った（G7）。lint エラー 0 |
+| レビュー 1 | 完了 | `90cd341` | client: Critical 0・Important 1（引数名が型名の規則に合わない。enum の引数も同じ規則にした）・Minor 5（M1 行の Prefab の `m_EditorClassIdentifier`、M2 実装メモのハッシュ、M3 例外の投げ方、M4 テスト 2 本、M5 名前付きのタプル）を全部直した。EditMode 261 件通過。報告は `uta_docs/reviews/.raw/2026-11-09-client-screens-gacha/code-client-1.md`（Git に入れない） |

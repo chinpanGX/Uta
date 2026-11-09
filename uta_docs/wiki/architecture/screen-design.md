@@ -51,7 +51,7 @@ updated: 2026-11-09
 | ホーム | ページ | — | サインインで取った所持データ（キャッシュ）を表示。「プロデュース」から再開を選んだら GetState（進行中かは起動時の `SignInAsync` で知る。[api-design.md](api-design.md) 1章） | — |
 | ガチャ（一覧） | ページ | GAC-01 | GetGachas | ガチャ、排出率 |
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
-| ガチャ（結果） | ページ／モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
+| ガチャ（結果） | モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
 | 交換 | ページ | GAC-03 | Exchange | 交換pt の設定（MVP では作らない。天井は結合テストで確かめる） |
 | 所持一覧・詳細 | ページ | IDL-01、SUP-01 | サインインで取った所持データ（キャッシュ） | 育成アイドル、サポートカード |
 | 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定（MVP では作らない） |
@@ -174,7 +174,7 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 
 ### 7.5 通信・状態・マスタの扱い [Uta案]
 
-- **所持データのキャッシュ**: Domain のリポジトリ（`IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository`。読むだけの使い手には `IReadOnly<名詞>Repository` を渡す。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。サインインの応答で `IPlayerUseCase` の具象が 3 つとも置き換える（プレイヤーは `Upsert`、アイドル・サポートカードは `Clear()` のあと `Upsert(IReadOnlyList<T>)`）。エンティティは、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの ID を `MasterId`（`int`）として持つ（`PlayerEntity` は `UniqueId` だけ、`IdolEntity`・`SupportCardEntity` は両方）。1 件を引く・置き換える・消すのは `UniqueId` で行い（`IReadOnlyIdolRepository.Find(string uniqueId)`、`IIdolRepository.Upsert` は `UniqueId` が同じものを置き換える）、`FindAll` は `MasterId` の昇順 [決定。2026-11-08。ユーザーの判断。[naming.md](naming.md) 2章]。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`IPlayerUseCase.RefreshAsync`）。サーバーの確定値と食い違わせないため。`Common` を返す RPC では、`Common` の player_diff が先にリポジトリへ反映される（基盤が呼び出し側に返す前に `CommonResponseApplier` が `PlayerDiffApplier` に渡す。[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）。`RefreshAsync` は安全網
+- **所持データのキャッシュ**: Domain のリポジトリ（`IPlayerRepository`・`IIdolRepository`・`ISupportCardRepository`。読むだけの使い手には `IReadOnly<名詞>Repository` を渡す。[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)）。サインインの応答で `IPlayerUseCase` の具象が 3 つとも置き換える（プレイヤーは `Upsert`、アイドル・サポートカードは `Clear()` のあと `Upsert(IReadOnlyList<T>)`）。エンティティは、サーバーが採番する ULID を `UniqueId`（`string`）、マスタの ID を `MasterId`（`int`）として持つ（`PlayerEntity` は `UniqueId` だけ、`IdolEntity`・`SupportCardEntity` は両方）。1 件を引く・置き換える・消すのは `UniqueId` で行い（`IReadOnlyIdolRepository.Find(string uniqueId)`、`IIdolRepository.Upsert` は `UniqueId` が同じものを置き換える）、`FindAll` は `MasterId` の昇順 [決定。2026-11-08。ユーザーの判断。[naming.md](naming.md) 2章]。ガチャ・強化・プロデュースの終了のあとは、変わった量をクライアントで計算せず、サインインで取り直す（`IPlayerUseCase.RefreshAsync`）。サーバーの確定値と食い違わせないため。`Common` を返す RPC では、`Common` の player_diff が先にリポジトリへ反映される（基盤が呼び出し側に返す前に `CommonResponseApplier` が `PlayerDiffApplier` に渡す。[server-foundation.md](server/server-foundation.md) 共通レスポンス項目）。`RefreshAsync` は安全網。ガチャの画面は、引いた後のガチャ通貨を応答の値ではなく、player_diff を反映したリポジトリから出す [2026-11-08。ユーザーの判断]
 - **プレイヤーLv** [決定。2026-11-09。ユーザーの判断]: サーバーは経験値の累計だけを送り、`PlayerEntity` も `Level` を持たない（`PlayerEntity(uniqueId, exp, gold, supportPoints, gachaCurrency, hasActiveProduce, discardedProduce)`。`Exp` は累計）。表示する Lv は、表示用の値を作る DtoFactory が `Uta.Shared.Domain.Player.PlayerLevelCatalog.GetLevel(exp)` で求める（`PlayerLevelCatalog` は `MemoryDatabase` から Factory が 1 度だけ作り、ルートのスコープにシングルトンで登録する。`ICardCatalog` と同じ扱い）。ホームの上部のステータスはまだ無いので、クライアントの Factory・登録・表示は、それを作る計画で足す [2026-11-09。ユーザーの判断]。計算は Shared.Domain に置いた式を呼ぶだけなので、下の「マスタの値でゲームのルールを計算しない」に当たらない。式とサーバー側の扱いは [produce-server.md](server/produce-server.md) 4.1
 - **マスタ**: 画面が使うマスタの値は、`MemoryDatabase`（`Uta.MasterData`。ルートのスコープにシングルトンで登録してある）を直接読む。Presentation でマスタを読むのは表示用の値を作る DtoFactory で、マスタの値でゲームのルールを計算しない（[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)。`IGameMaster` は作らない）
 - **スキルカードの表示**: 名前と説明文はマスタに足す [決定。2026-11-03。ユーザーの判断。[計画](../../plans/2026-11-03-masterdata-card-text.md)]。画面は名前・レア度・種類・消費・強化済みの印・説明文を出す。効果の予測値は出さない
@@ -236,6 +236,13 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 
 ## 実装メモ
 
+### 画面 2/6（ガチャ。2026-11-09。[計画](../../plans/2026-11-03-client-screens-gacha.md)）
+
+- **形**: Application の `IGachaUseCase`（`GetExchangePointsAsync` は `int?`、`DrawAsync` は `DrawResult`（`Kind` が `DrawResultKind`））、Infrastructure の具象 `GachaUseCase`（`IGachaService` を直接呼ぶ。`handledCodes` は通貨不足だけ。成功のあと `IPlayerUseCase.RefreshAsync` を呼び、失敗は握りつぶす）と `GachaMapper`、Presentation の `GachaDtoFactory`・`GachaRatesDtoFactory`・`GachaResultDtoFactory`（文字を作る。View は入れるだけ）。`PortResult<T>`・`ServerReasons` は作らなかった（Presenter が reason で文言を分ける操作が無い）。排出率の計算は `GachaRateCalculator`（`MemoryDatabase` を受けるインスタンス）
+- **叩き台（[screen-wireframes.md](../overview/screen-wireframes.md) 9）との差**: ガチャ名の行は固定の「ガチャ」、ガチャの画像は出さない、結果はカードの絵のグリッドではなく 1 枠 1 行の文字、「NEW」は育成アイドルを初めて得たときだけ（サポートカードの新しい行は「所持に追加」）。「もう一度」も確認ダイアログから
+- **確かめた範囲**: EditMode のテスト（259 件）。Editor の Play で、ホーム →「ガチャ」→ ページの開閉、排出率のモーダル（35 行）、単発を引いて結果のモーダル（1 行）、引いた後に通貨の表示が 250 減る（player_diff）、通貨 0 で「ガチャ通貨が足りません。」。10 連・「もう一度」・見た目・サーバーを止めたときの共通のダイアログは未確認
+- **計画とのズレ**: モーダルの Presenter は `disposed` を持たない（Pop のあとに待つ処理が無く、読まれないため）。行の View を `GachaLineRowView` に改名した（`.meta` ごと移し、Prefab は作り直していない）
+
 ### Prefab 1/3（共通部品・Addressables・TMP。2026-11-08。[P1 の計画](../../plans/2026-11-07-client-prefabs-common.md)）
 
 - **確かめた範囲**: `BuildAll()` が `built 10`。もう一度回しても `Prefabs/Parts/` に差分は出なかった。Prefab の中身は `unity command eval` で計画 3.4 の表と突き合わせた（スクリーンショットでの見た目の確認はしていない）。`PrefabContractTests`（7 本）を含む EditMode のテストは、Editor を開いたまま `TestRunnerApi` で 43/43 が通り、`Header` の `titleText` を外すと `AllPrefabs_SerializedReferences_AreAssigned` だけが失敗した。バッチの入口 `BuildAllBatch` は終了コード 0 を 1 回確かめた
@@ -266,7 +273,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 - **見た目**: P2 と同じく、プレビューのシーンで 1080×1920 の Canvas に置いて PNG に描いて見た（画面 10 と行 `FormationSlotRow`・`SkillCardRow`）。配置は計画の表どおりで、日本語と `≡` は豆腐にならなかった。ただし **`CardOfferModal`・`DeckListModal` の `TitleText` と、`SkillCardRow` の `TitleText`・`CostsText` が PNG に描かれなかった**。どれも、それまでの画面に無かった字（獲得・名・消費・「・」など）を含む。動的フォントのアトラスに字を足した直後に描いたためと推測する（確かめていない）。描画の途中で Editor が落ち（クラッシュのフォルダは空で、原因は分からない）、残りの行 3 個の PNG と矩形の大きさの出力は取れなかった。`◀`・`＜` の字形と、Prefab モードで開いて見る手動の確認（計画 タスク 5 の手順 4）はしていない
 - **再生成の差分**（計画 タスク 5）: 2 回目の `BuildAll()` で、`FormationSlotRow`・`FormationPage`・`OwnedPage` に、ネストした部品のインスタンスの fileID の付け直しと並び替えだけの差分が出た（fileID を伏せて並べ替えると同じ）。`FormationPage` が参照する `FormationSlotRow` の fileID は、付け直しの前後で同じだった。`Screens.asset` に差分は出なかった。`NotoSansJP-Regular SDF.asset` には、P1 から続く `_ScaleRatioA`・`_ScaleRatioC` の差分が出た（計画は「差分が無いこと」としていたが、既知の差分として戻した）
 - **計画とのズレ**:
-  - 行の View（`FormationSlotRowView` など 5 つ）に、P2 の `GachaLineRow` にならって `[DisallowMultipleComponent]` を付けた（画面の View には付けない。P2 と同じ）
+  - 行の View（`FormationSlotRowView` など 5 つ）に、P2 の `GachaLineRowView`（当時の名前は `GachaLineRow`）にならって `[DisallowMultipleComponent]` を付けた（画面の View には付けない。P2 と同じ）
   - `unity command` は、同じ PC で別のプロジェクトの Editor が開いていると、`--project-path` を付けないとそちらに送られることがあった（1 回、テストが別のプロジェクトで走った）。`unity command --project-path <client/uta の絶対パス> ...` で送る
 
 ### 画面 1/6（土台・タイトル・ホーム。2026-11-08。[計画](../../plans/2026-11-03-client-screens-foundation.md)）

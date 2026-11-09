@@ -22,7 +22,7 @@ namespace Uta.Client.Editor.Prefabs.Screens
             var close = PrefabBuildUtil.AddButtonPart(buttonRow, "CloseButton", "閉じる", ButtonStyle.Secondary);
 
             PrefabBuildUtil.SetRef(modal, "listContent", content);
-            PrefabBuildUtil.SetRef(modal, "rowPrefab", ScreenLayout.LoadPart<GachaLineRow>("GachaResultRow"));
+            PrefabBuildUtil.SetRef(modal, "rowPrefab", ScreenLayout.LoadPart<GachaLineRowView>("GachaResultRow"));
             PrefabBuildUtil.SetRef(modal, "retryButton", retry);
             PrefabBuildUtil.SetRef(modal, "closeButton", close);
 

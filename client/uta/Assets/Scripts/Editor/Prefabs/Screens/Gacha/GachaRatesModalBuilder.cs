@@ -19,8 +19,8 @@ namespace Uta.Client.Editor.Prefabs.Screens
             var close = PrefabBuildUtil.AddButtonPart(panel, "CloseButton", "閉じる", ButtonStyle.Secondary);
 
             PrefabBuildUtil.SetRef(modal, "listContent", content);
-            PrefabBuildUtil.SetRef(modal, "headingRowPrefab", ScreenLayout.LoadPart<GachaLineRow>("GachaRateHeadingRow"));
-            PrefabBuildUtil.SetRef(modal, "lineRowPrefab", ScreenLayout.LoadPart<GachaLineRow>("GachaRateRow"));
+            PrefabBuildUtil.SetRef(modal, "headingRowPrefab", ScreenLayout.LoadPart<GachaLineRowView>("GachaRateHeadingRow"));
+            PrefabBuildUtil.SetRef(modal, "lineRowPrefab", ScreenLayout.LoadPart<GachaLineRowView>("GachaRateRow"));
             PrefabBuildUtil.SetRef(modal, "closeButton", close);
 
             PrefabBuildUtil.SavePrefab(modal.gameObject, AssetPath);

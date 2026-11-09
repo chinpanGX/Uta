@@ -174,5 +174,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 07f7ffda2f1bf0d468cd7a1853d16bab, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Uta.Client.Presentation::Uta.Client.Presentation.Gacha.GachaLineRow
+  m_EditorClassIdentifier: Uta.Client.Presentation::Uta.Client.Presentation.Gacha.GachaLineRowView
   text: {fileID: 6086602052790702454}

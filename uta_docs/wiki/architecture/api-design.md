@@ -79,7 +79,7 @@ updated: 2026-11-09
 | RPC | Request | Response | Common |
 |---|---|---|---|
 | `GetGachasAsync` | なし | `Gachas`: ガチャごとに `GachaMasterId`（`int`）・`ExchangePoints`（`int`）。ガチャの中身と排出率はクライアントのマスタから表示する | なし |
-| `DrawAsync` | `GachaMasterId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemMasterId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUniqueId`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt） | あり |
+| `DrawAsync` | `GachaMasterId`（`int`）、`Count`（`int`。1 か 10）、`ExpectedCost`（`int`。画面に出した価格。マスタと違えば拒否） | `Results`: 枠ごとに `Slot`（`int`）・`ItemKind`（enum）・`ItemMasterId`（`int`）・`Outcome`（enum。型名は `GachaOutcome`。`Nothing` = 0 / `New` = 1 / `Duplicate` = 2。名前と数値の正はここ。2026-11-01 に gacha-tables.md から移した。`ItemKind` の正は [gacha-tables.md](master/gacha-tables.md)）・`Shards`（`int`。重複の育成アイドル）・`SupportPoints`（`int`。完凸後の重複）・`SupportCardUniqueId`（`string`。増えたサポートカード。無ければ空）。ほかに `GachaCurrency`（残り）・`ExchangePoints`（このガチャの交換pt）。クライアントは Infrastructure の `GachaUseCase`（`IGachaUseCase`）が呼ぶ | あり |
 | `GetHistoryAsync` | `Before`（`string`。この履歴 ID より前。空なら最新から）、`Limit`（`int`。1〜50） | `Items`: 履歴の行（3章）。新しい順 | なし |
 | `ExchangeAsync` | `GachaMasterId`、`CeilingItemOrder`（`int`。`GachaCeilingItem` の `Order`） | `DrawAsync` の `Results` と同じ形の 1 件（`Slot` は 0）、`ExchangePoints`。`GachaCurrency` は含めない（変わらないため） | あり |
 

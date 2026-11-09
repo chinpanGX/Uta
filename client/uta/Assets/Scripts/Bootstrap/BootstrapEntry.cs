@@ -3,6 +3,7 @@ using System.IO;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Uta.Client.Application.Auth;
+using Uta.Client.Application.Gacha;
 using Uta.Client.Application.Idol;
 using Uta.Client.Application.Navigation;
 using Uta.Client.Application.Player;
@@ -12,13 +13,16 @@ using Uta.Client.Domain.SupportCard;
 using Uta.Client.Infrastructure;
 using Uta.Client.Infrastructure.Api;
 using Uta.Client.Infrastructure.Auth;
+using Uta.Client.Infrastructure.Gacha;
 using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Infrastructure.SupportCard;
 using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Gacha;
 using Uta.Client.Presentation.Home;
 using Uta.Client.Presentation.Startup;
 using Uta.MasterData;
+using Uta.Shared.Contracts.Gacha;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Domain.Lesson;
 using VolTech.Client;
@@ -126,6 +130,7 @@ namespace Uta.Client.Bootstrap
         private static void RegisterUseCases(IContainerBuilder builder)
         {
             builder.Register<IPlayerService>(resolver => resolver.Resolve<ApiClient>().Player, Lifetime.Singleton);
+            builder.Register<IGachaService>(resolver => resolver.Resolve<ApiClient>().Gacha, Lifetime.Singleton);
             builder.Register<PlayerRepository>(Lifetime.Singleton).As<IPlayerRepository>().As<IReadOnlyPlayerRepository>();
             builder.Register<IdolRepository>(Lifetime.Singleton).As<IIdolRepository>().As<IReadOnlyIdolRepository>();
             builder.Register<SupportCardRepository>(Lifetime.Singleton).As<ISupportCardRepository>().As<IReadOnlySupportCardRepository>();
@@ -136,6 +141,11 @@ namespace Uta.Client.Bootstrap
             builder.Register<HomeDtoFactory>(Lifetime.Singleton);
             builder.Register<DeviceAuthUseCase>(Lifetime.Singleton).As<IDeviceAuthUseCase>();
             builder.Register<PlayerUseCase>(Lifetime.Singleton).As<IPlayerUseCase>();
+            builder.Register<GachaRateCalculator>(Lifetime.Singleton);
+            builder.Register<GachaDtoFactory>(Lifetime.Singleton);
+            builder.Register<GachaRatesDtoFactory>(Lifetime.Singleton);
+            builder.Register<GachaResultDtoFactory>(Lifetime.Singleton);
+            builder.Register<GachaUseCase>(Lifetime.Singleton).As<IGachaUseCase>();
         }
     }
 }
