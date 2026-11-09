@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
-status: ready
+status: in-progress
 updated: 2026-11-09
 spec: ../wiki/systems/idol-support.md
 ---
@@ -1268,3 +1268,9 @@ Play モード・手動（タスク 5。Editor、サーバー起動済み。初�
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 なし。（`HomePage.resumePanel` の型は P2 で `GameObject` に統一済み。）
+
+## 7. 実装メモ
+
+| タスク | コミット | ズレ |
+|---|---|---|
+| 1 | 02926fc | なし（OwnedFixtures の Idol・SupportCard の行は private の補助で作った） |
