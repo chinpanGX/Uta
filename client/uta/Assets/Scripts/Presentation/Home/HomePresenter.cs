@@ -3,6 +3,7 @@ using UnityScreenNavigator;
 using Uta.Client.Application.Player;
 using Uta.Client.Presentation.Common;
 using Uta.Client.Presentation.Gacha;
+using Uta.Client.Presentation.Owned;
 using VContainer;
 
 namespace Uta.Client.Presentation.Home
@@ -101,9 +102,22 @@ namespace Uta.Client.Presentation.Home
             }
         }
 
-        public UniTask OpenOwnedAsync()
+        public async UniTask OpenOwnedAsync()
         {
-            return ShowNotReadyAsync();   // 3 本目が書き換える
+            if (running)
+            {
+                return;
+            }
+
+            running = true;
+            try
+            {
+                await screenNavigator.PushPageAsync<OwnedPresenter, OwnedArgs>(OwnedArgs.Browse(), playAnimation: false);
+            }
+            finally
+            {
+                running = false;
+            }
         }
 
         private void OnProduceClicked()

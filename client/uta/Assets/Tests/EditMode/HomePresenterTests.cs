@@ -10,6 +10,7 @@ using Uta.Client.Domain.Player;
 using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Presentation.Home;
+using Uta.Client.Presentation.Owned;
 using Uta.MasterData;
 
 namespace Uta.Client.Tests
@@ -80,6 +81,7 @@ namespace Uta.Client.Tests
         private CallLog log;
         private FakeHomeView view;
         private FakeDialogOpener dialogs;
+        private FakeScreenNavigator navigator;
         private PlayerRepository players;
         private IdolRepository idols;
         private DiscardNoticeState notice;
@@ -90,6 +92,7 @@ namespace Uta.Client.Tests
             log = new CallLog();
             view = new FakeHomeView(log);
             dialogs = new FakeDialogOpener(log);
+            navigator = new FakeScreenNavigator(log);
             players = new PlayerRepository();
             idols = new IdolRepository();
             notice = new DiscardNoticeState();
@@ -99,7 +102,7 @@ namespace Uta.Client.Tests
         {
             db = db ?? TestMasterData.Build(_ => { });
             var dtoFactory = new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db);
-            return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs, new FakeScreenNavigator(log));
+            return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs, navigator);
         }
 
         private void SetPlayer(int level = 12, int gachaCurrency = 3250, bool hasActiveProduce = true, bool discardedProduce = false)
@@ -229,7 +232,7 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
-        public IEnumerator OwnedClicked_ShowsNotReady() => UniTask.ToCoroutine(async () =>
+        public IEnumerator OwnedClicked_PushesOwnedBrowse() => UniTask.ToCoroutine(async () =>
         {
             SetPlayer();
             var presenter = CreatePresenter();
@@ -238,7 +241,22 @@ namespace Uta.Client.Tests
 
             view.RaiseOwnedClicked();
 
-            CollectionAssert.AreEqual(new[] { "Info:準備中です。" }, log.Entries);
+            CollectionAssert.AreEqual(new[] { "PushPage:OwnedPresenter" }, log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenOwnedAsync_PushesOwnedBrowse() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer();
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+
+            await presenter.OpenOwnedAsync();
+
+            CollectionAssert.AreEqual(new[] { "PushPage:OwnedPresenter" }, log.Entries);
+            var args = (OwnedArgs)navigator.Args[0];
+            Assert.IsNull(args.Selection);
         });
 
         [UnityTest]
