@@ -46,6 +46,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 | 10 | [lesson レッスン・試験・試験結果・プロデュース結果](2026-11-03-client-screens-lesson.md) | レッスンのページ・山札などの一覧・試験結果・プロデュース結果、`ProduceFlow` の残りの局面。完了条件 6 の通し | week | week の実装ブランチ | ready |
 
 - 並行しない。後の計画は前の計画の型・偽・Prefab を使う（各計画の 1章の前提）
+- **[プレイヤー Lv の計画](2026-11-09-player-level-from-exp.md)は、順 6（owned）の実装の PR の後、順 8（formation）の実装ブランチを切る前に `main` へ入れる**（2026-11-09。ユーザーの判断。`PlayerEntity`・`ProduceResultResponse` から Lv を消すため。formation・lesson の計画の先頭に読み替えの節を足した）。この表の 10 本には入れない。実装の PR は owned の実装ブランチに積み（base `claude/client-screens-owned`）、owned が `main` に入ったら base を `main` に付け替える（その計画の「決めたこと」3a）
 - **順 0（基盤移行）と共通レスポンスは、P1〜P3 の後に `main` へ入る**（P1〜P3 は先に done になり `main` にマージされた。当初の「順 0 は P1 より前に `main` へ入れる」は満たせなくなった）。**順 0 → 共通レスポンスの順に、どちらも順 4（foundation）の実装ブランチを切る前に `main` へ入れる**（foundation も `ApiClient.Create` を変え、順 0 と共通レスポンスの読み替えが実装済みであることを前提にするため）
 - **計画 0 と P1 は `main` 向け。計画 0 を先に main へマージしてから P1 を始める**（確認 1）。積み PR の連鎖 main → P1 → P2 → foundation に計画 0 の変更は入らないので、計画 0 が main に無いと foundation の前提 2（`Card.Name`・`CardFace.Description`）で止まる
 - 「積み PR の base」は実装の PR（4章）の base。前の計画の実装 PR が main に入ったら、後の PR の base を `main` に付け替える（CLAUDE.md「Git」。付け替えとマージはユーザーが行う）
