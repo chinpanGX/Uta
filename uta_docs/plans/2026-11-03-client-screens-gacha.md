@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 2/6 ガチャ
-status: in-progress
+status: done
 updated: 2026-11-09
 spec: ../wiki/systems/gacha.md, ../wiki/architecture/screen-design.md
 ---
@@ -1216,7 +1216,9 @@ Play・手動（Editor、サーバー起動済み・初期付与済みのプレ�
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
-| 1 | 完了 | `802d863` | 止めた実装担当の書きかけを引き継いだ。BOM を付けた。EditMode 215 件通過 |
-| 2 | 完了 | `d34d5dc` | なし。EditMode 227 件通過 |
-| 3a | 完了 | `0922a18` | テストを 2 本足した（`GachaTextsTests` の `Kind_Texts`、`GachaResultDtoFactoryTests` の `Create_NullResults_Throws`）。EditMode 250 件通過。Play の手順 7 は、Bash から `EditorApplication.Step()` の eval を繰り返して Editor の Pipeline に接続できなくなり、タスク 3b のときに確かめた（期待どおり） |
-| 3b | 完了 | `dd06f7a` | モーダルの Presenter は `disposed` を持たない（読まれないので CS0414 を避けた）。Play: 排出率 35 行、単発の結果 1 行、通貨 3,000 → 2,750（player_diff）、`ApplyAsync` のスレッドはメイン（2 で一致）。計画の式 `Find("Dialog")` は実物が `Dialog(Clone)` で当たらない（`DialogView` の有無で見た）。10 連・「もう一度」・見た目・サーバー停止時のダイアログ・IL2CPP は未確認。Play 中にローカルの DB の `gacha_currency` が 2500 → 0 に変わっていた（原因不明。別のセッションの可能性） |
+| 1 | 完了 | `10df9ce` | 止めた実装担当の書きかけを引き継いだ。BOM を付けた。EditMode 215 件通過 |
+| 2 | 完了 | `d773807` | なし。EditMode 227 件通過 |
+| 3a | 完了 | `786ffbd` | テストを 2 本足した（`GachaTextsTests` の `Kind_Texts`、`GachaResultDtoFactoryTests` の `Create_NullResults_Throws`）。EditMode 250 件通過。Play の手順 7 は、Bash から `EditorApplication.Step()` の eval を繰り返して Editor の Pipeline に接続できなくなり、タスク 3b のときに確かめた（期待どおり） |
+| 3b | 完了 | `8b22946` | モーダルの Presenter は `disposed` を持たない（読まれないので CS0414 を避けた）。Play: 排出率 35 行、単発の結果 1 行、通貨 3,000 → 2,750（player_diff）、`ApplyAsync` のスレッドはメイン（2 で一致）。計画の式 `Find("Dialog")` は実物が `Dialog(Clone)` で当たらない（`DialogView` の有無で見た）。10 連・「もう一度」・見た目・サーバー停止時のダイアログ・IL2CPP は未確認。Play 中にローカルの DB の `gacha_currency` が 2500 → 0 に変わっていた（原因不明。別のセッションの可能性） |
+| 4 | 完了 | `c30be79` | 進行役が行った（G7）。lint エラー 0 |
+| レビュー 1 | 完了 | `90cd341` | client: Critical 0・Important 1（引数名が型名の規則に合わない。enum の引数も同じ規則にした）・Minor 5（M1 行の Prefab の `m_EditorClassIdentifier`、M2 実装メモのハッシュ、M3 例外の投げ方、M4 テスト 2 本、M5 名前付きのタプル）を全部直した。EditMode 261 件通過。報告は `uta_docs/reviews/.raw/2026-11-09-client-screens-gacha/code-client-1.md`（Git に入れない） |
