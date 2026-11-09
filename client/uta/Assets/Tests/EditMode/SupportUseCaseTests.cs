@@ -132,5 +132,43 @@ namespace Uta.Client.Tests
 
             Assert.IsEmpty(service.Calls);
         });
+
+        [UnityTest]
+        public IEnumerator LevelUp_HandlesCodes() => UniTask.ToCoroutine(async () =>
+        {
+            service.LevelUpResults.Enqueue(FakeSupportService.Ok(new LevelUpResponse(4, 900, 950)));
+
+            await useCase.LevelUpAsync("01A", 4);
+
+            AssertHandled("uta/SUPPORT_INVALID_TARGET_LEVEL", "uta/SUPPORT_NOT_ENOUGH_POINTS", "uta/PLAYER_NOT_ENOUGH_GOLD", "uta/SUPPORT_NOT_OWNED");
+        });
+
+        [UnityTest]
+        public IEnumerator LimitBreak_HandlesCodes() => UniTask.ToCoroutine(async () =>
+        {
+            service.LimitBreakResults.Enqueue(FakeSupportService.Ok(new LimitBreakResponse(1, 45)));
+
+            await useCase.LimitBreakAsync("01A", "01D");
+
+            AssertHandled("uta/SUPPORT_MAX_LIMIT_BREAK", "uta/SUPPORT_INVALID_MATERIAL", "uta/SUPPORT_NOT_OWNED");
+        });
+
+        private void AssertHandled(params string[] expected)
+        {
+            Assert.IsNotNull(service.LastHeaders);
+            foreach (var reason in expected)
+            {
+                var found = false;
+                foreach (var entry in service.LastHeaders)
+                {
+                    if (entry.Value != null && entry.Value.Contains(reason))
+                    {
+                        found = true;
+                    }
+                }
+
+                Assert.IsTrue(found, reason);
+            }
+        }
     }
 }

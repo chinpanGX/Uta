@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using Uta.Client.Application.Owned;
 using Uta.Client.Application.Support;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Infrastructure.SupportCard;
@@ -22,7 +23,8 @@ namespace Uta.Client.Tests
             OwnedFixtures.SetPlayer(playerRepository);
             OwnedFixtures.SetOwned(new IdolRepository(), supportCardRepository);
             var master = OwnedFixtures.CreateMaster();
-            supportDetailDtoFactory = new SupportDetailDtoFactory(playerRepository, supportCardRepository, master, new SupportLevelPlanner(master));
+            supportDetailDtoFactory = new SupportDetailDtoFactory(playerRepository, supportCardRepository, master, new SupportLevelPlanner(master),
+                new OwnedListFactory(new IdolRepository(), supportCardRepository, master));
         }
 
         [Test]

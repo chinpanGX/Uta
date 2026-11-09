@@ -1,4 +1,5 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System;
+using Cysharp.Threading.Tasks;
 using UnityScreenNavigator;
 using Uta.Client.Application.Owned;
 using Uta.Client.Application.Support;
@@ -30,6 +31,11 @@ namespace Uta.Client.Presentation.Owned
         public SupportDetailPresenter(ISupportDetailView supportDetailView, SupportDetailArgs supportDetailArgs, SupportDetailDtoFactory supportDetailDtoFactory,
             ISupportUseCase supportUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator)
         {
+            if (supportDetailArgs == null)
+            {
+                throw new ArgumentNullException(nameof(supportDetailArgs));
+            }
+
             this.supportDetailView = supportDetailView;
             this.supportDetailArgs = supportDetailArgs;
             this.supportDetailDtoFactory = supportDetailDtoFactory;
@@ -174,6 +180,11 @@ namespace Uta.Client.Presentation.Owned
 
                 var ownedPresenter = await screenNavigator.PushPageAsync<OwnedPresenter, OwnedArgs>(
                     new OwnedArgs(OwnedSelectionCondition.ForLimitBreakMaterial(dto.SupportCardId, uid)), playAnimation: false);
+                if (disposed)
+                {
+                    return;
+                }
+
                 var selection = await screenNavigator.WaitForPopAsync<OwnedSelection>(ownedPresenter);
                 if (disposed)
                 {

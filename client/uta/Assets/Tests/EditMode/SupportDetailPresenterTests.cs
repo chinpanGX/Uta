@@ -60,6 +60,11 @@ namespace Uta.Client.Tests
                 log.Add("SetLimitBreak:" + label + "," + enabled);
             }
 
+            public bool HasSubscribers
+            {
+                get { return Plus1Clicked != null || Plus5Clicked != null || MaxClicked != null || LimitBreakClicked != null || BackClicked != null; }
+            }
+
             public void RaisePlus1Clicked()
             {
                 Plus1Clicked?.Invoke();
@@ -96,7 +101,8 @@ namespace Uta.Client.Tests
         private SupportDetailPresenter CreatePresenter(string uid = "01A")
         {
             var master = OwnedFixtures.CreateMaster();
-            var factory = new SupportDetailDtoFactory(playerRepository, supportCardRepository, master, new SupportLevelPlanner(master));
+            var factory = new SupportDetailDtoFactory(playerRepository, supportCardRepository, master, new SupportLevelPlanner(master),
+                new OwnedListFactory(new IdolRepository(), supportCardRepository, master));
             return new SupportDetailPresenter(view, new SupportDetailArgs(uid), factory, supportUseCase, dialogOpener, navigator);
         }
 
@@ -309,6 +315,158 @@ namespace Uta.Client.Tests
 
             Assert.IsFalse(Has("Confirm:"));
             Assert.AreEqual(0, supportUseCase.Calls.Count);
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_WhileRunning_Ignored() => UniTask.ToCoroutine(async () =>
+        {
+            var gate = new UniTaskCompletionSource<LevelUpResult>();
+            supportUseCase.LevelUpResults.Enqueue(() => gate.Task);
+            var presenter = await InitializedAsync();
+
+            var first = presenter.LevelUpAsync(LevelUpStepKind.Plus1);
+            await presenter.LevelUpAsync(LevelUpStepKind.Plus1);
+            gate.TrySetResult(LevelUpResult.Rejected(SupportResultKind.Failed));
+            await first;
+
+            CollectionAssert.AreEqual(new[] { "LevelUp:01A,4" }, supportUseCase.Calls);
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_DisposedDuringCall_TouchesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            var gate = new UniTaskCompletionSource<LevelUpResult>();
+            supportUseCase.LevelUpResults.Enqueue(() => gate.Task);
+            var presenter = await InitializedAsync();
+
+            var first = presenter.LevelUpAsync(LevelUpStepKind.Plus1);
+            presenter.Dispose();
+            gate.TrySetResult(LevelUpResult.Success(4, 900, 950));
+            await first;
+
+            Assert.AreEqual(2, log.Entries.Count);
+            Assert.AreEqual("LevelUp:01A,4", log.Entries[1]);
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_Failed_ShowsNothing() => UniTask.ToCoroutine(async () =>
+        {
+            var presenter = await InitializedAsync();
+            supportUseCase.LevelUpResults.Enqueue(() => UniTask.FromResult(LevelUpResult.Rejected(SupportResultKind.Failed)));
+
+            await presenter.LevelUpAsync(LevelUpStepKind.Plus1);
+
+            Assert.AreEqual(2, log.Entries.Count);
+            StringAssert.StartsWith("Confirm:", log.Entries[0]);
+            Assert.AreEqual("LevelUp:01A,4", log.Entries[1]);
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_NotEnoughGold_ShowsInfo() => UniTask.ToCoroutine(async () =>
+        {
+            await AssertLevelUpInfoAsync(SupportResultKind.NotEnoughGold, "Info:ゴールドが足りません。");
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_InvalidTarget_ShowsInfo() => UniTask.ToCoroutine(async () =>
+        {
+            await AssertLevelUpInfoAsync(SupportResultKind.InvalidTarget, "Info:レベルを上げられません。");
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_NotOwned_ShowsInfo() => UniTask.ToCoroutine(async () =>
+        {
+            await AssertLevelUpInfoAsync(SupportResultKind.NotOwned, "Info:このカードは所持していません。");
+        });
+
+        private async UniTask AssertLevelUpInfoAsync(SupportResultKind kind, string info)
+        {
+            var presenter = await InitializedAsync();
+            supportUseCase.LevelUpResults.Enqueue(() => UniTask.FromResult(LevelUpResult.Rejected(kind)));
+
+            await presenter.LevelUpAsync(LevelUpStepKind.Plus1);
+
+            Assert.AreEqual("LevelUp:01A,4", log.Entries[1]);
+            Assert.AreEqual(info, log.Entries[2]);
+        }
+
+        [UnityTest]
+        public IEnumerator LimitBreakAsync_MaxLimitBreak_ShowsInfo() => UniTask.ToCoroutine(async () =>
+        {
+            await AssertLimitBreakInfoAsync(SupportResultKind.MaxLimitBreak, "Info:これ以上は解放できません。");
+        });
+
+        [UnityTest]
+        public IEnumerator LimitBreakAsync_InvalidMaterial_ShowsInfo() => UniTask.ToCoroutine(async () =>
+        {
+            await AssertLimitBreakInfoAsync(SupportResultKind.InvalidMaterial, "Info:素材にできません。");
+        });
+
+        [UnityTest]
+        public IEnumerator LimitBreakAsync_NotOwned_ShowsInfo() => UniTask.ToCoroutine(async () =>
+        {
+            await AssertLimitBreakInfoAsync(SupportResultKind.NotOwned, "Info:このカードは所持していません。");
+        });
+
+        private async UniTask AssertLimitBreakInfoAsync(SupportResultKind kind, string info)
+        {
+            var presenter = await InitializedAsync();
+            navigator.PopResults.Enqueue(OwnedSelection.ForSupportCard("01D"));
+            supportUseCase.LimitBreakResults.Enqueue(() => UniTask.FromResult(LimitBreakResult.Rejected(kind)));
+
+            await presenter.LimitBreakAsync();
+
+            Assert.AreEqual("LimitBreak:01A,01D", log.Entries[3]);
+            Assert.AreEqual(info, log.Entries[4]);
+        }
+
+        [UnityTest]
+        public IEnumerator LimitBreakAsync_DisposedDuringSelection_TouchesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            var gate = new UniTaskCompletionSource<object>();
+            navigator.PopGates.Enqueue(gate);
+            var presenter = await InitializedAsync();
+
+            var first = presenter.LimitBreakAsync();
+            presenter.Dispose();
+            gate.TrySetResult(OwnedSelection.ForSupportCard("01D"));
+            await first;
+
+            Assert.AreEqual("WaitForPop", log.Entries[log.Entries.Count - 1]);
+            Assert.AreEqual(0, supportUseCase.Calls.Count);
+        });
+
+        [UnityTest]
+        public IEnumerator BackAsync_PopsPageOnce() => UniTask.ToCoroutine(async () =>
+        {
+            var presenter = await InitializedAsync();
+
+            await presenter.BackAsync();
+            await presenter.BackAsync();
+
+            CollectionAssert.AreEqual(new[] { "PopPage:SupportDetailPresenter" }, log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator Plus1Clicked_RunsLevelUp() => UniTask.ToCoroutine(async () =>
+        {
+            await InitializedAsync();
+            supportUseCase.LevelUpResults.Enqueue(() => UniTask.FromResult(LevelUpResult.Rejected(SupportResultKind.Failed)));
+
+            view.RaisePlus1Clicked();
+
+            Assert.IsTrue(Has("Confirm:"));
+        });
+
+        [UnityTest]
+        public IEnumerator Dispose_UnsubscribesEvents() => UniTask.ToCoroutine(async () =>
+        {
+            var presenter = await InitializedAsync();
+            Assert.IsTrue(view.HasSubscribers);
+
+            presenter.Dispose();
+
+            Assert.IsFalse(view.HasSubscribers);
         });
     }
 }

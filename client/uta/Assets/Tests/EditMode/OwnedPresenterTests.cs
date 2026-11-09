@@ -62,6 +62,15 @@ namespace Uta.Client.Tests
                 log.Add("SetRows:" + string.Join("|", rows.Select(r => r.Title + "/" + r.Detail + "/" + r.Enabled).ToArray()));
             }
 
+            public bool HasSubscribers
+            {
+                get
+                {
+                    return TabSelected != null || SortKeyClicked != null || SortOrderClicked != null || PlanFilterClicked != null
+                        || TypeFilterClicked != null || RowClicked != null || BackClicked != null;
+                }
+            }
+
             public void RaiseTabSelected(OwnedTabKind tab)
             {
                 TabSelected?.Invoke(tab);
@@ -408,12 +417,14 @@ namespace Uta.Client.Tests
         public IEnumerator Dispose_UnsubscribesEvents() => UniTask.ToCoroutine(async () =>
         {
             var presenter = await InitializedAsync();
+            Assert.IsTrue(view.HasSubscribers);
             presenter.Dispose();
             log.Entries.Clear();
 
             view.RaiseBackClicked();
 
             Assert.IsFalse(Has("PopPage:"));
+            Assert.IsFalse(view.HasSubscribers);
         });
 
         [UnityTest]
@@ -427,6 +438,23 @@ namespace Uta.Client.Tests
 
             Assert.IsFalse(Has("PushPage:"));
             Assert.IsFalse(Has("PopPage:"));
+        });
+
+        [UnityTest]
+        public IEnumerator DidPopEnter_RefreshesRows() => UniTask.ToCoroutine(async () =>
+        {
+            var presenter = await InitializedAsync();
+            presenter.SelectTab(OwnedTabKind.SupportCards);
+            supportCardRepository.Remove("01D");
+            log.Entries.Clear();
+
+            presenter.DidPopEnter();
+
+            var rows = Entries("SetRows:");
+            Assert.AreEqual(
+                "SetRows:サポートA [SSR]/歌唱　共通　Lv 3　解放 0/True|サポートB [SR]/律動　感性　Lv 5　解放 1/True|サポートC [R]/表現　理論　Lv 1　解放 0/True",
+                rows[rows.Count - 1]);
+            Assert.AreEqual(1, rows[rows.Count - 1].Split('|').Count(r => r.StartsWith("サポートA") || r.StartsWith("SetRows:サポートA")));
         });
     }
 }

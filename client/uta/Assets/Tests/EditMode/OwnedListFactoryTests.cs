@@ -188,6 +188,22 @@ namespace Uta.Client.Tests
         }
 
         [Test]
+        public void HasLimitBreakMaterial_TrueWhenSameCardExists()
+        {
+            SetCards(new SupportCardEntity("m1", 10, 1, 0), new SupportCardEntity("m2", 10, 1, 0));
+
+            Assert.IsTrue(ownedListFactory.HasLimitBreakMaterial(10, "m1"));
+        }
+
+        [Test]
+        public void HasLimitBreakMaterial_FalseWhenOnlyTarget()
+        {
+            SetCards(new SupportCardEntity("m1", 10, 1, 0), new SupportCardEntity("x1", 11, 1, 0));
+
+            Assert.IsFalse(ownedListFactory.HasLimitBreakMaterial(10, "m1"));
+        }
+
+        [Test]
         public void CreateSupportCards_IdolCondition_Throws()
         {
             Assert.Throws<ArgumentException>(() =>

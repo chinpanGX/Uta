@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Uta.Client.Application.Owned;
 using Uta.Client.Application.Support;
 using Uta.Client.Domain.Player;
 using Uta.Client.Domain.SupportCard;
@@ -20,14 +21,16 @@ namespace Uta.Client.Presentation.Owned
         private readonly IReadOnlySupportCardRepository supportCardRepository;
         private readonly Uta.MasterData.MemoryDatabase memoryDatabase;
         private readonly SupportLevelPlanner supportLevelPlanner;
+        private readonly OwnedListFactory ownedListFactory;
 
         public SupportDetailDtoFactory(IReadOnlyPlayerRepository playerRepository, IReadOnlySupportCardRepository supportCardRepository,
-            Uta.MasterData.MemoryDatabase memoryDatabase, SupportLevelPlanner supportLevelPlanner)
+            Uta.MasterData.MemoryDatabase memoryDatabase, SupportLevelPlanner supportLevelPlanner, OwnedListFactory ownedListFactory)
         {
             this.playerRepository = playerRepository;
             this.supportCardRepository = supportCardRepository;
             this.memoryDatabase = memoryDatabase;
             this.supportLevelPlanner = supportLevelPlanner;
+            this.ownedListFactory = ownedListFactory;
         }
 
         public SupportDetailViewDto Create(string supportCardUniqueId)
@@ -83,7 +86,7 @@ namespace Uta.Client.Presentation.Owned
             }
 
             var limitBreakLabel = card.LimitBreak >= maxBreak ? "上限解放（最大）" : "上限解放（素材を選ぶ）";
-            var hasMaterial = supportCardRepository.FindAll().Any(c => c.MasterId == card.MasterId && c.UniqueId != card.UniqueId);
+            var hasMaterial = ownedListFactory.HasLimitBreakMaterial(card.MasterId, card.UniqueId);
             return new SupportDetailViewDto(true, card.MasterId, infoLines, abilityLines, "強化pt " + N0(sp) + "　ゴールド " + N0(gold),
                 steps, limitBreakLabel, card.LimitBreak < maxBreak, hasMaterial);
         }

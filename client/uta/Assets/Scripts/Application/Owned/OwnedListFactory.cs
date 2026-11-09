@@ -64,7 +64,7 @@ namespace Uta.Client.Application.Owned
             foreach (var entity in supportCardRepository.FindAll())
             {
                 if (condition != null && condition.Kind == OwnedSelectionKind.LimitBreakMaterial
-                    && (entity.MasterId != condition.MaterialCardId || entity.UniqueId == condition.MaterialTargetUid))
+                    && !IsLimitBreakMaterial(entity, condition.MaterialCardId, condition.MaterialTargetUid))
                 {
                     continue;
                 }
@@ -141,6 +141,25 @@ namespace Uta.Client.Application.Owned
             }
 
             return items;
+        }
+
+        /// <summary>上限解放の素材にできる所持（MasterId == supportCardId かつ UniqueId != targetUid）が 1 つ以上あるか。</summary>
+        public bool HasLimitBreakMaterial(int supportCardId, string targetUid)
+        {
+            foreach (var entity in supportCardRepository.FindAll())
+            {
+                if (IsLimitBreakMaterial(entity, supportCardId, targetUid))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsLimitBreakMaterial(SupportCardEntity entity, int supportCardId, string targetUid)
+        {
+            return entity.MasterId == supportCardId && entity.UniqueId != targetUid;
         }
 
         private static int CompareFirst(OwnedSortKind sort, Entry a, Entry b)
