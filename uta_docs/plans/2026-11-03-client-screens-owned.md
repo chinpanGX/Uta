@@ -38,7 +38,21 @@ spec: ../wiki/systems/idol-support.md
 - **enum の型**: 一覧・表示・選択の条件で使う `Rarity`・`Plan`・`ParamKind` は Shared.Domain の `Uta.Shared.Domain.Lesson`、`SupportType`・`SupportAbilityKind` は `Uta.Shared.Domain.Produce`（`DisplayText`・`FormationValidator.IsPlanCompatible` が Shared.Domain の型を受けるため）。マスタの値は `(Uta.Shared.Domain.Lesson.Plan)(int)row.Plan` のように数値を通して変える（値は同じ: R0 の 2 行目）。**マスタと Shared.Domain の enum を両方使うファイル（`OwnedListFactory`・`SupportDetailDtoFactory`・`SupportLevelPlanner`・`OwnedFixtures`・それらのテスト）は `using Uta.MasterData;` を書かず**、マスタの型を `Uta.MasterData.MemoryDatabase`・`Uta.MasterData.Rarity` と名前空間付きで書く（R0）。`SupportLevelPlanner` はマスタの `Rarity` だけを使い Shared.Domain の enum を使わないが、規則を 1 つにするため同じく名前空間付きで書く
 - 名前空間 `Uta.Client.<層>.SupportCard`・`…Idol` があるので、マスタの型 `SupportCard`・`Idol` を型名だけで書かない（gacha G1。`var` で受ける）
 - **変数名**（foundation 8.5）: フィールド・コンストラクターとメソッドの引数は型名から先頭の `I` と `ReadOnly` を除いて先頭を小文字にしたもの（`ownedView`・`ownedPage`・`ownedArgs`・`ownedDtoFactory`・`ownedListFactory`・`supportDetailView`・`supportDetailPage`・`supportDetailArgs`・`supportDetailDtoFactory`・`supportUseCase`・`supportService`・`playerUseCase`・`dialogOpener`・`screenNavigator`・`memoryDatabase`・`idolRepository`・`supportCardRepository`・`playerRepository`・`supportLevelPlanner`）。この節のシグネチャはこの名前で書いた。コレクション・組み込みの型・ループと短い一時のローカル変数・テストのコードは対象外
-- **値が変わる static の状態を持たない**（foundation 9 章・CLAUDE.md）。`OwnedSelection.Cancelled` は不変の 1 インスタンスの `static readonly`（get だけのプロパティで出す）。`SupportUseCase` の `handledCodes` の配列は `private static readonly ErrorCode[]` で、書き換えない
+- **本文のコード・テストの旧い名前の読み方**（「本文 3.6・3.7・5 章のまま」と書いた所に出る名前は、この表で読む）:
+
+  | 本文の名前 | 読み方 |
+  |---|---|
+  | `view`（`OwnedPresenter`／`SupportDetailPresenter` の中） | `ownedView`／`supportDetailView` |
+  | `args`・`args.SupportCardUid` | `ownedArgs`／`supportDetailArgs`・`supportDetailArgs.SupportCardUniqueId` |
+  | `request`（`OwnedPresenter` の状態） | `condition` |
+  | `navigator`・`dialogs` | `screenNavigator`・`dialogOpener` |
+  | `cache.Current`・`master`・`FindCard()`・`info`・`maxLevel` など（Presenter の中） | Presenter には無い。値は `OwnedDtoFactory`・`SupportDetailDtoFactory` の Dto から読む（O5） |
+  | `levelUp.ExecuteAsync(card, target)`・`limitBreak.ExecuteAsync(card, material)`・`outcome.Status` | `supportUseCase.LevelUpAsync(uid, levelStep.TargetLevel)`・`supportUseCase.LimitBreakAsync(uid, materialUid)`・`levelUpResult.Kind`／`limitBreakResult.Kind`（`SupportResultKind`） |
+  | テストの `FakeDialogService`・`FakeGameMaster`・`PlayerCache`・`StubPlayerPort`・`FakeSupportPort`（`Calls`） | `FakeDialogOpener`・`OwnedFixtures.CreateMaster()`・本物のリポジトリ（`OwnedFixtures.SetPlayer`／`SetOwned`、差し替えは `Upsert`）・`FakePlayerUseCase`・`FakeSupportUseCase`（`Calls`） |
+  | `OwnedSupportCard(uid, cardId, level, limitBreak)` | `new SupportCardEntity(uid, cardId, level, limitBreak)` |
+  | `OwnedTab`・`OwnedRowViewData`・`LevelUpStep`・`OwnedSelectionRequest`・`SupportStatus` | O0 の表の名前 |
+
+- **値が変わる static の状態を持たない**（foundation 9 章・CLAUDE.md）。`OwnedSelection.Cancelled` は不変の 1 インスタンスの `static readonly`（get だけのプロパティで出す）。`SupportUseCase` の `handledCodes` は配列のフィールドを持たず、`WithHandledCodes(…)` の引数に直接並べる（O4。gacha の `GachaUseCase` と同じ）
 - 書式は C# 9 の範囲・BOM 付き UTF-8・LF。`N0(x)` は `x.ToString("N0", CultureInfo.InvariantCulture)`
 - **LINQ は ZLinq**（[ADR 0023](../wiki/decisions/0023-client-linq-with-zlinq.md)・CLAUDE.md）: client/ で LINQ を書くファイル（テストを含む）は `using System.Linq;` と `using ZLinq;` の両方を書く。結果を `IReadOnlyList<T>`・`IEnumerable<T>` として返す・渡す・持つときは `ToArray()`・`ToList()` で確定させる。返り値の型を `IEnumerable<T>` にしない。shared/ は標準の `System.Linq` のまま。この節の `using` の一覧に `System.Linq` があるファイルは `ZLinq` も足して読む
 
@@ -251,9 +265,9 @@ public sealed class OwnedPresenter : IScreenWithArgs<OwnedArgs>
   - `Rows`: `tab == Idols` なら `ownedListFactory.CreateIdols(condition)`、そうでなければ `ownedListFactory.CreateSupportCards(sort, descending, FiltersVisible ? planFilter : null, FiltersVisible ? typeFilter : null, condition)` の各 `item` を `new OwnedRowViewDto(item.IdolId, item.SupportCardUid, title, detail, item.Enabled)` に。`title`・`detail`・無効の印は本文 3.6 の `Refresh()` の 3 のまま
   - ラベル（`SortLabel`・`OrderLabel`・`PlanLabel`・`TypeLabel`）は本文 3.6 の `Refresh()` の 4 のまま（行を出さないモードでも作る）
 - **`OwnedPresenter`**:
-  - 状態: `condition = ownedArgs.Selection`、`result = OwnedSelection.Cancelled`、`current`（直近の `OwnedViewDto`）、`running`・`closed`・`disposed`（本文 3.6）、`tab`・`sort`・`descending`・`planFilter`（`Plan?`）・`typeFilter`（`SupportType?`）。初期値は本文 3.6 の表の `tab`・初期の並び（`Idol` のモードは `Rarity`・`true`）。`planFilter`・`typeFilter` の初期値は null
+  - 状態: `condition = ownedArgs.Selection`、`filtersVisible`（コンストラクターで `condition == null || condition.Kind == OwnedSelectionKind.SupportCard` に決め、変えない。`OwnedDtoFactory` と同じ式）、`result = OwnedSelection.Cancelled`、`current`（直近の `OwnedViewDto`）、`running`・`closed`・`disposed`（本文 3.6）、`tab`・`sort`・`descending`・`planFilter`（`Plan?`）・`typeFilter`（`SupportType?`）。初期値は本文 3.6 の表の `tab`・初期の並び（`Idol` のモードは `Rarity`・`true`）。`planFilter`・`typeFilter` の初期値は null
   - `Refresh()`: `current = ownedDtoFactory.Create(condition, tab, sort, descending, planFilter, typeFilter);` → `ownedView.SetTitle(current.Title)`、`ownedView.SetTabs(tab, current.TabsVisible)`、`ownedView.SetControls(current.ControlsVisible, current.SortLabel, current.OrderLabel, current.PlanLabel, current.TypeLabel, current.FiltersVisible)`、`ownedView.SetRows(current.Rows)` の順
-  - 操作は本文 3.6 の「操作」のまま。読み替え: `request` → `condition`、`filtersVisible` → `current.FiltersVisible`、`rows` → `current.Rows`、`SelectRowAsync` の 3 の `row.IsIdol ? …` → `row.SupportCardUid == null ? OwnedSelection.ForIdol(row.IdolId) : OwnedSelection.ForSupportCard(row.SupportCardUid)`、4 の `new SupportDetailArgs(row.SupportCardUid)`、5 の「閲覧モードで育成アイドル」は `row.SupportCardUid == null`
+  - 操作は本文 3.6 の「操作」のまま。読み替え: `request` → `condition`、`rows` → `current.Rows`（`current` は `InitializeAsync` の `Refresh()` で入る。操作はどれも、`current` が null なら何もしない）、`SelectRowAsync` の 3 の `row.IsIdol ? …` → `row.SupportCardUid == null ? OwnedSelection.ForIdol(row.IdolId) : OwnedSelection.ForSupportCard(row.SupportCardUid)`、4 の `new SupportDetailArgs(row.SupportCardUid)`、5 の「閲覧モードで育成アイドル」は `row.SupportCardUid == null`
   - イベントの受け口（名前付きの private メソッド）・`CompleteAsync`・`DidPopEnter`・`Dispose`・`closed` の決まりは本文 3.6 のまま
 - **`OwnedPage`**: 本文 3.6 の「`OwnedPage` の実装」のまま（型だけ `OwnedTabKind`・`OwnedRowViewDto`。`SetRows` の `rows[i].Title`・`Detail`・`Enabled`）
 
@@ -329,7 +343,7 @@ builder.Register<SupportDetailDtoFactory>(Lifetime.Singleton);
 builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
 ```
 
-`OwnedDtoFactory`・`SupportDetailDtoFactory` の 2 行はタスク 3 で型ができてから足す。`using Uta.Client.Application.Owned;`・`using Uta.Client.Application.Support;`・`using Uta.Client.Infrastructure.Support;`・`using Uta.Client.Presentation.Owned;`・`using Uta.Shared.Contracts.Support;` を足す。Presenter・ページは登録しない（本文 3.8）。
+`OwnedDtoFactory`・`SupportDetailDtoFactory` の 2 行はタスク 3a で型ができてから足す。`using Uta.Client.Application.Owned;`・`using Uta.Client.Application.Support;`・`using Uta.Client.Infrastructure.Support;`・`using Uta.Client.Presentation.Owned;`・`using Uta.Shared.Contracts.Support;` を足す。Presenter・ページは登録しない（本文 3.8）。
 
 ### O7. テスト（本文 5 章の表を置き換える。置き場 `Tests/EditMode/`、名前空間 `Uta.Client.Tests`）
 
@@ -340,7 +354,7 @@ builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
 - `Support/OwnedFixtures.cs`（`public static class`。O1 のとおりマスタの型は `Uta.MasterData.` 付き）:
   ```csharp
   /// <summary>共通の前提のマスタ（本文 5 章の FakeGameMaster の値を MemoryDatabase にしたもの）:
-  /// Idol: 1「アイドルA」SSR・Sense、2「アイドルB」R・Logic（TestMasterData.Idol と同じ列で Plan だけ指定）。
+  /// Idol: 1「アイドルA」SSR・Sense、2「アイドルB」R・Logic、3「アイドルC」SR・Sense（OwnedFixtures の中で new Uta.MasterData.Idol { … } を直接書く。列は TestMasterData.Idol と同じで Plan だけ変える。TestMasterData.cs は触らない。3 は所持の並びのテスト用で、SetOwned は持たせない）。
   /// SupportCard: 10「サポートA」SSR・Singing・Free、11「サポートB」SR・Rhythm・Sense、12「サポートC」R・Expression・Logic。
   /// SupportAbility: (10, Order 1, InitialParam, Singing, ValueAtLv1 10, ValueAtMax 50)。
   /// SupportLevelCap: R・SR・SSR それぞれ LimitBreak 0〜4 で MaxLevel = 40 + LimitBreak * 5。
@@ -359,25 +373,39 @@ builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
 | `shared/.../FormationValidatorTests.cs` | `IsPlanCompatible_Cases_ReturnsExpected` | 本文 5 章のまま |
 | `DisplayTextTests.cs` | 本文 5 章の 7 本 | 本文のまま |
 | `OwnedSelectionConditionTests.cs` | `ForIdol_NullExcluded_IsEmpty`・`ForSupportCard_NullExcluded_IsEmpty`（`IdolId` が引数の値）・`ForLimitBreakMaterial_SetsFields`・`ForLimitBreakMaterial_EmptyTarget_Throws` | |
-| `OwnedListFactoryTests.cs` | 本文 5 章の `OwnedListBuilderTests` の 12 本（名前の `Build` は `Create` に。`BuildIdols_SupportRequest_Throws` → `CreateIdols_SupportCondition_Throws`、`BuildSupportCards_IdolRequest_Throws` → `CreateSupportCards_IdolCondition_Throws`） | 所持は各テストで本物のリポジトリに入れる。`CreateIdols_OrderedByIdolId` は所持 3・1・2 の順（マスタに 3 を足す）。**`CreateSupportCards_Selection_DisablesByPriority` を次に置き換える**: 育成アイドル 1（Sense）、所持 `"s1"`（12・Logic）・`"s2"`（12・Logic）・`"s3"`（12・Logic）・`"s4"`（10・Free）・`"s5"`（11・Sense）、`ForSupportCard(1, new[] { "s1" })` → s1 `AlreadyInFormation`、s2・s3 `SameCardInFormation`（s1 の CardId 12）、s4・s5 有効。もう 1 本 `CreateSupportCards_Selection_PlanMismatch`: 所持 `"s1"`（12・Logic）・`"s4"`（10・Free）、`ForSupportCard(1, null)` → s1 `PlanMismatch`、s4 有効。もう 1 本 `CreateSupportCards_Selection_UnknownExcludedUid_Ignored`: `ForSupportCard(0, new[] { "zz" })` → 全部有効（`IdolId == 0` はプランで弾かない） |
+| `OwnedListFactoryTests.cs`（`OwnedFixtures.CreateMaster()`、本物の `IdolRepository`・`SupportCardRepository`。サポートカードの所持を差し替えるテストは `Clear()` してから、書いた所持だけを `Upsert` する。所持の `Level` は書いていなければ 1、`LimitBreak` は 0。期待は所持ID・IdolId の並びと `Enabled`・`DisabledKind`） | `CreateIdols_OrderedByIdolId` | 所持 `("I3", 3)`・`("I1", 1)`・`("I2", 2)` の順 → IdolId 1・2・3、全部有効 |
+| | `CreateIdols_Selection_DisablesExcluded` | `SetOwned` → `ForIdol(new[] { 2 })` → 1 は有効・`None`、2 は無効・`AlreadyInFormation` |
+| | `CreateIdols_SupportCondition_Throws` | `ForSupportCard(0, null)` → `ArgumentException` |
+| | `CreateSupportCards_SortByRarityDescending` | `SetOwned`・`Rarity`・降順・絞り込みなし・条件なし → 01A・01D・01B・01C |
+| | `CreateSupportCards_SortByLevelDescending_TieByUidAscending` | `SetOwned`・`Level`・降順 → 01B・01A・01C・01D |
+| | `CreateSupportCards_SortByAcquiredDescending` | `SetOwned`・`Acquired`・降順 → 01D・01C・01B・01A |
+| | `CreateSupportCards_PlanFilter_ExactMatch` | `SetOwned`・`Rarity`・降順・`planFilter = Plan.Free` → 01A・01D |
+| | `CreateSupportCards_TypeFilter` | `SetOwned`・`supportTypeFilter = SupportType.Rhythm` → 01B |
+| | `CreateSupportCards_Selection_DisablesByPriority` | 所持 `"s1"`・`"s2"`・`"s3"`（3 枚とも CardId 12・Plan Logic）・`"s4"`（10・Free）・`"s5"`（11・Sense）、`Acquired`・昇順、`ForSupportCard(1, new[] { "s1" })`（育成アイドル 1 は Sense）→ s1 `AlreadyInFormation`、s2・s3 `SameCardInFormation`（s1 の CardId 12）、s4・s5 有効・`None` |
+| | `CreateSupportCards_Selection_PlanMismatch` | 所持 `"s1"`（12・Logic）・`"s4"`（10・Free）、`Acquired`・昇順、`ForSupportCard(1, null)` → s1 `PlanMismatch`、s4 有効 |
+| | `CreateSupportCards_Selection_UnknownExcludedUid_Ignored` | `SetOwned`、`ForSupportCard(0, new[] { "zz" })` → 4 枚とも有効（`IdolId == 0` はプランで弾かない） |
+| | `CreateSupportCards_Material_ListsSameCardExceptTarget` | 所持 `"m1"`・`"m2"`・`"m3"`（10）・`"x1"`（11）、`Level`・昇順、`ForLimitBreakMaterial(10, "m2")` → m1・m3（全部有効） |
+| | `CreateSupportCards_IdolCondition_Throws` | `ForIdol()` → `ArgumentException` |
+| | `CreateSupportCards_Empty_ReturnsEmpty` | 所持 0 → 0 件 |
 | `SupportLevelPlannerTests.cs` | `GetMaxLevel_FromCap`（10・LB 2 → 50）・`GetMaxLimitBreak_IsFour`・`GetLevelUpCost_SumsRows`（3 → 8 で 500・250）・`GetLevelUpCost_NotAbove_Zero` | |
 | | `Plus1_BelowMax_ReturnsLevelPlusOne`（Lv 3 → 4）・`Plus5_NearMax_ClampsToMax`（Lv 38 → 40）・`AtMax_ReturnsCurrentLevel`（Lv 40）・`Plus5_NotAffordable_StillReturnsTarget`（強化pt 0 で 3 → 8）・`Max_AffordableLimited_ReturnsHighestAffordable`（強化pt 250・G 1000 で 3 → 5）・`Max_CannotAffordAny_ReturnsCurrentLevel`（強化pt 50） | カードは `new SupportCardEntity("u", 10, level, 0)` |
 | `SupportMapperTests.cs` | `ToLevelUpResult_Maps`・`ToLimitBreakResult_Maps` | `Kind == Succeeded` と 3 つ・2 つの値 |
 | `SupportUseCaseTests.cs`（`FakeSupportService`・`FakePlayerUseCase`） | `LevelUp_Success_RefreshesAndReturnsResult` | `Ok(new LevelUpResponse(4, 900, 950))` → `Succeeded`・`Level == 4`、`RefreshCount == 1`、`Calls` が `"LevelUp:01A,4"` |
-| | `LevelUp_RefreshFails_StillSucceeds` | `RefreshResults` に例外 → `Succeeded` |
+| | `LevelUp_RefreshFails_StillSucceeds` | `RefreshResults.Enqueue(() => throw new InvalidOperationException("sign-in failed: x"))` → `Succeeded` |
 | | `LevelUp_ErrorCodes_MapToKinds` | 4 つの `Fail` を順に → `NotEnoughPoints`・`NotEnoughGold`・`InvalidTarget`・`NotOwned`、`RefreshCount == 0` |
 | | `LevelUp_OtherError_ReturnsFailed` | `Fail(SupportErrors.MaxLimitBreak)` → `Failed` |
 | | `LevelUp_EmptyUid_Throws` | `try { await …LevelUpAsync("", 4); Assert.Fail(); } catch (ArgumentException) { }`、`Calls` が空 |
 | | `LimitBreak_Success_RefreshesAndReturnsResult` | `Ok(new LimitBreakResponse(1, 45))` → `Succeeded`・`LimitBreak == 1`・`MaxLevel == 45`、`Calls` が `"LimitBreak:01A,01D"` |
 | | `LimitBreak_ErrorCodes_MapToKinds` | `MaxLimitBreak`・`InvalidMaterial`・`NotOwned`、ほか（`SupportErrors.NotEnoughPoints`）は `Failed` |
 | | `LimitBreak_SameUid_Throws` | `ArgumentException`、`Calls` が空 |
-| `OwnedDtoFactoryTests.cs` | `Create_Browse_IdolTab`・`Create_IdolSelection_DisabledSuffix`・`Create_Material_HidesFilters` | 本文 5 章の `OwnedPresenterTests` の `InitializeAsync_Browse_…`・`InitializeAsync_IdolSelection_…`・`InitializeAsync_Material_…` と同じ値を Dto のプロパティで確かめる |
+| `OwnedDtoFactoryTests.cs` | `Create_Browse_IdolTab`・`Create_IdolSelection_DisabledSuffix`・`Create_Material_HidesFilters` | `OwnedPresenterTests` の同じ 3 本と値が重なるが、両方作る（DtoFactory を単体で確かめるため）。本文 5 章の `OwnedPresenterTests` の `InitializeAsync_Browse_…`・`InitializeAsync_IdolSelection_…`・`InitializeAsync_Material_…` と同じ値を Dto のプロパティで確かめる |
 | `OwnedPresenterTests.cs`（本物の `OwnedDtoFactory`・`OwnedListFactory`、`FakeScreenNavigator(log)`） | 本文 5 章の `OwnedPresenterTests` の 20 本 | 本文のまま。読み替え: `OwnedTab` → `OwnedTabKind`、`OwnedSelectionRequest.ForIdol` → `OwnedSelectionCondition.ForIdol`、`ForLimitBreakMaterial(10, "01A")` も同じ。`SelectRowAsync_BrowseSupport_PushesDetail` の `Args[0]` は `SupportCardUniqueId == "01D"` |
 | `SupportDetailDtoFactoryTests.cs` | `Create_Default_MatchesBodyStrings` | 本文 5 章の「詳細の既定の表示」の 5 つと同じ文字列（`InfoLines` を `|` でつなぐなど）。`LevelSteps[0].TargetLevel == 4`・`ConfirmText == "Lv 3 → Lv 4 に上げます。\n強化pt 100・ゴールド 50 を使います。"`、`HasMaterial == true`、`SupportCardId == 10` |
 | | `Create_CardGone_NotExists` | `"01Z"` → `Exists == false`、本文 5 章の `Refresh_CardGone_DisablesAll` の文字列 |
 | | `Create_NoMaterial_HasMaterialFalse` | `"01B"`（CardId 11 は 1 枚）→ `HasMaterial == false` |
 | | `CreateLimitBreakConfirmText_Formats`・`CreateLimitBreakConfirmText_MaterialGone_Null` | `("01A", "01D")` → 本文 5 章の `LimitBreakAsync_SelectsMaterialThenConfirms` の確認の文。`("01A", "zz")` → null |
-| `SupportDetailPresenterTests.cs`（本物の `SupportDetailDtoFactory`、`FakeSupportUseCase(log)`・`FakeDialogOpener(log)`・`FakeScreenNavigator(log)`） | 本文 5 章の `SupportDetailPresenterTests` の 13 本 | 本文のまま。読み替え: スナップショットの差し替えは `supportCardRepository.Upsert(new SupportCardEntity("01A", 10, 40, 0))`・`OwnedFixtures.SetPlayer(players, supportPoints: 0)` など。`LevelUpResult` に `PortResult…Success(…)` → `supportUseCase.LevelUpResults.Enqueue(() => UniTask.FromResult(LevelUpResult.Success(4, 900, 950)))`（そのとき `supportCardRepository.Upsert(new SupportCardEntity("01A", 10, 4, 0))` してから返すと player_diff の代わりになる）。`Calls` は `FakeSupportUseCase.Calls`。`LevelUpAsync_NotEnoughPoints_ShowsInfo` は `Rejected(NotEnoughPoints)`。`LimitBreakAsync_SelectsMaterialThenConfirms` の `Args[0]` は `OwnedArgs` で `Selection.Kind == LimitBreakMaterial`・`MaterialCardId == 10`・`MaterialTargetUid == "01A"`、`LimitBreakResults` に `Success(1, 45)` |
+| `SupportDetailPresenterTests.cs`（本物の `SupportDetailDtoFactory`、`FakeSupportUseCase(log)`・`FakeDialogOpener(log)`・`FakeScreenNavigator(log)`） | 本文 5 章の `SupportDetailPresenterTests` の 13 本 | 本文のまま。読み替え: スナップショットの差し替えは `supportCardRepository.Upsert(new SupportCardEntity("01A", 10, 40, 0))`・`OwnedFixtures.SetPlayer(players, supportPoints: 0)` など。`LevelUpResult` に `PortResult…Success(…)` → `supportUseCase.LevelUpResults.Enqueue(() => UniTask.FromResult(LevelUpResult.Success(4, 900, 950)))`（そのとき `supportCardRepository.Upsert(new SupportCardEntity("01A", 10, 4, 0))` してから返すと player_diff の代わりになる）。`Calls` は `FakeSupportUseCase.Calls`。`LevelUpAsync_NotEnoughPoints_ShowsInfo` は `Rejected(NotEnoughPoints)`。**記録の決まり**: `FakeSupportUseCase` は同じ `log` で作るので、`supportUseCase.LevelUpAsync`・`LimitBreakAsync` を呼んだ時点で `"LevelUp:01A,4"`・`"LimitBreak:01A,01D"` が `log` に入る。`InitializeAsync` の表示そのものを見るテスト（`InitializeAsync_*`・`Refresh_CardGone_DisablesAll`）以外は、`InitializeAsync` のあと `log.Entries.Clear()` してから操作する。期待の並びは次のとおり（全体）: `LevelUpAsync_Confirmed_ExecutesAndRefreshes` は `"Confirm:Lv 3 → Lv 4 に上げます。
+強化pt 100・ゴールド 50 を使います。"`, `"LevelUp:01A,4"`, そのあと `SetInfo`・`SetAbilities`・`SetResources`・`SetLevelButtons`・`SetLimitBreak` の 5 つ（値は `Upsert` した Lv 4 のもの。前の 2 つと件数 7 だけ確かめ、5 つは先頭の語 `SetInfo:` などで見る）。`LimitBreakAsync_SelectsMaterialThenConfirms` は `"PushPage:OwnedPresenter"`, `"WaitForPop"`, `"Confirm:…"`（本文の文）, `"LimitBreak:01A,01D"` で始まり、そのあと再表示の 5 つ。`LevelUpAsync_NotEnoughPoints_ShowsInfo` は `"Confirm:…"`, `"LevelUp:01A,4"`, `"Info:強化ptが足りません。"`, 再表示の 5 つ。`LimitBreakAsync_NoMaterial_ShowsInfo` は `SetOwned` のあと `supportCardRepository.Remove("01D")` してから `InitializeAsync`（CardId 10 は 01A だけ）。`LimitBreakAsync_SelectsMaterialThenConfirms` の `Args[0]` は `OwnedArgs` で `Selection.Kind == LimitBreakMaterial`・`MaterialCardId == 10`・`MaterialTargetUid == "01A"`、`LimitBreakResults` に `Success(1, 45)` |
 | `HomePresenterTests.cs`（変更） | 組み立て | `CreatePresenter` の `new FakeScreenNavigator(log)` をフィールド `navigator` にする（`Args` を見るため） |
 | | `OwnedClicked_ShowsNotReady` → `OwnedClicked_PushesOwnedBrowse` | `RaiseOwnedClicked()` → 初期化の後の記録が `"PushPage:OwnedPresenter"` だけ |
 | | `OpenOwnedAsync_PushesOwnedBrowse`（足す） | `"PushPage:OwnedPresenter"`、`navigator.Args[0]` が `OwnedArgs` で `Selection == null` |
@@ -394,16 +422,27 @@ builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
 | 1 | 作成 | `Scripts/Presentation/Common/DisplayText.cs`、`Scripts/Application/Owned/OwnedSortKind.cs`・`OwnedDisabledKind.cs`・`OwnedSelectionKind.cs`・`OwnedListItem.cs`・`OwnedSelection.cs`・`OwnedSelectionCondition.cs`・`OwnedListFactory.cs`、`Tests/EditMode/Support/OwnedFixtures.cs`、`Tests/EditMode/DisplayTextTests.cs`・`OwnedSelectionConditionTests.cs`・`OwnedListFactoryTests.cs` |
 | 2 | 作成 | `Scripts/Application/Support/SupportResultKind.cs`・`LevelUpStepKind.cs`・`LevelUpResult.cs`・`LimitBreakResult.cs`・`ISupportUseCase.cs`・`LevelUpCost.cs`・`SupportLevelPlanner.cs`、`Scripts/Infrastructure/Support/SupportMapper.cs`・`SupportUseCase.cs`、`Tests/EditMode/Fakes/FakeSupportService.cs`・`FakeSupportUseCase.cs`、`Tests/EditMode/SupportLevelPlannerTests.cs`・`SupportMapperTests.cs`・`SupportUseCaseTests.cs` |
 | 2 | 変更 | `Scripts/Infrastructure/Api/ApiClient.cs`・`MagicOnionClientInitializer.cs`、`Scripts/Bootstrap/BootstrapEntry.cs`（`ISupportService` の行と `SupportLevelPlanner`・`OwnedListFactory`・`SupportUseCase` の 3 行） |
-| 3 | 作成 | `Scripts/Presentation/Owned/OwnedTabKind.cs`・`OwnedArgs.cs`・`OwnedRowViewDto.cs`・`OwnedViewDto.cs`・`OwnedDtoFactory.cs`・`IOwnedView.cs`・`OwnedPresenter.cs`・`SupportDetailArgs.cs`・`SupportLevelStepViewDto.cs`・`SupportDetailViewDto.cs`・`SupportDetailDtoFactory.cs`・`ISupportDetailView.cs`・`SupportDetailPresenter.cs`（仮）、`Tests/EditMode/OwnedDtoFactoryTests.cs`・`OwnedPresenterTests.cs`・`SupportDetailDtoFactoryTests.cs` |
-| 3 | 変更 | `Scripts/Presentation/Owned/OwnedPage.cs`・`SupportDetailPage.cs`、`Scripts/Presentation/Home/HomePresenter.cs`、`Scripts/Bootstrap/BootstrapEntry.cs`（DtoFactory の 2 行）、`Tests/EditMode/HomePresenterTests.cs` |
-| 4 | 変更・作成 | `Scripts/Presentation/Owned/SupportDetailPresenter.cs`（仮を置き換える）、`Tests/EditMode/SupportDetailPresenterTests.cs` |
+| 3a | 作成 | `Scripts/Presentation/Owned/OwnedTabKind.cs`・`OwnedArgs.cs`・`OwnedRowViewDto.cs`・`OwnedViewDto.cs`・`OwnedDtoFactory.cs`・`SupportDetailArgs.cs`・`SupportLevelStepViewDto.cs`・`SupportDetailViewDto.cs`・`SupportDetailDtoFactory.cs`、`Tests/EditMode/OwnedDtoFactoryTests.cs`・`SupportDetailDtoFactoryTests.cs` |
+| 3a | 変更 | `Scripts/Bootstrap/BootstrapEntry.cs`（DtoFactory の 2 行） |
+| 3b | 作成 | `Scripts/Presentation/Owned/IOwnedView.cs`・`OwnedPresenter.cs`・`ISupportDetailView.cs`・`SupportDetailPresenter.cs`（仮）、`Tests/EditMode/OwnedPresenterTests.cs` |
+| 3b | 変更 | `Scripts/Presentation/Owned/OwnedPage.cs`・`SupportDetailPage.cs`、`Scripts/Presentation/Home/HomePresenter.cs`、`Tests/EditMode/HomePresenterTests.cs` |
+| 4 | 変更 | `Scripts/Presentation/Owned/SupportDetailPresenter.cs`（仮を置き換える） |
+| 4 | 作成 | `Tests/EditMode/SupportDetailPresenterTests.cs` |
 | 5 | なし | Play の確認（進行役） |
 | 6 | 変更 | wiki（進行役。下の「タスク 6」） |
 
 - **タスク 1**: 本文タスク 1 の手順 1 のまま（shared/ を .NET で確かめる。`dotnet test --project server/Uta.Server.Tests` は Docker が無ければ結合テストを確かめていないと報告）。前提の確認は、gacha の型（`FakeGachaService`・`GachaFixtures`・`TestMasterData`）と、`OwnedPage`・`SupportDetailPage` のフィールドが本文 3.6・3.7 の一覧と同じこと。`DatabaseBuilder.Append` での `SupportCard`・`SupportAbility`・`SupportLevelCap`・`SupportLevelCost` の形はコンパイルで確かめ、違えば止まって報告する
 - **タスク 2**: `unity recompile` のあと、`ISupportService` の生成コードでエラーが出ていないこと
-- **タスク 3**: 本文タスク 3 の手順のまま（仮の `SupportDetailPresenter` は O5 のシグネチャで、コンストラクターは引数を保存するだけ、ほかは空・完了済み）。`SupportDetailDtoFactory` はこのタスクで完成形を作る（`Bootstrap` の登録と、仮の Presenter の `[Inject]` の引数に要るため）。`OwnedPrefabTests`・`PrefabContractTests` が通ること（フィールドを変えていないことの確かめ）
-- **タスク 4**: 本文タスク 4 のまま
+- **タスク 3a**（Dto と DtoFactory）: O5 の Dto・Args・`OwnedTabKind`・`OwnedDtoFactory`・`SupportDetailDtoFactory` を完成形で作り、O6 の DtoFactory の 2 行を足す。テストは `OwnedDtoFactoryTests`・`SupportDetailDtoFactoryTests`
+- **タスク 3b**（所持一覧の画面とホーム）。本文タスク 3 の手順は読まず、次のとおり行う:
+  1. O5 の `IOwnedView`（本文 3.6 の形で型だけ読み替え）と `ISupportDetailView`（本文 3.7 のまま）を作る
+  2. `OwnedPage`・`SupportDetailPage` に本文 3.6・3.7 の「…の実装」を足す（型は O5 の名前。`[SerializeField]` のフィールドは足さない・名前を変えない・消さない。足りなければ止まって報告する）
+  3. `OwnedPresenter` を O5 のとおり作る。仮の `SupportDetailPresenter` は O5 のシグネチャで、コンストラクターは引数をフィールドに保存するだけ（読まないフィールドの警告が出てもよい。タスク 4 で消える）、`InitializeAsync`・`LevelUpAsync`・`LimitBreakAsync`・`BackAsync` は `UniTask.CompletedTask`、`DidPopEnter`・`Dispose` は空
+  4. `HomePresenter.OpenOwnedAsync` を O5 の「ホーム」のとおり直す。`BootstrapEntry` はこのタスクでは変えない（O6 の行はタスク 2・3a で足し済み）
+  5. O7 の `OwnedPresenterTests` を作り、`HomePresenterTests` を O7 のとおり直す
+  確かめ方: コンパイルエラー 0、`OwnedPresenterTests`・`HomePresenterTests` と既存のテスト（`OwnedPrefabTests`・`PrefabContractTests` を含む）が通る
+- **タスク 4**（詳細の Presenter）: 仮の `SupportDetailPresenter` を O5 の完成形に置き換え（`Refresh()`・`LevelUpAsync`・`LimitBreakAsync` は O5、`BackAsync`・購読・`Dispose`・イベントの受け口は本文 3.7）、O7 の `SupportDetailPresenterTests` を作る。確かめ方: `SupportDetailPresenterTests` と既存のテストが通る
+- **Presentation の `using`**（O5 の型）: Presenter は `System`・`Cysharp.Threading.Tasks`・`UnityScreenNavigator`・`VContainer`（`GachaPresenter` と同じ）と `Uta.Client.Application.Owned`（`OwnedPresenter`・`SupportDetailPresenter`）・`Uta.Client.Application.Support`・`Uta.Client.Presentation.Common`（`DialogOpener`・`DialogResult`。`SupportDetailPresenter`）。`OwnedDtoFactory` は `System.Collections.Generic`・`Uta.Client.Application.Owned`・`Uta.Client.Presentation.Common`（`DisplayText`）・`Uta.Shared.Domain.Lesson`・`Uta.Shared.Domain.Produce`。`SupportDetailDtoFactory` はそれに `System.Globalization`・`System.Linq`・`ZLinq`・`Uta.Client.Application.Support`・`Uta.Client.Domain.Player`・`Uta.Client.Domain.SupportCard`（`ProduceFormulas` は `Uta.Shared.Domain.Produce`。`using Uta.MasterData;` は書かない: O1）。足りなければ足してよい（`using` の過不足は設計判断ではない）
 - **タスク 5**（Play）: **実装担当に渡さず、進行役が行う**。本文タスク 5 の手順と止まる条件のまま。Play の前に `unity command eval 'UnityEditor.EditorUtility.RequestScriptReload(); return "ok";'`（foundation 9 章。ドメインのリロードを切っているため）。フレームを進めるときは Editor を前面にする（`EditorApplication.Step()` を連打しない）。強化の前後で詳細の「強化pt・ゴールド」の文字が変わること（player_diff の反映）を見る
 - **タスク 6**（記録）: **進行役が `uta-implement` の 6 と一緒に行う**。本文タスク 6 の 1〜7 に次を足す: `naming.md` の「今のコードとの差」から owned の例（`SupportStatus`・`OwnedListBuilder`・`OwnedSelectionRequest`・`OwnedRowViewData` など）を消す。`api-design.md` 1.1 の `LevelUpAsync`・`LimitBreakAsync` の行に「クライアントは Infrastructure の `SupportUseCase`（`ISupportUseCase`）が呼ぶ」を足す。索引の 1 章の順 6 の行を `done` にし、「何を作るか」を `ISupportUseCase`・`SupportUseCase`・DtoFactory の形に直す。本文タスク 6 の 1 の `OwnedSelectionRequest` は `OwnedSelectionCondition`
 
