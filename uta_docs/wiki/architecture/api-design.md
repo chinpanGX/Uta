@@ -90,6 +90,8 @@ updated: 2026-11-09
 | `LevelUpAsync` | `SupportCardUniqueId`（`string`）、`TargetLevel`（`int`） | `Level`、`SupportPoints`（残り）、`Gold`（残り） | あり |
 | `LimitBreakAsync` | `SupportCardUniqueId`（解放する）、`MaterialUniqueId`（素材） | `LimitBreak`（回数）、`MaxLevel` | あり |
 
+- `ISupportService` は、クライアントでは Infrastructure の `SupportUseCase`（`ISupportUseCase`）が呼ぶ
+
 ### 共通レスポンス項目（`Common`）[決定。2026-11-08。ユーザーの判断]
 
 上の 1.1・1.2 の表の「Common」の列は、Response が `Common`（`AppCommonDto`。player_diff = 変更後の通貨・経験値の累計、触ったアイドルとサポートカード、無くなったサポートカードの ID）を持つか。「あり」の Response は `IApiResponse<AppCommonDto>` を実装し、`Common` は変わったものが無ければ null。プロデュースは `ProduceStateResponse`（`StartAsync`・操作の 4 つ）に `Common` があり、報酬が付く完了の応答で通貨と経験値が入る。`ProduceResultResponse`（`AbandonAsync` の応答）・`GetStateAsync`・`SignInAsync`・`SignUpAsync` には無い。中身と作り方は [server-foundation.md](server/server-foundation.md) の共通レスポンス項目。既存の項目（`DrawResponse.GachaCurrency` など）は残す。

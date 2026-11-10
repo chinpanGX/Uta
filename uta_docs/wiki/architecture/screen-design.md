@@ -53,9 +53,9 @@ updated: 2026-11-09
 | ガチャ（排出率の表示） | モーダル | GAC-02 | — | 排出率（マスタから生成） |
 | ガチャ（結果） | モーダル | GAC-01、GAC-04 | Draw | 育成アイドル、サポートカード |
 | 交換 | ページ | GAC-03 | Exchange | 交換pt の設定（MVP では作らない。天井は結合テストで確かめる） |
-| 所持一覧・詳細 | ページ | IDL-01、SUP-01 | サインインで取った所持データ（キャッシュ） | 育成アイドル、サポートカード |
+| 所持一覧 | ページ | IDL-01、SUP-01 | サインインで取った所持データ（リポジトリ） | 育成アイドル、サポートカード |
 | 育成アイドルの強化 | ページ | IDL-02 | Train、Awaken | トレーニング・覚醒の設定（MVP では作らない） |
-| サポートカードの強化 | ページ | SUP-02 | LevelUp、LimitBreak | サポートカードのレベル・上限解放の設定（`SupportLevelCost`・`SupportLevelCap`）。MVP で作る（[game-spec.md](../overview/game-spec.md)。2026-11-01） |
+| サポートカードの詳細と強化（レベル上げ・上限解放）は 1 ページ（`SupportDetailPage`。2026-11-09） | ページ | SUP-01、SUP-02 | LevelUp、LimitBreak | サポートカードのレベル・上限解放の設定（`SupportLevelCost`・`SupportLevelCap`）。MVP で作る（[game-spec.md](../overview/game-spec.md)。2026-11-01） |
 | 編成 | ページ | PRD-01 | Start | アイドル、サポートカード、シナリオ（シナリオを選ぶ。レンタル枠の `GetRentalCandidates` は MVP では作らない） |
 | 週の行動選択 | ページ | PRD-02 | ChooseWeekAction、GetState | 週構成、行動 |
 | レッスン | ページ | PRD-03〜08 | ExecuteLessonAction | スキルカード、レッスンルール |
@@ -75,7 +75,7 @@ updated: 2026-11-09
 ```
 起動・ロード ─▶ ホーム ─┬─▶ ガチャ ─▶ ガチャ結果 ─▶ ガチャ
                         │        └─▶ 交換
-                        ├─▶ 所持一覧 ─▶ 詳細 ─▶ 強化
+                        ├─▶ 所持一覧 ─▶ サポートカードの詳細（強化を含む）
                         └─▶ 編成 ─▶ 週の行動選択 ─┬─▶ レッスン ─┐
                                       ▲           └─▶ 試験    ─┤
                                       └──────────────────────┘
@@ -235,6 +235,15 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 （2026-11-01 に解決: 基準解像度・セーフエリア・Windows のウィンドウ、スキルカード獲得・授業・支給・試験結果の画面の種類 → [screen-wireframes.md](../overview/screen-wireframes.md)「共通の方針」・2章の表）
 
 ## 実装メモ
+
+### 画面 3/6（所持一覧・サポートカードの強化。2026-11-09。[計画](../../plans/2026-11-03-client-screens-owned.md)）
+
+- **形**: Application の `ISupportUseCase`（`LevelUpAsync` は `LevelUpResult`、`LimitBreakAsync` は `LimitBreakResult`。どちらもサーバーと同じ名前・メンバーに `Kind`（`SupportResultKind`）を足した）、Infrastructure の具象 `SupportUseCase`（業務エラーを `handledCodes` で受けて `SupportResultKind` に写す。成功のあと `IPlayerUseCase.RefreshAsync()` を呼び、失敗は握りつぶす）。残高・カードのレベル・上限解放・素材の削除は応答の player_diff で基盤がリポジトリに反映する。最大レベル・上限解放の最大・費用・目標レベルは `SupportLevelPlanner`（`MemoryDatabase` を受ける）。一覧の並び・絞り込み・選べるかは `OwnedListFactory`、表示の文字は `OwnedDtoFactory`・`SupportDetailDtoFactory`
+- **上限解放の素材は所持一覧の選択モードで選ぶ**: `OwnedArgs`（`OwnedSelectionCondition.ForLimitBreakMaterial`）で `OwnedPresenter` をもう 1 枚積み、`WaitForPopAsync<OwnedSelection>` で結果を受ける（`Home` シーンの中のページ）。編成も同じ選択モード（`ForIdol`・`ForSupportCard(idolId, excludedUids)`）を使う
+- **押した時点の値**: 強化のボタンを押したとき、詳細の Presenter は `SupportDetailDtoFactory.Create` を呼び直し、その時点のリポジトリの値で目標レベルと確認の文を決める
+- **叩き台との差**: 育成アイドルの一覧は `IdolId` の順に固定し、並び・絞り込みはサポートカードだけ（[screen-wireframes.md](../overview/screen-wireframes.md) 10）。詳細と強化は 1 ページ。上限解放の確認は、素材の Lv にかかわらず常に「強化に使った強化pt・ゴールドは戻りません」を出す
+- **確かめた範囲**: EditMode のテスト。Editor の Play で、ホーム →「アイドル」→ 所持一覧（タブ・並び・絞り込み・0 件の「ありません」）→ 詳細 → +1・最大（強化pt・ゴールドが減る）→ 上限解放（素材の一覧 → 確認 → 解放数と最大レベルが上がり、素材が一覧から消える）→ 素材の無いカードの案内 → ホームへ戻る
+- **計画とのズレ**: 実装メモ（計画の 7 章）を参照。ズレは無い。コードレビューの指摘で、「素材にできるカードがあるか」を `OwnedListFactory.HasLimitBreakMaterial` の 1 か所にし、「最大」の目標の計算を 1 回のループにした
 
 ### 画面 2/6（ガチャ。2026-11-09。[計画](../../plans/2026-11-03-client-screens-gacha.md)）
 
