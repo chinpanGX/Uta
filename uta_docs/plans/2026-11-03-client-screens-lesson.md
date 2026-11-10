@@ -1,11 +1,17 @@
 ---
 title: 実装計画: client/ の画面 6/6 レッスン・試験・試験結果・プロデュース結果
 status: ready
-updated: 2026-11-08
+updated: 2026-11-09
 spec: ../wiki/systems/produce.md
 ---
 
 # 実装計画: client/ の画面 6/6 レッスン・試験・試験結果・プロデュース結果
+
+## プレイヤー Lv を累計から求める変更への読み替え（2026-11-09。[プレイヤー Lv の計画](2026-11-09-player-level-from-exp.md)。この計画の実装は、その計画が `main` に入ってから。この節が本文とほかの読み替えの節より優先）
+
+- クライアントの `ProduceOutcome`（読み替え後の `ProduceEndResult`）に `PlayerLevel` は無い（`PlayerExp` は付与したあとの経験値の累計）。Lv は `Uta.Shared.Domain.Player.PlayerLevelCatalog.GetLevel(playerExp)` で求める（`PlayerLevelCatalog` はルートのスコープにシングルトンで登録済み。[screen-design.md](../wiki/architecture/screen-design.md) 7.5）
+- 3.4.4 の 10 行目は `$"経験値 +{DisplayText.Thousands(result.Exp)}　（プレイヤーLv {levelCatalog.GetLevel(result.PlayerExp)}）"`。`PlayerLevelCatalog levelCatalog` を受けるのは、結果の行を作る型。[screen-design.md](../wiki/architecture/screen-design.md) 7.5 は表示の値を DtoFactory が作るとしているので、この計画に ADR 0020〜0022 の読み替えの節を足すとき、結果の行を DtoFactory に移すならその DtoFactory のコンストラクターの最後に足す（この点だけは ADR の読み替えの節に従う）。移さないなら `ProduceResultPresenter` の 2 つのコンストラクターの最後に足す
+- 5.1 のテストの `ProduceOutcome` は `playerLevel` の引数を消す: 完了は `(…, 300, 1500, 40, 120, 2640)`、中間不合格は `(…, 100, 500, 10, 60, 120)`（最後が `playerExp`）。`ProduceResultPresenterTests` は `TestPlayerLevels.Catalog()`（`Tests/EditMode/Support/TestPlayerLevels.cs`。Lv L の下限 = `20 × L × (L − 1)`）を渡す。期待の `"経験値 +120　（プレイヤーLv 12）"`・`"経験値 +60　（プレイヤーLv 3）"`（2640 → Lv 12、120 → Lv 3）
 
 ## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
 
