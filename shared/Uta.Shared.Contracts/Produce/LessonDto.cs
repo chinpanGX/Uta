@@ -7,7 +7,7 @@ namespace Uta.Shared.Contracts.Produce
     public sealed class LessonDto
     {
         [SerializationConstructor]
-        public LessonDto(LessonKind kind, ParamKind targetParam, int maxTurns, int clearTarget, int perfectTarget, ExamTurnDto[] examTurns, int turn, int shield, int usesLeft, int paramGained, int[] hand, int[] drawPile, int[] discard, int[] exiled, int[] statusValues, ParamBonusDto[] paramBonuses, PersistentDto[] persistents, int[] lessonEnhanced, int[] npcScores)
+        public LessonDto(LessonKind kind, ParamKind targetParam, int maxTurns, int clearTarget, int perfectTarget, ExamTurnDto[] examTurns, int turn, int shield, int usesLeft, int paramGained, int[] hand, int[] drawPile, int[] discard, int[] exiled, int[] statusValues, ParamBonusDto[] paramBonuses, PersistentDto[] persistents, int[] lessonEnhanced, int[] npcScores, bool[] usableHand)
         {
             Kind = kind;
             TargetParam = targetParam;
@@ -28,6 +28,7 @@ namespace Uta.Shared.Contracts.Produce
             Persistents = persistents;
             LessonEnhanced = lessonEnhanced;
             NpcScores = npcScores;
+            UsableHand = usableHand;
         }
 
         [Key(0)]
@@ -86,5 +87,8 @@ namespace Uta.Shared.Contracts.Produce
 
         [Key(18)]
         public int[] NpcScores { get; }
+
+        [Key(19)]
+        public bool[] UsableHand { get; }
     }
 }

@@ -1,7 +1,7 @@
 ---
 title: レッスンの Shared.Domain の型（Uta.Shared.Domain）
 status: draft
-updated: 2026-11-08
+updated: 2026-11-09
 ---
 
 # レッスンの Shared.Domain の型（Uta.Shared.Domain）
@@ -93,7 +93,7 @@ updated: 2026-11-08
 | `LessonCommand` | カードを使う / ドリンクを使う / スキップ |
 | `UseCheckResult` / `LessonApplyResult` | 使用可否と、操作を受け付けたか |
 | `LessonResult` / `LessonEndReason` | レッスンの出力(lesson-card.md 10.1): `LessonResult(int gained, int lastTurn, LessonEndReason reason, int hp)`。`LessonEngine.GetResult(LessonState)` で作る。終了理由は状態から導く(lesson-card.md 10.1)。フェーズ 6 で足す。`LessonResult` は `readonly struct`(プロパティ `Gained`・`LastTurn`・`Reason`・`Hp`)。`LessonEndReason` は `Nothing = 0`・`TurnsOver = 1`・`Perfect = 2`・`EarlyEnd = 3`(lesson-card.md 10.1)。`GetResult` は `public static`。レッスンが終わっていない(`IsFinished` でない)状態を渡したら `InvalidOperationException`。`LastTurn` は `state.Turn` [Uta案。2026-11-01] |
-| `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。クライアントの予測にも使う。**MVP のクライアントの予測は使用可否だけ**で、効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
+| `LessonEngine` | `Start`（L1・L2 と1ターン目の T1〜T7）、`CanUse`（乱数なし。サーバーが `LessonDto.UsableHand` を作るのに使う。**MVP のクライアントは使用可否もサーバーの `UsableHand` を使い、`CanUse` を呼ばない** 決定。2026-11-03。[screen-design.md 6章](screen-design.md)。効果の見込みは出さない [決定。2026-11-01。ユーザーの判断]）、`Apply`（P1〜P8、ターンが終われば E1〜E6 と次のターンの T1〜T7。入力待ちまで進める） |
 | `LessonStateComparer` | 再生した状態の比べ方([produce-domain.md](produce-domain.md) 7章)。`Describe(LessonState)` は状態の全部の値を `項目=値` の文字列の並びにし、`Diff(LessonState expected, LessonState actual)` は食い違った項目だけを返す(同じなら空)。.NET の単体テストと IL2CPP の確認で同じ関数を使う。形は [フェーズごとの実装計画](../../plans/2026-11-01-shared-lesson-phases.md) 3.2 [Uta案。2026-11-01]。今の `LessonEngineTests` の `Summarize` はこれに置き換える |
 | `EffectExecutor` | `Op` ごとの `switch` で効果を処理する |
 | `ConditionEvaluator` | 条件の判定（P1・P2） |

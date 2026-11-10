@@ -176,6 +176,33 @@ public class ProduceOperationTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task Lesson_Response_HasUsableHandSameLengthAsHand()
+    {
+        var (factory, channel, player) = await StartAsync(postgres);
+        await using var _ = factory;
+        using var __ = channel;
+        var lesson = await StartLessonAsync(player);
+
+        Assert.NotNull(lesson.Lesson.UsableHand);
+        Assert.Equal(lesson.Lesson.Hand.Length, lesson.Lesson.UsableHand.Length);
+        var state = await GetStateAsync(player, "req-5");
+        Assert.NotNull(state.Lesson.UsableHand);
+        Assert.Equal(state.Lesson.Hand.Length, state.Lesson.UsableHand.Length);
+    }
+
+    [Fact]
+    public async Task WeekSelect_Response_HasNoLesson()
+    {
+        var (factory, channel, player) = await StartAsync(postgres);
+        await using var _ = factory;
+        using var __ = channel;
+
+        var started = await StartProduceAsync(player, "req-3");
+
+        Assert.Null(started.Lesson);
+    }
+
+    [Fact]
     public async Task ExecuteLessonAction_UnknownKind_InvalidArgument()
     {
         var (factory, channel, player) = await StartAsync(postgres);

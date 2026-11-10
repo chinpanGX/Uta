@@ -150,11 +150,11 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 
 ### `AbandonAsync`
 
-進行中が無ければ `PRODUCE_NOT_IN_PROGRESS`、古ければ `PRODUCE_SESSION_DISCARDED`(何も書かない)。あれば `status` を放棄にし(楽観ロックつき)、`produce_results` に放棄で 1 行(0 で埋める)。Response は `ProduceResultResponse`(終わり方 = 放棄、プレイヤーの現在の経験値の累計)。
+進行中が無ければ `PRODUCE_NOT_IN_PROGRESS`、古ければ `PRODUCE_SESSION_DISCARDED`(何も書かない)。あれば `status` を放棄にし(楽観ロックつき。0 行なら `PRODUCE_STALE_OPERATION`)、`produce_results` に放棄で 1 行(0 で埋める)。Response は `ProduceResultResponse`(終わり方 = 放棄、プレイヤーの現在の経験値の累計)。
 
 ### 破棄(`SignInAsync`・`StartAsync` の中)
 
-古い進行中のセッションを見つけたら、`status` を破棄にし(楽観ロックつき)、`produce_results` に破棄で 1 行(0 で埋める)。報酬なし。`SignInAsync` は、`DiscardedProduce` を true、`HasActiveProduce` を false にして返す。古くなければ `HasActiveProduce` を true にする。**`SignInAsync` は、進行中のセッションがあるときだけ `x-app-version` を読む**(無い・整数でなければ `PRODUCE_INVALID_ARGUMENT`)。
+古い進行中のセッションを見つけたら、`status` を破棄にし(楽観ロックつき。0 行なら `PRODUCE_STALE_OPERATION`)、`produce_results` に破棄で 1 行(0 で埋める)。報酬なし。`SignInAsync` は、`DiscardedProduce` を true、`HasActiveProduce` を false にして返す。古くなければ `HasActiveProduce` を true にする。**`SignInAsync` は、進行中のセッションがあるときだけ `x-app-version` を読む**(無い・整数でなければ `PRODUCE_INVALID_ARGUMENT`)。
 
 ### `x-app-version` の読み方
 
@@ -182,7 +182,7 @@ Response:
 | `DeckCardDto` | `InstanceId`、`CardMasterId`、`Enhanced`(`bool`)。`Deck` は `InstanceId` の昇順 |
 | `WeekActionDto` | `SlotIndex`、`Kind`(`WeekChoiceKind`)、`Selectable`(`bool`)。`GetWeekChoices` の結果をそのまま |
 | `ClassOptionDto` | `Index`、`HpCost`、`Param`(`ParamKind`)、`ParamGain`、`GivesCard`(`bool`)、`Selectable`(`bool`)。`GetClassOptions` の結果をそのまま |
-| `LessonDto` | `Kind`(`LessonKind`)、`TargetParam`(`ParamKind`)、`MaxTurns`、`ClearTarget`、`PerfectTarget`、`ExamTurns`(`ExamTurnDto[]`。試験のときだけ)、`Turn`、`Shield`、`UsesLeft`、`ParamGained`(試験ではスコア)、`Hand`(`int[]`。手札の並びのまま)、`UsableHand`(`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true。レッスン・試験のとき。クライアントの手札のグレーアウトに使う。[screen-design.md](../screen-design.md) 6章。2026-11-03 追加)、`DrawPile` / `Discard` / `Exiled`(`int[]`。インスタンス ID の昇順。山札の並びは返さない)、`StatusValues`(`int[]`。`StatusKind` の数値が添字)、`ParamBonuses`(`ParamBonusDto[]`)、`Persistents`(`PersistentDto[]`)、`LessonEnhanced`(`int[]`)、`NpcScores`(`int[]`。試験のときだけ。`ProduceFormulas.NpcScores(週の RivalBaseScore)`)。体力は `ProduceStateResponse` の `Hp` / `MaxHp`(レッスン・試験の間は `LessonState` の値) |
+| `LessonDto` | `Kind`(`LessonKind`)、`TargetParam`(`ParamKind`)、`MaxTurns`、`ClearTarget`、`PerfectTarget`、`ExamTurns`(`ExamTurnDto[]`。試験のときだけ)、`Turn`、`Shield`、`UsesLeft`、`ParamGained`(試験ではスコア)、`Hand`(`int[]`。手札の並びのまま)、`UsableHand`(`bool[]`。`Hand` と同じ長さ・同じ順。`LessonEngine.CanUse` が Ok のとき true。レッスン・試験のとき。クライアントの手札のグレーアウトに使う。[screen-design.md](../screen-design.md) 6章。2026-11-03 追加。古いサーバーの応答(Key 19 が無い)では null になりうる。クライアントは null を空として扱う。**Key は末尾の 19**(既存のキーを動かさないため。表は意味の近さで `Hand` の次に置く))、`DrawPile` / `Discard` / `Exiled`(`int[]`。インスタンス ID の昇順。山札の並びは返さない)、`StatusValues`(`int[]`。`StatusKind` の数値が添字)、`ParamBonuses`(`ParamBonusDto[]`)、`Persistents`(`PersistentDto[]`)、`LessonEnhanced`(`int[]`)、`NpcScores`(`int[]`。試験のときだけ。`ProduceFormulas.NpcScores(週の RivalBaseScore)`)。体力は `ProduceStateResponse` の `Hp` / `MaxHp`(レッスン・試験の間は `LessonState` の値) |
 | `ExamTurnDto` | `Param`(`ParamKind`)、`ScoreBonusPercent` |
 | `ParamBonusDto` | `Percent`、`RemainingTurns` |
 | `PersistentDto` | `Trigger`(`PersistentTrigger`)、`RemainingTurns`、`RemainingCount`(無制限は -1) |
@@ -219,3 +219,4 @@ Response:
 - **楽観ロックの競合**: `FindActiveAsync` は行ロックを取らないので、事前に `version` を進めても競合にならない(読んだ値で更新に成功する)。競合になるのは読んだあとの割り込みだけで、テストは `IProduceSessionRepository` を包んで読んだ直後に別接続で `version` を進める(`ConflictingSessionRepository`)
 - **テストの支え**: `ProduceDriver`(局面を見て次の RPC を呼ぶ自動プレイ)、`PlayerClient.WithAppVersion` / `OnChannel`、`RpcAssert`。保存した操作列を再生して保存した最終状態と一致することを `ProducePlayTests.Replay_FromSavedOperations_MatchesSavedState` で確かめる
 - 未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作。同じプレイヤーの同時要求の実測(基盤の直列化と楽観ロックの設計は読んだ)。`state` の大きさ(数十ストリーム)の実測
+- **`UsableHand`** [2026-11-03。計画 `plans/2026-11-03-client-screens-formation.md`]: `ProduceStateResultFactory` が `ProduceEngine.CanUse(state, id)` で作る(`Lesson` が無ければ空)。`Uta.Shared.Domain` に公開メソッドは足していない

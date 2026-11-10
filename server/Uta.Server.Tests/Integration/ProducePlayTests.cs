@@ -119,6 +119,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         Assert.NotNull(actual);
         Assert.Equal(expected.Turn, actual.Turn);
         Assert.Equal(expected.Hand, actual.Hand);
+        Assert.Equal(expected.UsableHand, actual.UsableHand);
         Assert.Equal(expected.DrawPile, actual.DrawPile);
         Assert.Equal(expected.StatusValues, actual.StatusValues);
         Assert.Equal(expected.ParamGained, actual.ParamGained);

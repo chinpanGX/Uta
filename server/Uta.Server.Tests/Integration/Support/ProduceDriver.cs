@@ -5,6 +5,7 @@ using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Produce;
 using VolTech.Server.Abstractions;
+using Xunit;
 
 namespace Uta.Server.Tests.Integration.Support;
 
@@ -57,16 +58,21 @@ public sealed class ProduceDriver(PlayerClient player, bool skipOnly = false, bo
             {
                 if (!skipOnly)
                 {
-                    foreach (var instanceId in current.Lesson.Hand)
+                    Assert.Equal(current.Lesson.Hand.Length, current.Lesson.UsableHand.Length);
+                    for (var i = 0; i < current.Lesson.Hand.Length; i++)
                     {
+                        var instanceId = current.Lesson.Hand[i];
                         try
                         {
-                            return Accept(await CallAsync(x => x.ExecuteLessonActionAsync(
+                            var accepted = Accept(await CallAsync(x => x.ExecuteLessonActionAsync(
                                 new ExecuteLessonActionRequest(op, LessonActionKind.UseCard, instanceId, 0))));
+                            Assert.True(current.Lesson.UsableHand[i]);
+                            return accepted;
                         }
                         catch (RpcException e) when (HasReason(e, "PRODUCE_INVALID_ARGUMENT"))
                         {
                             // 使えないカード。次の手札へ
+                            Assert.False(current.Lesson.UsableHand[i]);
                         }
                     }
                 }
