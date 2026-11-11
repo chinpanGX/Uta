@@ -1,7 +1,7 @@
 ---
 title: 実装計画: shared/ の型の改名（naming.md の差の表の Shared.Domain・Contracts の行）
-status: draft
-updated: 2026-11-11
+status: ready
+updated: 2026-11-12
 spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/master/gacha-tables.md, ../wiki/systems/gacha.md
 ---
 
@@ -26,7 +26,7 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wik
 - **`DrawResultDto` はプロパティと引数の名前をそろえて変え、引数の順番・型と `[Key(n)]` は変えない**: MessagePack はキーの番号（`[Key(3)]`）で読み書きするので通信の形は変わらない（名前で直列化する設定・経路は無い）。`[SerializationConstructor]` のコンストラクターの引数とメンバーの対応は、MessagePack の版によって位置（キーの番号の順）か名前で取る（どちらかはこのリポジトリでは確かめていない）。どちらでも壊れないよう、プロパティ `ResultKind` と引数 `resultKind` を同じコミットで変え、引数の並び（`slot, itemKind, itemMasterId, resultKind, shards, supportPoints, supportCardUniqueId`）と型は今のままにする
 - **Unity が読む `.meta` は `git mv` で一緒に改名する**（`shared/` は `client/uta/Packages/manifest.json` の `file:` で Unity に入るので、`shared/Uta.Shared.Domain/` と `shared/Uta.Shared.Contracts/` の `.cs` には `.meta` がある。GUID を変えない）。`shared/Uta.Shared.Domain.Tests/` には `.meta` が無い
 - **変えない名前**:
-  - `ExamOutcome` 系（enum `ExamOutcome`、`ProduceResult.Outcome`、`ProduceResultResponse.ExamOutcome`、サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome`、`ProduceResultSnapshot.Outcome`）。[formation の計画](2026-11-03-client-screens-formation.md)のタスク 2 が行う（formation の R1・R6）。R1 に書かれていなかった後ろの 3 つ（サーバーの 2 つと `ProduceResultSnapshot.Outcome`）は、この計画を書く段階で formation の R6 のタスク 2 の箇条に書き足した（naming.md の「プロパティ名」の行が「Shared.Domain の `ExamOutcome` の改名と同じ計画で直す」としているため）
+  - `ExamOutcome` 系（enum `ExamOutcome`、`ProduceResult.Outcome`、`ProduceResultResponse.ExamOutcome`、サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome`、`ProduceResultSnapshot.Outcome`、サーバーの保存の形 `ProduceResultSnapshotBlob.Outcome`）。[formation の計画](2026-11-03-client-screens-formation.md)のタスク 2 が行う（formation の R1・R6）。R1 に書かれていなかったサーバーの 2 つと `ProduceResultSnapshot.Outcome` は、この計画を書く段階で formation の R6 のタスク 2 の箇条に書き足した。保存の形の Blob と引数名をどうするかは、formation のタスク 2 に入る前に決める未決事項として R6 に書いた（この計画の範囲外）（naming.md の「プロパティ名」の行が「Shared.Domain の `ExamOutcome` の改名と同じ計画で直す」としているため）
   - サーバーの `GachaResult.ToLogJson` のキー `"outcome"`、DB の列 `gacha_histories.outcome`（ログ・DB の形。サーバーの改名の計画と同じ扱い）
   - 戻り値を受けるローカル変数の名前（`var result = engine.Apply(...)` の `result`、`var check = CanUse(...)` の `check` など）
   - `uta_docs/plans/`・`uta_docs/raw/` の旧い名前（記録なので直さない）
@@ -34,7 +34,7 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wik
 - **ファイルの改名は `git mv`**。`.cs` は BOM 付き UTF-8・LF のまま
 
 - **いつ main へ入れるか: すぐ入れる**（2026-11-11。ユーザーの判断。lesson の後・formation の後と比べて選んだ）。理由: 後の計画（Lv・formation のタスク 2・week・lesson）の本文は改名の対象の名前を使っていない（2026-11-11 に Grep）ので読み替えが要らず、早く入れるほど直す箇所が増えない
-- **順番は直列にする: この計画 → [Lv の実装](2026-11-09-player-level-from-exp.md) → formation のタスク 2**。Lv の計画は「formation の実装ブランチを切る前に main へ入れる」、formation は「Lv が main に入ってから」と既に決まっているので、この計画をその前に置く。Lv・formation の実装ブランチは、この計画の実装が main に入ってから切る（Lv の計画の「この計画で決めたこと」と formation の R6 に、この計画を書く段階で 1 行ずつ書き足した）。並行しないので、1.1 のファイルで git の衝突は出ない。順番が崩れて並行したときは、1.1 の「並行したときの見込み」のとおりに、後から main に入れる側が直し、main を取り込んだあと 4章の各タスクの `git grep` の確かめ方をもう一度回す。改名した型は main から消えるので、取り込んだ側に旧い名前が残ればコンパイルエラーになり、見落としは出ない（wiki はタスク 4 の `git grep` で見る）
+- **順番は直列にする: この計画 → [Lv の実装](2026-11-09-player-level-from-exp.md) → formation のタスク 2**。Lv の計画は「formation の実装ブランチを切る前に main へ入れる」、formation は「Lv が main に入ってから」と既に決まっているので、この計画をその前に置く。Lv・formation の実装ブランチは、この計画の実装が main に入ってから切る（Lv が owned の実装ブランチに積むときは、そのブランチに改名の入った `origin/main` を取り込んでから切る）（Lv の計画の「この計画で決めたこと」と formation の R6 に、この計画を書く段階で 1 行ずつ書き足した）。並行しないので、1.1 のファイルで git の衝突は出ない。順番が崩れて並行したときは、1.1 の「並行したときの見込み」のとおりに、後から main に入れる側が直し、main を取り込んだあと 4章の各タスクの `git grep` の確かめ方をもう一度回す。改名した型は main から消えるので、取り込んだ側に旧い名前が残ればコンパイルエラーになり、見落としは出ない（wiki はタスク 4 の `git grep` で見る）
 
 ## ユーザーの確認が要ること
 
@@ -58,7 +58,7 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wik
 | 同上 | 同上 | `server/Uta.Server.Tests/Integration/ProducePlayTests.cs`（Lv は 90〜94 行と `Complete_LevelUp_AndMaxLevel`、この計画は 324 行の `ProduceApplyResult.Accepted`） | 離れているので自動でまとまる見込み |
 | 同上 | 同上 | `uta_docs/wiki/architecture/api-design.md`（Lv は 1章の `SignInResponse`・1.3、この計画は 1.1 の `DrawAsync` の行） | 別の行。自動でまとまる見込み |
 | [formation](2026-11-03-client-screens-formation.md) のタスク 2（`ExamOutcome` 系の改名） | ready。タスク 1 は PR #59 で済み | `shared/Uta.Shared.Domain/Produce/ProduceEnums.cs`（formation は 133 行の `ExamOutcome`、この計画は 125 行）、`ProduceEngine.cs`（formation は 691〜728 行、この計画は 165〜641 行）、`shared/Uta.Shared.Domain.Tests/Produce/ProduceEngineExamTests.cs`（formation は 182〜324 行、この計画は 50・339〜353 行）、`ProduceReplayTests.cs`（formation は 106 行、この計画は 24・121〜155 行）、`server/Uta.Server.Tests/Integration/ProducePlayTests.cs`（formation は 77・237 行、この計画は 324 行）、`uta_docs/wiki/architecture/produce-domain.md`（formation は 190 行の `ProduceResultSnapshot` など、この計画は 276・280 行） | 離れているので自動でまとまる見込み |
-| 同上 | 同上 | `uta_docs/wiki/architecture/naming.md`（両方が差の表の「プロパティ名の `Outcome`・`ExamOutcome`」の行と前書きの段落を変える） | 同じ行。解き方は 1 つに決まる: この計画が先なら、formation はその行（この計画で `ExamOutcome` 系だけになった行）を消す。formation が先でその行が消えていたら、この計画はその行の書き換え（3.4 の 2 つ目の箇条）を飛ばす。前書きの段落は、両方の足した文を残す |
+| 同上 | 同上 | `uta_docs/wiki/architecture/naming.md`（両方が差の表の「プロパティ名の `Outcome`・`ExamOutcome`」の行と前書きの段落を変える） | 同じ行。解き方は 1 つに決まる: この計画が先なら、formation はその行（この計画で `ExamOutcome` 系だけになった行）を消す。formation が先でその行が消えていたら、この計画はその行の書き換え（3.4 の 2 つ目の箇条）を飛ばす。前書きの段落は、formation の R6 に足す文の指示が無いので、この計画の足した文だけが入る（formation が文を足していたら両方を残す） |
 | [week](2026-11-03-client-screens-week.md)・[lesson](2026-11-03-client-screens-lesson.md) | ready | なし（本文に改名の対象の名前と、この計画が触るファイルの変更が無い。week は `ProduceEngine.cs` を根拠として挙げるだけ） | — |
 | owned の O11（`Uta-wt/1` で作業中） | client の `Support` のファイルだけ | なし | — |
 
