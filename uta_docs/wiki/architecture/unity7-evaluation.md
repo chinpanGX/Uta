@@ -1,7 +1,7 @@
 ---
 title: Unity 7 の検証結果
 status: draft
-updated: 2026-11-09
+updated: 2026-11-11
 ---
 
 # Unity 7 の検証結果
@@ -106,5 +106,5 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 
 ## 5. 次にやること
 
-- Android / iOS の実機ビルド（3.3）
+- Android / iOS の実機ビルド（3.3）。Android の手順と決めごとは [build-ci.md](build-ci.md)、実装は [計画](../../plans/2026-11-11-android-smoke.md)
 - 3.3 の `ApiCore` の再送・エラー詳細のトレーラーの IL2CPP の確認

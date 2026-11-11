@@ -1,7 +1,7 @@
 ---
 title: architecture（実装設計書）の目次
 status: draft
-updated: 2026-11-01
+updated: 2026-11-11
 ---
 
 # architecture（実装設計書）の目次
@@ -32,6 +32,7 @@ updated: 2026-11-01
 | プロデュースの乱数ストリームと引く順、操作の記録、保存する状態、再現の確かめ方、プロデュースの RPC と DTO | [produce-domain.md](produce-domain.md) |
 | ガチャの抽選の実装、ガチャとサポートカードの強化の処理の手順（SQL・トランザクション） | [gacha-support-server.md](server/gacha-support-server.md) |
 | プロデュースのサーバーの保存の形（テーブル・MessagePack）、サーバーの乱数ストリーム、開始・操作・放棄・破棄の手順、報酬とプレイヤーLv、プロデュースの DTO の形 | [produce-server.md](server/produce-server.md) |
+| 手で回すビルド（Windows・Android の IL2CPP）、実機からローカルのサーバーへの接続、MVP の完了条件 7 の確かめ方 | [build-ci.md](build-ci.md) |
 
 ## 一覧
 
@@ -61,6 +62,6 @@ Shared.Domain（`shared/Uta.Shared.Domain`）の機能ごとの実装設計:
 
 - [unity7-evaluation.md](unity7-evaluation.md) — Unity 7 の検証結果：確かめたもの（Editor・パッケージの取り込み・サインアップ/サインイン）、Windows の IL2CPP のビルドの `IL1009`（解決済み）、未確認のもの、警告・注意
 
-未作成:
+ビルド:
 
-- `build-ci.md`（ビルド・CI。repository-layout.md 7章の実体）
+- [build-ci.md](build-ci.md) — ビルドと実機の確かめ方（repository-layout.md 7章の実体）：Windows・Android の IL2CPP のビルド、実機からローカルのサーバーへの接続（`adb reverse`）、完了条件 7 のスモークと IL2CPP の計算の一致
