@@ -2,7 +2,7 @@
 title: 実装計画: shared/ の型の改名（naming.md の差の表の Shared.Domain・Contracts の行）
 status: draft
 updated: 2026-11-11
-spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/produce-domain.md
+spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/master/gacha-tables.md, ../wiki/systems/gacha.md
 ---
 
 # 実装計画: shared/ の型の改名
@@ -23,17 +23,18 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wik
 
 - **Factory の作るメソッドは `Create`**: naming.md 7章の Factory の例（`CardCatalogFactory.Create`・`ProduceStateResultFactory.Create`）と同じにする。サーバーの改名の計画で `ProduceViewBuilder.Build` → `ProduceStateResultFactory.Create` にしたのと同じ扱い
 - **enum の値の名前と数値は変えない**。`LessonEngine.UseCard` の `(LessonApplyResult)check`（`UseCheckResult` から数値で写す）は、型名だけ `(LessonApplyResultKind)check` にする
-- **`DrawResultDto` はプロパティと引数を一緒に変える**: MessagePack はキーの番号（`[Key(3)]`）で読み書きするので通信の形は変わらない。`[SerializationConstructor]` のコンストラクターは、引数の名前でプロパティと対応を取るので、プロパティ `ResultKind` と引数 `resultKind` を同じコミットで変える（片方だけ変えると、生成のフォーマッターが対応を取れない）
+- **`DrawResultDto` はプロパティと引数の名前をそろえて変え、引数の順番・型と `[Key(n)]` は変えない**: MessagePack はキーの番号（`[Key(3)]`）で読み書きするので通信の形は変わらない（名前で直列化する設定・経路は無い）。`[SerializationConstructor]` のコンストラクターの引数とメンバーの対応は、MessagePack の版によって位置（キーの番号の順）か名前で取る（どちらかはこのリポジトリでは確かめていない）。どちらでも壊れないよう、プロパティ `ResultKind` と引数 `resultKind` を同じコミットで変え、引数の並び（`slot, itemKind, itemMasterId, resultKind, shards, supportPoints, supportCardUniqueId`）と型は今のままにする
 - **Unity が読む `.meta` は `git mv` で一緒に改名する**（`shared/` は `client/uta/Packages/manifest.json` の `file:` で Unity に入るので、`shared/Uta.Shared.Domain/` と `shared/Uta.Shared.Contracts/` の `.cs` には `.meta` がある。GUID を変えない）。`shared/Uta.Shared.Domain.Tests/` には `.meta` が無い
 - **変えない名前**:
-  - `ExamOutcome` 系（enum `ExamOutcome`、`ProduceResult.Outcome`、`ProduceResultResponse.ExamOutcome`、サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome`、`ProduceResultSnapshot.Outcome`）。[formation の計画](2026-11-03-client-screens-formation.md)のタスク 2 が行う（formation の R1・R6）
+  - `ExamOutcome` 系（enum `ExamOutcome`、`ProduceResult.Outcome`、`ProduceResultResponse.ExamOutcome`、サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome`、`ProduceResultSnapshot.Outcome`）。[formation の計画](2026-11-03-client-screens-formation.md)のタスク 2 が行う（formation の R1・R6）。R1 に書かれていなかった後ろの 3 つ（サーバーの 2 つと `ProduceResultSnapshot.Outcome`）は、この計画を書く段階で formation の R6 のタスク 2 の箇条に書き足した（naming.md の「プロパティ名」の行が「Shared.Domain の `ExamOutcome` の改名と同じ計画で直す」としているため）
   - サーバーの `GachaResult.ToLogJson` のキー `"outcome"`、DB の列 `gacha_histories.outcome`（ログ・DB の形。サーバーの改名の計画と同じ扱い）
   - 戻り値を受けるローカル変数の名前（`var result = engine.Apply(...)` の `result`、`var check = CanUse(...)` の `check` など）
   - `uta_docs/plans/`・`uta_docs/raw/` の旧い名前（記録なので直さない）
-- **client のテストの補助 `GachaFixtures` の引数名** `outcome` → `resultKind`（型名に合わせる。naming.md 1章のフィールド・引数の名前の規則）
+- **client のテストの補助 `GachaFixtures` の引数名** `outcome` → `resultKind`（渡す先の `DrawResultDto` のコンストラクターの引数 `resultKind` に合わせる）
 - **ファイルの改名は `git mv`**。`.cs` は BOM 付き UTF-8・LF のまま
 
-- **いつ main へ入れるか: すぐ入れる**（2026-11-11。ユーザーの判断。lesson の後・formation の後と比べて選んだ）。この計画の PR のマージ後、空いている固定の worktree で実装し、formation のタスク 2・Lv の実装より先に main へ入れる。理由: ぶつかるファイルは少なく（1.1）、どれも隣り合う行の機械的な衝突で設計の判断が要らない。後の計画（formation のタスク 2・Lv・week・lesson）の本文は改名の対象の名前を使っていない（2026-11-11 に Grep）ので、読み替えが要らず、早く入れるほど直す箇所が増えない。並行して進んだ場合は、後から main に入れる側が 1.1 の衝突を直す（両方の変更を残す）
+- **いつ main へ入れるか: すぐ入れる**（2026-11-11。ユーザーの判断。lesson の後・formation の後と比べて選んだ）。理由: 後の計画（Lv・formation のタスク 2・week・lesson）の本文は改名の対象の名前を使っていない（2026-11-11 に Grep）ので読み替えが要らず、早く入れるほど直す箇所が増えない
+- **順番は直列にする: この計画 → [Lv の実装](2026-11-09-player-level-from-exp.md) → formation のタスク 2**。Lv の計画は「formation の実装ブランチを切る前に main へ入れる」、formation は「Lv が main に入ってから」と既に決まっているので、この計画をその前に置く。Lv・formation の実装ブランチは、この計画の実装が main に入ってから切る（Lv の計画の「この計画で決めたこと」と formation の R6 に、この計画を書く段階で 1 行ずつ書き足した）。並行しないので、1.1 のファイルで git の衝突は出ない。順番が崩れて並行したときは、1.1 の「並行したときの見込み」のとおりに、後から main に入れる側が直し、main を取り込んだあと 4章の各タスクの `git grep` の確かめ方をもう一度回す。改名した型は main から消えるので、取り込んだ側に旧い名前が残ればコンパイルエラーになり、見落としは出ない（wiki はタスク 4 の `git grep` で見る）
 
 ## ユーザーの確認が要ること
 
@@ -47,15 +48,17 @@ spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wik
 - 設計: [naming.md](../wiki/architecture/naming.md) 1章（`Outcome` は使わない）・2章（結果の種類は `<何の結果か>ResultKind`）・7章（組み立ては `<名詞>Factory`、`Builder` は Editor だけ）。`GachaResultKind` の名前と数値の正は [api-design.md](../wiki/architecture/api-design.md) 1.1
 - [client の画面の基盤の計画](2026-11-03-client-screens-foundation.md)の R0 で「`GachaOutcome` と `DrawResultDto.Outcome` は `server/` を触る計画が行う」とした計画が、これに当たる
 
-### 1.1 並行する作業とぶつかるファイル（2026-11-11 の main で調べた）
+### 1.1 同じファイルを触るほかの計画（2026-11-11 の main で調べた）
 
-| 並行の作業 | 状態（2026-11-11） | ぶつかるファイル | 見込み |
+順番を直列にした（「この計画で決めたこと」）ので、下の重なりは衝突にならない。「並行したときの見込み」は、順番が崩れたときのためのもの。
+
+| ほかの計画 | 状態（2026-11-11） | 同じファイル | 並行したときの見込み |
 |---|---|---|---|
-| [Lv の実装](2026-11-09-player-level-from-exp.md) | ready。未着手 | `client/uta/Assets/Tests/EditMode/Support/GachaFixtures.cs`（Lv は 129 行の `Player` の `new PlayerEntity(...)` の引数を変える。この計画は 131・133・136・138 行の `IdolResult`・`SupportCardResult`） | 隣り合うので git の衝突になる見込み。後から main に入れる側が、両方の変更を残す |
+| [Lv の実装](2026-11-09-player-level-from-exp.md) | ready。未着手 | `client/uta/Assets/Tests/EditMode/Support/GachaFixtures.cs`（Lv は 128 行の `Player` の `new PlayerEntity(...)` の引数を変える。この計画は 131・133・136・138 行の `IdolResult`・`SupportCardResult`） | 間に変わらない行が 2 行しか無いので、衝突するかもしれない（推測）。両方の変更を残す |
 | 同上 | 同上 | `server/Uta.Server.Tests/Integration/ProducePlayTests.cs`（Lv は 90〜94 行と `Complete_LevelUp_AndMaxLevel`、この計画は 324 行の `ProduceApplyResult.Accepted`） | 離れているので自動でまとまる見込み |
 | 同上 | 同上 | `uta_docs/wiki/architecture/api-design.md`（Lv は 1章の `SignInResponse`・1.3、この計画は 1.1 の `DrawAsync` の行） | 別の行。自動でまとまる見込み |
-| [formation](2026-11-03-client-screens-formation.md) のタスク 2〜 | ready。タスク 1 は PR #59 で済み | `shared/Uta.Shared.Domain/Produce/ProduceEnums.cs`（formation は 133 行の `ExamOutcome`、この計画は 125 行の `ProduceApplyResult`） | 8 行離れているので自動でまとまる見込み |
-| 同上 | 同上 | `uta_docs/wiki/architecture/produce-domain.md`（formation は `ExamOutcome`・`ProduceResultSnapshot` の行など、この計画は 276・280 行）、`lesson-domain-types.md`（この計画は 94 行） | 行が違えば自動。同じ行に当たったら両方の変更を残す |
+| [formation](2026-11-03-client-screens-formation.md) のタスク 2（`ExamOutcome` 系の改名） | ready。タスク 1 は PR #59 で済み | `shared/Uta.Shared.Domain/Produce/ProduceEnums.cs`（formation は 133 行の `ExamOutcome`、この計画は 125 行）、`ProduceEngine.cs`（formation は 691〜728 行、この計画は 165〜641 行）、`shared/Uta.Shared.Domain.Tests/Produce/ProduceEngineExamTests.cs`（formation は 182〜324 行、この計画は 50・339〜353 行）、`ProduceReplayTests.cs`（formation は 106 行、この計画は 24・121〜155 行）、`server/Uta.Server.Tests/Integration/ProducePlayTests.cs`（formation は 77・237 行、この計画は 324 行）、`uta_docs/wiki/architecture/produce-domain.md`（formation は 190 行の `ProduceResultSnapshot` など、この計画は 276・280 行） | 離れているので自動でまとまる見込み |
+| 同上 | 同上 | `uta_docs/wiki/architecture/naming.md`（両方が差の表の「プロパティ名の `Outcome`・`ExamOutcome`」の行と前書きの段落を変える） | 同じ行。解き方は 1 つに決まる: この計画が先なら、formation はその行（この計画で `ExamOutcome` 系だけになった行）を消す。formation が先でその行が消えていたら、この計画はその行の書き換え（3.4 の 2 つ目の箇条）を飛ばす。前書きの段落は、両方の足した文を残す |
 | [week](2026-11-03-client-screens-week.md)・[lesson](2026-11-03-client-screens-lesson.md) | ready | なし（本文に改名の対象の名前と、この計画が触るファイルの変更が無い。week は `ProduceEngine.cs` を根拠として挙げるだけ） | — |
 | owned の O11（`Uta-wt/1` で作業中） | client の `Support` のファイルだけ | なし | — |
 
@@ -109,7 +112,13 @@ public enum ProduceApplyResultKind { Accepted = 0, UnexpectedPhase = 1, InvalidA
 （上は値の一覧。ファイルの書式は今のとおり 1 行 1 値・Allman のまま、名前の行だけを変える）
 
 - シグネチャの変わるメソッド: `LessonEngine.CanUse(LessonState, int)` → 戻り値 `UseCheckResultKind`、`LessonEngine.Apply(LessonState, LessonCommand, IRandom)` → `LessonApplyResultKind`、private の `LessonEngine.UseCard` → `LessonApplyResultKind`、`ProduceEngine.Apply(ProduceState, ProduceCommand, IRandomStreamSource)` → `ProduceApplyResultKind`、`ProduceEngine.CanUse(ProduceState, int)` → `UseCheckResultKind`、private の `ProduceEngine.ApplyWeekSelect`・`ApplyLesson`・`ApplyCardOffer`・`ApplyExamResult` → `ProduceApplyResultKind`。引数は変えない
-- 手順は機械的な置き換え: 対象のファイル（2章のタスク 1 の行）で、単語の `UseCheckResult` → `UseCheckResultKind`、`LessonApplyResult` → `LessonApplyResultKind`、`ProduceApplyResult` → `ProduceApplyResultKind`（単語の一致。`UseCheckResultKind` を二重に `UseCheckResultKindKind` にしない）
+- 手順は機械的な置き換え: 対象のファイル（2章のタスク 1 の行）で、単語の `UseCheckResult` → `UseCheckResultKind`、`LessonApplyResult` → `LessonApplyResultKind`、`ProduceApplyResult` → `ProduceApplyResultKind`（単語の一致。`UseCheckResultKind` を二重に `UseCheckResultKindKind` にしない）。Git Bash で次を 1 回流す（GNU sed は 1 行目の BOM と LF を変えない）:
+
+  ```bash
+  git grep -lw "UseCheckResult\|LessonApplyResult\|ProduceApplyResult" -- shared server | xargs sed -i -E 's/\b(UseCheckResult|LessonApplyResult|ProduceApplyResult)\b/\1Kind/g'
+  ```
+
+  流したあと、`git diff --numstat` で、変わったのが 2章のタスク 1 のファイルだけで、各ファイルの変わった行の数が出現の行の数と同じ（ファイル全体や 1 行目だけが差分になっていない）ことを確かめる
 
 ### 3.2 `ExamTurnFactory`（タスク 2）
 
@@ -228,7 +237,7 @@ client:
   2. 3.3 のとおりに書き換える（`DrawResultDto` の引数とプロパティは同じコミットで変える）
 - 確かめ方:
   - `git grep -nw "GachaOutcome" -- shared server client` が 0 件
-  - `git grep -nw "Outcome" -- shared/Uta.Shared.Contracts/Gacha server/Uta.Server/Api/GachaService.cs server/Uta.Server.Tests/Integration/GachaTests.cs client/uta/Assets/Scripts client/uta/Assets/Tests` が 0 件
+  - `git grep -nw "Outcome" -- shared/Uta.Shared.Contracts/Gacha server/Uta.Server/Api/GachaService.cs server/Uta.Server.Tests/Integration/GachaTests.cs client/uta/Assets/Scripts client/uta/Assets/Tests` が 0 件（`Scripts/Editor/Prefabs/Screens/Produce/ExamResultPageBuilder.cs` の `OutcomeText`・`outcomeText` は別の語なので `-w` では当たらない）
   - `.meta` の `guid` が改名の前と同じ（タスク 2 と同じ確かめ方）
   - `dotnet build Uta.slnx`（警告 0・エラー 0）、`dotnet test --project server/Uta.Server.Tests` がすべて通る（`GachaTests` で、ガチャの応答の `ResultKind` が今の `Outcome` と同じ値で返ることを確かめる）
   - **Unity でしか確かめられない**: `client/uta` で `unity command package resolve`（`file:` の shared の改名を読ませる）→ `unity recompile --format json` がエラー 0。EditMode のテスト（CLAUDE.md「ビルド・テスト・実行」の `unity command --timeout 300 eval` で `TestRunnerApi` を呼ぶ形）で `GachaMapperTests`・`GachaUseCaseTests` を含む全件が通る。Editor を開けない環境では、確かめられなかったと実装メモに書き、PR の本文にも書く
@@ -252,6 +261,8 @@ client:
 | shared のレッスン・プロデュースのテスト（タスク 1 の行） | 型名だけ。エンジンの結果の値が変わらないことを、今のテストがそのまま確かめる |
 | サーバーの `GachaTests`・`ContractsEnumsMatchTests`・`ProducePlayTests`・`ProduceStateSerializerTests` | 型名・プロパティ名だけ |
 | client の `GachaMapperTests`・`GachaUseCaseTests` | 型名だけ（Unity でしか確かめられない） |
+
+Windows の IL2CPP のプレイヤーのビルドは確かめない（型を足さず名前だけを変えるため。`client/uta/Assets` に `link.xml` も、旧い名前を文字列で引く所も無い。2026-11-11 に確かめた）。
 
 実行するコマンド（各タスクの終わり）:
 
