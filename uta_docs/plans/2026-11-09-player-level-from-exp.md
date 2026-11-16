@@ -1,7 +1,7 @@
 ---
 title: 実装計画: プレイヤーは経験値の累計だけを持ち、Lv は累計から求める
-status: ready
-updated: 2026-11-09
+status: in-progress
+updated: 2026-11-16
 spec: ../wiki/systems/produce.md, ../wiki/architecture/server/produce-server.md, ../wiki/architecture/master/produce-tables.md, ../wiki/architecture/api-design.md, ../wiki/architecture/screen-design.md
 ---
 
@@ -415,4 +415,7 @@ Unity でしか確かめられないもの: クライアントのコンパイル
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+ブランチ: `claude/player-level-impl`（`origin/main` から。owned は PR #61・#64 で main に入ったので、3a の積み PR にはしない。2a の `git grep` は 0 件）
+
+| タスク | コミット | ズレ |
+|---|---|---|
