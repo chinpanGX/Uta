@@ -1,6 +1,6 @@
 ---
 name: requesting-design-review
-description: Uta の設計書（uta_docs/wiki の systems/・architecture/・overview/ のページ、uta_docs/plans の実装計画、uta_docs/raw の設計の下書き、ADR の案）をレビューに出すときに使う。会話の経緯を持たないレビュー担当（Goldfish。.claude/agents/uta-goldfish-*）を、観点（整合性・実装可能性・設計の批評）ごとに並べて出し、ADR・CLAUDE.md・ほかの wiki ページに照らして見てもらう。仕様ページや実装計画を書いた・大きく直したとき、実装計画を ready にする前、「設計書をレビューして」「仕様をレビューに出して」と言われたときに使う。コードの変更のレビューには requesting-code-review を使う。
+description: Uta の設計書（uta_docs/wiki の systems/・architecture/・overview/ のページ、uta_docs/plans の実装計画、uta_docs/raw の設計の下書き、ADR の案）をレビューに出すときに使う。会話の経緯を持たないレビュー担当（Goldfish。.claude/agents/uta-goldfish-*）を、観点（整合性・実装可能性）ごとに並べて出し、ADR・CLAUDE.md・ほかの wiki ページに照らして見てもらう。仕様ページや実装計画を書いた・大きく直したとき、実装計画を ready にする前、「設計書をレビューして」「仕様をレビューに出して」と言われたときに使う。コードの変更のレビューには requesting-code-review を使う。
 ---
 
 # 設計書をレビューに出す（Uta 版）
@@ -8,7 +8,7 @@ description: Uta の設計書（uta_docs/wiki の systems/・architecture/・ove
 元は [google/elephant-goldfish-model](https://github.com/google/elephant-goldfish-model) v0.1.0 の `egm-review` スキルとレビュー担当のエージェント（Apache-2.0、[LICENSE-egm](LICENSE-egm)）。Uta 向けに次のように書き換えた:
 
 - 5 段階のフェーズ・プリセット選び・文書の分割・チェックポイント・まとめ役のエージェント（synthesizer）をやめ、観点ごとのレビュー担当を 1 回並べて出すだけにした
-- 7 つの観点を 3 つにまとめた（整合性 ← codebase_details・structural・style、実装可能性 ← implementation_readiness・comprehension、設計の批評 ← design_critic・zoom_out）
+- 7 つの観点を 2 つにまとめた（整合性 ← codebase_details・structural・style、実装可能性 ← implementation_readiness・comprehension）。設計の批評（design_critic・zoom_out）は 2026-11-16 にやめた。品質の担保は、実装計画で決める動作検証に寄せた（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)）。範囲（YAGNI）の点検は、計画を書く進行役の自己点検（[uta-plan](../uta-plan/SKILL.md) の 6）で行う
 - 基準を egm の文書標準から、CLAUDE.md・ADR・wiki の書式に置き換えた。実装計画の基準には egm の Implementation Readiness Standard（Zero-Decision Rule）を、既にあるコードを説明するページには Re-Implementation Standard を残した
 - 進め方を [requesting-code-review](../requesting-code-review/SKILL.md) にそろえた
 - Goldfish は egm と同じく専用のエージェントにした（`.claude/agents/uta-goldfish-*.md`）。ツールを Read・Grep・Glob と、報告のファイルを書くための Write に絞り、観点ごとにモデルを固定した。egm と違い、CLAUDE.md は読ませる（`omitClaudeMd` を使わない）
@@ -17,14 +17,14 @@ description: Uta の設計書（uta_docs/wiki の systems/・architecture/・ove
 
 **原則**: 進行役（あなた）は対象のページを自分で読み込まない。読むのはレビュー担当で、あなたは指摘だけを受け取る。
 
-**報告の受け取り方**: Goldfish は報告の全文をファイル（`uta_docs/reviews/.raw/`）に書き、あなたには要約（判定・件数・Critical と Important の 1 行ずつ）だけを返す。全文を会話に入れないのは、15 体分の報告（良い点・判断しなかったことを含む）で進行役のコンテキストが埋まり、直す作業の余地がなくなるため。詳しく要る指摘だけを、報告のファイルから Grep・Read（範囲を絞る）で読む。
+**報告の受け取り方**: Goldfish は報告の全文をファイル（`uta_docs/reviews/.raw/`）に書き、あなたには要約（判定・件数・Critical と Important の 1 行ずつ）だけを返す。全文を会話に入れないのは、10 体分の報告（良い点・判断しなかったことを含む）で進行役のコンテキストが埋まり、直す作業の余地がなくなるため。詳しく要る指摘だけを、報告のファイルから Grep・Read（範囲を絞る）で読む。
 
 ## いつ依頼するか
 
 **必ず:**
 - 仕様ページ（`systems/`・`architecture/`）を新しく書いたとき、大きく書き直したとき
 - そのページをもとに実装計画を書く前
-- **実装計画（`uta_docs/plans/`）を `status: ready` にする前**（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)。実装を Sonnet に渡せるかの関門）
+- **実装計画（`uta_docs/plans/`）を `status: ready` にする前**（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)。実装を Sonnet に渡せるかの関門）
 - ADR を proposed で起票したとき
 
 **あると良い:**
@@ -58,16 +58,15 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 |---|---|---|
 | 整合性 | [lenses/consistency.md](lenses/consistency.md) | ADR・CLAUDE.md・ほかのページ・用語集・コードとの矛盾、IP 方針、wiki の書式 |
 | 実装可能性 | [lenses/readiness.md](lenses/readiness.md) | このページだけで、設計判断をせずに実装を始められるか |
-| 設計の批評 | [lenses/critique.md](lenses/critique.md) | 根拠のない前提、リスク、過剰な設計、もっと単純にできないか |
 
-- **既定は 3 つとも**。同じメッセージで並べて出す（並行して動く）。
-- **ゲームの仕様（`systems/`・`overview/`）は整合性だけ**。詳細は実装設計書（`architecture/`）と実装計画で決めるので、仕様のページに実装可能性・設計の批評を回さない（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)）
+- **既定は 2 つとも**。同じメッセージで並べて出す（並行して動く）。
+- **ゲームの仕様（`systems/`・`overview/`）は整合性だけ**。詳細は実装設計書（`architecture/`）と実装計画で決めるので、仕様のページに実装可能性を回さない（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)）
 - 段階で絞ってよい:
-  - 構想段階（`raw/` の concept、中身がまだ箇条書きの叩き台）: 整合性と設計の批評だけ
+  - 構想段階（`raw/` の concept、中身がまだ箇条書きの叩き台）: 整合性だけ
   - 用語や書式だけ直した小さな変更: 整合性だけ
-  - ADR の案: 整合性と設計の批評だけ
-  - **実装計画: 3 つとも。実装可能性は省かない**（これが Sonnet に渡せるかの判定になる）
-  - **表が中心の小さいページ**（`architecture/master/*-tables.md` など、テーブル・列・検証の一覧が主のページ）: 実装可能性だけ。整合性・設計の批評は、テーブルの形を大きく変えたときだけ足す（3 観点だと同じ指摘が重なり、受け取る量だけが 3 倍になるため）
+  - ADR の案: 整合性だけ
+  - **実装計画: 2 つとも。実装可能性は省かない**（これが Sonnet に渡せるかの判定になる。動作検証の章が実行できる形かも、ここで見る）
+  - **表が中心の小さいページ**（`architecture/master/*-tables.md` など、テーブル・列・検証の一覧が主のページ）: 実装可能性だけ。整合性は、テーブルの形を大きく変えたときだけ足す（同じ指摘が重なり、受け取る量だけが増えるため）
 - ユーザーが観点を指定したら、それに従う。
 
 ### 4. 観点ごとに Goldfish を出す
@@ -77,12 +76,11 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 | 観点 | subagent_type | model | effort | 理由 |
 |---|---|---|---|---|
 | 整合性 | `uta-goldfish-consistency` | `opus` | `medium` | ADR とほかのページを何枚も突き合わせる。見落としが後で一番高くつく |
-| 実装可能性 | `uta-goldfish-readiness` | `sonnet` | `medium` | **実装を担当するモデルで読ませる。** Sonnet が質問せずに書けると判断できなければ、設計書が足りていない（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
-| 設計の批評 | `uta-goldfish-critique` | `fable` | `xhigh` | 前提を疑い、代わりの案を出す判断が中心。ここに一番強いモデルを使う |
+| 実装可能性 | `uta-goldfish-readiness` | `sonnet` | `medium` | **実装を担当するモデルで読ませる。** Sonnet が質問せずに書けると判断できなければ、設計書が足りていない（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)） |
 
 - モデル・エフォート・使えるツール（Read・Grep・Glob と、報告のファイルを書く Write）はエージェントの定義で決まっている。Agent ツールに `model`・`effort` は渡さない。ユーザーが別の指定をしたときだけ渡す。
 - 役割・共通のルール・出力の形式は、Goldfish が自分で [goldfish-rules.md](goldfish-rules.md) とその観点の `lenses/` を読む。依頼文には何を見るかだけを書く。
-- **1 回に出すのは 20 体まで**（同時に動かせるサブエージェントの上限）。それを超えると、超えた分の呼び出しが失敗し、長い依頼文が会話に 2 回ずつ残る。ページが多いときは、5〜6 枚（15〜18 体）ずつに区切り、前の組が終わってから次の組を出す
+- **1 回に出すのは 20 体まで**（同時に動かせるサブエージェントの上限）。それを超えると、超えた分の呼び出しが失敗し、長い依頼文が会話に 2 回ずつ残る。ページが多いときは、8〜9 枚（16〜18 体）ずつに区切り、前の組が終わってから次の組を出す
 - **途中の通知には返事をしない**。Goldfish が 1 体終わるたびに「残り N 体」と返さず、その組が全部そろってから、重複をまとめて 1 回だけユーザーに伝える
 - このスキルは、会話にもう本文が入っているなら呼び直さない（本文が二重に入るため）
 - `uta-goldfish-*` が使えるエージェントの一覧にないとき（`.claude/agents/` を足した直後のセッションなど）は、セッションを開き直すようユーザーに頼む。`general-purpose` で代わりに出さない（書けるファイルの制限とモデルの指定が外れる）。
@@ -102,6 +100,7 @@ grep -rl '<対象のファイル名>' uta_docs/wiki         # 対象にリンク
 - **未決事項を決めることになる指摘**は、勝手に決めない。選択肢を添えてユーザーに確認する（CLAUDE.md「勝手に決めない」）
 - **ADR・CLAUDE.md の方針そのものへの反対**は、勝手に直さず、ADR を見直す提案としてユーザーに確認する
 - 「判断しなかったこと」の一覧は、報告のファイルの該当の節を読んで 1 行ずつ扱いを決める。黙って捨てない
+- 直すときは、本文の該当の節を直接書き換える。実装計画に「読み替え」の節（「この節が本文と食い違ったら、この節が正」）を足さない（[plans/README.md](../../../uta_docs/plans/README.md)「ファイル」）
 - 直したら、frontmatter の `updated` を更新し、直したことをコミットメッセージに書く。ページを足したら、そのフォルダの `README.md` も更新する
 - 実装計画は、実装可能性の判定が「はい」になり、Critical・Important と計画の「未決事項」が残っていなければ `status: ready` にする
 
@@ -122,7 +121,7 @@ Goldfish の報告のファイル（`uta_docs/reviews/.raw/`）は作業用で�
 
 head -6 uta_docs/wiki/systems/gacha.md → status: draft
 リンク先: idol-support.md、api-design.md、masterdata-pipeline.md、ADR 0001・0007・0008・0010
-→ 実装直前なので 3 つとも並べて出す
+→ 実装直前なので 2 つとも並べて出す
 
 [subagent_type: uta-goldfish-consistency]
   TARGET: uta_docs/wiki/systems/gacha.md
@@ -135,18 +134,17 @@ head -6 uta_docs/wiki/systems/gacha.md → status: draft
 [結果]
   整合性: Important 1 件（排出率の列が float 前提。ADR 0007 は int のみ）→ 万分率に直す
   実装可能性: Important 1 件（10 連の途中で天井に達したときの扱いが書かれていない）→ 未決事項なのでユーザーに確認
-  設計の批評: Minor 1 件
 ```
 
 ## よくある言い訳
 
 | 言い訳 | 実際 |
 |---|---|
-| 「報告の全文を読まないと、指摘を取りこぼす」 | 要約に Critical・Important が 1 行ずつ全部ある。直すときにその指摘の節だけ報告のファイルから読めば足りる。全文を読むと、15 体で数万トークンになる |
+| 「報告の全文を読まないと、指摘を取りこぼす」 | 要約に Critical・Important が 1 行ずつ全部ある。直すときにその指摘の節だけ報告のファイルから読めば足りる。全文を読むと、10 体で数万トークンになる |
 | 「レビュー担当を出さず、自分でページを読めばいい」 | あなたは進行役。ページと関係するページを自分で読むと、直す作業に必要なコンテキストを使い切る。読むのはレビュー担当に任せ、指摘だけを受け取る |
 | 「レビュー担当には、このセッションの経緯が全部必要」 | 組み立てた文脈だけを渡す。経緯を渡すと、書かれた文書ではなく考えた過程を見てしまい、文書に書き漏れたことに気づけない |
-| 「観点をまとめて 1 人で見てもらえば足りる」 | 矛盾を探す目と、実装できるかを見る目と、もっと単純にできないかを見る目は違う。チェックリストを 1 つに絞った方が見落としが減る |
-| 「egm-review の全フェーズを回した方が丁寧」 | 1 ページの仕様には重すぎる。3 つの観点で足りないと分かったら、そのとき観点を足す |
+| 「観点をまとめて 1 人で見てもらえば足りる」 | 矛盾を探す目と、実装できるかを見る目は違う。チェックリストを 1 つに絞った方が見落としが減る |
+| 「設計の批評も回した方が丁寧」 | やめた（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)）。批評は計画を膨らませ、出力のトークンが重い。動くかどうかは動作検証で確かめる。範囲の点検は進行役の自己点検で行う |
 
 ## してはいけないこと
 

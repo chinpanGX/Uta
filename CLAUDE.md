@@ -22,7 +22,7 @@
 | wiki を変更する、コードを変更した後 | 下の「wiki の運用」「実装前のルール」 |
 | 用語を使う・追加する | `uta_docs/wiki/glossary.md` |
 | コードの変更をレビューに出す（マージ前など） | `.claude/skills/requesting-code-review/SKILL.md`（レイヤーごとのチェックリストは `layers/`、レビュー担当は `.claude/agents/uta-code-reviewer.md`） |
-| 実装計画を書く | `.claude/skills/uta-plan/SKILL.md`（ready・PR まで）と `uta_docs/plans/README.md`（計画の書式。[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)） |
+| 実装計画を書く | `.claude/skills/uta-plan/SKILL.md`（ready・PR まで）と `uta_docs/plans/README.md`（計画の書式。[ADR 0024](uta_docs/wiki/decisions/0024-verification-first-reviews.md)） |
 | 計画を実装する、実装を Sonnet に任せる | `.claude/skills/uta-implement/SKILL.md`（タスクの受け渡し・確かめ・ズレの反映・done まで。実装担当は `.claude/agents/uta-implementer.md`） |
 | 設計書（wiki の仕様ページ・実装計画・raw の設計・ADR の案）をレビューに出す | `.claude/skills/requesting-design-review/SKILL.md`（観点ごとのチェックリストは `lenses/`、レビュー担当の Goldfish は `.claude/agents/uta-goldfish-*.md`） |
 | wiki を点検する（Lint）、ページや ADR を足した・消した、マージした後 | `.claude/skills/linting-wiki/SKILL.md`（リンク切れ・目次（README）への登録・frontmatter・ADR の番号をスクリプトで点検） |
@@ -45,6 +45,7 @@
 1 回の呼び出しごとに、それまでの会話をすべて読み直す。会話が長いほど、1 回の呼び出しが高くつく（2026-10-31〜11-01 のセッションでは、文脈が 50〜59 万トークンのまま enum の計画を実装し、90 回の呼び出しで約 4,900 万トークンを読み直した）。
 
 - **作業の区切りでは、次の作業を新しいセッションで始める。** 区切りは、PR を作った・マージした、実装計画を `status: done` にした、レビューの判断を反映し終えた、のどれか。Claude は区切りに来たら、続けずに新しいセッション（`start_session`）を提案する。引き継ぐことは、wiki・計画・PR に書いてあるものとし、ブリーフには読むファイルのパスを書く
+- **実装のセッションは、計画の途中でも区切る**: タスクを 4〜5 個終えたとき、または文脈が 20 万トークンを超えたら、実装メモを更新して、続きを新しいセッションで始める（`uta-implement`。2026-11-02〜11-16 では、トークンの 6 割が進行役の読み直しで、実装のセッションのピークは 45〜58 万トークンだった）
 - 同じセッションで続けるときは、ユーザーに `/compact` を頼む
 - 会話が長くなってからは、小さい Bash・Read を何回も回さない。読むものはまとめて 1 回で読み、直すものはまとめて 1 回で直す
 
@@ -89,21 +90,21 @@ uta/
 
 ## 実装前のルール（ドキュメント駆動）
 
-**設計は厚く書き、実装は Sonnet のサブエージェントに任せる。設計書は 3 段に分け、詳細は実装設計書の段階でレビューを回して決める**（[ADR 0017](uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)。ADR 0014 を置き換え）。判断は設計書と実装計画に寄せ、実装担当に設計判断を残さない。
+**設計は厚く書き、実装は Sonnet のサブエージェントに任せる。設計書は 3 段に分け、詳細は実装設計書の段階で決める。品質は、実装計画で決めた動作検証で担保する**（[ADR 0024](uta_docs/wiki/decisions/0024-verification-first-reviews.md)。ADR 0017 を置き換え）。判断は設計書と実装計画に寄せ、実装担当に設計判断を残さない。設計の批評のレビューはしない。
 
 | 段 | 置き場 | 書くこと | レビュー |
 |---|---|---|---|
 | ゲームの仕様 | `wiki/systems/`・`wiki/overview/` | 何が起きるか（ルール・値・局面の遷移・実行要件）。実装設計書の一次情報。ゲームの仕様が変わるときだけ変える | 整合性の観点だけ |
-| 実装設計書 | `wiki/architecture/` | どう作るか（層・型・RPC・DTO・テーブル・処理の手順・乱数・状態）。仕様の節にリンクする | 3 つの観点。詳細はここで決める。ページ全体は 2 回まで |
-| 実装計画 | `uta_docs/plans/` | どのファイルに何を書くか（シグネチャ・DDL・手順・テスト） | 3 つの観点。実装可能性（Sonnet）が「質問せずに書ける」と判定するまで |
+| 実装設計書 | `wiki/architecture/` | どう作るか（層・型・RPC・DTO・テーブル・処理の手順・乱数・状態）。仕様の節にリンクする | 整合性・実装可能性。詳細はここで決める。ページ全体は 2 回まで |
+| 実装計画 | `uta_docs/plans/` | どのファイルに何を書くか（シグネチャ・DDL・手順）と、**動作検証**（タスクごとのコマンドと期待する結果、受け入れ） | 整合性・実装可能性。実装可能性（Sonnet）が「質問せずに書ける」と判定するまで |
 
 1. ゲームの仕様（`systems/`・`overview/`）を書く、または更新する
 2. 実装設計書（`architecture/`）を書く、または更新する。何の正がどのページかは `architecture/README.md`
 3. 技術選定や方針変更は ADR を追加する（既存 ADR は書き換えず、Superseded にして新規ADRを作る）
-4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、`ready` にしたら `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
+4. 実装計画を `uta_docs/plans/` に書く（書式と、計画が要る変更は `uta_docs/plans/README.md`）。動作検証（5章）もここで決める: タスクごとに実行するコマンドと期待する結果、全部終えた後の受け入れ。client の画面・遷移・通信は PlayMode のテストで確かめる（基盤ができるまでは「未確認」と書く）。レビューへの対応は本文を直接直し、「読み替え」の節を足さない。**計画は worktree を使わず、計画用のブランチ（`claude/plan-<件名>`）に `draft` で書き、`ready` にしたら `main` 向けの PR にする。マージ後に、各計画を worktree で実装する**（流れは plans/README.md の「計画のブランチと PR」）
 5. 実装設計書と実装計画を `requesting-design-review` でレビューに出す（上の表の回し方）。実装計画は、実装可能性の観点が「質問せずに書ける」と判定するまで直し、`status: ready` にする
-6. 計画のタスクごとに、実装担当 `uta-implementer`（Sonnet）に実装させる（`uta-implement` スキル）。実装担当は、計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
-7. `requesting-code-review` でコードレビューに出す
+6. 計画のタスクごとに、実装担当 `uta-implementer`（Sonnet）に実装させる（`uta-implement` スキル）。実装担当は、計画の全文ではなく担当のタスクと参照する節だけを読み、タスクの動作検証を回して結果を報告する。進行役も回し直してからコミットする。計画にない設計判断に出会ったら止まって報告する。計画を直してから続ける
+7. 計画の受け入れ（動作検証）を回し、**通ってから** `requesting-code-review` でコードレビューに出す（レビュー担当は Opus・medium。動作検証で見つからないものを見る）
 8. 実装結果と設計書のズレを wiki に反映し（実装設計書を直す。ゲームの挙動が変わったときだけ仕様も直す）、計画を `status: done` にする
 9. コミットメッセージに、何を変えたかと決めたこと・理由を書く（変更の記録は `git log` から引く。[ADR 0018](uta_docs/wiki/decisions/0018-change-log-from-git.md)）
 

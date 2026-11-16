@@ -9,9 +9,11 @@ description: Uta でコードの変更をレビューに出すときに使う。
 
 レビュー担当のサブエージェントには、**このセッションの経緯を渡さず、組み立てた文脈だけを渡す**。レビュー担当が見るのは作ったものであって、考えた過程ではない。
 
-**原則**: 早めに、こまめにレビューする。
+**原則**: 動作検証を通してからレビューする（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)）。動くかどうかはテストで確かめ、レビューは動作検証で見つからないもの（規約・層の依存・仕様との一致・AOT の制約・ドキュメント）を見る。レビュー担当は Opus・medium。
 
 ## いつ依頼するか
+
+**前提:** 計画の 5章（動作検証）のテストと受け入れが通っていること。通っていないなら、レビューに出さずに先に直す。計画がない変更でも、触ったレイヤーのテスト（CLAUDE.md「ビルド・テスト・実行」）を回してから出す。
 
 **必ず:**
 - 大きな機能を実装し終えたとき
@@ -62,6 +64,7 @@ git diff --stat $BASE_SHA..$HEAD_SHA
 - `[LAYER]`: client / server / shared / foundation
 - `[CHECKLIST]`: そのレイヤーのチェックリストのパス（例: `.claude/skills/requesting-code-review/layers/server.md`）
 - `[DESCRIPTION]`: 何を作ったかの短い要約
+- `[VERIFICATION]`: 回した動作検証のコマンドと結果、確認できていないもの
 - `[PLAN_OR_REQUIREMENTS]`: 仕様。wiki の該当ページ（`uta_docs/wiki/systems/`・`architecture/`）と、関係する ADR のパス。タスクの文があればそれも
 - `[BASE_SHA]` / `[HEAD_SHA]`: 範囲。foundation は共通基盤のリポジトリの範囲と、リポジトリ名
 - `[FILES]`: そのレイヤーに振り分けたファイルの一覧
@@ -79,6 +82,7 @@ git diff --stat $BASE_SHA..$HEAD_SHA
 - レビュー担当が間違っていると思うなら、理由を添えて反論する（コードやテストで示す）
 - **ADR・CLAUDE.md の方針そのものへの反対**は、勝手に直さず、ADR を見直す提案としてユーザーに確認する
 - 「判断しなかったこと」の一覧は、報告のファイルの該当の節を読んで 1 行ずつ扱いを決める。黙って捨てない
+- 直したら、触ったレイヤーの動作検証を回し直す
 - 直したら、仕様ページの更新が必要か確かめる（CLAUDE.md の「実装前のルール」）
 
 ## 例
@@ -99,6 +103,7 @@ HEAD_SHA=$(git rev-parse HEAD)
   PLAN_OR_REQUIREMENTS: uta_docs/wiki/systems/gacha.md、architecture/api-design.md、decisions/0010-database.md
   FILES: server/Uta.Server/...
   OTHER_LAYERS: shared/Uta.Shared.Contracts/...、client/uta/Assets/Scripts/Infrastructure/...
+  VERIFICATION: dotnet test --project server/Uta.Server.Tests → 成功 148 / 失敗 0（結合テストを含む）
   FOCUS: なし
   OUTPUT: uta_docs/reviews/.raw/2026-11-08-gacha/code-server-1.md
 

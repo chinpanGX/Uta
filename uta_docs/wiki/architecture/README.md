@@ -1,12 +1,12 @@
 ---
 title: architecture（実装設計書）の目次
 status: draft
-updated: 2026-11-01
+updated: 2026-11-16
 ---
 
 # architecture（実装設計書）の目次
 
-ゲームの仕様（[systems/](../systems/README.md)・[overview/](../overview/README.md)）を、どう作るかを書く。**詳細はここで決める**。レビューは 3 つの観点で回し、ページ全体のレビューは 2 回までを目安にする（[ADR 0017](../decisions/0017-spec-design-plan-stages.md)）。
+ゲームの仕様（[systems/](../systems/README.md)・[overview/](../overview/README.md)）を、どう作るかを書く。**詳細はここで決める**。レビューは 2 つの観点（整合性・実装可能性）で回し、ページ全体のレビューは 2 回までを目安にする（[ADR 0024](../decisions/0024-verification-first-reviews.md)）。
 
 ## 決まり
 

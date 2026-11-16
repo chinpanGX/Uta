@@ -39,7 +39,7 @@ egm のテンプレート（Overview / Goals / Open Questions / CUJs / Technical
 - 推測は推測と明記する
 - 他ページへのリンクは相対パスの Markdown リンク
 - 新しい用語は `glossary.md` に足す
-- Detailed Implementation Plan（触るファイルの一覧・検証計画）は、仕様ページには書かない。`uta_docs/plans/` に plans/README.md の書式で実装計画として書き、仕様ページからリンクする（[ADR 0017](../../../uta_docs/wiki/decisions/0017-spec-design-plan-stages.md)）
+- Detailed Implementation Plan（触るファイルの一覧・検証計画）は、仕様ページには書かない。`uta_docs/plans/` に plans/README.md の書式で実装計画として書き、仕様ページからリンクする（[ADR 0024](../../../uta_docs/wiki/decisions/0024-verification-first-reviews.md)）
 - 技術選定・方針変更を含むなら、ADR を `decisions/0000-template.md` から新しく作る（既存 ADR は書き換えず Superseded にする）
 
 ## 書くときに守ること
