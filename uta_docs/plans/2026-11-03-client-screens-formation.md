@@ -1024,3 +1024,4 @@ Play モード・IL2CPP・手動はタスク 6。
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
 | 1 | 完了 | PR #59 | なし |
+| 2 | 完了 | `61b7e8a` | `TestProduce` の `StateResponse`・`ResultResponse`（Contracts を使う）はタスク 3 に回した。境界のテスト 2 件（`ProduceStateResultTests.Constructor_NullArray_Throws`・`FormationNormalizerTests.RemoveIncompatible_Null_Throws`）を足した |
