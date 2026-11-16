@@ -32,9 +32,9 @@ namespace Uta.Client.Tests
             useCase = new PlayerUseCase(service, players, idols, supportCards, notice);
         }
 
-        private static SignInResponse SignIn(int level = 1, OwnedIdolDto[] idols = null, OwnedSupportCardDto[] supportCards = null)
+        private static SignInResponse SignIn(int exp = 1, OwnedIdolDto[] idols = null, OwnedSupportCardDto[] supportCards = null)
         {
-            return new SignInResponse(level, 2, 3, 4, 5, false, false, idols, supportCards, "P1");
+            return new SignInResponse(exp, 3, 4, 5, false, false, idols, supportCards, "P1");
         }
 
         private static void StartsWith(string prefix, Exception e)
@@ -151,8 +151,8 @@ namespace Uta.Client.Tests
 
             var result = await useCase.EnterAsync(false);
 
-            Assert.AreEqual(7, players.Find().Level);
-            Assert.AreEqual(7, result.Player.Level);
+            Assert.AreEqual(7, players.Find().Exp);
+            Assert.AreEqual(7, result.Player.Exp);
             Assert.AreEqual(2, result.IdolCount);
             Assert.AreEqual(1, result.SupportCardCount);
             var all = idols.FindAll();
@@ -176,7 +176,7 @@ namespace Uta.Client.Tests
             var e = await CatchAsync(() => useCase.EnterAsync(false));
 
             StartsWith("sign-in failed: ", e);
-            Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, players.Find().Exp);
             Assert.AreEqual(1, idols.FindAll().Count);
             Assert.AreEqual(1, supportCards.FindAll().Count);
         });
@@ -194,7 +194,7 @@ namespace Uta.Client.Tests
 
             await useCase.RefreshAsync();
 
-            Assert.AreEqual(2, players.Find().Level);
+            Assert.AreEqual(2, players.Find().Exp);
             Assert.AreEqual(2, idols.FindAll().Count);
             Assert.IsNull(idols.Find("U1"));
             Assert.AreEqual(1, supportCards.FindAll().Count);
@@ -214,7 +214,7 @@ namespace Uta.Client.Tests
             var e = await CatchAsync(() => useCase.RefreshAsync());
 
             StartsWith("sign-in failed: ", e);
-            Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, players.Find().Exp);
             Assert.AreEqual(1, idols.FindAll().Count);
             Assert.AreEqual(1, supportCards.FindAll().Count);
         });
@@ -235,7 +235,7 @@ namespace Uta.Client.Tests
             var e = await CatchAsync(() => useCase.RefreshAsync());
 
             Assert.IsInstanceOf<ArgumentNullException>(e);
-            Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, players.Find().Exp);
             Assert.AreEqual(1, idols.FindAll().Count);
             Assert.IsNotNull(idols.Find("U1"));
             Assert.AreEqual(1, supportCards.FindAll().Count);
@@ -255,7 +255,7 @@ namespace Uta.Client.Tests
 
             Assert.IsInstanceOf<InvalidOperationException>(e);
             Assert.AreEqual("sign-in failed: player not created", e.Message);
-            Assert.AreEqual(1, players.Find().Level);
+            Assert.AreEqual(1, players.Find().Exp);
             Assert.AreEqual(1, idols.FindAll().Count);
             Assert.AreEqual(1, supportCards.FindAll().Count);
         });

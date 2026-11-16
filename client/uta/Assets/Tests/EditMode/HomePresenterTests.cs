@@ -101,13 +101,13 @@ namespace Uta.Client.Tests
         private HomePresenter CreatePresenter(MemoryDatabase db = null)
         {
             db = db ?? TestMasterData.Build(_ => { });
-            var dtoFactory = new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db);
+            var dtoFactory = new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db, TestPlayerLevels.Catalog());
             return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs, navigator);
         }
 
-        private void SetPlayer(int level = 12, int gachaCurrency = 3250, bool hasActiveProduce = true, bool discardedProduce = false)
+        private void SetPlayer(int exp = 2640, int gachaCurrency = 3250, bool hasActiveProduce = true, bool discardedProduce = false)
         {
-            players.Upsert(new PlayerEntity("P1", level, 0, 0, 0, gachaCurrency, hasActiveProduce, discardedProduce));
+            players.Upsert(new PlayerEntity("P1", exp, 0, 0, gachaCurrency, hasActiveProduce, discardedProduce));
         }
 
         private static MemoryDatabase IdolDb()
@@ -199,7 +199,7 @@ namespace Uta.Client.Tests
             await presenter.InitializeAsync();
             log.Entries.Clear();
 
-            SetPlayer(level: 13);
+            SetPlayer(exp: 3120);
             presenter.DidPopEnter();
 
             Assert.AreEqual("SetProfile:プレイヤーLv 13　ガチャ通貨 3,250", log.Entries[0]);

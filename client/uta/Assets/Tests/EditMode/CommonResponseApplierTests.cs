@@ -14,12 +14,12 @@ namespace Uta.Client.Tests
         public void ApplyAsync_AppliesPlayerDiff()
         {
             var players = new PlayerRepository();
-            players.Upsert(new PlayerEntity("P1", 1, 2, 3, 4, 5, false, false));
+            players.Upsert(new PlayerEntity("P1", 2, 3, 4, 5, false, false));
             var applier = new CommonResponseApplier(new PlayerDiffApplier(players, new IdolRepository(), new SupportCardRepository()));
 
-            applier.ApplyAsync(new AppCommonDto(new PlayerDiffDto(true, 9, 8, 7, 6, 105, null, null, null)));
+            applier.ApplyAsync(new AppCommonDto(new PlayerDiffDto(true, 8, 7, 6, 105, null, null, null)));
 
-            Assert.AreEqual(9, players.Find().Level);
+            Assert.AreEqual(8, players.Find().Exp);
             Assert.AreEqual(105, players.Find().GachaCurrency);
         }
 

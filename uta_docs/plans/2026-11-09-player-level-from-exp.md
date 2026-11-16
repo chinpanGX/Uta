@@ -420,4 +420,5 @@ Unity でしか確かめられないもの: クライアントのコンパイル
 | タスク | コミット | ズレ |
 |---|---|---|
 | 1 | 1483a68 | なし（Editor を開いたので `Player.meta`・`PlayerLevelCatalog.cs.meta` もこのコミットに入れた） |
-| 2 | （タスク 2 のコミット） | なし（`gen.ps1` は `-ExecutionPolicy Bypass` を付けて実行。server のテスト 313 件成功） |
+| 2 | 9f9c4b6 | なし（`gen.ps1` は `-ExecutionPolicy Bypass` を付けて実行。server のテスト 313 件成功） |
+| 3 | （タスク 3 のコミット） | 計画の 12 ファイルに加え `Support/OwnedFixtures.cs` の `new PlayerEntity(` の第 2 引数を消した（手順 2 のとおり）。`unity recompile` エラー 0、EditMode 372 件成功。worktree 3 に NuGet の ZLinq が復元されておらず Editor が起動時に止まったので、worktree 1 の `Assets/Packages/ZLinq*`（gitignore の復元物）を写して開き直した。Play の確認はまだ |

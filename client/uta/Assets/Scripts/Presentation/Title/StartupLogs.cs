@@ -18,7 +18,7 @@ namespace Uta.Client.Presentation.Title
 
         public static string SignIn(EnterPlayerResult enterPlayerResult)
         {
-            return "sign-in: ok level=" + enterPlayerResult.Player.Level + " exp=" + enterPlayerResult.Player.Exp + " gold=" + enterPlayerResult.Player.Gold + " supportPoints=" + enterPlayerResult.Player.SupportPoints + " gachaCurrency=" + enterPlayerResult.Player.GachaCurrency + " idols=" + enterPlayerResult.IdolCount + " supportCards=" + enterPlayerResult.SupportCardCount + " hasActiveProduce=" + enterPlayerResult.Player.HasActiveProduce + " discardedProduce=" + enterPlayerResult.Player.DiscardedProduce;
+            return "sign-in: ok exp=" + enterPlayerResult.Player.Exp + " gold=" + enterPlayerResult.Player.Gold + " supportPoints=" + enterPlayerResult.Player.SupportPoints + " gachaCurrency=" + enterPlayerResult.Player.GachaCurrency + " idols=" + enterPlayerResult.IdolCount + " supportCards=" + enterPlayerResult.SupportCardCount + " hasActiveProduce=" + enterPlayerResult.Player.HasActiveProduce + " discardedProduce=" + enterPlayerResult.Player.DiscardedProduce;
         }
 
         public static string Failed(Exception exception)

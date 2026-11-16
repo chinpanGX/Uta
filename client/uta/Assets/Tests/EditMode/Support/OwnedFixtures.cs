@@ -68,10 +68,10 @@ namespace Uta.Client.Tests
             });
         }
 
-        /// <summary>playerRepository に PlayerEntity("P1", 1, 0, gold, supportPoints, 0, false, false) を Upsert。</summary>
+        /// <summary>playerRepository に PlayerEntity("P1", 0, gold, supportPoints, 0, false, false) を Upsert。</summary>
         public static void SetPlayer(PlayerRepository playerRepository, int gold = 1000, int supportPoints = 1000)
         {
-            playerRepository.Upsert(new PlayerEntity("P1", 1, 0, gold, supportPoints, 0, false, false));
+            playerRepository.Upsert(new PlayerEntity("P1", 0, gold, supportPoints, 0, false, false));
         }
 
         /// <summary>

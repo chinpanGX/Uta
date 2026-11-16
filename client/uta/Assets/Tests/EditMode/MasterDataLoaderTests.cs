@@ -39,7 +39,7 @@ namespace Uta.Client.Tests
             Assert.AreEqual(7, db.EvaluationScoreBandTable.Count, "EvaluationScoreBandTable");
             Assert.AreEqual(13, db.EvaluationRankTable.Count, "EvaluationRankTable");
             Assert.AreEqual(4, db.OfferRarityWeightTable.Count, "OfferRarityWeightTable");
-            Assert.AreEqual(99, db.PlayerLevelExpTable.Count, "PlayerLevelExpTable");
+            Assert.AreEqual(100, db.PlayerLevelExpTable.Count, "PlayerLevelExpTable");
             Assert.AreEqual(4, db.IdolTable.Count, "IdolTable");
             Assert.AreEqual(12, db.IdolRecommendDeckTable.Count, "IdolRecommendDeckTable");
             Assert.AreEqual(5, db.CommonDeckCardTable.Count, "CommonDeckCardTable");

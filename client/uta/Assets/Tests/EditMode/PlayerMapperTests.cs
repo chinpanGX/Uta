@@ -9,7 +9,7 @@ namespace Uta.Client.Tests
         private static SignInResponse NewResponse()
         {
             return new SignInResponse(
-                3, 40, 500, 60, 700, true, false,
+                40, 500, 60, 700, true, false,
                 new[] { new OwnedIdolDto(1, 2, 3, 4, "U1"), new OwnedIdolDto(5, 6, 7, 8, "U5") },
                 new[]
                 {
@@ -25,7 +25,6 @@ namespace Uta.Client.Tests
             var player = PlayerMapper.ToPlayerEntity(NewResponse());
 
             Assert.AreEqual("P1", player.UniqueId);
-            Assert.AreEqual(3, player.Level);
             Assert.AreEqual(40, player.Exp);
             Assert.AreEqual(500, player.Gold);
             Assert.AreEqual(60, player.SupportPoints);
