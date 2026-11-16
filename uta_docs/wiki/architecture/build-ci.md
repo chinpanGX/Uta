@@ -67,9 +67,10 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 
 通ったとみなすもの:
 
-- 4・6 でエラーのダイアログが出ない。4 でガチャの結果が表示され、ホームのガチャ通貨が引いた分だけ減っている
+- 操作した人の答え: 4・6 でエラーのダイアログが出なかった。4 でガチャの結果（1 枚）が表示された
 - logcat に、4 の間の `[Uta] master: ok`・`[Uta] sign-up: created`・`[Uta] sign-in: ok`、6 の間の `[Uta] sign-up: skipped`・`[Uta] sign-in: ok` がある（`TitlePresenter` が出す。6 の `skipped` で、保存したアカウントで入り直したことが分かる）
-- logcat に `FATAL EXCEPTION`・`Exception` の行が無い
+- ガチャ通貨が単発 1 回分減っている: 6 の `sign-in: ok` の行の `gachaCurrency=` の値が、4 の `sign-in: ok` の行の値から、マスタ `gacha.csv` の `GachaId` 1 の `SingleCost`（2026-11-16 時点で 250）を引いた値と同じ
+- logcat の `Unity` のタグの行に `Exception` を含む行が無い。`AndroidRuntime` のタグの `FATAL EXCEPTION` の行の次の `Process: com.chinpangx.uta` の行が無い（ほかのアプリの行は見ない）
 
 ### 5.2 IL2CPP の計算の一致
 
@@ -86,9 +87,8 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 
 通ったとみなすもの（Windows・Android とも）:
 
-- 結果の XML の `<test-run>` が `total="2" passed="2" failed="0"`
-- Unity のログ（`-logFile`）に、IL2CPP の変換の段（`il2cpp` を含む行。大文字・小文字を区別しない）がある。テストのプレイヤーが Mono で作られていないことの確かめ
-- Android は、ログに端末への `install` の行がある（テストが Editor ではなく端末で走ったことの確かめ）
+- 結果の XML の `<test-run>` が `total="3" passed="3" failed="0"`。3 件のうち 1 件（`Player_IsIl2CppPlayer`）は、`ENABLE_IL2CPP` でない・Editor で走った・プラットフォームが Android か Windows のプレイヤーでない、のどれかなら落ちる。IL2CPP のプレイヤーで走ったことは、ログの文言ではなくこのテストで確かめる
+- XML の `Player_IsIl2CppPlayer` の `<output>` の `platform=` が、Android では `Android`、Windows では `WindowsPlayer`
 
 ### 5.3 Android で通らないとき [決定。2026-10-31]
 

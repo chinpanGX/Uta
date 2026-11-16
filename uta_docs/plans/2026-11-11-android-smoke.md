@@ -61,11 +61,12 @@ spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/a
 | 変更 | `Assets/Scripts/Editor/BuildCommands.cs` | `BuildAndroidIl2Cpp` を足す（3.1） | 2 |
 | 変更 | `client/uta/ProjectSettings/ProjectSettings.asset` | Android のパッケージ名、スタンドアロンのスクリプトバックエンド（3.2） | 2 |
 | 変更 | `client/uta/Packages/manifest.json` | `com.uta.shared.domain.testing` と `testables`（3.5） | 2 |
+| 変更（Unity が書く） | `client/uta/Packages/packages-lock.json` | `package resolve` で `com.uta.shared.domain.testing` が足される。手で書かずにコミットする | 2 |
 | 作成（Unity が作る） | `shared/Uta.Shared.Domain.Testing/` の `.meta`（フォルダ・`.cs`・`.asmdef`・`.csproj`・`package.json`） | Unity が取り込んだときに作る。全部コミットする | 2 |
 | 作成 | `Assets/Tests/SharedDomainReplay/Uta.Client.Tests.SharedDomainReplay.asmdef` | 3.5 | 2 |
 | 作成 | `Assets/Tests/SharedDomainReplay/LessonReplayDeviceTests.cs` | 3.5 | 2 |
 | 作成（Unity が作る） | `Assets/Tests/SharedDomainReplay.meta` と、フォルダの中の `.meta` | コミットする | 2 |
-| 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md`・`build-ci.md`・`repository-layout.md`（7章・8章）、`uta_docs/wiki/overview/game-spec.md`、`CLAUDE.md`（ビルド・テスト・実行） | 結果とコマンドの記録（タスク 6） | 6 |
+| 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md`・`build-ci.md`・`repository-layout.md`（2章・7章・8章・10.4）・`lesson-phases.md`（1章・8章）、`uta_docs/wiki/overview/game-spec.md`、`CLAUDE.md`（ビルド・テスト・実行、リポジトリ構成） | 結果とコマンドの記録、「まだ無い」の印を消す（タスク 6） | 6 |
 
 `ProjectSettings.asset` は Editor が書く（3.2）。手で書かない。
 
@@ -381,6 +382,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
 
 ```csharp
 using NUnit.Framework;
+using UnityEngine;
 using Uta.Shared.Domain.Tests.Lesson;
 
 namespace Uta.Client.Tests.SharedDomainReplay
@@ -391,6 +393,22 @@ namespace Uta.Client.Tests.SharedDomainReplay
     /// </summary>
     public sealed class LessonReplayDeviceTests
     {
+        /// <summary>IL2CPP のプレイヤーで走っていること（Mono・Editor で走ったら落とす）。結果の XML の output に platform を残す。</summary>
+        [Test]
+        public void Player_IsIl2CppPlayer()
+        {
+            TestContext.WriteLine("platform=" + Application.platform);
+#if ENABLE_IL2CPP
+            Assert.That(Application.isEditor, Is.False, "Editor で走った");
+            Assert.That(
+                Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.WindowsPlayer,
+                Is.True,
+                "想定外のプラットフォーム: " + Application.platform);
+#else
+            Assert.Fail("IL2CPP ではない（Mono または Editor）: " + Application.platform);
+#endif
+        }
+
         [Test]
         public void NormalLesson_SameAsDotNet()
         {
@@ -451,7 +469,7 @@ namespace Uta.Client.Tests.SharedDomainReplay
 4. `Assets/Tests/SharedDomainReplay/` に 3.5 の 2 ファイルを置く
 5. `unity recompile --format json` がエラー 0 になることを確かめる。`client/uta/Library/ScriptAssemblies/` に `Uta.Shared.Domain.Testing.dll` と `Uta.Client.Tests.SharedDomainReplay.dll` があることを確かめる（`ls`）
 6. EditMode の全件を CLAUDE.md「ビルド・テスト・実行」のコマンドで回し、失敗 0 を確かめる
-7. `.meta` を含めてコミットする
+7. `.meta` と `packages-lock.json` を含めてコミットする。コミットのあと `git status --short` が空であることを確かめる（ビルド用の worktree を同じコミットにそろえたとき、差分が出ないようにするため）
 
 止まる条件: 手順 5 で `Uta.Shared.Domain.Testing` がコンパイルされない（`testables` を入れても `UNITY_INCLUDE_TESTS` が効かない）。このときは、`defineConstraints` を外す・別の置き場にするなどを自分で選ばず、報告する。
 
@@ -464,17 +482,17 @@ namespace Uta.Client.Tests.SharedDomainReplay
 手順:
 
 1. `git -C C:/Work/Uta-wt/build-foundation worktree lock --reason "ビルド専用。Library を消さない（build-ci.md 1章）" C:/Work/Uta-wt/build-foundation`（既にロック済みなら飛ばす）
-2. `git -C C:/Work/Uta-wt/build-foundation checkout --detach <実装の worktree の HEAD のコミット>`。差分があって切り替えられなければ、`git -C C:/Work/Uta-wt/build-foundation status --short` を実装メモに写して止まる（消さない）
+2. `git -C C:/Work/Uta-wt/build-foundation status --short --untracked-files=no` を見る（追跡していないファイル（ログなど）は切り替えの邪魔にならないので見ない）。差分が `client/uta/ProjectSettings/ProjectSettings.asset` だけなら、`git -C C:/Work/Uta-wt/build-foundation diff -- client/uta/ProjectSettings/ProjectSettings.asset` を実装メモに写してから `git -C C:/Work/Uta-wt/build-foundation checkout -- client/uta/ProjectSettings/ProjectSettings.asset` で戻す（2026-11-16 に、`BuildWindowsIl2Cpp` が書いた `scriptingBackend` の `Standalone: 1` が差分として残っていることを確かめた。タスク 2 のコミットが同じ値を入れるので、戻しても失われない）。ほかの追跡しているファイルにも差分があれば、その `status` を実装メモに写して止まる（消さない）。そのあと `git -C C:/Work/Uta-wt/build-foundation checkout --detach <実装の worktree の HEAD のコミット>`
 3. 実装の worktree の `client/uta/Assets/Packages/` を、`C:/Work/Uta-wt/build-foundation/client/uta/Assets/Packages/` へコピーし直す（`rm -rf` してから `cp -r`）
 4. 実行する（`run_in_background`）:
-   `<Unity> -batchmode -projectPath C:/Work/Uta-wt/build-foundation/client/uta -buildTarget StandaloneWindows64 -runTests -testPlatform StandaloneWindows64 -assemblyNames Uta.Client.Tests.SharedDomainReplay -testResults <スクラッチパッド>/windows-replay.xml -logFile <スクラッチパッド>/windows-replay.log`
+   `<Unity> -batchmode -projectPath C:/Work/Uta-wt/build-foundation/client/uta -buildTarget Win64 -runTests -testPlatform StandaloneWindows64 -assemblyNames Uta.Client.Tests.SharedDomainReplay -testResults <スクラッチパッド>/windows-replay.xml -logFile <スクラッチパッド>/windows-replay.log`
 5. 5.2 の「通ったとみなすもの」（Windows）を確かめる
 
 止まる条件: 手順 4 が、テストの結果ではなく Test Runner の仕組み（プレイヤーのビルド・起動・結果の受け取り）で失敗する。または、30 分たっても結果のファイルができず、ログが 5 分以上増えない。ログの該当箇所を添えて報告する。テストが失敗した（食い違った項目がある）ときは、`<message>` の `[i] 期待 … / 実際 …` を実装メモに写して止まる（コードを直さない。直し方はユーザーと決める）。
 
 ### タスク 4: Android のビルドとスモーク（スパイク）
 
-触るファイル: なし（実行だけ）。タスク 2 の後（タスク 3 と前後してよいが、同じ Unity を 2 つ同時に回さない）。
+触るファイル: なし（実行だけ）。タスク 3 の後（決めたこと 1）。
 
 手順:
 
@@ -486,7 +504,7 @@ namespace Uta.Client.Tests.SharedDomainReplay
    終了コード 0 と `C:/Work/Uta-wt/build-android/client/uta/Build/Android/Uta.apk` ができたことを確かめる。ビルドのあと `git -C C:/Work/Uta-wt/build-android status --short` に出たファイル（Addressables が作る `Assets/AddressableAssetsData/Android/` など）は、消さずに実装メモに書く（ビルド用の worktree のものはコミットしない）
 5. ローカルのサーバーを起動する（CLAUDE.md「ビルド・テスト・実行」のローカルのサーバーの手順。`migrate` を含む）
 6. `"$ADB" install -r C:/Work/Uta-wt/build-android/client/uta/Build/Android/Uta.apk`、`"$ADB" shell pm clear com.chinpangx.uta`、`"$ADB" reverse tcp:5000 tcp:5000`、`"$ADB" logcat -c`。logcat を絞らずに `"$ADB" logcat > <スクラッチパッド>/android-logcat.txt` で背面で取り始める（クラッシュの行は `Unity` のタグに出ないため）
-7. ユーザーに、[build-ci.md](../wiki/architecture/build-ci.md) 5.1 の手順 4〜6 を頼み、終わったら知らせてもらう。手順 5 の終了は `"$ADB" shell am force-stop com.chinpangx.uta` を実装担当が実行する
+7. ユーザーに、[build-ci.md](../wiki/architecture/build-ci.md) 5.1 の手順 4〜6 を頼む。手順 4 が終わったら知らせてもらい、実装担当が `"$ADB" shell am force-stop com.chinpangx.uta`（手順 5）を実行してから、手順 6 を頼む。終わったら、`AskUserQuestion` で 2 つ聞く: 「手順 4・6 でエラーのダイアログが出ましたか」（出なかった／出た）、「手順 4 でガチャの結果が表示されましたか」（表示された／されなかった）
 8. logcat を止め、5.1 の「通ったとみなすもの」を確かめる
 
 止まる条件（当たったら、回避の実装を書かずに止まり、ログの該当箇所を添えて報告する。代えるかはユーザーが決める。[build-ci.md](../wiki/architecture/build-ci.md) 5.3）:
@@ -531,7 +549,8 @@ namespace Uta.Client.Tests.SharedDomainReplay
 2. [repository-layout.md](../wiki/architecture/repository-layout.md) 8章の表の、「未確認: Android」または「Android・iOS は未確認」と書いた行（`file:` 取り込み、MasterMemoryAddons のバイナリ、MasterMemory・MessagePack・MagicOnion の版、UnityScreenNavigator・VContainer・UniTask）の「確かめ方」の列の末尾に、次の文字列（リンクは repository-layout.md からの相対）: `**2026-MM-DD に Android（<機種>・Android <版>）の IL2CPP で確かめた**（unity7-evaluation.md へのリンク）`を足す。7章の「これから作るもの」の Android の実機ビルドの括弧に`Android は build-ci.md へのリンク の手順で手で回す`を足す
 3. [build-ci.md](../wiki/architecture/build-ci.md): 3章の「確かめていないもの」の箇条を、「確かめたもの（日付。結果は unity7-evaluation.md）」に書き換える。2章・3章・5章のコマンドや手順が実装とずれていたら（引数・パス・待ち時間）、実装で使ったものに直す
 4. CLAUDE.md「ビルド・テスト・実行」の Windows の IL2CPP の項目の次に、2 項目を足す: Android の IL2CPP の APK（タスク 4 の手順 4 のコマンド。置き場は `C:/Work/Uta-wt/build-android`）、Test Runner のプレイヤー実行（タスク 3・5 の手順のコマンド）。どちらも詳細は [build-ci.md](../wiki/architecture/build-ci.md) へリンクする
-5. [game-spec.md](../wiki/overview/game-spec.md) の「実装計画の単位と順」の 8 の行の先頭に `**done**（日付）` を足し、この計画を `status: done` にする
+5. この計画を書いたときに wiki に付けた「まだ無い・まだ移していない」の印を消す（実装で作ったので）: [build-ci.md](../wiki/architecture/build-ci.md) の冒頭の「このページの状態（2026-11-16）」の段落（2章の `Standalone: 1` の「いまは `Android: 1` だけ」と、3章の「今はテンプレートの値」も）、[repository-layout.md](../wiki/architecture/repository-layout.md) の 2章の `Uta.Shared.Domain.Testing/` の行の「まだ無い。計画で作る」、7章の「Android は計画で作る」、10.4 の「まだ移していない。計画で移す」、[lesson-phases.md](../wiki/architecture/lesson-phases.md) の 1章の「まだ移していない。計画で移す」と 8章の「まだ足していない。計画で足す」。CLAUDE.md の「リポジトリ構成」の `shared/` の行に `Uta.Shared.Domain.Testing`（テストのカード・IL2CPP の一致の期待値）を足す
+6. [game-spec.md](../wiki/overview/game-spec.md) の「実装計画の単位と順」の 8 の行の先頭に `**done**（日付）` を足し、この計画を `status: done` にする
 
 終わったことの確かめ方: `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0。
 
@@ -543,7 +562,7 @@ namespace Uta.Client.Tests.SharedDomainReplay
 | `LessonReplayExpectedTests.Exam_MatchesScenario` | 同上 | 試験で同じ | 同上 |
 | `LessonReplayExpectedTests.Compare_DifferentLine_ReportsIndex` | 同上 | `Describe(RunNormal())` を写した配列の 1 行目を `"x"` にしたもので、`Compare` が 1 件を返し、`[0]` で始まる | 同上 |
 | `LessonReplayExpectedTests.Compare_MissingLine_ReportsNone` | 同上 | `Describe(RunNormal())` を写した配列から末尾の 1 行を除いたもので、`Compare` が 1 件を返し、`期待 (なし)` を含む | 同上 |
-| `LessonReplayDeviceTests` の 2 件 | `Assets/Tests/SharedDomainReplay/` | IL2CPP のプレイヤーで再生した状態が期待値と一致 | Test Runner のプレイヤー実行（タスク 3 は Windows、タスク 5 は Android） |
+| `LessonReplayDeviceTests` の 3 件 | `Assets/Tests/SharedDomainReplay/` | `Player_IsIl2CppPlayer`: IL2CPP のプレイヤー（Android か Windows）で走っている。ほかの 2 件: IL2CPP のプレイヤーで再生した状態が期待値と一致 | Test Runner のプレイヤー実行（タスク 3 は Windows、タスク 5 は Android） |
 
 `Compare_*` の 2 件は `LessonReplayExpected.Normal` を使わない（タスク 1 の手順 5 で、期待値が空のときに落ちないようにするため）。
 
