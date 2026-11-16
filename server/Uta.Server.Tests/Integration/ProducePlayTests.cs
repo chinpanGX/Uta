@@ -255,6 +255,9 @@ public class ProducePlayTests(PostgresFixture postgres)
         var reward = MasterReward(final.Result.Rank);
         Assert.Equal(39 + reward.Exp, final.Result.PlayerExp);
         Assert.Equal(2, MasterLevelCatalog().GetLevel(final.Result.PlayerExp));
+        const string LogSql = "SELECT (body->>'{0}')::int FROM game_logs WHERE player_id = $1 AND kind = 'produce' AND body->>'reason' = 'produce_reward'";
+        Assert.Equal(2, await Scalar<int>(string.Format(LogSql, "level_after"), player));
+        Assert.Equal(39 + reward.Exp, await Scalar<int>(string.Format(LogSql, "exp_after"), player));
 
         var (other, otherSignIn) = await NewPlayerAsync(channel, "another-secret-0123456789");
         await postgres.ExecuteAsync("UPDATE players SET exp = 198000 WHERE player_id = $1", other.PlayerId);

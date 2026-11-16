@@ -1,5 +1,6 @@
 ﻿using Grpc.Core;
 using Grpc.Net.Client;
+using Uta.Server.Infrastructure.Produce;
 using Uta.Server.Tests.Integration.Support;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Produce;
@@ -244,6 +245,27 @@ public class ProduceStartTests(PostgresFixture postgres)
 
         Assert.Equal(30 + ProduceFormulas.AbilityValue(3, 20, 20, 40), second.Singing);
         Assert.True(second.Singing > first.Singing);
+    }
+
+    [Fact]
+    public async Task Start_PlayerLevelFromExp_SavedInSnapshot()
+    {
+        var (factory, channel, player, _) = await StartAsync(postgres);
+        await using var _ = factory;
+        using var __ = channel;
+        await postgres.ExecuteAsync("UPDATE players SET exp = 40 WHERE player_id = $1", player.PlayerId);
+        var (otherFactory, otherChannel, other, _) = await StartAsync(postgres, "another-secret-0123456789");
+        await using var otherFactoryScope = otherFactory;
+        using var otherChannelScope = otherChannel;
+        await postgres.ExecuteAsync("UPDATE players SET exp = 39 WHERE player_id = $1", other.PlayerId);
+
+        await StartProduceAsync(player, "req-3");
+        await StartProduceAsync(other, "req-3");
+
+        var data = ProduceStateSerializer.Deserialize((await Scalar<byte[]>("SELECT state FROM produce_sessions WHERE player_id = $1", player))!);
+        var otherData = ProduceStateSerializer.Deserialize((await Scalar<byte[]>("SELECT state FROM produce_sessions WHERE player_id = $1", other))!);
+        Assert.Equal(2, data.Snapshot.PlayerLevel);
+        Assert.Equal(1, otherData.Snapshot.PlayerLevel);
     }
 
     private static Task<ProduceStateResponse> GetStateAsync(PlayerClient player, string requestId = "req-state") =>

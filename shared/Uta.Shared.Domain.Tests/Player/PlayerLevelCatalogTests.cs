@@ -60,6 +60,7 @@ namespace Uta.Shared.Domain.Tests.Player
         public void Create_NotStrictlyIncreasing_Throws()
         {
             Assert.Throws<ArgumentException>(() => PlayerLevelCatalog.Create(new[] { 0, 40, 40 }));
+            Assert.Throws<ArgumentException>(() => PlayerLevelCatalog.Create(new[] { 0, 40, 30 }));
         }
 
         [Fact]

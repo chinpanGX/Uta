@@ -202,6 +202,7 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
         var response = await player.CallAsync(service => service.SignInAsync(), "req-3");
 
         Assert.Equal(0, response.Exp);
+        Assert.Equal(player.PlayerId.ToString(), response.PlayerId);
     }
 
     [Fact]

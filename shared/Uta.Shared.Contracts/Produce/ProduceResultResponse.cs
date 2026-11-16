@@ -52,7 +52,7 @@ namespace Uta.Shared.Contracts.Produce
         [Key(9)]
         public int Exp { get; }
 
-        /// <summary>付与したあとのプレイヤーの経験値の累計。</summary>
+        /// <summary>付与したあとのプレイヤーの経験値の累計（放棄・破棄は今の累計）。</summary>
         [Key(10)]
         public int PlayerExp { get; }
     }
