@@ -1027,3 +1027,4 @@ Play モード・IL2CPP・手動はタスク 6。
 | 2 | 完了 | `61b7e8a` | `TestProduce` の `StateResponse`・`ResultResponse`（Contracts を使う）はタスク 3 に回した。境界のテスト 2 件（`ProduceStateResultTests.Constructor_NullArray_Throws`・`FormationNormalizerTests.RemoveIncompatible_Null_Throws`）を足した |
 | 3 | 完了 | `d841435` | `AbandonAsync` の成功時は `ToEndResult` を呼ばない（戻り値が bool）。`FakeProduceService` は `CallLog log = null` を受け、記録は `CallLog` に出す。`BootstrapEntry` の登録はタスク 5 |
 | 4 | 完了 | `9e0dfd9` | `ISceneNavigator` は using の別名（HomeEntry と同じ）。`FormationPresenter` のボタンは private `RunAsync` にまとめた。`HandleStep_SucceededAndRecovered_ShowCurrent` を 2 本に分けた。境界のテストを少し足した。引数名は省略しない形（`formationView` など） |
+| 5 | 完了 | `2a19d02` | `ProduceEntryTests` の `Start_NoSession_GoesHome`・`Start_Finished_GoesHome` は `LogAssert.Expect` で警告の文言を期待する形。`HomePresenterTests` の `SetResumeVisible` は既存の `SetResume` の記録形式に合わせた。`Create Scenes` で変わった Bootstrap・Title・Home のシーンは戻した |
