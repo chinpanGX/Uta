@@ -1,7 +1,7 @@
 ---
 title: ビルドと実機の確かめ方
 status: draft
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 # ビルドと実機の確かめ方
@@ -10,7 +10,7 @@ updated: 2026-11-16
 
 MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件」）の確かめ方はこのページが正。実装計画は [plans/2026-11-11-android-smoke.md](../../plans/2026-11-11-android-smoke.md)。
 
-**このページの状態（2026-11-16）**: 2章の Windows の IL2CPP のビルドは今ある。3〜5章の Android のビルド・接続・テストの仕組み（`BuildAndroidIl2Cpp`、`shared/Uta.Shared.Domain.Testing`、`Assets/Tests/SharedDomainReplay/`、`ProjectSettings.asset` の変更）は、上の計画でこれから作る決めごとで、まだ無い。
+**このページの状態（2026-11-17）**: 2章の Windows の IL2CPP のビルドと、5.2 の Test Runner のプレイヤー実行（Windows）は今ある。3章の `BuildAndroidIl2Cpp` と `ProjectSettings.asset` の Android の設定は入れたが、Android のビルド・実機での確かめ（3〜5章の Android の部分）はまだ回していない。サーバーのクラウド化の後に回す（4章）
 
 ## 1. 共通 [決定]
 
@@ -23,7 +23,7 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 ## 2. Windows の IL2CPP [決定]
 
 - 入口: `Uta.Client.Editor.BuildCommands.BuildWindowsIl2Cpp`（`client/uta/Build/Windows/Uta.exe`）。コマンドは [CLAUDE.md](../../../CLAUDE.md)「ビルド・テスト・実行」
-- スタンドアロンのスクリプトバックエンドを、プロジェクトの設定でも IL2CPP にする（2026-11-16 に決定。`ProjectSettings.asset` の `scriptingBackend` に `Standalone: 1` を足す。いまは `Android: 1` だけ）。`BuildWindowsIl2Cpp` は前から IL2CPP を指定しているので結果は変わらない。Test Runner がスタンドアロンのテスト用のプレイヤーを作るとき（5.2）に、IL2CPP で作らせるため。Editor の Play は Mono のまま
+- スタンドアロンのスクリプトバックエンドを、プロジェクトの設定でも IL2CPP にする（2026-11-16 に決定。`ProjectSettings.asset` の `scriptingBackend` に `Standalone: 1` を足す）。`BuildWindowsIl2Cpp` は前から IL2CPP を指定しているので結果は変わらない。Test Runner がスタンドアロンのテスト用のプレイヤーを作るとき（5.2）に、IL2CPP で作らせるため。Editor の Play は Mono のまま
 
 ## 3. Android の IL2CPP [決定。2026-11-16]
 
@@ -33,7 +33,7 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 | 形式 | APK（AAB にしない。`adb install` で入れるため）。`EditorUserBuildSettings.buildAppBundle = false` |
 | スクリプトバックエンド | IL2CPP（`ProjectSettings.asset` は既に `Android: 1`。入口でも指定する。Windows と同じ） |
 | CPU | ARM64 だけ（`ProjectSettings.asset` の `AndroidTargetArchitectures: 2` は既に ARM64。入口でも指定する） |
-| パッケージ名 | `com.chinpangx.uta`（`ProjectSettings.asset` の `applicationIdentifier` の `Android`。今はテンプレートの値）。アカウントのファイルの鍵には使わない（[unity7-evaluation.md](unity7-evaluation.md) 4章） |
+| パッケージ名 | `com.chinpangx.uta`（`ProjectSettings.asset` の `applicationIdentifier` の `Android`）。アカウントのファイルの鍵には使わない（[unity7-evaluation.md](unity7-evaluation.md) 4章） |
 | 署名 | Unity の既定のデバッグ用の鍵（`~/.android/debug.keystore`）。キーストアはリポジトリに入れない |
 | 最小・目標の API レベル | 最小 26（今の設定のまま）、目標は「入っている最新」（今の設定 `0` のまま） |
 | SDK・NDK・JDK | Unity Hub で入れた `7000.0.0a12` の Android のモジュールに同梱のもの（`Editor/Data/PlaybackEngines/AndroidPlayer/` の `SDK`・`NDK`・`OpenJDK`。2026-11-11 に、SDK の `platforms` に `android-34`・`android-36`・`android-37.0` があることを確かめた）。別に入れない |
@@ -42,11 +42,13 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 | 端末 | arm64（`ro.product.cpu.abi` が `arm64-v8a`）、Android 8.0（API 26）以上。USB デバッグ |
 
 - `adb` は同梱の SDK の `platform-tools/adb.exe`（PATH には無い）。手順では `ADB="/c/Program Files/Unity/Hub/Editor/7000.0.0a12/Editor/Data/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb.exe"` と置いて呼ぶ
-- 確かめていないもの（計画のタスク 3〜5 で確かめる）: Unity 7 Alpha の Android のビルド（Gradle・IL2CPP の arm64）、YetAnotherHttpHandler のネイティブ（`android-arm64` の `.so` はパッケージにある）、MasterMemory・VContainer・MessagePack の実機での動作、Managed Stripping の既定の値で落ちないか、**Test Runner のプレイヤー実行**（Windows・Android とも、a12 で一度も回していない。Test Framework 1.9.0 は、テスト用のプレイヤーを開発ビルドで作り、Android ではパッケージ名を `com.UnityTestRunner.UnityTestRunner` に変えて入れる。ソースを読んだだけ）
+- 確かめたもの（2026-11-17。結果は [unity7-evaluation.md](unity7-evaluation.md) 2章）: Test Runner のプレイヤー実行（Windows の IL2CPP）
+- 確かめていないもの（サーバーのクラウド化の後の計画で確かめる）: Unity 7 Alpha の Android のビルド（Gradle・IL2CPP の arm64）、YetAnotherHttpHandler のネイティブ（`android-arm64` の `.so` はパッケージにある）、MasterMemory・VContainer・MessagePack の実機での動作、Managed Stripping の既定の値で落ちないか、**Test Runner の Android でのプレイヤー実行**（Test Framework 1.9.0 は、テスト用のプレイヤーを開発ビルドで作り、Android ではパッケージ名を `com.UnityTestRunner.UnityTestRunner` に変えて入れる。ソースを読んだだけ）
 
-## 4. 実機からローカルのサーバーへの接続 [決定。2026-11-16。ユーザーの判断。クラウドの dev 環境は使わない]
+## 4. 実機からサーバーへの接続 [決定。2026-11-17。ユーザーの判断]
 
-- USB でつなぎ、`adb reverse tcp:5000 tcp:5000` で、端末の `localhost:5000` を PC の `localhost:5000` に流す。クライアントの接続先は既定の `http://localhost:5000`（`ServerEndpoint`）のままで、コードは変えない。サーバーはローカルの手順（[CLAUDE.md](../../../CLAUDE.md)「ビルド・テスト・実行」）のまま起動する（外に公開しない・ファイアウォールを開けない）
+- Android の実機は、サーバーをクラウド（dev 環境。[repository-layout.md](repository-layout.md) 11章）に置いてからつなぐ。2026-11-16 に決めた `adb reverse` でローカルのサーバーにつなぐ方式（下の箇条）は使わない。接続先の渡し方は、クラウド化の後の計画で決める（6章）
+- （2026-11-16 の案。使わない）- USB でつなぎ、`adb reverse tcp:5000 tcp:5000` で、端末の `localhost:5000` を PC の `localhost:5000` に流す。クライアントの接続先は既定の `http://localhost:5000`（`ServerEndpoint`）のままで、コードは変えない。サーバーはローカルの手順（[CLAUDE.md](../../../CLAUDE.md)「ビルド・テスト・実行」）のまま起動する（外に公開しない・ファイアウォールを開けない）
 - Android では `-uta-server-url` の起動引数を渡す手段を作らない。dev 環境（Cloud Run）につなぐ手段は、dev 環境を作るときに決める（[repository-layout.md](repository-layout.md) 11章）
 - 平文の HTTP/2（h2c）: YetAnotherHttpHandler は Android の通信の仕組みを使わず自前のネイティブで通信するので、Android の平文の通信の制限（Network Security Config）にかからないと見込む（推測。計画のタスク 4 で確かめる）
 - `adb reverse` は USB を抜く・端末を再起動すると消える。スモークの前に毎回実行する
@@ -97,7 +99,7 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 - 計算の一致: 5.2 の Windows の結果で代える
 - スモーク: `BuildWindowsIl2Cpp` で作った `Uta.exe` を引数なしで起動し、5.1 の 4〜6 を手で行う（5 はウィンドウを閉じる）。ログは `Player.log`
 
-代えるかどうかは、計画のスパイクの「止まる条件」に当たったときに、ユーザーが決める。
+代えるかどうかは、計画のスパイクの「止まる条件」に当たったときに、ユーザーが決める。2026-11-17 に、Android の端末が手元に無く、実機はクラウド化の後に回すと決めた（ユーザーの判断）。計算の一致は 5.2 の Windows の結果で代えた。スモークは Windows では代えない（Windows のクライアントの通しは完了条件 6 が受け持つ）
 
 ## 6. 未決事項
 

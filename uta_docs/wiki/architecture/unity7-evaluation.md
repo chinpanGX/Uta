@@ -36,6 +36,7 @@ updated: 2026-11-11
 | TextMeshPro（uGUI 7.0.0）: プロジェクトの TMP Settings（`TmpSettingsBuilder`）、動的 SDF の日本語（Noto Sans JP の Regular・Bold）、Editor の Play、IL2CPP | 通った。手を入れる前は `Assets/TextMesh Pro/Resources/TMP Settings.asset` が無く、`TMP_Settings.defaultFontAsset` はパッケージ同梱の `DefaultFont` だった。`TmpSettingsBuilder` が同梱の設定を複製して作り、既定のフォントを `NotoSansJP-Regular SDF` にできた。Editor の Play・IL2CPP のプレイヤー（`-nographics` あり）の両方で、日本語の `HasCharacters` が Regular・Bold とも true（`spike tmp: ok` 2 行・`spike tmp-settings: ok`）。**画面で豆腐にならないかを目で見る確認（Game ビュー・`UtaSpike.exe` を引数なしで起動）は未実施（手動）** | 同上（`font.HasCharacters` による確認） | 2026-11-08 |
 | 画面の土台（基盤の `ScreenNavigator`（Presenter 駆動）で、シーンのスコープから Addressables のページを積む）、`IApiActivityHandler` → `ApiActivityBridge` → `BusyIndicator`、`DialogOpener`（`Dialog.prefab`）。Editor の Play | 通った範囲: `Bootstrap` → `Title`（`TitlePage`）→ `Home`（`HomePage`）まで、`ScreenNavigator` がシーンのスコープの子スコープで Presenter を解決してページを積んだ。見た目は IL2CPP のプレイヤーで手動で確かめた。Windows の IL2CPP: ビルドが通り、`Uta.exe -batchmode -nographics -uta-quit-after-check` が終了コード 0（`connectivity check: OK`。この計画の `BootstrapEntry` の登録と `TitleDiagnostics` で起動した）。引数なしの起動で、タイトル → ホーム → 「準備中です。」と 540×960 のウィンドウをユーザーが手で確かめた（IL2CPP でのページの Push も通った） | Editor を開いたまま `unity command`（`editor.playmode`・`eval`）。Editor が背面だとフレームが進まないので `EditorApplication.Step()` で送った（4章） | 2026-11-08 |
 | 所持一覧・サポートカードの詳細（順 7 の 3 本目。2026-11-09） | 通った。Editor の Play で、Addressables からのページの読み込み（`OwnedPage`・`SupportDetailPage`）、行の Prefab（`ListRow`）の Instantiate とスクロール、同じページの 2 枚目（素材の選択モード）を積んで `WaitForPopAsync` で結果を受けること、`ISupportService` の `LevelUpAsync`・`LimitBreakAsync` を `ApiCore` 経由で呼び、応答の player_diff がリポジトリに反映されることを確かめた。Windows の IL2CPP のプレイヤーでの送受信は未確認（6 本目の通しのビルドで確かめる）。Play 中の Editor が背面だとフレームが進まないので、`unity command eval` で `Application.runInBackground = true` にして進めた（プロジェクトの設定は変えない） | Editor の Play と `unity command eval` | 2026-11-09 |
+| Test Runner の Windows の IL2CPP のプレイヤー実行と、IL2CPP の計算の一致（`SharedDomainReplay`。完了条件 7 の一致の部分） | 通った。`total="3" passed="3" failed="0"`、`Player_IsIl2CppPlayer` の `platform=WindowsPlayer`。レッスンの再生（通常・中間試験）の状態が .NET の期待値（`LessonReplayExpected`）と項目ごとに一致した。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）と UnityLinker が `OutOfMemoryException` で落ちた（16 GB の PC で、Editor 2 つとバッチのビルドが重なった。空きを約 4.7 GB にして通った） | `build-foundation` でバッチモードの `-runTests -testPlatform StandaloneWindows64`（[build-ci.md](build-ci.md) 5.2） | 2026-11-17 |
 
 ## 3. 確かめられなかったもの・失敗したもの
 
@@ -71,7 +72,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 - **`ErrorDialogView`（いまのシーンの `DialogOpener`。`-uta-quit-after-check` では自動で閉じる）が自動で閉じる経路**: `ApiCore` を通る呼び出しが失敗する場面を作れず（サーバーを止めると端末の認証が先に失敗する）、通っていない
 - ~~`PlayerGateway` が `ApiResult` の失敗を `Failure` に直す経路~~ → 2026-11-08 に、`PlayerUseCase`（`PlayerGateway` の後継）が `ApiResult` の失敗を `InvalidOperationException` に直す経路と、`PLAYER_NOT_CREATED` を受けてサインアップし直す経路を、偽の `IPlayerService`（`Tests/EditMode/Fakes/FakePlayerService.cs`。失敗は基盤の `FakeRpcErrors.ApiFailureResult<T>`）を使う EditMode のテスト（`PlayerUseCaseTests`）で確かめられるようになった（EditMode の全体 102 件が成功）。偽物は `ApiCore` を通らないので、`WithHandledCodes` のコードを `ApiCore` が共通ハンドラーに回さないことは、このテストでは確かめない
 - **エラー詳細のトレーラー**（`ErrorInfo`・`grpc-status-details-bin`）が YetAnotherHttpHandler・IL2CPP で届くか。この計画の RPC は `ErrorInfo` を付けない
-- **Android / iOS** の実機ビルド
+- **Android / iOS** の実機ビルド（Android は、サーバーのクラウド化の後に回した。2026-11-17。ユーザーの判断。[build-ci.md](build-ci.md) 4章）
 - **Managed Stripping を上げたとき・iOS / Android での VContainer のコンストラクター注入**（リフレクション。既定の Stripping の Windows IL2CPP では通った）。`[Preserve]`・`link.xml`・VContainer の Source Generator のどれかが要りうる
 - **MasterMemory・MasterMemoryAddons**（2026-11-01 に[別の計画](../../plans/2026-11-01-masterdata-unity.md)で入れた。Windows の Editor で読み込みを確認。IL2CPP・実機は未確認）
 - UnityScreenNavigator は基盤の `Runtime/ChinpanGX`（`ScreenNavigator`）を画面に使った（上の表。2026-11-08）。Supplement は使っていない
@@ -80,6 +81,7 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 
 ## 4. 警告・注意
 
+- **IL2CPP のプレイヤーのビルドはメモリを多く使う**（2026-11-17）。Test Runner のテスト用のプレイヤー（開発ビルド）で、16 GB の PC で Editor を 2 つ開いたまま回すと、IL2CPP の変換が `OutOfMemoryException` で落ちた。ビルドの前に、使っていない Editor を閉じて空きを 4 GB 以上にする
 - Unity のログの警告（エラーではない）:
   - `UAL0010`・`UAL0013`: 静的フィールドを持つ型に `AutoStaticsCleanup` などの属性が要る（`shared/Uta.Shared.Domain` の `CardDefinition`、Supplement・UnityScreenNavigator の複数の型）。Uta のコードは値が変わる static の状態を持たない（CLAUDE.md）。警告が出ている `CardDefinition` の static は不変の値
   - `CS8632`: MagicOnion.Client.Unity の nullable の注釈
@@ -106,5 +108,5 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
 
 ## 5. 次にやること
 
-- Android / iOS の実機ビルド（3.3）。Android の手順と決めごとは [build-ci.md](build-ci.md)、実装は [計画](../../plans/2026-11-11-android-smoke.md)
+- Android / iOS の実機ビルド（3.3）。Android の手順と決めごとは [build-ci.md](build-ci.md)、Android はサーバーのクラウド化の後に回す（[build-ci.md](build-ci.md) 4章）
 - 3.3 の `ApiCore` の再送・エラー詳細のトレーラーの IL2CPP の確認

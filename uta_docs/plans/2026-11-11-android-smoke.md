@@ -552,31 +552,31 @@ namespace Uta.Client.Tests.SharedDomainReplay
 手順:
 
 1. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md):
-   - 2章の表の末尾に 1 行足す。項目「Test Runner の Windows の IL2CPP のプレイヤー実行と、IL2CPP の計算の一致（`SharedDomainReplay`。完了条件 7 の一致の部分）」、結果「通った。`total="3" passed="3" failed="0"`、`Player_IsIl2CppPlayer` の `platform=WindowsPlayer`。レッスンの再生（通常・中間試験）の状態が .NET の期待値（`LessonReplayExpected`）と項目ごとに一致した。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）と UnityLinker が `OutOfMemoryException` で落ちた（16 GB の PC で、Editor 2 つとバッチのビルドが重なった。空きを約 4.7 GB にして通った）」、方法「`build-foundation` でバッチモードの `-runTests -testPlatform StandaloneWindows64`（[build-ci.md](build-ci.md) 5.2）」、日付「2026-11-17」
-   - 3.3 の「**Android / iOS** の実機ビルド」の行の末尾に「（Android は、サーバーのクラウド化の後に回した。2026-11-17。ユーザーの判断。[build-ci.md](build-ci.md) 4章）」を足す
+   - 2章の表の末尾に 1 行足す。項目「Test Runner の Windows の IL2CPP のプレイヤー実行と、IL2CPP の計算の一致（`SharedDomainReplay`。完了条件 7 の一致の部分）」、結果「通った。`total="3" passed="3" failed="0"`、`Player_IsIl2CppPlayer` の `platform=WindowsPlayer`。レッスンの再生（通常・中間試験）の状態が .NET の期待値（`LessonReplayExpected`）と項目ごとに一致した。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）と UnityLinker が `OutOfMemoryException` で落ちた（16 GB の PC で、Editor 2 つとバッチのビルドが重なった。空きを約 4.7 GB にして通った）」、方法「`build-foundation` でバッチモードの `-runTests -testPlatform StandaloneWindows64`（[build-ci.md](../wiki/architecture/build-ci.md) 5.2）」、日付「2026-11-17」
+   - 3.3 の「**Android / iOS** の実機ビルド」の行の末尾に「（Android は、サーバーのクラウド化の後に回した。2026-11-17。ユーザーの判断。[build-ci.md](../wiki/architecture/build-ci.md) 4章）」を足す
    - 4章の箇条に 1 つ足す: 「**IL2CPP のプレイヤーのビルドはメモリを多く使う**（2026-11-17）。Test Runner のテスト用のプレイヤー（開発ビルド）で、16 GB の PC で Editor を 2 つ開いたまま回すと、IL2CPP の変換が `OutOfMemoryException` で落ちた。ビルドの前に、使っていない Editor を閉じて空きを 4 GB 以上にする」
-   - 5章の「Android / iOS の実機ビルド（3.3）。…」の行の「実装は [計画](../../plans/2026-11-11-android-smoke.md)」を「Android はサーバーのクラウド化の後に回す（[build-ci.md](build-ci.md) 4章）」に置き換える
+   - 5章の「Android / iOS の実機ビルド（3.3）。…」の行の「実装は [計画](2026-11-11-android-smoke.md)」を「Android はサーバーのクラウド化の後に回す（[build-ci.md](../wiki/architecture/build-ci.md) 4章）」に置き換える
 2. [build-ci.md](../wiki/architecture/build-ci.md):
    - 冒頭の「**このページの状態（2026-11-16）**」の段落を次に置き換える: 「**このページの状態（2026-11-17）**: 2章の Windows の IL2CPP のビルドと、5.2 の Test Runner のプレイヤー実行（Windows）は今ある。3章の `BuildAndroidIl2Cpp` と `ProjectSettings.asset` の Android の設定は入れたが、Android のビルド・実機での確かめ（3〜5章の Android の部分）はまだ回していない。サーバーのクラウド化の後に回す（4章）」
    - 2章の「いまは `Android: 1` だけ」を消す。3章の表のパッケージ名の「今はテンプレートの値」を消す
-   - 3章の「確かめていないもの（計画のタスク 3〜5 で確かめる）: …」の箇条を、2 つに分ける: 「確かめたもの（2026-11-17。結果は [unity7-evaluation.md](unity7-evaluation.md) 2章）: Test Runner のプレイヤー実行（Windows の IL2CPP）」と、「確かめていないもの（サーバーのクラウド化の後の計画で確かめる）: 」に続けて元の箇条の残り（Unity 7 Alpha の Android のビルドから Managed Stripping まで、と Test Runner の Android での実行。Test Framework 1.9.0 のパッケージ名の文は残す）
-   - 4章の見出しを「## 4. 実機からサーバーへの接続 [決定。2026-11-17。ユーザーの判断]」にし、本文の先頭に箇条を 1 つ足す: 「Android の実機は、サーバーをクラウド（dev 環境。[repository-layout.md](repository-layout.md) 11章）に置いてからつなぐ。2026-11-16 に決めた `adb reverse` でローカルのサーバーにつなぐ方式（下の箇条）は使わない。接続先の渡し方は、クラウド化の後の計画で決める（6章）」。残りの箇条（`adb reverse` 以下）は、先頭に「（2026-11-16 の案。使わない）」を付けて残す
+   - 3章の「確かめていないもの（計画のタスク 3〜5 で確かめる）: …」の箇条を、2 つに分ける: 「確かめたもの（2026-11-17。結果は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章）: Test Runner のプレイヤー実行（Windows の IL2CPP）」と、「確かめていないもの（サーバーのクラウド化の後の計画で確かめる）: 」に続けて元の箇条の残り（Unity 7 Alpha の Android のビルドから Managed Stripping まで、と Test Runner の Android での実行。Test Framework 1.9.0 のパッケージ名の文は残す）
+   - 4章の見出しを「## 4. 実機からサーバーへの接続 [決定。2026-11-17。ユーザーの判断]」にし、本文の先頭に箇条を 1 つ足す: 「Android の実機は、サーバーをクラウド（dev 環境。[repository-layout.md](../wiki/architecture/repository-layout.md) 11章）に置いてからつなぐ。2026-11-16 に決めた `adb reverse` でローカルのサーバーにつなぐ方式（下の箇条）は使わない。接続先の渡し方は、クラウド化の後の計画で決める（6章）」。残りの箇条（`adb reverse` 以下）は、先頭に「（2026-11-16 の案。使わない）」を付けて残す
    - 5.1・5.2 の手順はそのまま。5.3 の末尾に 1 文足す: 「2026-11-17 に、Android の端末が手元に無く、実機はクラウド化の後に回すと決めた（ユーザーの判断）。計算の一致は 5.2 の Windows の結果で代えた。スモークは Windows では代えない（Windows のクライアントの通しは完了条件 6 が受け持つ）」
    - frontmatter の `updated` を 2026-11-17 にする
 3. [repository-layout.md](../wiki/architecture/repository-layout.md):
-   - 2章の `Uta.Shared.Domain.Testing/` の行の「まだ無い。[計画](../../plans/2026-11-11-android-smoke.md)で作る」を消す（`[決定。2026-11-16]` は残す）
-   - 7章の「Android は[計画](../../plans/2026-11-11-android-smoke.md)で作る」を「Android はサーバーのクラウド化の後に回す（[build-ci.md](build-ci.md) 4章）」に置き換える
-   - 10.4 の「まだ移していない。[計画](../../plans/2026-11-11-android-smoke.md)で移す。」を消す
-   - 11.1 の `adb reverse` の箇条を次に置き換える: 「実機は、サーバーをクラウド（dev 環境）に置いてからつなぐ [決定。2026-11-17。ユーザーの判断。2026-11-16 には `adb reverse tcp:5000 tcp:5000` でローカルのサーバーにつなぐと決めていた。それより前は「PC の LAN の IP を使い、ポートを公開する」]。接続先の渡し方はクラウド化の後の計画で決める（[build-ci.md](build-ci.md) 4章）」
+   - 2章の `Uta.Shared.Domain.Testing/` の行の「まだ無い。[計画](2026-11-11-android-smoke.md)で作る」を消す（`[決定。2026-11-16]` は残す）
+   - 7章の「Android は[計画](2026-11-11-android-smoke.md)で作る」を「Android はサーバーのクラウド化の後に回す（[build-ci.md](../wiki/architecture/build-ci.md) 4章）」に置き換える
+   - 10.4 の「まだ移していない。[計画](2026-11-11-android-smoke.md)で移す。」を消す
+   - 11.1 の `adb reverse` の箇条を次に置き換える: 「実機は、サーバーをクラウド（dev 環境）に置いてからつなぐ [決定。2026-11-17。ユーザーの判断。2026-11-16 には `adb reverse tcp:5000 tcp:5000` でローカルのサーバーにつなぐと決めていた。それより前は「PC の LAN の IP を使い、ポートを公開する」]。接続先の渡し方はクラウド化の後の計画で決める（[build-ci.md](../wiki/architecture/build-ci.md) 4章）」
    - frontmatter の `updated` を 2026-11-17 にする
-4. [lesson-phases.md](../wiki/architecture/lesson-phases.md): 1章（テストのカードの置き場）の「まだ移していない。[計画](../../plans/2026-11-11-android-smoke.md)で移す。」を消し、8章の「まだ足していない。[計画](../../plans/2026-11-11-android-smoke.md)で足す」を消す。8章の同じ箇条の「入口は Unity Test Runner の実機実行。」の後ろに「Windows の IL2CPP のプレイヤーで一致を確かめた（2026-11-17。[unity7-evaluation.md](unity7-evaluation.md) 2章）。Android の実機は、サーバーのクラウド化の後に回す（[build-ci.md](build-ci.md) 4章）。」を足す。`updated` を 2026-11-17 にする
+4. [lesson-phases.md](../wiki/architecture/lesson-phases.md): 1章（テストのカードの置き場）の「まだ移していない。[計画](2026-11-11-android-smoke.md)で移す。」を消し、8章の「まだ足していない。[計画](2026-11-11-android-smoke.md)で足す」を消す。8章の同じ箇条の「入口は Unity Test Runner の実機実行。」の後ろに「Windows の IL2CPP のプレイヤーで一致を確かめた（2026-11-17。[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章）。Android の実機は、サーバーのクラウド化の後に回す（[build-ci.md](../wiki/architecture/build-ci.md) 4章）。」を足す。`updated` を 2026-11-17 にする
 5. [game-spec.md](../wiki/overview/game-spec.md):
-   - 完了条件の表の 7 の行の「確かめ方」の末尾に「。**2026-11-17**: 計算の一致は Windows の IL2CPP のプレイヤーで確かめた（Android の代え。下の「Unity 7（Alpha）の不具合で詰まったとき」の代え方）。Android の実機（スモークと一致）は、サーバーのクラウド化（dev 環境へのデプロイ）の後に回す（ユーザーの判断。[build-ci.md](../architecture/build-ci.md) 4章）」を足す
+   - 完了条件の表の 7 の行の「確かめ方」の末尾に「。**2026-11-17**: 計算の一致は Windows の IL2CPP のプレイヤーで確かめた（Android の代え。下の「Unity 7（Alpha）の不具合で詰まったとき」の代え方）。Android の実機（スモークと一致）は、サーバーのクラウド化（dev 環境へのデプロイ）の後に回す（ユーザーの判断。[build-ci.md](../wiki/architecture/build-ci.md) 4章）」を足す
    - 表の下の「dev 環境（Cloud Run + Cloud SQL）へのデプロイは MVP の条件に含めない別の項目」の箇条の末尾に「。Android の実機の確かめ（条件 7 の残り）は、このデプロイの後に行う（2026-11-17）」を足す
    - 「実装計画の単位と順」の 8 の行の先頭に `**done**（2026-11-17。Android の実機はクラウド化の後に回した）` を足す
    - `updated` を 2026-11-17 にする
 6. [CLAUDE.md](../../CLAUDE.md):
-   - 「ビルド・テスト・実行」の Windows の IL2CPP の項目（`Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 …` を含む箇条）の次に、箇条を 1 つ足す: 「Test Runner のプレイヤー実行（IL2CPP の計算の一致。Windows）: ビルド用の worktree（`C:/Work/Uta-wt/build-foundation`）で `Unity.exe -batchmode -projectPath <worktree>/client/uta -buildTarget Win64 -runTests -testPlatform StandaloneWindows64 -assemblyNames Uta.Client.Tests.SharedDomainReplay -testResults <XML> -logFile <ログ>`。結果の XML が `total="3" passed="3" failed="0"` なら通り。メモリを多く使うので、使っていない Editor を閉じてから回す。詳細は [build-ci.md](uta_docs/wiki/architecture/build-ci.md) 5.2。Android は、サーバーのクラウド化の後に回す」
+   - 「ビルド・テスト・実行」の Windows の IL2CPP の項目（`Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 …` を含む箇条）の次に、箇条を 1 つ足す: 「Test Runner のプレイヤー実行（IL2CPP の計算の一致。Windows）: ビルド用の worktree（`C:/Work/Uta-wt/build-foundation`）で `Unity.exe -batchmode -projectPath <worktree>/client/uta -buildTarget Win64 -runTests -testPlatform StandaloneWindows64 -assemblyNames Uta.Client.Tests.SharedDomainReplay -testResults <XML> -logFile <ログ>`。結果の XML が `total="3" passed="3" failed="0"` なら通り。メモリを多く使うので、使っていない Editor を閉じてから回す。詳細は [build-ci.md](../wiki/architecture/build-ci.md) 5.2。Android は、サーバーのクラウド化の後に回す」
    - 「リポジトリ構成」の `shared/` の行のコメントを「`# Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO）・Uta.Shared.Domain.Testing（テストのカード・IL2CPP の一致の期待値）。マスタ型は置かない（ADR 0007）`」にする
 7. この計画の frontmatter を `status: done`・`updated: 2026-11-17` にする
 
@@ -664,3 +664,5 @@ namespace Uta.Shared.Domain.Tests.Lesson
 | 1 | 完了 | （このコミット） | なし。期待値は各 29 行。通常: `turn=7`・`paramGained=76`・`discard=34,23,29,28,10,11,32,7,24,1,2,27,31,30,35,3,25`・`exiled=21,12,9,18`。試験: `turn=7`・`paramGained=106`・`discard=34,9,26,35,27,32,28,2,6,30,25,19,18,23,16,4`・`exiled=21,13,11,12,17`（決めたこと 12）。shared 476 件・server 314 件通過 |
 | 2 | 完了 | （このコミット） | Editor が `scriptingDefineSymbols` の Standalone に足した `;SENTIS_ANALYTICS_ENABLED` を戻した（3.2）。`testables` で `UNITY_INCLUDE_TESTS` が効き、`Uta.Shared.Domain.Testing.dll` ができた。`unity recompile` エラー 0、EditMode 374 件通過 |
 | 3 | 完了 | （このコミット） | `total="3" passed="3" failed="0"`、`platform=WindowsPlayer`。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）・UnityLinker の `OutOfMemoryException` で落ちた（16 GB の PC で Editor 2 つとバッチのビルドが重なった）。Uta-wt/3 の Editor を閉じて空きを約 4.7 GB にして 3 回目で通った。`build-foundation` はビルドのたびに `ProjectSettings.asset`（`Standalone: 1` ほか）と `UniversalRenderPipelineGlobalSettings.asset` に差分が出る（戻してから切り替える） |
+| 4・5 | 行わない | — | 手元に Android の端末が無く、サーバーのクラウド化の後に回した（決めたこと 15。2026-11-17。ユーザーの判断）。`BuildAndroidIl2Cpp` は一度も実行していない |
+| 6 | 完了 | （このコミット） | 計画の本文のリンク（wiki のページ相対で書いていた）が lint のエラーになったので、計画からの相対に直した |

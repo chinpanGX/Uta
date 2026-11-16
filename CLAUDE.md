@@ -79,7 +79,7 @@ uta/
 │     └─ decisions/     # ADR
 ├─ server/        # ASP.NET Core + MagicOnion（Uta.Server・Uta.Server.Tests・compose.yaml）
 ├─ client/        # Unity 関連（Unity プロジェクトのルートは client/uta/）
-└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO）。マスタ型は置かない（ADR 0007）
+└─ shared/        # Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO）・Uta.Shared.Domain.Testing（テストのカード・IL2CPP の一致の期待値）。マスタ型は置かない（ADR 0007）
 ```
 
 ## wiki の運用（3操作）
@@ -189,6 +189,7 @@ uta/
 - サーバーのテスト: `dotnet test --project server/Uta.Server.Tests`（アーキテクチャテストと結合テスト。結合テストは Docker が要る: Testcontainers が PostgreSQL を起動する）
 - ローカルのサーバー: `docker compose --env-file server/.env -f server/compose.yaml up -d --wait`（`server/.env` は `.env.example` を写して `POSTGRES_PASSWORD` を書く）→ `dotnet user-secrets set "ConnectionStrings:Default" "<接続文字列>" --project server/Uta.Server` → `dotnet run --project server/Uta.Server -- migrate`（マイグレーション）→ `dotnet run --project server/Uta.Server`（`http://localhost:5000`）
 - Unity 7 の Editor が開いているときのコンパイル確認: `unity recompile --format json`（`client/uta` で実行）。パッケージの再解決: `unity command package resolve`。コンソールの読み出し・Play モードの開始と停止は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章。Windows の IL2CPP のプレイヤー（バッチモード。同じプロジェクトを開いた Editor があると競合する）: `Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 -executeMethod Uta.Client.Editor.BuildCommands.BuildWindowsIl2Cpp -logFile <ログ>` → `client/uta/Build/Windows/Uta.exe`。起動して通信を確かめる: `Uta.exe -batchmode -nographics -uta-quit-after-check`（終了コード 0 が成功。接続先は `-uta-server-url <URL>`。[unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 3.1）。ビルドは、Editor を開いている worktree とは別のワークスペースで行う（Editor を閉じない。Prefab を足すだけの作業ではビルドを確かめない）
+- Test Runner のプレイヤー実行（IL2CPP の計算の一致。Windows）: ビルド用の worktree（`C:/Work/Uta-wt/build-foundation`）で `Unity.exe -batchmode -projectPath <worktree>/client/uta -buildTarget Win64 -runTests -testPlatform StandaloneWindows64 -assemblyNames Uta.Client.Tests.SharedDomainReplay -testResults <XML> -logFile <ログ>`。結果の XML が `total="3" passed="3" failed="0"` なら通り。メモリを多く使うので、使っていない Editor を閉じてから回す。詳細は [build-ci.md](uta_docs/wiki/architecture/build-ci.md) 5.2。Android は、サーバーのクラウド化の後に回す
 - Unity の EditMode のテスト: **Editor を開いたまま** `unity command --timeout 300 eval` で `TestRunnerApi` を呼ぶ（`client/uta` で実行。コマンドの全文は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章）。`runSynchronously` を付けない非同期の形で、`eval` は `started` ですぐ返るので、結果の `client/uta/Temp/uta-test-results.xml` ができるのを待って読む（`runSynchronously = true` では `[UnityTest]` が走らない）。Editor は閉じない（`unity test` は同じプロジェクトを開いた Editor があると終了コード 6 で使えない）
 - Prefab の生成（`client/uta`。生成物は手で直さない）: Editor が開いているとき `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'`（`built <件数>` が返る）。Editor が閉じているとき用に `-executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch` の入口もある。**`BuildAll` のたびに `NotoSansJP-Regular SDF.asset` のマテリアルの `_ScaleRatioA`・`_ScaleRatioC` が変わり、`ClearDynamicData` では戻らない**ので、`client/uta/Assets/Fonts/NotoSansJP/` の差分は毎回コミットせず `git restore` で戻す
 - 共通基盤の固定を上げる: `tools/pack-foundation.sh <VolTech-MagicOnion|MasterMemoryAddons> <コミット>`（`.nupkg` を作り、版と `manifest.json` を揃える）
