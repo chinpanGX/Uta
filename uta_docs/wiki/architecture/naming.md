@@ -161,7 +161,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 | 計画にある `ProduceProgress`・`ProduceSession` | `ProduceStateResult`・`ProduceSessionState` | 1章（Shared.Domain の `ProduceSnapshot` と同名にしない）・2章 |
 | 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus` など。gacha の `DrawStatus` は `DrawResultKind`、owned の `SupportStatus` は `SupportResultKind` にした） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
-| `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
+| `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
 | 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み。gacha・owned では作らなかった）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 

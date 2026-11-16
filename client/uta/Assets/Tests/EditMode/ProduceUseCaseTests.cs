@@ -85,11 +85,13 @@ namespace Uta.Client.Tests
         [UnityTest]
         public IEnumerator Start_AlreadyInProgress_RefreshesAndReturnsKind() => UniTask.ToCoroutine(async () =>
         {
+            session.Set(TestProduce.StateResult(operationNumber: 1));
             EnqueueFail(ProduceErrors.AlreadyInProgress);
 
             var kind = await useCase.StartAsync(1, new[] { "u1" }, 1);
 
             Assert.AreEqual(ProduceStartResultKind.AlreadyInProgress, kind);
+            Assert.IsNull(session.Current);
             Assert.AreEqual(new[] { "Start:1:u1:1", "Refresh" }, log.Entries.ToArray());
         });
 

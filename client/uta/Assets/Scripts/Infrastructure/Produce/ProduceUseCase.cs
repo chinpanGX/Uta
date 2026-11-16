@@ -55,6 +55,8 @@ namespace Uta.Client.Infrastructure.Produce
 
             if (result.ErrorCode == ProduceErrors.AlreadyInProgress)
             {
+                // 手元のセッションはサーバーの進行中のものではない。残すとホームの「再開」が出ない
+                session.Clear();
                 await TryRefreshAsync();
                 return ProduceStartResultKind.AlreadyInProgress;
             }

@@ -206,13 +206,13 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 
 ## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
 
-Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（`Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う（小さい `LifetimeScope` で USN の Overlay に出す）。`Produce` は順 7 の 4 本目が作り直す）。
+Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（`Bootstrap`・`Title`・`Home`・`Produce` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う（小さい `LifetimeScope` で USN の Overlay に出す））。
 
 | シーン | 役割 | 遷移 |
 |---|---|---|
 | `Bootstrap` | 起動の起点（Build Settings の先頭）。マスタを読み、アプリ全体で共有するもの（ルートの DI スコープ）を作り、`Title` を読み込む。マスタの読み込みに失敗したら、エラーを表示して止まる（4章） | → `Title` |
 | `Title` | 「スタートをタップ」を待つ。タップしたら端末の登録・トークンの発行・サインアップ・サインイン（4章 2〜4）を行い、成功したら `Home` へ。失敗したら状態を表示し、もう一度タップできる | → `Home` |
-| `Home` | サインインで受け取った所持データを表示する（最小）。編成（`FormationPage`）はこのシーンのページ。開始・再開で `Produce` へ。ホームの構成とキャラ表示のステージは 7.8 | → `Produce`（順 7 の 4 本目（formation）から。1 本目の時点ではホームのボタンは「準備中です。」で、移る道が無い） |
+| `Home` | サインインで受け取った所持データを表示する（最小）。編成（`FormationPage`）はこのシーンのページ。開始・再開で `Produce` へ。ホームの構成とキャラ表示のステージは 7.8 | → `Produce` |
 | `Produce` | プロデュース。底に背景のページを置き、局面の画面を積む（7.6）。ホームへ戻る・放棄・終了で `Home` へ | → `Home` |
 
 - **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`ApiClient`・`IPlayerService`）・所持データのリポジトリ（3 つ）・マスタ（`MemoryDatabase`・`ICardCatalog`・`PlayerLevelCatalog`）・共通エラーハンドラー・**すべての UseCase の具象**（IF で登録）・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
@@ -221,7 +221,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
 - **Home に入ったとき所持データが無い**（`IReadOnlyPlayerRepository.Find()` が null。サインインしていない）場合は、`Title` へ戻す。`HomeEntry` が確かめる（2026-11-08）
 - 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。診断は `TitleDiagnostics`（`TitleEntry` が分ける）[2026-11-08]
-- シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` はまだ最小の uGUI（4 本目が同じ形にする。日本語の文字は TextMeshPro + フォントアセット）
+- シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home`・`Produce` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` の入口は `ProduceEntry`（セッションがあれば背景のページを積み、局面の画面を出す。7.6）
 - 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）
 
 ## 未決事項

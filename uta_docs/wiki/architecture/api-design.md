@@ -100,6 +100,15 @@ updated: 2026-11-16
 
 Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Response の全フィールドと、サーバーでの処理の手順は [produce-server.md](server/produce-server.md) 5・6章が正。
 
+- `IProduceService` は、クライアントでは Infrastructure の `ProduceUseCase`（`IProduceUseCase`）が呼ぶ（2026-11-16。[計画](../../plans/2026-11-03-client-screens-formation.md)）。業務エラーとして受けるコード（`handledCodes`）と、結果の種類への割り振りは次のとおり。表に無いコードは共通エラーハンドラーに任せ、結果は `Failed`（放棄は false）
+
+| RPC | 受けるコード | 結果 |
+|---|---|---|
+| `StartAsync` | `PRODUCE_INVALID_FORMATION`・`PRODUCE_ALREADY_IN_PROGRESS`・`PRODUCE_INVALID_ARGUMENT` | `ProduceStartResultKind` の同名。`ALREADY_IN_PROGRESS` は手元のセッションを消して所持データを取り直す |
+| `GetStateAsync`（再開） | なし | 局面が `Nothing` ならセッションを消して所持データを取り直し `NotInProgress`、それ以外は `Resumed` |
+| `AbandonAsync` | `PRODUCE_NOT_IN_PROGRESS`・`PRODUCE_SESSION_DISCARDED` | 成功とこの 2 つは、セッションを消して所持データを取り直し true |
+| 操作の 4 つ（週の行動・スキルカード獲得・試験の再挑戦・レッスンの行動） | `PRODUCE_STALE_OPERATION`・`PRODUCE_UNEXPECTED_PHASE`・`PRODUCE_INVALID_ARGUMENT`・`PRODUCE_NOT_IN_PROGRESS`・`PRODUCE_SESSION_DISCARDED` | `ProduceStepResultKind`。前の 2 つは `GetStateAsync` で取り直して `Recovered`（取り直した局面が `Nothing` なら後の 2 つと同じ）、`INVALID_ARGUMENT` は `Rejected`、後の 2 つはセッションを消して所持データを取り直し `SessionEnded`（[screen-design.md](screen-design.md) 7.6） |
+
 ## 2. エラー [決定。2026-10-28]
 
 - 業務エラーは `BusinessException(ErrorCode, ...)` を投げる（VolTech-MagicOnion の仕様）。クライアントは VolTech-MagicOnion の `ErrorPolicy` に従う
