@@ -1,7 +1,7 @@
 ---
 title: 実装計画: Android の実機のスモークと IL2CPP の計算の一致（MVP の完了条件 7）
 status: draft
-updated: 2026-11-11
+updated: 2026-11-16
 spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/architecture/lesson-phases.md, ../wiki/architecture/produce-domain.md
 ---
 
@@ -19,21 +19,14 @@ spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/a
 6. 新しい asmdef `Uta.Client.Tests.SharedDomainReplay` には LINQ を書かないので、ZLinq の `AssemblyAttributes.cs` を置かない（CLAUDE.md の ZLinq の決まりは LINQ を書くファイルのため。参照も [lesson-phases.md](../wiki/architecture/lesson-phases.md) 8章の 3 つに限る）
 7. ビルド用の worktree `../Uta-wt/build-android` は、`tools/worktree-pool.sh` の番号の worktree にしない（`build-foundation` と同じく、ビルドだけに使う detached の worktree）。`git worktree add --detach` で作る
 
+8. **実機からローカルのサーバーへは `adb reverse` でつなぐ**（2026-11-16。ユーザーの判断。クラウドの dev 環境は使わない。Claude の推奨どおり）。USB でつなぎ `adb reverse tcp:5000 tcp:5000`。コードは変えない。[repository-layout.md](../wiki/architecture/repository-layout.md) 11.1 の「PC の LAN の IP を使い、ポートを公開する」を置き換えた。採らなかった案: LAN の IP と起動引数（Unity が `-e unity` の引数を `Environment.GetCommandLineArgs` に出すか未確認。Kestrel の公開とファイアウォールが要る）、ビルド時に埋める（IP が変わるたびにビルドし直し）
+9. **テストのカードを `shared/Uta.Shared.Domain.Testing` に移し、.NET と実機で共有する**（2026-11-16。ユーザーの「進めて」で、Claude の推奨どおり）。[lesson-phases.md](../wiki/architecture/lesson-phases.md) 8章の「asmdef の参照は `Uta.Shared.Domain` と Unity Test Framework だけ」[2026-11-01。ユーザーの判断] に `Uta.Shared.Domain.Testing` を足す。採らなかった案: Unity 側に写す（約 400 行の二重の定義。写しのずれと IL2CPP の不一致を見分けられない）
+10. **Android のビルドは専用の worktree `../Uta-wt/build-android` で回す**（2026-11-16。ユーザーの「進めて」で、Claude の推奨どおり）。採らなかった案: `build-foundation` を使い回す（Windows と行き来するたびに再インポート）
+11. **実機の有無は、タスク 1 の手順 5 で確かめる**（2026-11-16。Claude が決めた）。つながらなければ止まる条件に当たり、Windows に代えるか（4.4）をユーザーが決める
+
 ## ユーザーの確認が要ること
 
-1. **実機からローカルのサーバーへのつなぎ方**（[build-ci.md](../wiki/architecture/build-ci.md) 4章。[repository-layout.md](../wiki/architecture/repository-layout.md) 11.1 の「PC の LAN の IP を使い、ポートを公開する」を置き換える）
-   - **案 A（推奨）`adb reverse`**: USB でつなぎ `adb reverse tcp:5000 tcp:5000`。端末の `localhost:5000` が PC に届く。コードを変えない、サーバーを外に公開しない、ファイアウォールを開けない。失敗する条件: USB を抜く・端末を再起動すると消える（毎回実行する）。Wi-Fi だけではつなげない
-   - 案 B LAN の IP と起動引数: `adb shell am start ... -e unity "-uta-server-url http://<IP>:5000"`。Unity がこの引数を `Environment.GetCommandLineArgs` に出すかは未確認（スパイクが要る）。Kestrel を `0.0.0.0` で公開し、ファイアウォールを開ける。失敗する条件: 引数が届かない、IP が変わる
-   - 案 C ビルド時に埋める: ビルドの引数で URL を受けてプレイヤーに埋める。失敗する条件: IP が変わるたびにビルドし直し。コードが増える
-2. **テストのカードを Unity からも使う置き場**（[lesson-phases.md](../wiki/architecture/lesson-phases.md) 8章の決定「asmdef の参照は `Uta.Shared.Domain` と Unity Test Framework だけ」[2026-11-01。ユーザーの判断] に参照を 1 つ足す）
-   - **案 A（推奨）共有のテスト用プロジェクト**: `shared/Uta.Shared.Domain.Testing`（netstandard2.1・C# 9、Unity のパッケージ `com.uta.shared.domain.testing`、asmdef は `UNITY_INCLUDE_TESTS` のときだけ）を作り、テストのカード 7 ファイルを移し、再生のシナリオと期待値を置く。.NET と実機が同じコード・同じ期待値を使う。失敗する条件: 並行している shared/ の改名の計画が、移すファイルや名前空間を変えると、どちらかの PR で衝突を直す
-   - 案 B Unity 側に写す: カードの定義（約 400 行）と再生の手順を `Assets/Tests/SharedDomainReplay/` にコピーする。決定どおりの参照で済む。失敗する条件: 写しがずれると、IL2CPP の不一致と見分けがつかない。カードを変えるたびに 2 か所を直す
-3. **Android のビルドの置き場**（[build-ci.md](../wiki/architecture/build-ci.md) 3章）
-   - **案 A（推奨）専用の worktree `../Uta-wt/build-android`**: Android のまま使い続ける。初回だけ Library の作成（長い）と `Assets/Packages/` のコピーが要る
-   - 案 B `../Uta-wt/build-foundation` を使い回す: Library が既にある。Windows と Android を行き来するたびに再インポート（長い）。失敗する条件: 切り替えを忘れてビルドすると、`BuildWindowsIl2Cpp`／`BuildAndroidIl2Cpp` のターゲットの確認で止まる
-4. **USB デバッグでつなげる Android の実機があるか**（arm64・Android 8.0 以上。2026-11-11 時点で `adb devices` には何も出ていない）。無ければ、条件 7 は [game-spec.md](../wiki/overview/game-spec.md) の代え方どおり Windows の IL2CPP で確かめる（この計画のタスク 1 を飛ばし、タスク 4 は 4.4 の手順にする）
-
-上の 1〜3 は、wiki（build-ci.md・repository-layout.md・lesson-phases.md）に推奨の案で書いてある（「Uta案」）。別の案になったら、wiki とこの計画を直してからレビューに出す。
+なし（2026-11-16 に 1〜3 を解決し、上の 8〜10 に移した。実機の有無は 11）
 
 ## 1. 目的と前提
 
@@ -538,4 +531,4 @@ namespace Uta.Shared.Domain.Tests.Lesson
 
 ## 6. 未決事項
 
-- 「ユーザーの確認が要ること」の 1〜4（答えをもらうまで `ready` にしない）
+なし

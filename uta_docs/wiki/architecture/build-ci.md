@@ -1,7 +1,7 @@
 ---
 title: ビルドと実機の確かめ方
 status: draft
-updated: 2026-11-11
+updated: 2026-11-16
 ---
 
 # ビルドと実機の確かめ方
@@ -22,7 +22,7 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 - 置き場: `../Uta-wt/build-foundation`（ビルドターゲットは Windows のまま使う）
 - スタンドアロンのスクリプトバックエンドは、プロジェクトの設定でも IL2CPP にする（2026-11-11。`ProjectSettings.asset` の `scriptingBackend` に `Standalone: 1`）。`BuildWindowsIl2Cpp` は前から IL2CPP を指定しているので結果は変わらない。Test Runner でスタンドアロンのプレイヤーを作るとき（5.3）に、設定どおりの IL2CPP で作らせるため。Editor の Play は Mono のまま
 
-## 3. Android の IL2CPP [Uta案。2026-11-11]
+## 3. Android の IL2CPP [決定。2026-11-16。ユーザーの判断。置き場は「進めて」で推奨どおり]
 
 | 項目 | 値 |
 |---|---|
@@ -40,7 +40,7 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 - `adb` は同梱の SDK の `platform-tools/adb.exe`（PATH には無い）。手順では `ADB="/c/Program Files/Unity/Hub/Editor/7000.0.0a12/Editor/Data/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb.exe"` と置いて呼ぶ
 - 確かめていないもの（[計画](../../plans/2026-11-11-android-smoke.md)のタスク 1 のスパイクで確かめる）: Unity 7 Alpha の Android のビルド（Gradle・IL2CPP の arm64）、YetAnotherHttpHandler のネイティブ（`android-arm64` の `.so` はパッケージにある）、MasterMemory・VContainer・MessagePack の実機での動作、Managed Stripping の既定の値で落ちないか
 
-## 4. 実機からローカルのサーバーへの接続 [Uta案。2026-11-11]
+## 4. 実機からローカルのサーバーへの接続 [決定。2026-11-16。ユーザーの判断。クラウドの dev 環境は使わない]
 
 - USB でつなぎ、`adb reverse tcp:5000 tcp:5000` で、端末の `localhost:5000` を PC の `localhost:5000` に流す。クライアントの接続先は既定の `http://localhost:5000`（`ServerEndpoint`）のままで、コードは変えない。サーバーはローカルの手順（[CLAUDE.md](../../../CLAUDE.md)「ビルド・テスト・実行」）のまま起動する（外に公開しない・ファイアウォールを開けない）
 - Android では `-uta-server-url` の起動引数を渡す手段を作らない。dev 環境（Cloud Run）につなぐ手段は、dev 環境を作るときに決める（[repository-layout.md](repository-layout.md) 11章）
@@ -66,7 +66,7 @@ MVP の完了条件 7（[game-spec.md](../overview/game-spec.md)「完了条件�
 
 比べ方の決定は [lesson-phases.md](lesson-phases.md) 8章と [produce-domain.md](produce-domain.md) 7章（項目ごと。ハッシュは作らない）。ここでは置き場と回し方を決める。
 
-- **テストのカードの置き場** [Uta案。2026-11-11]: テストのカード（`TestCards`・`Phase1Cards`〜`Phase4Cards`・`SyntheticCards`・`TestCardCatalog`）を、`Uta.Shared.Domain.Tests` から新しいプロジェクト `shared/Uta.Shared.Domain.Testing`（netstandard2.1・C# 9。Unity のパッケージ `com.uta.shared.domain.testing`）に移す。.NET のテストと Unity の実機のテストが、同じカードの定義・同じ再生の手順・同じ期待値を使うため（写すと、写しのずれと IL2CPP の不一致を見分けられない）
+- **テストのカードの置き場** [決定。2026-11-16。ユーザーの「進めて」で推奨どおり]: テストのカード（`TestCards`・`Phase1Cards`〜`Phase4Cards`・`SyntheticCards`・`TestCardCatalog`）を、`Uta.Shared.Domain.Tests` から新しいプロジェクト `shared/Uta.Shared.Domain.Testing`（netstandard2.1・C# 9。Unity のパッケージ `com.uta.shared.domain.testing`）に移す。.NET のテストと Unity の実機のテストが、同じカードの定義・同じ再生の手順・同じ期待値を使うため（写すと、写しのずれと IL2CPP の不一致を見分けられない）
   - 名前空間は移す前の `Uta.Shared.Domain.Tests.Lesson` のまま（参照している 14 ファイルを変えないため。「ルート名前空間はアセンブリ名と同じ」の規則の例外）
   - Unity の asmdef `Uta.Shared.Domain.Testing` は `defineConstraints` に `UNITY_INCLUDE_TESTS` を持ち、テストを含むビルドでだけコンパイルされる（本番のプレイヤーに入れない）
 - **再生のシナリオ**: `Uta.Shared.Domain.Testing` の `LessonReplayScenario.Run`。36 枚のデッキ（フェーズ 1〜4 のカードを 1 枚ずつ）で、使えるカードがあれば手札の先頭から使い、無ければスキップして、レッスンの終わりまで進める（今の `LessonReplayTests` と同じ手順）。通常のレッスンと中間試験の 2 つ

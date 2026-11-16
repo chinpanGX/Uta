@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-11-11
+updated: 2026-11-16
 ---
 
 # リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
@@ -52,7 +52,7 @@ uta/
 ├─ shared/                   # [決定] Unity・サーバー共有。C# 9 の範囲（.editorconfig）
 │  ├─ Uta.Shared.Domain/            # [決定] 純粋なゲームルール（ADR 0008）
 │  ├─ Uta.Shared.Contracts/            # [決定] サービスIF・DTO（通信契約。ADR 0008）
-│  ├─ Uta.Shared.Domain.Testing/    # [Uta案。2026-11-11] テストのカード・再生のシナリオと期待値。.NET のテストと Unity の実機のテストが使う（10.4、build-ci.md 5.2）
+│  ├─ Uta.Shared.Domain.Testing/    # [決定。2026-11-16] テストのカード・再生のシナリオと期待値。.NET のテストと Unity の実機のテストが使う（10.4、build-ci.md 5.2）
 │  └─ Uta.Shared.Domain.Tests/      # [決定] Uta.Shared.Domain の単体テスト（10.4）
 ├─ server/                   # [決定] .NET 10
 │  ├─ compose.yaml           # [決定] ローカル開発用の PostgreSQL（11.4）
@@ -357,7 +357,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 - テストプロジェクトはテスト対象の隣に置く。`Uta.Shared.Domain` は `shared/Uta.Shared.Domain.Tests/`（2026-10-28 決定）
 - サーバーは `server/Uta.Server.Tests/` の 1 プロジェクトに、単体テスト・アーキテクチャテスト（NetArchTest。3章）・結合テスト（Testcontainers）をまとめ、フォルダで分ける（2026-10-31 決定。VolTech-MagicOnion の `VolTech.Server.Tests` と同じ形）。Docker が無いと結合テストは通らない
 - 使っている版: xunit.v3 4.0.2（2026-10-28 時点の最新の安定版）。サーバーのテストの版（Testcontainers.PostgreSql・NetArchTest.Rules・Mvc.Testing など）は `Directory.Packages.props` が正。実行方式は Microsoft.Testing.Platform（ルートの `global.json`。.NET 10 SDK の `dotnet test` で必要）
-- テストのカード（`TestCards`・`Phase*Cards`・`SyntheticCards`・`TestCardCatalog`）は `shared/Uta.Shared.Domain.Testing` に置く [Uta案。2026-11-11。2026-11-01 から `Uta.Shared.Domain.Tests` にあったものを移す]。Unity の実機のテスト（IL2CPP の計算の一致）からも使うため（[build-ci.md](build-ci.md) 5.2）。`Uta.Shared.Domain.Tests` が ProjectReference で参照する。IL2CPP の一致の期待値（`LessonReplayExpected`）もここにコードの定数で書く（上の「別ファイルにしない」のとおり）
+- テストのカード（`TestCards`・`Phase*Cards`・`SyntheticCards`・`TestCardCatalog`）は `shared/Uta.Shared.Domain.Testing` に置く [決定。2026-11-16。2026-11-01 から `Uta.Shared.Domain.Tests` にあったものを移す]。Unity の実機のテスト（IL2CPP の計算の一致）からも使うため（[build-ci.md](build-ci.md) 5.2）。`Uta.Shared.Domain.Tests` が ProjectReference で参照する。IL2CPP の一致の期待値（`LessonReplayExpected`）もここにコードの定数で書く（上の「別ファイルにしない」のとおり）
 - `Uta.Server.Tests` は `Uta.Shared.Domain.Tests`（Exe の xunit.v3 のテスト）を ProjectReference で参照する [2026-11-01]。マスタのカードとテストのカードの一致テスト（[計画](../../plans/2026-11-01-card-master-match.md)）が、テスト側の `Phase*Cards` を使うため。ビルド・実行で問題は出なかった（テストの二重発見もない）
 
 ### 10.5 アプリのバージョン
@@ -390,7 +390,7 @@ Shared.Domain と固有の知識が混ざるときの作法:
 
 - 本番環境は分けない（商用公開は非目標）
 - 結合テストは Testcontainers がテストのたびに DB を立ち上げるので、上の DB とは別（10.4）
-- 実機からローカルのサーバーにつなぐときは、USB でつなぎ、`adb reverse tcp:5000 tcp:5000` で端末の `localhost:5000` を PC に流す [Uta案。2026-11-11。それまでは「PC の LAN の IP を使い、ポートを公開する」]。接続先は既定の `http://localhost:5000` のまま（[build-ci.md](build-ci.md) 4章）
+- 実機からローカルのサーバーにつなぐときは、USB でつなぎ、`adb reverse tcp:5000 tcp:5000` で端末の `localhost:5000` を PC に流す [決定。2026-11-16。ユーザーの判断。それまでは「PC の LAN の IP を使い、ポートを公開する」]。接続先は既定の `http://localhost:5000` のまま（[build-ci.md](build-ci.md) 4章）
 
 ### 11.2 工程
 
