@@ -22,6 +22,6 @@ public interface IPlayerRepository
     /// <summary>強化ptとゴールドを 1 文で払い、残りを返す。どちらかが足りなければ null（更新は 0 行）。</summary>
     Task<PlayerBalance?> TrySpendSupportAndGoldAsync(TxContext tx, Ulid playerId, int supportPoints, int gold);
 
-    /// <summary>プロデュースの報酬を加え、Lv と経験値を上書きする（1 文）。</summary>
-    Task GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int level, int exp);
+    /// <summary>プロデュースの報酬を加え、経験値の累計を上書きする（1 文）。</summary>
+    Task GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int exp);
 }

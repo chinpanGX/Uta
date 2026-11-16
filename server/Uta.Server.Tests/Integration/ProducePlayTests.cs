@@ -7,6 +7,7 @@ using Uta.Server.Tests.Integration.Support;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Domain.Lesson;
+using Uta.Shared.Domain.Player;
 using Uta.Shared.Domain.Produce;
 
 namespace Uta.Server.Tests.Integration;
@@ -40,8 +41,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         return (row.GachaCurrency, row.Gold, row.SupportPoints, row.Exp);
     }
 
-    private static IReadOnlyList<int> MasterRequiredExps() =>
-        MasterDataLoader.Load().PlayerLevelExpTable.All.OrderBy(x => x.Level).Select(x => x.RequiredExp).ToList();
+    private static PlayerLevelCatalog MasterLevelCatalog() => PlayerLevelCatalogFactory.Create(MasterDataLoader.Load());
 
     private static async Task AssertReasonAsync(Func<Task> call, string reason)
     {
@@ -87,11 +87,8 @@ public class ProducePlayTests(PostgresFixture postgres)
         Assert.Equal(2500 + reward.GachaCurrency, await Scalar<int>("SELECT gacha_currency FROM players WHERE player_id = $1", player));
         Assert.Equal(10000 + reward.Gold, await Scalar<int>("SELECT gold FROM players WHERE player_id = $1", player));
         Assert.Equal(10000 + reward.SupportPoints, await Scalar<int>("SELECT support_points FROM players WHERE player_id = $1", player));
-        var (level, exp) = PlayerLevelRules.AddExp(1, 0, reward.Exp, MasterRequiredExps());
-        Assert.Equal(level, await Scalar<int>("SELECT level FROM players WHERE player_id = $1", player));
-        Assert.Equal(exp, await Scalar<int>("SELECT exp FROM players WHERE player_id = $1", player));
-        Assert.Equal(level, result.PlayerLevel);
-        Assert.Equal(exp, result.PlayerExp);
+        Assert.Equal(reward.Exp, await Scalar<int>("SELECT exp FROM players WHERE player_id = $1", player));
+        Assert.Equal(reward.Exp, result.PlayerExp);
 
         Assert.Equal(1, await Scalar<int>("SELECT status FROM produce_sessions WHERE player_id = $1", player));
         Assert.Equal(1, await Scalar<long>("SELECT count(*) FROM produce_results WHERE player_id = $1", player));
@@ -256,16 +253,16 @@ public class ProducePlayTests(PostgresFixture postgres)
         var (_, final) = await PlayShortestAsync(player, signIn);
 
         var reward = MasterReward(final.Result.Rank);
-        Assert.Equal(2, final.Result.PlayerLevel);
-        Assert.Equal(39 + reward.Exp - 40, final.Result.PlayerExp);
+        Assert.Equal(39 + reward.Exp, final.Result.PlayerExp);
+        Assert.Equal(2, MasterLevelCatalog().GetLevel(final.Result.PlayerExp));
 
         var (other, otherSignIn) = await NewPlayerAsync(channel, "another-secret-0123456789");
-        await postgres.ExecuteAsync("UPDATE players SET level = 100, exp = 0 WHERE player_id = $1", other.PlayerId);
+        await postgres.ExecuteAsync("UPDATE players SET exp = 198000 WHERE player_id = $1", other.PlayerId);
 
         var (_, otherFinal) = await PlayShortestAsync(other, otherSignIn);
 
-        Assert.Equal(100, otherFinal.Result.PlayerLevel);
-        Assert.Equal(0, otherFinal.Result.PlayerExp);
+        Assert.Equal(198000, otherFinal.Result.PlayerExp);
+        Assert.Equal(100, MasterLevelCatalog().GetLevel(otherFinal.Result.PlayerExp));
     }
 
     [Fact]

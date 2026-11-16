@@ -419,3 +419,5 @@ Unity でしか確かめられないもの: クライアントのコンパイル
 
 | タスク | コミット | ズレ |
 |---|---|---|
+| 1 | 1483a68 | なし（Editor を開いたので `Player.meta`・`PlayerLevelCatalog.cs.meta` もこのコミットに入れた） |
+| 2 | （タスク 2 のコミット） | なし（`gen.ps1` は `-ExecutionPolicy Bypass` を付けて実行。server のテスト 313 件成功） |

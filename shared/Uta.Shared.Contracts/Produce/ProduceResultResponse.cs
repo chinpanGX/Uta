@@ -7,7 +7,7 @@ namespace Uta.Shared.Contracts.Produce
     public sealed class ProduceResultResponse
     {
         [SerializationConstructor]
-        public ProduceResultResponse(ProduceEnding ending, ExamOutcome examOutcome, int evaluationValue, ProduceRank rank, int finalScore, int finalRank, int gachaCurrency, int gold, int supportPoints, int exp, int playerLevel, int playerExp)
+        public ProduceResultResponse(ProduceEnding ending, ExamOutcome examOutcome, int evaluationValue, ProduceRank rank, int finalScore, int finalRank, int gachaCurrency, int gold, int supportPoints, int exp, int playerExp)
         {
             Ending = ending;
             ExamOutcome = examOutcome;
@@ -19,7 +19,6 @@ namespace Uta.Shared.Contracts.Produce
             Gold = gold;
             SupportPoints = supportPoints;
             Exp = exp;
-            PlayerLevel = playerLevel;
             PlayerExp = playerExp;
         }
 
@@ -53,10 +52,8 @@ namespace Uta.Shared.Contracts.Produce
         [Key(9)]
         public int Exp { get; }
 
+        /// <summary>付与したあとのプレイヤーの経験値の累計。</summary>
         [Key(10)]
-        public int PlayerLevel { get; }
-
-        [Key(11)]
         public int PlayerExp { get; }
     }
 }

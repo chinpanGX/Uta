@@ -70,7 +70,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         Assert.Equal(0, await Scalar<int>("SELECT status FROM produce_sessions WHERE player_id = $1", player));
         Assert.Equal(1, await Scalar<int>("SELECT app_version FROM produce_sessions WHERE player_id = $1", player));
         Assert.Equal(1, await Scalar<int>("SELECT state_version FROM produce_sessions WHERE player_id = $1", player));
-        Assert.Equal(1, await Scalar<int>("SELECT rule_version FROM produce_sessions WHERE player_id = $1", player));
+        Assert.Equal(2, await Scalar<int>("SELECT rule_version FROM produce_sessions WHERE player_id = $1", player));
         Assert.Equal(0, await Scalar<int>("SELECT version FROM produce_sessions WHERE player_id = $1", player));
         Assert.Equal(1, await Scalar<int>("SELECT week FROM produce_sessions WHERE player_id = $1", player));
     }
@@ -356,7 +356,7 @@ public class ProduceStartTests(PostgresFixture postgres)
         var result = await player.CallAsync<IProduceService, ProduceResultResponse>(x => x.AbandonAsync(), "req-4");
 
         Assert.Equal(ProduceEnding.Abandoned, result.Ending);
-        Assert.Equal(1, result.PlayerLevel);
+        Assert.Equal(0, result.PlayerExp);
         Assert.Equal(2, await Scalar<int>("SELECT status FROM produce_sessions WHERE player_id = $1", player));
         Assert.Equal(1, await Scalar<long>("SELECT count(*) FROM produce_results WHERE player_id = $1", player));
         Assert.Equal(2, await Scalar<int>("SELECT ending FROM produce_results WHERE player_id = $1", player));

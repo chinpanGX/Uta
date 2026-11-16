@@ -196,7 +196,7 @@ public class MasterDataTests
         Assert.Equal(13, Db.EvaluationRankTable.Count);
         Assert.Equal(13, Db.EvaluationRankRewardTable.Count);
         Assert.Equal(4, Db.OfferRarityWeightTable.Count);
-        Assert.Equal(99, Db.PlayerLevelExpTable.Count);
+        Assert.Equal(100, Db.PlayerLevelExpTable.Count);
     }
 
     [Fact]
@@ -209,11 +209,13 @@ public class MasterDataTests
     }
 
     [Fact]
-    public void PlayerLevelExp_EveryRowIs40TimesLevel()
+    public void PlayerLevelExp_EveryRowMatchesFormula()
     {
         foreach (var row in Db.PlayerLevelExpTable.All)
         {
-            Assert.True(row.RequiredExp == 40 * row.Level, $"playerLevelExp Level {row.Level} の RequiredExp が {row.RequiredExp}");
+            Assert.True(row.FromExp == 20 * row.Level * (row.Level - 1), $"playerLevelExp Level {row.Level} の FromExp が {row.FromExp}");
+            var expectedToExp = row.Level < 100 ? 20 * row.Level * (row.Level + 1) - 1 : 198000;
+            Assert.True(row.ToExp == expectedToExp, $"playerLevelExp Level {row.Level} の ToExp が {row.ToExp}");
         }
     }
 
@@ -352,13 +354,24 @@ public class MasterDataTests
         Assert.Equal((800, 20000, 10000, 60), (ssPlus.GachaCurrency, ssPlus.Gold, ssPlus.SupportPoints, ssPlus.Exp));
     }
 
-    // ProduceCompletion は All をそのまま必要経験値の列にする。PlayerLevelRules.AddExp は requiredExps[level - 1] で引くので、All が Level の昇順であることを固定する
+    // PlayerLevelCatalogFactory は All を並べ替えずに FromExp の列にする。PlayerLevelCatalog.Create は単調増加でなければ例外なので、All が Level の昇順であることを固定する
     [Fact]
     public void PlayerLevelExp_AllIsInLevelOrder()
     {
         var all = Db.PlayerLevelExpTable.All;
-        Assert.Equal(Enumerable.Range(1, 99), all.Select(x => x.Level));
-        Assert.Equal(40, all.First().RequiredExp);
-        Assert.Equal(3960, all.Last().RequiredExp);
+        Assert.Equal(Enumerable.Range(1, 100), all.Select(x => x.Level));
+        Assert.Equal(0, all.First().FromExp);
+        Assert.Equal(198000, all.Last().FromExp);
+    }
+
+    [Fact]
+    public void PlayerLevelCatalogFactory_Create_MaxLevel100_MaxExp198000()
+    {
+        var catalog = PlayerLevelCatalogFactory.Create(Db);
+        Assert.Equal(100, catalog.MaxLevel);
+        Assert.Equal(198000, catalog.MaxExp);
+        Assert.Equal(1, catalog.GetLevel(0));
+        Assert.Equal(2, catalog.GetLevel(40));
+        Assert.Equal(99, catalog.GetLevel(197999));
     }
 }

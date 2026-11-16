@@ -3,6 +3,7 @@ using Uta.Server.Domain.Idol;
 using Uta.Server.Domain.Player;
 using Uta.Server.Domain.Produce;
 using Uta.Server.Domain.Support;
+using Uta.Shared.Domain.Player;
 using Uta.Shared.Domain.Produce;
 using VolTech.Server.Transaction;
 
@@ -10,7 +11,8 @@ namespace Uta.Server.Application.Produce;
 
 public sealed class StartProduceUseCase(
     IProduceSessionRepository sessions, IPlayerRepository players, IIdolRepository idols, ISupportCardRepository supportCards,
-    ProduceEngine engine, ProduceCatalog catalog, IRandomSource randomSource, ProduceSessionDiscarder discarder, ProduceStateResultFactory resultFactory)
+    ProduceEngine engine, ProduceCatalog catalog, IRandomSource randomSource, ProduceSessionDiscarder discarder, ProduceStateResultFactory resultFactory,
+    PlayerLevelCatalog levelCatalog)
 {
     public async Task<ProduceStateResult> ExecuteAsync(
         TxContext tx, Ulid playerId, int appVersion, int idolId, IReadOnlyList<string> supportCardUids, int rentalCandidateId, int scenarioId)
@@ -79,7 +81,7 @@ public sealed class StartProduceUseCase(
 
         var player = await players.FindAsync(tx, playerId) ?? throw new InvalidOperationException("player not found");
         var input = new ProduceStartInput(
-            scenarioId, idolId, player.Level, owned.Select(x => new SupportCardInput(x.MasterId, x.Level, x.LimitBreak)).ToList());
+            scenarioId, idolId, levelCatalog.GetLevel(player.Exp), owned.Select(x => new SupportCardInput(x.MasterId, x.Level, x.LimitBreak)).ToList());
 
         var seed = randomSource.Create().NextUInt64();
         var streams = new SessionRandomStreams(seed, []);
