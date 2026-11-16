@@ -1,7 +1,7 @@
 ---
 title: 実装計画: shared/ の型の改名（naming.md の差の表の Shared.Domain・Contracts の行）
-status: ready
-updated: 2026-11-12
+status: in-progress
+updated: 2026-11-16
 spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/master/gacha-tables.md, ../wiki/systems/gacha.md
 ---
 
@@ -274,3 +274,8 @@ Windows の IL2CPP のプレイヤーのビルドは確かめない（型を足�
 ## 6. 未決事項
 
 なし。
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
