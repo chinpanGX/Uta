@@ -5,10 +5,10 @@ using Uta.Shared.Domain.Rng;
 namespace Uta.Shared.Domain.Produce
 {
     /// <summary>審査ターンの列を作る（produce.md 5.1）。</summary>
-    public static class ExamTurnBuilder
+    public static class ExamTurnFactory
     {
         /// <summary>paramValues は試験の開始時のパラメータ（添字は ProduceParams.ToIndex）。</summary>
-        public static IReadOnlyList<ExamTurn> Build(ProduceCatalog catalog, IdolDefinition idol, ExamKind kind, IReadOnlyList<int> paramValues, IRandom random)
+        public static IReadOnlyList<ExamTurn> Create(ProduceCatalog catalog, IdolDefinition idol, ExamKind kind, IReadOnlyList<int> paramValues, IRandom random)
         {
             var pattern = catalog.GetExamPattern(idol.ExamPatternId);
             var counts = pattern.GetTurnCounts(kind, idol.Plan);

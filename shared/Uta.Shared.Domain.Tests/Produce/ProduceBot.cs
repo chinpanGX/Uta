@@ -48,7 +48,7 @@ namespace Uta.Shared.Domain.Tests.Produce
                     {
                         foreach (var instanceId in state.Lesson.Zones.Hand)
                         {
-                            if (engine.CanUse(state, instanceId) == UseCheckResult.Ok)
+                            if (engine.CanUse(state, instanceId) == UseCheckResultKind.Ok)
                             {
                                 return ProduceCommand.UseCard(instanceId);
                             }
@@ -97,7 +97,7 @@ namespace Uta.Shared.Domain.Tests.Produce
 
                 var command = Next(engine, catalog, state, playCards, retryExam);
                 var result = engine.Apply(state, command, streams);
-                if (result != ProduceApplyResult.Accepted)
+                if (result != ProduceApplyResultKind.Accepted)
                 {
                     throw new InvalidOperationException("操作が受け付けられませんでした: " + result);
                 }

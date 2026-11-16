@@ -78,7 +78,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             while (state.Phase != ProducePhase.Finished)
             {
                 var command = ProduceBot.Next(engine, Catalog, state, true, retryExam);
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
                 AssertSameState(state, RoundTrip(state));
                 count++;
                 Assert.True(count < 3000);
@@ -100,7 +100,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             while (b.Phase != ProducePhase.Finished)
             {
                 var command = ProduceBot.Next(engine, Catalog, b, true, false);
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(b, command, streamsB));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(b, command, streamsB));
                 b = RoundTrip(b);
             }
 

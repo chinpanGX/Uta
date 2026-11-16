@@ -33,21 +33,25 @@ namespace Uta.Client.Infrastructure.Support
             {
                 if (result.ErrorCode == SupportErrors.NotEnoughPoints)
                 {
+                    await RefreshAsync();
                     return LevelUpResult.Rejected(SupportResultKind.NotEnoughPoints);
                 }
 
                 if (result.ErrorCode == PlayerErrors.NotEnoughGold)
                 {
+                    await RefreshAsync();
                     return LevelUpResult.Rejected(SupportResultKind.NotEnoughGold);
                 }
 
                 if (result.ErrorCode == SupportErrors.InvalidTargetLevel)
                 {
+                    await RefreshAsync();
                     return LevelUpResult.Rejected(SupportResultKind.InvalidTarget);
                 }
 
                 if (result.ErrorCode == SupportErrors.NotOwned)
                 {
+                    await RefreshAsync();
                     return LevelUpResult.Rejected(SupportResultKind.NotOwned);
                 }
 
@@ -84,16 +88,19 @@ namespace Uta.Client.Infrastructure.Support
             {
                 if (result.ErrorCode == SupportErrors.MaxLimitBreak)
                 {
+                    await RefreshAsync();
                     return LimitBreakResult.Rejected(SupportResultKind.MaxLimitBreak);
                 }
 
                 if (result.ErrorCode == SupportErrors.InvalidMaterial)
                 {
+                    await RefreshAsync();
                     return LimitBreakResult.Rejected(SupportResultKind.InvalidMaterial);
                 }
 
                 if (result.ErrorCode == SupportErrors.NotOwned)
                 {
+                    await RefreshAsync();
                     return LimitBreakResult.Rejected(SupportResultKind.NotOwned);
                 }
 
@@ -113,7 +120,7 @@ namespace Uta.Client.Infrastructure.Support
             }
             catch (InvalidOperationException)
             {
-                // 取り直しの失敗は成功を妨げない（通信の失敗のダイアログは ApiCore が出している）
+                // 取り直しの失敗は結果（成功・業務エラーの種類）を変えない（通信の失敗のダイアログは ApiCore が出している）
             }
         }
     }

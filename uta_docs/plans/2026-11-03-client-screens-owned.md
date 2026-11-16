@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
 status: done
-updated: 2026-11-09
+updated: 2026-11-16
 spec: ../wiki/systems/idol-support.md
 ---
 
@@ -477,6 +477,13 @@ builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
   - `LimitBreakAsync_DisposedDuringSelection_TouchesNothing`: `PopGates` に gate → `LimitBreakAsync()` を始める → `Dispose()` → gate を `OwnedSelection.ForSupportCard("01D")` で開ける → `"WaitForPop"` のあとに記録が無く、`Calls` が空
   - `BackAsync_PopsPageOnce`: `BackAsync()` を 2 回 → `"PopPage:SupportDetailPresenter"` が 1 回
   - `Plus1Clicked_RunsLevelUp`: `RaisePlus1Clicked()` → `"Confirm:…"` が記録される（イベントの購読）。`Dispose_UnsubscribesEvents`: `Dispose()` のあと `HasSubscribers == false`
+
+### O11. I2・M5 の直し（2026-11-09。ユーザーの判断「両方直す」。この節は O0〜O10 より優先）
+
+- **I2（業務エラーのあとも取り直す）**: `SupportUseCase` の `LevelUpAsync`・`LimitBreakAsync` で、業務エラー（`handledCodes` に入れたコード。`Failed` 以外の `SupportResultKind` に写したもの）のときも、`Rejected(…)` を返す前に `try { await playerUseCase.RefreshAsync(); } catch (InvalidOperationException) { }` を呼ぶ（手元の所持データが古いとき、次の表示を直すため。Presenter は文言のあと `Refresh()` するので、取り直した値が出る）。`Failed`（ほかのエラー・通信の失敗。共通のダイアログは `ApiCore` が出している）では取り直さない。`ISupportUseCase` の `<summary>` も「業務エラーのときも取り直す（失敗しても結果は変えない）」に直す
+  - テスト（`SupportUseCaseTests`）: `LevelUp_ErrorCodes_MapToKinds`・`LimitBreak_ErrorCodes_MapToKinds` は、業務エラーごとに `RefreshCount` が 1 ずつ増えることも確かめる（4 つなら最後に 4、3 つなら 3）。`LevelUp_OtherError_ReturnsFailed` は `RefreshCount == 0`。`LevelUp_BusinessErrorRefreshFails_StillReturnsKind` を足す（`Fail(SupportErrors.NotOwned)` と `RefreshResults` に `() => throw new InvalidOperationException("sign-in failed: x")` → `NotOwned`）
+- **M5（足りない +1・+5 は押せなくする）**: `SupportDetailDtoFactory.Create` の `LevelSteps` で、`target > card.Level` でも `cost = GetLevelUpCost(card.MasterId, card.Level, target)` が `cost.SupportPoints > sp` か `cost.Gold > gold` なら、`Label = 名前 + " → Lv " + target + "（足りません）"`、`Enabled = false`、`TargetLevel = card.Level`、`ConfirmText = null`（`最大` は今のまま。`PlanTarget` が払える目標だけを返すので当たらない）。`SupportLevelPlanner.PlanTarget` は変えない
+  - テスト: `SupportDetailPresenterTests.InitializeAsync_MaxNotAffordable_ShowsShortage` の期待を `"SetLevelButtons:+1 → Lv 4（足りません）,+5 → Lv 8（足りません）,最大（足りません）,False,False,False"` に直す。`SupportDetailDtoFactoryTests` に `Create_NotAffordable_DisablesStep` を足す（`SetPlayer(gold: 1000, supportPoints: 300)` → `+1` は有効（費用 100）、`+5` は `"+5 → Lv 8（足りません）"`・無効・`TargetLevel == 3`・`ConfirmText == null`、`最大` は `"最大 → Lv 6（強化pt 300 / G 150）"`）。`LevelUpAsync_NotEnoughPoints_ShowsInfo` はそのまま（サーバーが断る場合の文言の確かめとして残す）
 
 ## 基盤 11d9b06 への読み替え（2026-11-08。[クライアントの移行計画](2026-11-08-client-foundation-migration.md)。この節が本文と食い違ったら、この節が正）
 
@@ -1301,4 +1308,5 @@ Play モード・手動（タスク 5。Editor、サーバー起動済み。初�
 | 4 | 5b2c58f | テスト名 LevelUpAsync_UsesCacheAtClickTime → LevelUpAsync_UsesRepositoryAtClickTime |
 | 5（Play。進行役） | — | ローカルのサーバーで確かめた: ホームの「アイドル」→ 所持一覧（タブ・下段の出し隠し・絞り込みで 0 件の「ありません」）→ 詳細（4 行・アビリティ・ボタンのラベル）→ +1・最大（確認 → Lv と強化pt・ゴールドが減る）→ 上限解放（素材の一覧はタブ・プラン/タイプの段なし・同じカードだけ・Lv の昇順 → 確認 → 解放 1・最大 Lv 25、一覧に戻ると素材が消えた）→ 素材の無いカードの案内 → ホームへ戻る。Uta のコードの例外なし（コンソールのエラーは Unity.AI.* のパッケージだけ）。確かめていない: 強化pt 不足のダイアログ（EditMode のテストで確認）、素材の一覧の「戻る」で何も起きないこと（素材の一覧を「戻る」で閉じた後、詳細に戻ったことだけ見た）。Editor が背面だとフレームが進まないので、Play 中だけ eval で Application.runInBackground = true にした（プロジェクトの設定は変えていない） |
 | レビュー対応（O10） | 0903765 | M8 の期待は計画の文面の誤り（01D を消すと残るサポートA は Lv 3）。計画を直した。M2 で GetLevelUpCost も Dictionary を使う形にした |
-| 残したもの | — | コードレビュー 2 回目の Minor 4 件（エラーのあとの再表示・積んだあとの破棄のガード・「最大」のループの上端とゴールドで止まる場合・DidPopEnter_RefreshesRows の重なる Assert のテスト）は直していない。ユーザーの判断待ち: I2（キャッシュのずれを示すエラー（InvalidTarget・NotOwned・InvalidMaterial・MaxLimitBreak）のあとも取り直さない）、M5（強化pt・ゴールドが足りない +1・+5 も押せて、確認のあとにサーバーが拒否する） |
+| 残したもの | — | コードレビュー 2 回目の Minor 4 件（エラーのあとの再表示・積んだあとの破棄のガード・「最大」のループの上端とゴールドで止まる場合・DidPopEnter_RefreshesRows の重なる Assert のテスト）は直していない。I2・M5 はユーザーの判断「両方直す」で O11 として直した（次の行） |
+| O11（I2・M5） | 3669bb4 ほか | なし（計画の try/catch は、中身が同じ既存の private の `RefreshAsync` で書いた）。コードレビュー（2026-11-16）の Minor のうち、コメント 2 件と、テストの補強 3 件（取り直しが呼ばれたこと・+5 のちょうど払える境目とゴールドだけ足りない場合・足りない +5 を押しても何もしないこと）を直した。「足りるか」の比較を `SupportLevelPlanner` にまとめる M6 は、次に Planner を触るときに回した。確かめた範囲: EditMode のテスト（`unity test`。Editor を閉じた状態で 371 件）。Editor の Play では確かめていない |

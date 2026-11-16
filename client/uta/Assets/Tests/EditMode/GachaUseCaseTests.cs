@@ -32,7 +32,7 @@ namespace Uta.Client.Tests
 
         private static Func<UnaryResult<DrawResponse>> Success()
         {
-            return FakeGachaService.Ok(new DrawResponse(new[] { GachaFixtures.IdolResult(1, 1, GachaOutcome.New, 0) }, 3000, 1));
+            return FakeGachaService.Ok(new DrawResponse(new[] { GachaFixtures.IdolResult(1, 1, GachaResultKind.New, 0) }, 3000, 1));
         }
 
         [UnityTest]

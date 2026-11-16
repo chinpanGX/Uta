@@ -40,7 +40,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         {
             var state = TestStates.PlayerState(new[] { Phase1Cards.F01 }, hand: new[] { 1 }, drawPile: new int[0], hp: 30, usesLeft: 2, setup: MainExam(), turn: 1);
 
-            Assert.Equal(LessonApplyResult.Accepted, EngineWith().Apply(state, LessonCommand.UseCard(1), TestStates.NewRandom()));
+            Assert.Equal(LessonApplyResultKind.Accepted, EngineWith().Apply(state, LessonCommand.UseCard(1), TestStates.NewRandom()));
 
             Assert.Equal(14, state.ParamGained);
         }

@@ -11,7 +11,7 @@ public sealed class ProduceStateResultFactory(ProduceEngine engine, ProduceCatal
         var npcScores = state.Phase == ProducePhase.Exam
             ? ProduceFormulas.NpcScores(catalog.GetScenario(state.Input.ScenarioId).GetWeek(state.Week).RivalBaseScore)
             : [];
-        var usableHand = state.Lesson is null ? [] : state.Lesson.Zones.Hand.Select(id => engine.CanUse(state, id) == UseCheckResult.Ok).ToArray();
+        var usableHand = state.Lesson is null ? [] : state.Lesson.Zones.Hand.Select(id => engine.CanUse(state, id) == UseCheckResultKind.Ok).ToArray();
         var report = examResult ?? (state.Phase == ProducePhase.ExamResult ? state.LastExam : null);
         return new ProduceStateResult(
             state,

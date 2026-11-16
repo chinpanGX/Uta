@@ -20,7 +20,7 @@ namespace Uta.Shared.Domain.Tests.Produce
         {
             while (state.Phase == ProducePhase.Lesson)
             {
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.Skip(), streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.Skip(), streams));
             }
         }
 
@@ -28,14 +28,14 @@ namespace Uta.Shared.Domain.Tests.Produce
         private static ProduceState ToScenario2Week2(ProduceEngine engine, TestRandomStreamSource streams)
         {
             var state = Start(engine, streams, 2);
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams));
             SkipLesson(engine, state, streams);
             Assert.Equal(2, state.Week);
             Assert.Equal(ProducePhase.WeekSelect, state.Phase);
             return state;
         }
 
-        private static void AssertRejected(ProduceEngine engine, ProduceState state, TestRandomStreamSource streams, ProduceCommand command, ProduceApplyResult expected)
+        private static void AssertRejected(ProduceEngine engine, ProduceState state, TestRandomStreamSource streams, ProduceCommand command, ProduceApplyResultKind expected)
         {
             var before = ProduceStateComparer.Describe(state);
             var operationBefore = state.NextOperationNumber;
@@ -85,7 +85,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = Start(engine, streams, 1);
 
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseOther(1), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseOther(1), ProduceApplyResultKind.InvalidArgument);
             Assert.Equal(0, state.NextOperationNumber);
             Assert.Empty(state.Operations);
         }
@@ -97,8 +97,8 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = Start(engine, streams, 1);
 
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseLesson(5, ParamKind.Singing), ProduceApplyResult.InvalidArgument);
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseLesson(-1, ParamKind.Singing), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseLesson(5, ParamKind.Singing), ProduceApplyResultKind.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseLesson(-1, ParamKind.Singing), ProduceApplyResultKind.InvalidArgument);
         }
 
         [Fact]
@@ -108,7 +108,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = Start(engine, streams, 1);
 
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseLesson(0, ParamKind.Nothing), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseLesson(0, ParamKind.Nothing), ProduceApplyResultKind.InvalidArgument);
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var state = Start(engine, streams, 1);
             var command = ProduceCommand.ChooseLesson(0, ParamKind.Singing);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
 
             Assert.Equal(ProducePhase.Lesson, state.Phase);
             Assert.NotNull(state.Lesson);
@@ -150,10 +150,10 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = Start(engine, streams, 1);
 
-            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(0), ProduceApplyResult.UnexpectedPhase);
-            AssertRejected(engine, state, streams, ProduceCommand.ExamRetry(), ProduceApplyResult.UnexpectedPhase);
-            AssertRejected(engine, state, streams, ProduceCommand.UseCard(1), ProduceApplyResult.UnexpectedPhase);
-            AssertRejected(engine, state, streams, ProduceCommand.Skip(), ProduceApplyResult.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(0), ProduceApplyResultKind.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.ExamRetry(), ProduceApplyResultKind.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.UseCard(1), ProduceApplyResultKind.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.Skip(), ProduceApplyResultKind.UnexpectedPhase);
         }
 
         [Fact]
@@ -163,9 +163,9 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = Start(engine, streams, 1);
 
-            AssertRejected(engine, state, streams, new ProduceCommand(OperationKind.DiscardDrink, 0, 0, 0), ProduceApplyResult.InvalidArgument);
-            AssertRejected(engine, state, streams, new ProduceCommand(OperationKind.ConsultFinish, 0, 0, 0), ProduceApplyResult.InvalidArgument);
-            AssertRejected(engine, state, streams, new ProduceCommand(OperationKind.Nothing, 0, 0, 0), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, new ProduceCommand(OperationKind.DiscardDrink, 0, 0, 0), ProduceApplyResultKind.InvalidArgument);
+            AssertRejected(engine, state, streams, new ProduceCommand(OperationKind.ConsultFinish, 0, 0, 0), ProduceApplyResultKind.InvalidArgument);
+            AssertRejected(engine, state, streams, new ProduceCommand(OperationKind.Nothing, 0, 0, 0), ProduceApplyResultKind.InvalidArgument);
         }
 
         [Fact]
@@ -199,7 +199,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var param = (ParamKind)state.ClassOptionParams[0];
             var before = state.GetParam(param);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseClass(0, 0), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseClass(0, 0), streams));
 
             Assert.Equal(22, state.Hp);
             Assert.Equal(Math.Min(1000, before + 40), state.GetParam(param));
@@ -218,7 +218,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var param = (ParamKind)state.ClassOptionParams[2];
             var before = state.GetParam(param);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseClass(0, 2), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseClass(0, 2), streams));
 
             Assert.Equal(30, state.Hp);
             Assert.Equal(Math.Min(1000, before + 15), state.GetParam(param));
@@ -242,8 +242,8 @@ namespace Uta.Shared.Domain.Tests.Produce
             Assert.False(options[0].Selectable);
             Assert.True(options[1].Selectable);
             Assert.True(options[2].Selectable);
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseClass(0, 0), ProduceApplyResult.InvalidArgument);
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseClass(0, 3), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseClass(0, 0), ProduceApplyResultKind.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseClass(0, 3), ProduceApplyResultKind.InvalidArgument);
         }
 
         [Fact]
@@ -255,7 +255,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             engine.Apply(state, ProduceCommand.ChooseClass(0, 0), streams);
             var picked = state.OfferCards[1];
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.OfferPick(1), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.OfferPick(1), streams));
 
             Assert.Equal(10, state.Deck.Count);
             var last = state.Deck[state.Deck.Count - 1];
@@ -277,7 +277,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var state = ToScenario2Week2(engine, streams);
             engine.Apply(state, ProduceCommand.ChooseClass(0, 0), streams);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.OfferDecline(), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.OfferDecline(), streams));
 
             Assert.Equal(9, state.Deck.Count);
             Assert.Equal(3, state.Week);
@@ -291,8 +291,8 @@ namespace Uta.Shared.Domain.Tests.Produce
             var state = ToScenario2Week2(engine, streams);
             engine.Apply(state, ProduceCommand.ChooseClass(0, 0), streams);
 
-            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(3), ProduceApplyResult.InvalidArgument);
-            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(-1), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(3), ProduceApplyResultKind.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(-1), ProduceApplyResultKind.InvalidArgument);
         }
 
         [Fact]
@@ -303,8 +303,8 @@ namespace Uta.Shared.Domain.Tests.Produce
             var state = ToScenario2Week2(engine, streams);
             engine.Apply(state, ProduceCommand.ChooseClass(0, 0), streams);
 
-            AssertRejected(engine, state, streams, ProduceCommand.OfferReroll(), ProduceApplyResult.InvalidArgument);
-            AssertRejected(engine, state, streams, ProduceCommand.OfferRemove(0), ProduceApplyResult.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.OfferReroll(), ProduceApplyResultKind.InvalidArgument);
+            AssertRejected(engine, state, streams, ProduceCommand.OfferRemove(0), ProduceApplyResultKind.InvalidArgument);
         }
 
         [Fact]
@@ -314,7 +314,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = ToScenario2Week2(engine, streams);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseOther(1), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseOther(1), streams));
 
             Assert.Equal(ProducePhase.CardOffer, state.Phase);
             Assert.Equal(3, state.OfferCards.Count);
@@ -338,7 +338,7 @@ namespace Uta.Shared.Domain.Tests.Produce
                 choices.Select(c => c.Kind).ToArray());
             Assert.True(choices[2].Selectable);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseOther(2), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseOther(2), streams));
 
             Assert.Equal(30, state.Hp);
             Assert.Equal(4, state.Week);

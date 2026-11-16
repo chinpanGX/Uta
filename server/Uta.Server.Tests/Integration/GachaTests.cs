@@ -63,7 +63,7 @@ public class GachaTests(PostgresFixture postgres)
         Assert.Equal(1, result.Slot);
         Assert.Equal(ItemKind.SupportCard, result.ItemKind);
         Assert.Equal(1, result.ItemMasterId);
-        Assert.Equal(GachaOutcome.New, result.Outcome);
+        Assert.Equal(GachaResultKind.New, result.ResultKind);
         Assert.Equal(26, result.SupportCardUniqueId.Length);
         Assert.Equal(2250, response.GachaCurrency);
         Assert.Equal(1, response.ExchangePoints);
@@ -110,17 +110,17 @@ public class GachaTests(PostgresFixture postgres)
             var x = response.Results[i];
             Assert.Equal(ItemKind.SupportCard, x.ItemKind);
             Assert.Equal(i + 1, x.ItemMasterId);
-            Assert.Equal(GachaOutcome.New, x.Outcome);
+            Assert.Equal(GachaResultKind.New, x.ResultKind);
         }
 
-        Assert.Equal((ItemKind.Idol, 3, GachaOutcome.New), (response.Results[5].ItemKind, response.Results[5].ItemMasterId, response.Results[5].Outcome));
+        Assert.Equal((ItemKind.Idol, 3, GachaResultKind.New), (response.Results[5].ItemKind, response.Results[5].ItemMasterId, response.Results[5].ResultKind));
         var dup = response.Results[6];
-        Assert.Equal((ItemKind.Idol, 3, GachaOutcome.Duplicate, 25), (dup.ItemKind, dup.ItemMasterId, dup.Outcome, dup.Shards));
-        Assert.Equal((ItemKind.SupportCard, 1, GachaOutcome.New), (response.Results[7].ItemKind, response.Results[7].ItemMasterId, response.Results[7].Outcome));
+        Assert.Equal((ItemKind.Idol, 3, GachaResultKind.Duplicate, 25), (dup.ItemKind, dup.ItemMasterId, dup.ResultKind, dup.Shards));
+        Assert.Equal((ItemKind.SupportCard, 1, GachaResultKind.New), (response.Results[7].ItemKind, response.Results[7].ItemMasterId, response.Results[7].ResultKind));
         Assert.NotEmpty(response.Results[7].SupportCardUniqueId);
-        Assert.Equal((ItemKind.SupportCard, 2, GachaOutcome.New), (response.Results[8].ItemKind, response.Results[8].ItemMasterId, response.Results[8].Outcome));
+        Assert.Equal((ItemKind.SupportCard, 2, GachaResultKind.New), (response.Results[8].ItemKind, response.Results[8].ItemMasterId, response.Results[8].ResultKind));
         Assert.NotEmpty(response.Results[8].SupportCardUniqueId);
-        Assert.Equal((ItemKind.Idol, 4, GachaOutcome.New), (response.Results[9].ItemKind, response.Results[9].ItemMasterId, response.Results[9].Outcome));
+        Assert.Equal((ItemKind.Idol, 4, GachaResultKind.New), (response.Results[9].ItemKind, response.Results[9].ItemMasterId, response.Results[9].ResultKind));
         Assert.Equal(0, response.GachaCurrency);
         Assert.Equal(10, response.ExchangePoints);
         Assert.Equal(10L, await Scalar<long>("SELECT count(*) FROM gacha_histories WHERE player_id = $1", player));
@@ -138,7 +138,7 @@ public class GachaTests(PostgresFixture postgres)
         var response = await DrawAsync(player, Single(), "req-2");
 
         var result = Assert.Single(response.Results);
-        Assert.Equal(GachaOutcome.Duplicate, result.Outcome);
+        Assert.Equal(GachaResultKind.Duplicate, result.ResultKind);
         Assert.Equal(5, result.Shards);
         Assert.Equal("", result.SupportCardUniqueId);
         Assert.Equal(5, await Scalar<int>("SELECT shards FROM player_idols WHERE player_id = $1 AND idol_id = 1", player));
@@ -155,7 +155,7 @@ public class GachaTests(PostgresFixture postgres)
         var response = await DrawAsync(player, Single(), "req-2");
 
         var result = Assert.Single(response.Results);
-        Assert.Equal(GachaOutcome.Duplicate, result.Outcome);
+        Assert.Equal(GachaResultKind.Duplicate, result.ResultKind);
         Assert.Equal(300, result.SupportPoints);
         Assert.Equal(1L, await Scalar<long>("SELECT count(*) FROM player_support_cards WHERE player_id = $1 AND card_id = 1", player));
         Assert.Equal(10300, await Scalar<int>("SELECT support_points FROM players WHERE player_id = $1", player));
@@ -301,7 +301,7 @@ public class GachaTests(PostgresFixture postgres)
         Assert.Equal(0, response.Result.Slot);
         Assert.Equal(ItemKind.Idol, response.Result.ItemKind);
         Assert.Equal(4, response.Result.ItemMasterId);
-        Assert.Equal(GachaOutcome.New, response.Result.Outcome);
+        Assert.Equal(GachaResultKind.New, response.Result.ResultKind);
         Assert.Equal(50, response.ExchangePoints);
         Assert.Equal(1L, await Scalar<long>("SELECT count(*) FROM player_idols WHERE player_id = $1 AND idol_id = 4", player));
         Assert.Equal(1L, await Scalar<long>("SELECT count(*) FROM gacha_histories WHERE player_id = $1", player));
@@ -333,7 +333,7 @@ public class GachaTests(PostgresFixture postgres)
 
         var response = await ExchangeAsync(player, new ExchangeRequest(1, 2), "req-2");
 
-        Assert.Equal(GachaOutcome.New, response.Result.Outcome);
+        Assert.Equal(GachaResultKind.New, response.Result.ResultKind);
         Assert.NotEmpty(response.Result.SupportCardUniqueId);
         Assert.Equal(50, response.ExchangePoints);
     }

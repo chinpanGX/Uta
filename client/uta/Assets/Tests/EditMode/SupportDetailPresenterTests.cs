@@ -164,7 +164,7 @@ namespace Uta.Client.Tests
             var presenter = CreatePresenter();
             await presenter.InitializeAsync();
 
-            Assert.IsTrue(log.Entries.Contains("SetLevelButtons:+1 → Lv 4（強化pt 100 / G 50）,+5 → Lv 8（強化pt 500 / G 250）,最大（足りません）,True,True,False"));
+            Assert.IsTrue(log.Entries.Contains("SetLevelButtons:+1 → Lv 4（足りません）,+5 → Lv 8（足りません）,最大（足りません）,False,False,False"));
         });
 
         [UnityTest]
@@ -184,6 +184,18 @@ namespace Uta.Client.Tests
             Assert.AreEqual("LevelUp:01A,4", log.Entries[1]);
             AssertReshown(2);
             CollectionAssert.AreEqual(new[] { "LevelUp:01A,4" }, supportUseCase.Calls);
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUpAsync_StepNotAffordable_DoesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            OwnedFixtures.SetPlayer(playerRepository, supportPoints: 300);
+            var presenter = await InitializedAsync();
+
+            await presenter.LevelUpAsync(LevelUpStepKind.Plus5);
+
+            Assert.AreEqual(0, log.Entries.Count);
+            Assert.AreEqual(0, supportUseCase.Calls.Count);
         });
 
         [UnityTest]

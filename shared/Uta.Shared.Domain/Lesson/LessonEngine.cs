@@ -59,41 +59,41 @@ namespace Uta.Shared.Domain.Lesson
         }
 
         /// <summary>カードを使えるか。乱数を使わず、状態も変えない。</summary>
-        public UseCheckResult CanUse(LessonState state, int instanceId)
+        public UseCheckResultKind CanUse(LessonState state, int instanceId)
         {
             if (state.Phase != LessonPhase.Player)
             {
-                return UseCheckResult.NotPlayerPhase;
+                return UseCheckResultKind.NotPlayerPhase;
             }
 
             if (!Contains(state.Zones.Hand, instanceId))
             {
-                return UseCheckResult.NotInHand;
+                return UseCheckResultKind.NotInHand;
             }
 
             if (state.UsesLeft <= 0)
             {
-                return UseCheckResult.NoUsesLeft;
+                return UseCheckResultKind.NoUsesLeft;
             }
 
             var face = GetFace(state, instanceId);
             if (!ConditionEvaluator.AreAllSatisfied(state, face.UseConditions))
             {
-                return UseCheckResult.UseConditionNotMet;
+                return UseCheckResultKind.UseConditionNotMet;
             }
 
-            return CanPay(state, face.Costs) ? UseCheckResult.Ok : UseCheckResult.CannotPayCost;
+            return CanPay(state, face.Costs) ? UseCheckResultKind.Ok : UseCheckResultKind.CannotPayCost;
         }
 
         /// <summary>
         /// プレイヤー操作を処理し、次の入力待ち（またはレッスンの終了）まで進める。
         /// Accepted 以外を返したときは、状態を変えていない。
         /// </summary>
-        public LessonApplyResult Apply(LessonState state, LessonCommand command, IRandom random)
+        public LessonApplyResultKind Apply(LessonState state, LessonCommand command, IRandom random)
         {
             if (state.Phase != LessonPhase.Player)
             {
-                return LessonApplyResult.NotPlayerPhase;
+                return LessonApplyResultKind.NotPlayerPhase;
             }
 
             switch (command.Kind)
@@ -104,22 +104,22 @@ namespace Uta.Shared.Domain.Lesson
                     // スキップの体力回復は E1 より前に行う（lesson-domain-types.md 5章）
                     state.Hp = Math.Min(state.MaxHp, state.Hp + LessonRules.SkipHpRecover);
                     EndTurn(state, random, true);
-                    return LessonApplyResult.Accepted;
+                    return LessonApplyResultKind.Accepted;
                 case LessonCommandKind.UseDrink:
                     // ドリンクはフェーズ5
-                    return LessonApplyResult.NotSupported;
+                    return LessonApplyResultKind.NotSupported;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(command));
             }
         }
 
-        private LessonApplyResult UseCard(LessonState state, int instanceId, IRandom random)
+        private LessonApplyResultKind UseCard(LessonState state, int instanceId, IRandom random)
         {
             // P1. 使用条件（とコストを払えるか）の判定
             var check = CanUse(state, instanceId);
-            if (check != UseCheckResult.Ok)
+            if (check != UseCheckResultKind.Ok)
             {
-                return (LessonApplyResult)check;
+                return (LessonApplyResultKind)check;
             }
 
             var definition = catalog.Get(state.GetCard(instanceId).CardId);
@@ -165,7 +165,7 @@ namespace Uta.Shared.Domain.Lesson
                 EndTurn(state, random, false);
             }
 
-            return LessonApplyResult.Accepted;
+            return LessonApplyResultKind.Accepted;
         }
 
         private void BeginTurn(LessonState state, IRandom random)
