@@ -1,17 +1,21 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
 using UnityScreenNavigator;
 using Uta.Client.Application.Player;
+using Uta.Client.Application.Produce;
 using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Formation;
 using Uta.Client.Presentation.Gacha;
 using Uta.Client.Presentation.Owned;
 using VContainer;
+using ISceneNavigator = Uta.Client.Application.Navigation.ISceneNavigator;
 
 namespace Uta.Client.Presentation.Home
 {
     [AssetAddress(nameof(HomePage))]
     public sealed class HomePresenter : IPresenter
     {
-        private const string NotReadyMessage = "準備中です。";
         private const string DiscardNoticeMessage = "バージョンが変わったため、進行中のプロデュースは破棄されました。";
 
         private readonly IHomeView homeView;
@@ -20,16 +24,18 @@ namespace Uta.Client.Presentation.Home
         private readonly IPlayerUseCase playerUseCase;
         private readonly DialogOpener dialogOpener;
         private readonly IScreenNavigator screenNavigator;
+        private readonly IProduceUseCase produceUseCase;
+        private readonly ISceneNavigator sceneNavigator;
         private bool running;
         private bool disposed;
 
         [Inject]
-        public HomePresenter(HomePage homePage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator)
-            : this((IHomeView)homePage, homePage.CreateStage(), homeDtoFactory, playerUseCase, dialogOpener, screenNavigator)
+        public HomePresenter(HomePage homePage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator, IProduceUseCase produceUseCase, ISceneNavigator sceneNavigator)
+            : this((IHomeView)homePage, homePage.CreateStage(), homeDtoFactory, playerUseCase, dialogOpener, screenNavigator, produceUseCase, sceneNavigator)
         {
         }
 
-        public HomePresenter(IHomeView homeView, ICharacterStage characterStage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator)
+        public HomePresenter(IHomeView homeView, ICharacterStage characterStage, HomeDtoFactory homeDtoFactory, IPlayerUseCase playerUseCase, DialogOpener dialogOpener, IScreenNavigator screenNavigator, IProduceUseCase produceUseCase, ISceneNavigator sceneNavigator)
         {
             this.homeView = homeView;
             this.characterStage = characterStage;
@@ -37,6 +43,8 @@ namespace Uta.Client.Presentation.Home
             this.playerUseCase = playerUseCase;
             this.dialogOpener = dialogOpener;
             this.screenNavigator = screenNavigator;
+            this.produceUseCase = produceUseCase;
+            this.sceneNavigator = sceneNavigator;
         }
 
         public UniTask InitializeAsync()
@@ -79,9 +87,66 @@ namespace Uta.Client.Presentation.Home
             await dialogOpener.ShowInfoAsync(DiscardNoticeMessage);
         }
 
-        public UniTask OpenProduceAsync()
+        /// <summary>進行中でなければ編成のページを積む。進行中なら「再開／放棄／やめる」を選ばせる。</summary>
+        public async UniTask OpenProduceAsync()
         {
-            return ShowNotReadyAsync();   // 4 本目が書き換える
+            if (running)
+            {
+                return;
+            }
+
+            running = true;
+            try
+            {
+                var dto = homeDtoFactory.Create();
+                if (dto == null)
+                {
+                    return;
+                }
+
+                if (!dto.ResumeVisible)
+                {
+                    await screenNavigator.PushPageAsync<FormationPresenter>(playAnimation: false);
+                    return;
+                }
+
+                var index = await dialogOpener.ChooseAsync("進行中のプロデュースがあります。", new[] { "再開", "放棄", "やめる" });
+                if (disposed)
+                {
+                    return;
+                }
+
+                if (index == 0)
+                {
+                    await ResumeCoreAsync();
+                }
+                else if (index == 1)
+                {
+                    var confirm = await dialogOpener.ConfirmAsync("放棄すると報酬は受け取れません。放棄しますか？");
+                    if (disposed)
+                    {
+                        return;
+                    }
+
+                    if (confirm == DialogResult.Positive)
+                    {
+                        await produceUseCase.AbandonAsync();
+                        if (!disposed)
+                        {
+                            Refresh();
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                await dialogOpener.ShowInfoAsync("エラーが発生しました: " + e.Message);
+            }
+            finally
+            {
+                running = false;
+            }
         }
 
         public async UniTask OpenGachaAsync()
@@ -135,25 +200,29 @@ namespace Uta.Client.Presentation.Home
             OpenOwnedAsync().Forget();
         }
 
-        private async UniTask ShowNotReadyAsync()
+        private async UniTask ResumeCoreAsync()
         {
-            if (running)
+            var kind = await produceUseCase.ResumeAsync();
+            if (disposed)
             {
                 return;
             }
 
-            running = true;
-            try
+            switch (kind)
             {
-                await dialogOpener.ShowInfoAsync(NotReadyMessage);
-                if (disposed)
-                {
-                    return;
-                }
-            }
-            finally
-            {
-                running = false;
+                case ProduceResumeResultKind.Resumed:
+                    await sceneNavigator.GoToProduceAsync();
+                    break;
+                case ProduceResumeResultKind.NotInProgress:
+                    await dialogOpener.ShowInfoAsync("進行中のプロデュースはありません。");
+                    if (!disposed)
+                    {
+                        Refresh();
+                    }
+
+                    break;
+                case ProduceResumeResultKind.Failed:
+                    break;
             }
         }
 

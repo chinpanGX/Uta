@@ -5,13 +5,16 @@ using NUnit.Framework;
 using UnityEngine.TestTools;
 using Uta.Client.Application.Idol;
 using Uta.Client.Application.Player;
+using Uta.Client.Application.Produce;
 using Uta.Client.Domain.Idol;
 using Uta.Client.Domain.Player;
 using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
+using Uta.Client.Presentation.Common;
 using Uta.Client.Presentation.Home;
 using Uta.Client.Presentation.Owned;
 using Uta.MasterData;
+using Uta.Shared.Domain.Produce;
 
 namespace Uta.Client.Tests
 {
@@ -85,6 +88,9 @@ namespace Uta.Client.Tests
         private PlayerRepository players;
         private IdolRepository idols;
         private DiscardNoticeState notice;
+        private ProduceSessionState session;
+        private FakeProduceUseCase produce;
+        private FakeSceneNavigator scenes;
 
         [SetUp]
         public void SetUp()
@@ -96,13 +102,16 @@ namespace Uta.Client.Tests
             players = new PlayerRepository();
             idols = new IdolRepository();
             notice = new DiscardNoticeState();
+            session = new ProduceSessionState();
+            produce = new FakeProduceUseCase(log, session);
+            scenes = new FakeSceneNavigator(log);
         }
 
         private HomePresenter CreatePresenter(MemoryDatabase db = null)
         {
             db = db ?? TestMasterData.Build(_ => { });
-            var dtoFactory = new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db, TestPlayerLevels.Catalog());
-            return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs, navigator);
+            var dtoFactory = new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db, TestPlayerLevels.Catalog(), session);
+            return new HomePresenter(view, new FakeCharacterStage(log), dtoFactory, new FakePlayerUseCase(log, notice), dialogs, navigator, produce, scenes);
         }
 
         private void SetPlayer(int exp = 2640, int gachaCurrency = 3250, bool hasActiveProduce = true, bool discardedProduce = false)
@@ -206,16 +215,16 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
-        public IEnumerator ProduceClicked_ShowsNotReady() => UniTask.ToCoroutine(async () =>
+        public IEnumerator ProduceClicked_NoActive_PushesFormation() => UniTask.ToCoroutine(async () =>
         {
-            SetPlayer();
+            SetPlayer(hasActiveProduce: false);
             var presenter = CreatePresenter();
             await presenter.InitializeAsync();
             log.Entries.Clear();
 
             view.RaiseProduceClicked();
 
-            CollectionAssert.AreEqual(new[] { "Info:準備中です。" }, log.Entries);
+            CollectionAssert.AreEqual(new[] { "PushPage:FormationPresenter" }, log.Entries);
         });
 
         [UnityTest]
@@ -278,23 +287,176 @@ namespace Uta.Client.Tests
         [UnityTest]
         public IEnumerator OpenProduceAsync_WhileRunning_Ignored() => UniTask.ToCoroutine(async () =>
         {
-            SetPlayer();
+            SetPlayer(hasActiveProduce: true);
             var presenter = CreatePresenter();
             await presenter.InitializeAsync();
             log.Entries.Clear();
+            dialogs.ChooseResults.Enqueue(0);
+            dialogs.ChooseResults.Enqueue(0);
+            produce.ResumeResults.Enqueue(() =>
+            {
+                players.Upsert(TestProduce.Player(hasActiveProduce: false));
+                return UniTask.FromResult(ProduceResumeResultKind.NotInProgress);
+            });
             var gate = new UniTaskCompletionSource();
             dialogs.InfoGate = gate;
 
             var first = presenter.OpenProduceAsync();
             await presenter.OpenProduceAsync();
-            Assert.AreEqual(1, log.Entries.FindAll(e => e.StartsWith("Info:")).Count);
+
+            Assert.AreEqual(1, log.Entries.FindAll(e => e.StartsWith("Choose:")).Count);
+            Assert.AreEqual(1, log.Entries.FindAll(e => e == "Resume").Count);
 
             gate.TrySetResult();
             await first;
-            dialogs.InfoGate = null;
+        });
+
+        [UnityTest]
+        public IEnumerator OpenProduce_NoActive_PushesFormation() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: false);
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+
             await presenter.OpenProduceAsync();
 
-            Assert.AreEqual(2, log.Entries.FindAll(e => e.StartsWith("Info:")).Count);
+            CollectionAssert.AreEqual(new[] { "PushPage:FormationPresenter" }, log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenProduce_Active_Resume_GoesToProduce() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: true);
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+            dialogs.ChooseResults.Enqueue(0);
+            produce.ResumeResults.Enqueue(() =>
+            {
+                session.Set(TestProduce.StateResult());
+                return UniTask.FromResult(ProduceResumeResultKind.Resumed);
+            });
+
+            await presenter.OpenProduceAsync();
+
+            CollectionAssert.AreEqual(
+                new[] { "Choose:進行中のプロデュースがあります。:再開/放棄/やめる", "Resume", "GoToProduce" },
+                log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenProduce_Active_AbandonConfirmed_HidesResume() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: true);
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+            dialogs.ChooseResults.Enqueue(1);
+            dialogs.ConfirmResults.Enqueue(DialogResult.Positive);
+            produce.AbandonResults.Enqueue(() =>
+            {
+                players.Upsert(TestProduce.Player(hasActiveProduce: false));
+                return UniTask.FromResult(true);
+            });
+
+            await presenter.OpenProduceAsync();
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "Choose:進行中のプロデュースがあります。:再開/放棄/やめる",
+                    "Confirm:放棄すると報酬は受け取れません。放棄しますか？",
+                    "Abandon",
+                    "SetProfile:プレイヤーLv 1　ガチャ通貨 0",
+                    "SetResume:False,プロデュース",
+                    "ClearStage",
+                },
+                log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenProduce_Active_AbandonDeclined_DoesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: true);
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+            dialogs.ChooseResults.Enqueue(1);
+            dialogs.ConfirmResults.Enqueue(DialogResult.Negative);
+
+            await presenter.OpenProduceAsync();
+
+            CollectionAssert.AreEqual(
+                new[] { "Choose:進行中のプロデュースがあります。:再開/放棄/やめる", "Confirm:放棄すると報酬は受け取れません。放棄しますか？" },
+                log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenProduce_Active_Cancel_DoesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: true);
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+            dialogs.ChooseResults.Enqueue(2);
+
+            await presenter.OpenProduceAsync();
+
+            CollectionAssert.AreEqual(new[] { "Choose:進行中のプロデュースがあります。:再開/放棄/やめる" }, log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator OpenProduce_Active_ResumeNotInProgress_ShowsInfoAndRefreshes() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: true);
+            var presenter = CreatePresenter();
+            await presenter.InitializeAsync();
+            log.Entries.Clear();
+            dialogs.ChooseResults.Enqueue(0);
+            produce.ResumeResults.Enqueue(() =>
+            {
+                players.Upsert(TestProduce.Player(hasActiveProduce: false));
+                return UniTask.FromResult(ProduceResumeResultKind.NotInProgress);
+            });
+
+            await presenter.OpenProduceAsync();
+
+            CollectionAssert.AreEqual(
+                new[]
+                {
+                    "Choose:進行中のプロデュースがあります。:再開/放棄/やめる",
+                    "Resume",
+                    "Info:進行中のプロデュースはありません。",
+                    "SetProfile:プレイヤーLv 1　ガチャ通貨 0",
+                    "SetResume:False,プロデュース",
+                    "ClearStage",
+                },
+                log.Entries);
+        });
+
+        [UnityTest]
+        public IEnumerator Refresh_ActiveSession_ShowsResumeEvenIfPlayerInactive() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: false);
+            session.Set(TestProduce.StateResult(ProducePhase.WeekSelect));
+            var presenter = CreatePresenter();
+
+            await presenter.InitializeAsync();
+
+            CollectionAssert.Contains(log.Entries, "SetResume:True,再開");
+        });
+
+        [UnityTest]
+        public IEnumerator Refresh_FinishedSession_HidesResume() => UniTask.ToCoroutine(async () =>
+        {
+            SetPlayer(hasActiveProduce: true);
+            session.Set(TestProduce.StateResult(ProducePhase.Finished));
+            var presenter = CreatePresenter();
+
+            await presenter.InitializeAsync();
+
+            CollectionAssert.Contains(log.Entries, "SetResume:False,プロデュース");
         });
 
         [UnityTest]

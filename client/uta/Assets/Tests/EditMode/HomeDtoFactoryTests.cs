@@ -1,12 +1,14 @@
 ﻿using NUnit.Framework;
 using Uta.Client.Application.Idol;
 using Uta.Client.Application.Player;
+using Uta.Client.Application.Produce;
 using Uta.Client.Domain.Idol;
 using Uta.Client.Domain.Player;
 using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
 using Uta.Client.Presentation.Home;
 using Uta.MasterData;
+using Uta.Shared.Domain.Produce;
 
 namespace Uta.Client.Tests
 {
@@ -15,6 +17,7 @@ namespace Uta.Client.Tests
         private PlayerRepository players;
         private IdolRepository idols;
         private DiscardNoticeState notice;
+        private ProduceSessionState session;
 
         [SetUp]
         public void SetUp()
@@ -22,11 +25,12 @@ namespace Uta.Client.Tests
             players = new PlayerRepository();
             idols = new IdolRepository();
             notice = new DiscardNoticeState();
+            session = new ProduceSessionState();
         }
 
         private HomeDtoFactory Create(MemoryDatabase db)
         {
-            return new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db, TestPlayerLevels.Catalog());
+            return new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db, TestPlayerLevels.Catalog(), session);
         }
 
         private static PlayerEntity Player(int exp = 0, int gachaCurrency = 0, bool hasActiveProduce = false, bool discardedProduce = false)
@@ -78,6 +82,29 @@ namespace Uta.Client.Tests
 
             Assert.IsFalse(dto.ResumeVisible);
             Assert.AreEqual("プロデュース", dto.PrimaryLabel);
+        }
+
+        [Test]
+        public void Create_ActiveSession_ResumeEvenIfPlayerInactive()
+        {
+            players.Upsert(Player(hasActiveProduce: false));
+            session.Set(TestProduce.StateResult(ProducePhase.WeekSelect));
+            var factory = Create(TestMasterData.Build(_ => { }));
+
+            var dto = factory.Create();
+
+            Assert.IsTrue(dto.ResumeVisible);
+            Assert.AreEqual("再開", dto.PrimaryLabel);
+        }
+
+        [Test]
+        public void Create_FinishedSession_HidesResume()
+        {
+            players.Upsert(Player(hasActiveProduce: true));
+            session.Set(TestProduce.StateResult(ProducePhase.Finished));
+            var factory = Create(TestMasterData.Build(_ => { }));
+
+            Assert.IsFalse(factory.Create().ResumeVisible);
         }
 
         [Test]
