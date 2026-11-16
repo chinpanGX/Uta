@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 4/6 編成・プロデュースの開始と再開
-status: ready
+status: in-progress
 updated: 2026-11-16
 spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 ---
@@ -1018,3 +1018,9 @@ Play モード・IL2CPP・手動はタスク 6。
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - （2026-11-07 に照合済み）owned・gacha の名前（`OwnedArgs`・`OwnedSelectionRequest`・`OwnedSelection`・`FormationValidator.IsPlanCompatible`・`DisplayText.RarityName`／`PlanName`／`ParamName`・`PortResult<T>`・`ServerReasons`・`FakeGameMaster`・`HomePresenter` の `IScreenNavigator`）。week・lesson はこの版の `ProduceFlow`（`ProduceEntry`・`ShowCurrentAsync`・`HandleStepAsync`・`GoToHomeAsync`）に合わせてある。スキルカード獲得のモーダルを背景の上に出すこと（week の決めたこと 15）は 2026-11-07 にユーザーが了承済み（[索引](2026-11-07-client-screens-index.md)）
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
+| 1 | 完了 | PR #59 | なし |
