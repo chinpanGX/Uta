@@ -1,6 +1,6 @@
 ---
 title: 実装計画: Android の実機のスモークと IL2CPP の計算の一致（MVP の完了条件 7）
-status: ready
+status: in-progress
 updated: 2026-11-16
 spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/architecture/lesson-phases.md, ../wiki/architecture/produce-domain.md
 ---
@@ -628,3 +628,8 @@ namespace Uta.Shared.Domain.Tests.Lesson
 ## 6. 未決事項
 
 なし
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
