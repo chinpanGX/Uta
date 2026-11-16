@@ -1,7 +1,7 @@
 ---
 title: 命名規則（型の名前の付け方）
 status: draft
-updated: 2026-11-09
+updated: 2026-11-16
 ---
 
 # 命名規則（型の名前の付け方）
@@ -10,7 +10,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 決めた経緯は raw の 3 本（[命名と層](../../raw/2026-11-08-naming-and-layers-decisions.md)・[Presentation](../../raw/2026-11-08-presentation-rules-decisions.md)・[残りの決定](../../raw/2026-11-08-naming-remaining-decisions.md)）。その後の設計書のレビュー（2026-11-08）でユーザーが変えた決定（UseCase の入力に型を作らない、結果の種類の enum の形、Factory と Loader の線、`Summary` をやめる）と、ready の計画の読み替え（2026-11-08）で決めたこと（クライアントの UseCase の具象の名前、`Find`・`FindAll`、Contracts の enum の写しを作らない、Shared.Domain と同名にしない、`Snapshot` の使いどころ、テストの補助の名前）は、このページを直したコミットのメッセージにある（raw は書き換えない）。
 
-印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則のうち、ADR 0021 の分（エンティティとリポジトリの IF を Domain に置く、改名、`FindAllAsync`）は[サーバー側の実装計画](../../plans/2026-11-08-server-domain-entities.md)で済んだ。ADR 0020 の分（Catalog をやめる）は[サーバー側の実装計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)で済んだ。サーバーだけで閉じる改名（`GrantResultKind`・`GachaEntryResult`・`ProduceStateResult`・`ProduceStateResultFactory`・`ProduceEndResult`・`GameServiceFilterAttribute`・`DatabaseMigrator`・テストの `ServerFactory`）は[サーバーの改名の計画](../../plans/2026-11-09-server-naming-renames.md)で済んだ。
+印: [ADR 案] は ADR（[0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[0021](../decisions/0021-domain-entities-and-repositories.md)・[0022](../decisions/0022-client-external-concretes-in-infrastructure.md)）が根拠の規則。3 本とも 2026-11-08 に accepted になった（[基盤移行の計画](../../plans/2026-11-08-client-foundation-migration.md)の PR）ので、[ADR 案] の印の規則も正。サーバーに関わる規則のうち、ADR 0021 の分（エンティティとリポジトリの IF を Domain に置く、改名、`FindAllAsync`）は[サーバー側の実装計画](../../plans/2026-11-08-server-domain-entities.md)で済んだ。ADR 0020 の分（Catalog をやめる）は[サーバー側の実装計画](../../plans/2026-11-08-server-masterdata-without-catalog.md)で済んだ。サーバーだけで閉じる改名（`GrantResultKind`・`GachaEntryResult`・`ProduceStateResult`・`ProduceStateResultFactory`・`ProduceEndResult`・`GameServiceFilterAttribute`・`DatabaseMigrator`・テストの `ServerFactory`）は[サーバーの改名の計画](../../plans/2026-11-09-server-naming-renames.md)で済んだ。shared/ の改名（`GachaResultKind`・`DrawResultDto.ResultKind`・`UseCheckResultKind`・`LessonApplyResultKind`・`ProduceApplyResultKind`・`ExamTurnFactory`）は[shared/ の改名の計画](../../plans/2026-11-11-shared-naming-renames.md)で済んだ。
 
 ## 決まっていること
 
@@ -155,11 +155,8 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 | 今 | 新 | 根拠 |
 |---|---|---|
-| Contracts の `GachaOutcome` | `GachaResultKind` | 1章・2章。正は [api-design.md](api-design.md) 1.1 なので、そこも直す |
 | Shared.Domain の `ExamOutcome` | `ExamResultKind` | 2章 |
-| Shared.Domain の enum の `UseCheckResult`・`LessonApplyResult`・`ProduceApplyResult` | `UseCheckResultKind`・`LessonApplyResultKind`・`ProduceApplyResultKind` | 2章 |
-| プロパティ名の `Outcome`・`ExamOutcome`（`DrawResultDto.Outcome`、`ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない。サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome` は、Shared.Domain の `ExamOutcome` の改名と同じ計画で直す |
-| Shared.Domain の `ExamTurnBuilder` | `ExamTurnFactory` | 7章（`Builder` は Editor だけ） |
+| プロパティ名の `Outcome`・`ExamOutcome`（Shared.Domain の `ProduceResult.Outcome`、Contracts の `ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない。サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome` は、Shared.Domain の `ExamOutcome` の改名と同じ計画で直す |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
 | 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEndKind`（Contracts の `ProduceEnding` と同じ名前にしない） | 1章・2章 |
 | 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction`・`MasterItemKind`） | 作らない（`IProduceUseCase` のメソッドを操作ごとに分ける。`MasterItemKind` はマスタの `ItemKind`） | 1章 |

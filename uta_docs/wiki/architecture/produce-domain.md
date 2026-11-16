@@ -1,7 +1,7 @@
 ---
 title: プロデュースの実装設計（週の進行・乱数・状態・API）
 status: draft
-updated: 2026-11-09
+updated: 2026-11-16
 ---
 
 # プロデュースの実装設計（週の進行・乱数・状態・API）
@@ -273,11 +273,11 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 
 2026-11-01 に順 4(`Uta.Shared.Domain` の週の進行)を実装した([計画](../../plans/2026-11-01-produce-week-progress.md))。`shared/Uta.Shared.Domain/Produce/`、テストは `shared/Uta.Shared.Domain.Tests/Produce/`。
 
-- 型: `ProduceEngine`(`Start`・`Apply`・`GetWeekChoices`・`GetClassOptions`・`CanUse`)、`ProduceState`、`ProduceCommand`/`OperationRecord`、`ProduceStartInput`、`ProduceCatalog`(マスタの行の型 `ProduceRows` から `Create`。検査は構造と、計算が壊れる列だけ。値の妥当性は masterdata の `IValidatable`)、`OfferPool`(選択肢の候補と抽選)、`ExamTurnBuilder`(審査ターンの列)、`ProduceFormulas`(加算・回復・配分・スコアボーナス・NPC・順位・評価)、`FormationValidator`(編成の検証 5・6。プランの適合の `IsPlanCompatible` はクライアントの所持一覧・編成の表示も使う)、`ProduceStateComparer`(状態の比較)
+- 型: `ProduceEngine`(`Start`・`Apply`・`GetWeekChoices`・`GetClassOptions`・`CanUse`)、`ProduceState`、`ProduceCommand`/`OperationRecord`、`ProduceStartInput`、`ProduceCatalog`(マスタの行の型 `ProduceRows` から `Create`。検査は構造と、計算が壊れる列だけ。値の妥当性は masterdata の `IValidatable`)、`OfferPool`(選択肢の候補と抽選)、`ExamTurnFactory`(審査ターンの列)、`ProduceFormulas`(加算・回復・配分・スコアボーナス・NPC・順位・評価)、`FormationValidator`(編成の検証 5・6。プランの適合の `IsPlanCompatible` はクライアントの所持一覧・編成の表示も使う)、`ProduceStateComparer`(状態の比較)
 - 5章の操作の表し方(`ProduceCommand` ＋ `OperationRecord`)、操作番号の判定は `Api`、`ProduceStartInput` は育成アイドルの ID だけ、は実装したとおりで確定とする
 - `IRandomStreamSource` の契約: 同じ `ProduceState` に対して、要求をまたいでも同じキーには前の続きから引けるストリームを返す。`Apply` は拒否する要求でも `Get` を呼ぶことがある(レッスン・試験中の操作。引かずに拒否する)。サーバーは、受け付けた要求のあとだけストリームの状態を保存する
 - `Attempt` は Exam / ExamResult の間だけ意味を持ち、試験を出ると 0 に戻る。直近の試験の挑戦回数は `LastExam.Attempt`
-- `Apply` は、レッスン・試験の `LessonApplyResult` の拒否(手札にない・使用数なし・条件を満たさない・ドリンク)をすべて `InvalidArgument` にまとめる。引数は正規形(使わない引数は 0 / -1)かを検査せず、受け付けた値をそのまま記録に残す。正規化はサーバー(`Application` の `ProduceCommandNormalizer`)の責務
+- `Apply` は、レッスン・試験の `LessonApplyResultKind` の拒否(手札にない・使用数なし・条件を満たさない・ドリンク)をすべて `InvalidArgument` にまとめる。引数は正規形(使わない引数は 0 / -1)かを検査せず、受け付けた値をそのまま記録に残す。正規化はサーバー(`Application` の `ProduceCommandNormalizer`)の責務
 - 処理の途中で例外が出たときの `ProduceState` は不定。サーバーは保存せず、保存済みの状態から取り直す
 - テストのマスタは `masterdata/csv/` を直接読む(`TestProduceMaster`)。バランス調整で値を変えたら、期待値のテストも直す
 - マスタ・乱数の参照で、タプルをキーにした辞書を使わない(IL2CPP の AOT でリフレクション依存の比較子を避けるため。`long` のキーにした)
