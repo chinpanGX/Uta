@@ -122,7 +122,7 @@
     }
 
     /// <summary>操作を受け付けたかどうか。</summary>
-    public enum ProduceApplyResult
+    public enum ProduceApplyResultKind
     {
         Accepted = 0,
         UnexpectedPhase = 1,

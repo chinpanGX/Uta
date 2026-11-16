@@ -41,7 +41,7 @@ public class ProduceStateSerializerTests
         while (state.Phase != ProducePhase.Finished)
         {
             var command = ProduceBot.Next(engine, catalog, state);
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
             count++;
             if (count % 10 == 0)
             {
@@ -77,7 +77,7 @@ public class ProduceStateSerializerTests
         var stateA = engine.Start(input, streamsA);
         while (stateA.Phase != ProducePhase.Finished)
         {
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(stateA, ProduceBot.Next(engine, catalog, stateA), streamsA));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(stateA, ProduceBot.Next(engine, catalog, stateA), streamsA));
         }
 
         // B: 10 回の操作ごとに保存と復元をして続ける
@@ -86,7 +86,7 @@ public class ProduceStateSerializerTests
         var count = 0;
         while (stateB.Phase != ProducePhase.Finished)
         {
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(stateB, ProduceBot.Next(engine, catalog, stateB), streamsB));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(stateB, ProduceBot.Next(engine, catalog, stateB), streamsB));
             count++;
             if (count % 10 == 0)
             {

@@ -162,7 +162,7 @@ namespace Uta.Shared.Domain.Produce
         }
 
         /// <summary>1 回の操作を受け、次の入力待ちまで進める。Accepted 以外のときは状態も記録も変えない。</summary>
-        public ProduceApplyResult Apply(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
+        public ProduceApplyResultKind Apply(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
         {
             if (state == null)
             {
@@ -180,7 +180,7 @@ namespace Uta.Shared.Domain.Produce
                 case OperationKind.ChooseWeekAction:
                     if (state.Phase != ProducePhase.WeekSelect)
                     {
-                        return ProduceApplyResult.UnexpectedPhase;
+                        return ProduceApplyResultKind.UnexpectedPhase;
                     }
 
                     break;
@@ -190,7 +190,7 @@ namespace Uta.Shared.Domain.Produce
                 case OperationKind.OfferDecline:
                     if (state.Phase != ProducePhase.CardOffer)
                     {
-                        return ProduceApplyResult.UnexpectedPhase;
+                        return ProduceApplyResultKind.UnexpectedPhase;
                     }
 
                     break;
@@ -198,7 +198,7 @@ namespace Uta.Shared.Domain.Produce
                 case OperationKind.ExamNoRetry:
                     if (state.Phase != ProducePhase.ExamResult)
                     {
-                        return ProduceApplyResult.UnexpectedPhase;
+                        return ProduceApplyResultKind.UnexpectedPhase;
                     }
 
                     break;
@@ -207,12 +207,12 @@ namespace Uta.Shared.Domain.Produce
                 case OperationKind.Skip:
                     if (state.Phase != ProducePhase.Lesson && state.Phase != ProducePhase.Exam)
                     {
-                        return ProduceApplyResult.UnexpectedPhase;
+                        return ProduceApplyResultKind.UnexpectedPhase;
                     }
 
                     break;
                 default:
-                    return ProduceApplyResult.InvalidArgument;
+                    return ProduceApplyResultKind.InvalidArgument;
             }
 
             // 2. 受け付ける前の値を控える
@@ -222,7 +222,7 @@ namespace Uta.Shared.Domain.Produce
 
             // 3. 局面ごとの処理。拒否するときは状態を変える前に返る。
             // 処理の途中で例外が出たときの state は不定（呼び出し側は保存済みの状態から取り直す）
-            ProduceApplyResult result;
+            ProduceApplyResultKind result;
             switch (state.Phase)
             {
                 case ProducePhase.WeekSelect:
@@ -239,14 +239,14 @@ namespace Uta.Shared.Domain.Produce
                     break;
             }
 
-            if (result != ProduceApplyResult.Accepted)
+            if (result != ProduceApplyResultKind.Accepted)
             {
                 return result;
             }
 
             state.AddOperation(new OperationRecord(state.NextOperationNumber, command, weekBefore, attemptBefore, turnBefore));
             state.NextOperationNumber++;
-            return ProduceApplyResult.Accepted;
+            return ProduceApplyResultKind.Accepted;
         }
 
         /// <summary>週の選択の枠（クライアントの表示にも使う）。Phase が WeekSelect でなければ InvalidOperationException。</summary>
@@ -305,7 +305,7 @@ namespace Uta.Shared.Domain.Produce
         }
 
         /// <summary>レッスン・試験中のカードの使用可否。Lesson が null なら NotPlayerPhase。</summary>
-        public UseCheckResult CanUse(ProduceState state, int instanceId)
+        public UseCheckResultKind CanUse(ProduceState state, int instanceId)
         {
             if (state == null)
             {
@@ -314,7 +314,7 @@ namespace Uta.Shared.Domain.Produce
 
             if (state.Lesson == null)
             {
-                return UseCheckResult.NotPlayerPhase;
+                return UseCheckResultKind.NotPlayerPhase;
             }
 
             return lessonEngine.CanUse(state.Lesson, instanceId);
@@ -373,12 +373,12 @@ namespace Uta.Shared.Domain.Produce
             }
         }
 
-        private ProduceApplyResult ApplyWeekSelect(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
+        private ProduceApplyResultKind ApplyWeekSelect(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
         {
             var choices = GetWeekChoices(state);
             if (command.Arg1 < 0 || command.Arg1 >= choices.Count || !choices[command.Arg1].Selectable)
             {
-                return ProduceApplyResult.InvalidArgument;
+                return ProduceApplyResultKind.InvalidArgument;
             }
 
             var scenario = catalog.GetScenario(state.Input.ScenarioId);
@@ -390,25 +390,25 @@ namespace Uta.Shared.Domain.Produce
                     var param = (ParamKind)command.Arg3;
                     if (!ProduceParams.IsValid(param))
                     {
-                        return ProduceApplyResult.InvalidArgument;
+                        return ProduceApplyResultKind.InvalidArgument;
                     }
 
                     var kind = week.Kind == WeekKind.Finishing ? LessonKind.Finishing : LessonKind.Normal;
                     StartLesson(state, streams, kind, param);
-                    return ProduceApplyResult.Accepted;
+                    return ProduceApplyResultKind.Accepted;
                 }
 
                 case WeekChoiceKind.Class:
                 {
                     if (command.Arg2 < 0 || command.Arg2 >= week.ClassOptions.Count)
                     {
-                        return ProduceApplyResult.InvalidArgument;
+                        return ProduceApplyResultKind.InvalidArgument;
                     }
 
                     var options = GetClassOptions(state);
                     if (!options[command.Arg2].Selectable)
                     {
-                        return ProduceApplyResult.InvalidArgument;
+                        return ProduceApplyResultKind.InvalidArgument;
                     }
 
                     var option = week.ClassOptions[command.Arg2];
@@ -427,20 +427,20 @@ namespace Uta.Shared.Domain.Produce
                         EndWeek(state, streams);
                     }
 
-                    return ProduceApplyResult.Accepted;
+                    return ProduceApplyResultKind.Accepted;
                 }
 
                 case WeekChoiceKind.Supply:
                     state.ClearClassOptionParams();
                     DrawOffer(state, streams);
-                    return ProduceApplyResult.Accepted;
+                    return ProduceApplyResultKind.Accepted;
                 case WeekChoiceKind.Rest:
                     state.Hp = ProduceFormulas.Heal(state.Hp, ProduceFormulas.RestAmount(state.MaxHp), state.MaxHp);
                     state.ClearClassOptionParams();
                     EndWeek(state, streams);
-                    return ProduceApplyResult.Accepted;
+                    return ProduceApplyResultKind.Accepted;
                 default:
-                    return ProduceApplyResult.InvalidArgument;
+                    return ProduceApplyResultKind.InvalidArgument;
             }
         }
 
@@ -463,7 +463,7 @@ namespace Uta.Shared.Domain.Produce
             }
         }
 
-        private ProduceApplyResult ApplyLesson(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
+        private ProduceApplyResultKind ApplyLesson(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
         {
             LessonCommand lessonCommand;
             switch (command.Kind)
@@ -481,9 +481,9 @@ namespace Uta.Shared.Domain.Produce
 
             var random = streams.Get(new RandomStreamKey(RandomStreamKind.Lesson, state.Week, state.Phase == ProducePhase.Exam ? state.Attempt : 0));
             var applied = lessonEngine.Apply(state.Lesson, lessonCommand, random);
-            if (applied != LessonApplyResult.Accepted)
+            if (applied != LessonApplyResultKind.Accepted)
             {
-                return ProduceApplyResult.InvalidArgument;
+                return ProduceApplyResultKind.InvalidArgument;
             }
 
             if (state.Lesson.IsFinished)
@@ -498,7 +498,7 @@ namespace Uta.Shared.Domain.Produce
                 }
             }
 
-            return ProduceApplyResult.Accepted;
+            return ProduceApplyResultKind.Accepted;
         }
 
         private void FinishLesson(ProduceState state, IRandomStreamSource streams)
@@ -563,28 +563,28 @@ namespace Uta.Shared.Domain.Produce
             state.Phase = ProducePhase.CardOffer;
         }
 
-        private ProduceApplyResult ApplyCardOffer(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
+        private ProduceApplyResultKind ApplyCardOffer(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
         {
             switch (command.Kind)
             {
                 case OperationKind.OfferPick:
                     if (command.Arg1 < 0 || command.Arg1 >= state.OfferCards.Count)
                     {
-                        return ProduceApplyResult.InvalidArgument;
+                        return ProduceApplyResultKind.InvalidArgument;
                     }
 
                     state.AddCard(new CardInstance(state.NextInstanceId, state.OfferCards[command.Arg1], false));
                     state.NextInstanceId++;
                     state.ClearOfferCards();
                     EndWeek(state, streams);
-                    return ProduceApplyResult.Accepted;
+                    return ProduceApplyResultKind.Accepted;
                 case OperationKind.OfferDecline:
                     state.ClearOfferCards();
                     EndWeek(state, streams);
-                    return ProduceApplyResult.Accepted;
+                    return ProduceApplyResultKind.Accepted;
                 default:
                     // 再抽選・除去の残り回数は MVP では 0（produce.md 3.5）
-                    return ProduceApplyResult.InvalidArgument;
+                    return ProduceApplyResultKind.InvalidArgument;
             }
         }
 
@@ -603,12 +603,12 @@ namespace Uta.Shared.Domain.Produce
             BeginWeek(state, streams);
         }
 
-        private ProduceApplyResult ApplyExamResult(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
+        private ProduceApplyResultKind ApplyExamResult(ProduceState state, ProduceCommand command, IRandomStreamSource streams)
         {
             if (command.Kind == OperationKind.ExamNoRetry)
             {
                 ConcludeExam(state, streams);
-                return ProduceApplyResult.Accepted;
+                return ProduceApplyResultKind.Accepted;
             }
 
             // ExamRetry: 試験の開始直前の育成の区分に戻す
@@ -624,7 +624,7 @@ namespace Uta.Shared.Domain.Produce
             state.ExamRetryLeft--;
             state.Attempt++;
             StartExam(state, streams);
-            return ProduceApplyResult.Accepted;
+            return ProduceApplyResultKind.Accepted;
         }
 
         private static ExamKind GetExamKind(WeekDefinition week)

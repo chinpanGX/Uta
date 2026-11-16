@@ -115,9 +115,9 @@ namespace Uta.Shared.Domain.Tests.Lesson
                     restored = true;
                 }
 
-                var usable = state.Zones.Hand.FirstOrDefault(id => Engine.CanUse(state, id) == UseCheckResult.Ok);
+                var usable = state.Zones.Hand.FirstOrDefault(id => Engine.CanUse(state, id) == UseCheckResultKind.Ok);
                 var command = usable != 0 ? LessonCommand.UseCard(usable) : LessonCommand.Skip();
-                Assert.Equal(LessonApplyResult.Accepted, Engine.Apply(state, command, random));
+                Assert.Equal(LessonApplyResultKind.Accepted, Engine.Apply(state, command, random));
                 log.Append(string.Join("\n", LessonStateComparer.Describe(state))).Append('\n');
             }
 

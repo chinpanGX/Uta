@@ -47,7 +47,7 @@ namespace Uta.Shared.Domain.Tests.Produce
 
         private static void Accept(ProduceEngine engine, ProduceState state, TestRandomStreamSource streams, ProduceCommand command)
         {
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
         }
 
         private static void SkipWhile(ProduceEngine engine, ProduceState state, TestRandomStreamSource streams, ProducePhase phase)
@@ -336,21 +336,21 @@ namespace Uta.Shared.Domain.Tests.Produce
             var streams = new TestRandomStreamSource(1);
             var state = SkipToExam(engine, streams);
 
-            AssertRejected(engine, state, streams, ProduceCommand.ExamRetry(), ProduceApplyResult.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.ExamRetry(), ProduceApplyResultKind.UnexpectedPhase);
 
             SkipExam(engine, state, streams);
             Assert.Equal(ProducePhase.ExamResult, state.Phase);
-            AssertRejected(engine, state, streams, ProduceCommand.UseCard(1), ProduceApplyResult.UnexpectedPhase);
-            AssertRejected(engine, state, streams, ProduceCommand.Skip(), ProduceApplyResult.UnexpectedPhase);
-            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(0), ProduceApplyResult.UnexpectedPhase);
-            AssertRejected(engine, state, streams, ProduceCommand.ChooseOther(0), ProduceApplyResult.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.UseCard(1), ProduceApplyResultKind.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.Skip(), ProduceApplyResultKind.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.OfferPick(0), ProduceApplyResultKind.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.ChooseOther(0), ProduceApplyResultKind.UnexpectedPhase);
 
             Accept(engine, state, streams, ProduceCommand.ExamNoRetry());
             Assert.Equal(ProducePhase.Finished, state.Phase);
-            AssertRejected(engine, state, streams, ProduceCommand.Skip(), ProduceApplyResult.UnexpectedPhase);
+            AssertRejected(engine, state, streams, ProduceCommand.Skip(), ProduceApplyResultKind.UnexpectedPhase);
         }
 
-        private static void AssertRejected(ProduceEngine engine, ProduceState state, TestRandomStreamSource streams, ProduceCommand command, ProduceApplyResult expected)
+        private static void AssertRejected(ProduceEngine engine, ProduceState state, TestRandomStreamSource streams, ProduceCommand command, ProduceApplyResultKind expected)
         {
             var before = ProduceStateComparer.Describe(state);
             Assert.Equal(expected, engine.Apply(state, command, streams));

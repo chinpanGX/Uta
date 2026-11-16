@@ -25,13 +25,13 @@ namespace Uta.Shared.Domain.Tests.Lesson
         private static void Use(LessonState state, int instanceId)
         {
             var result = Engine.Apply(state, LessonCommand.UseCard(instanceId), TestStates.NewRandom());
-            Assert.Equal(LessonApplyResult.Accepted, result);
+            Assert.Equal(LessonApplyResultKind.Accepted, result);
         }
 
         private static void Skip(LessonState state)
         {
             var result = Engine.Apply(state, LessonCommand.Skip(), TestStates.NewRandom());
-            Assert.Equal(LessonApplyResult.Accepted, result);
+            Assert.Equal(LessonApplyResultKind.Accepted, result);
         }
 
         private static int Gained(int cardId, bool enhanced, params (StatusKind Kind, int Value)[] statuses)
@@ -46,7 +46,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         public void UseCard_S11_GoodCondition()
         {
             var state = Setup(new[] { Phase3Cards.S11 }, new[] { 1 }, statuses: Statuses((StatusKind.GoodCondition, 2)));
-            Assert.Equal(UseCheckResult.Ok, Engine.CanUse(state, 1));
+            Assert.Equal(UseCheckResultKind.Ok, Engine.CanUse(state, 1));
             Use(state, 1);
             Assert.Equal(24, state.Hp);
             Assert.Equal(41, state.ParamGained);
@@ -57,14 +57,14 @@ namespace Uta.Shared.Domain.Tests.Lesson
         public void CanUse_S11NoGoodCondition_UseConditionNotMet()
         {
             var state = Setup(new[] { Phase3Cards.S11 }, new[] { 1 });
-            Assert.Equal(UseCheckResult.UseConditionNotMet, Engine.CanUse(state, 1));
+            Assert.Equal(UseCheckResultKind.UseConditionNotMet, Engine.CanUse(state, 1));
         }
 
         [Fact]
         public void UseCard_S04_GoodScale()
         {
             var state = Setup(new[] { Phase3Cards.S04 }, new[] { 1 }, statuses: Statuses((StatusKind.GoodCondition, 2)));
-            Assert.Equal(UseCheckResult.Ok, Engine.CanUse(state, 1));
+            Assert.Equal(UseCheckResultKind.Ok, Engine.CanUse(state, 1));
             Use(state, 1);
             Assert.Equal(28, state.Hp);
             Assert.Equal(20, state.ParamGained);
@@ -76,7 +76,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         {
             Assert.Equal(26, Gained(Phase3Cards.S04, false, (StatusKind.GoodCondition, 3), (StatusKind.Excellent, 1)));
             var state = Setup(new[] { Phase3Cards.S04 }, new[] { 1 }, statuses: Statuses((StatusKind.GoodCondition, 1)));
-            Assert.Equal(UseCheckResult.UseConditionNotMet, Engine.CanUse(state, 1));
+            Assert.Equal(UseCheckResultKind.UseConditionNotMet, Engine.CanUse(state, 1));
         }
 
         [Fact]
@@ -134,10 +134,10 @@ namespace Uta.Shared.Domain.Tests.Lesson
             var engine = new LessonEngine(new TestCardCatalog(new[] { card }));
 
             var poor = Setup(new[] { 901 }, new[] { 1 }, statuses: Statuses((StatusKind.GoodCondition, 1)));
-            Assert.Equal(UseCheckResult.CannotPayCost, engine.CanUse(poor, 1));
+            Assert.Equal(UseCheckResultKind.CannotPayCost, engine.CanUse(poor, 1));
 
             var rich = Setup(new[] { 901 }, new[] { 1 }, statuses: Statuses((StatusKind.GoodCondition, 3)));
-            Assert.Equal(UseCheckResult.Ok, engine.CanUse(rich, 1));
+            Assert.Equal(UseCheckResultKind.Ok, engine.CanUse(rich, 1));
             engine.Apply(rich, LessonCommand.UseCard(1), TestStates.NewRandom());
             Assert.Equal(1, rich.Statuses.Get(StatusKind.GoodCondition));
         }
@@ -150,10 +150,10 @@ namespace Uta.Shared.Domain.Tests.Lesson
             var engine = new LessonEngine(new TestCardCatalog(new[] { card }));
 
             var poor = Setup(new[] { 901 }, new[] { 1 });
-            Assert.Equal(UseCheckResult.CannotPayCost, engine.CanUse(poor, 1));
+            Assert.Equal(UseCheckResultKind.CannotPayCost, engine.CanUse(poor, 1));
 
             var rich = Setup(new[] { 901 }, new[] { 1 }, statuses: Statuses((StatusKind.Excellent, 1)));
-            Assert.Equal(UseCheckResult.Ok, engine.CanUse(rich, 1));
+            Assert.Equal(UseCheckResultKind.Ok, engine.CanUse(rich, 1));
             engine.Apply(rich, LessonCommand.UseCard(1), TestStates.NewRandom());
             Assert.Equal(0, rich.Statuses.Get(StatusKind.Excellent));
         }

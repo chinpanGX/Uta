@@ -26,7 +26,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             for (var i = 0; i < 5; i++)
             {
                 Assert.Equal(ProducePhase.Lesson, state.Phase);
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.Skip(), streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.Skip(), streams));
             }
 
             Assert.Equal(ProducePhase.WeekSelect, state.Phase);
@@ -60,8 +60,8 @@ namespace Uta.Shared.Domain.Tests.Produce
             }
 
             Assert.Equal(2, state.Week);
-            Assert.Equal(ProduceApplyResult.InvalidArgument, engine.Apply(state, ProduceCommand.ChooseLesson(1, ParamKind.Singing), streams));
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams));
+            Assert.Equal(ProduceApplyResultKind.InvalidArgument, engine.Apply(state, ProduceCommand.ChooseLesson(1, ParamKind.Singing), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams));
 
             Assert.Equal(LessonKind.Finishing, state.Lesson.Setup.Kind);
             Assert.Equal(9, state.Lesson.Setup.MaxTurns);
@@ -94,12 +94,12 @@ namespace Uta.Shared.Domain.Tests.Produce
             };
             var bonus = state.GetBonusPerThousand(target);
 
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, ProduceCommand.ChooseLesson(0, target), streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, ProduceCommand.ChooseLesson(0, target), streams));
             var lesson = state.Lesson;
             while (state.Phase == ProducePhase.Lesson)
             {
                 var command = ProduceBot.Next(engine, Catalog, state, true);
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
             }
 
             var result = LessonEngine.GetResult(lesson);
@@ -143,7 +143,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams);
             var before = ProduceStateComparer.Describe(state);
 
-            Assert.Equal(ProduceApplyResult.InvalidArgument, engine.Apply(state, ProduceCommand.UseDrink(0), streams));
+            Assert.Equal(ProduceApplyResultKind.InvalidArgument, engine.Apply(state, ProduceCommand.UseDrink(0), streams));
 
             Assert.Equal(before, ProduceStateComparer.Describe(state));
         }
@@ -157,7 +157,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams);
             var before = ProduceStateComparer.Describe(state);
 
-            Assert.Equal(ProduceApplyResult.InvalidArgument, engine.Apply(state, ProduceCommand.UseCard(9999), streams));
+            Assert.Equal(ProduceApplyResultKind.InvalidArgument, engine.Apply(state, ProduceCommand.UseCard(9999), streams));
 
             Assert.Equal(before, ProduceStateComparer.Describe(state));
         }
@@ -170,7 +170,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var state = Start(engine, streams);
             engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams);
 
-            Assert.Equal(ProduceApplyResult.UnexpectedPhase, engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams));
+            Assert.Equal(ProduceApplyResultKind.UnexpectedPhase, engine.Apply(state, ProduceCommand.ChooseLesson(0, ParamKind.Singing), streams));
         }
 
         [Fact]
