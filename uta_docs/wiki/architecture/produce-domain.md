@@ -187,7 +187,7 @@ updated: 2026-11-16
 | `CardInstanceSnapshot` | `InstanceId`、`CardId`、`Enhanced` |
 | `ExamReportSnapshot` | `Kind`(`ExamKind`)、`Attempt`、`Score`、`Rank`、`NpcScores`(`int[]`)、`Passed` |
 | `ExamBackupSnapshot` | `Parameters`(`int[3]`)、`Hp`、`Deck`(`CardInstanceSnapshot[]`)、`NextInstanceId` |
-| `ProduceResultSnapshot` | `Outcome`(`ExamOutcome`)、`EvaluationValue`、`Rank`(`ProduceRank`)、`FinalScore`、`FinalRank` |
+| `ProduceResultSnapshot` | `ResultKind`(`ExamResultKind`)、`EvaluationValue`、`Rank`(`ProduceRank`)、`FinalScore`、`FinalRank` |
 | `OperationSnapshot` | `Number`、`Kind`(`OperationKind`)、`Arg1`、`Arg2`、`Arg3`、`Week`、`Attempt`、`Turn` |
 | `ParamBonusSnapshot` | `Percent`、`RemainingTurns`、`SkipNextDecrement` |
 | `PersistentSnapshot` | `CardId`、`Enhanced`(強化版の面か)、`EffectIndex`(その面の `Effects` の中の位置)、`RemainingTurns`、`RemainingCount`、`GrantOrder`(`long`)、`SkipNextDecrement`。持続効果の中身(`Trigger`・`Effects`)は、カード定義の `Effects[EffectIndex]`(`Op` が `AddPersistent`)の `Trigger` と `Children` から復元する |

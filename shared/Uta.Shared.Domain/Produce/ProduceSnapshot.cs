@@ -34,7 +34,7 @@ namespace Uta.Shared.Domain.Produce
     /// <summary>ProduceResult の保存用の写し。</summary>
     public sealed class ProduceResultSnapshot
     {
-        public ExamOutcome Outcome { get; set; }
+        public ExamResultKind ResultKind { get; set; }
         public int EvaluationValue { get; set; }
         public ProduceRank Rank { get; set; }
         public int FinalScore { get; set; }
@@ -155,7 +155,7 @@ namespace Uta.Shared.Domain.Produce
             {
                 snapshot.Result = new ProduceResultSnapshot
                 {
-                    Outcome = state.Result.Outcome,
+                    ResultKind = state.Result.ResultKind,
                     EvaluationValue = state.Result.EvaluationValue,
                     Rank = state.Result.Rank,
                     FinalScore = state.Result.FinalScore,
@@ -249,7 +249,7 @@ namespace Uta.Shared.Domain.Produce
 
             if (Result != null)
             {
-                state.Result = new ProduceResult(Result.Outcome, Result.EvaluationValue, Result.Rank, Result.FinalScore, Result.FinalRank);
+                state.Result = new ProduceResult(Result.ResultKind, Result.EvaluationValue, Result.Rank, Result.FinalScore, Result.FinalRank);
             }
 
             for (var i = 0; i < Operations.Length; i++)

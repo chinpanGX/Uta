@@ -7,10 +7,10 @@ namespace Uta.Shared.Contracts.Produce
     public sealed class ProduceResultResponse
     {
         [SerializationConstructor]
-        public ProduceResultResponse(ProduceEnding ending, ExamOutcome examOutcome, int evaluationValue, ProduceRank rank, int finalScore, int finalRank, int gachaCurrency, int gold, int supportPoints, int exp, int playerExp)
+        public ProduceResultResponse(ProduceEnding ending, ExamResultKind examResultKind, int evaluationValue, ProduceRank rank, int finalScore, int finalRank, int gachaCurrency, int gold, int supportPoints, int exp, int playerExp)
         {
             Ending = ending;
-            ExamOutcome = examOutcome;
+            ExamResultKind = examResultKind;
             EvaluationValue = evaluationValue;
             Rank = rank;
             FinalScore = finalScore;
@@ -26,7 +26,7 @@ namespace Uta.Shared.Contracts.Produce
         public ProduceEnding Ending { get; }
 
         [Key(1)]
-        public ExamOutcome ExamOutcome { get; }
+        public ExamResultKind ExamResultKind { get; }
 
         [Key(2)]
         public int EvaluationValue { get; }

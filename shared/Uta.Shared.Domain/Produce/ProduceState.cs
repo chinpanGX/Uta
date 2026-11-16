@@ -85,16 +85,16 @@ namespace Uta.Shared.Domain.Produce
     /// <summary>育成の結果。</summary>
     public sealed class ProduceResult
     {
-        public ProduceResult(ExamOutcome outcome, int evaluationValue, ProduceRank rank, int finalScore, int finalRank)
+        public ProduceResult(ExamResultKind resultKind, int evaluationValue, ProduceRank rank, int finalScore, int finalRank)
         {
-            Outcome = outcome;
+            ResultKind = resultKind;
             EvaluationValue = evaluationValue;
             Rank = rank;
             FinalScore = finalScore;
             FinalRank = finalRank;
         }
 
-        public ExamOutcome Outcome { get; }
+        public ExamResultKind ResultKind { get; }
         public int EvaluationValue { get; }
         public ProduceRank Rank { get; }
 

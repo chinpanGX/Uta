@@ -9,10 +9,10 @@ public sealed record ProduceSessionData(ulong MasterSeed, IReadOnlyList<RandomSt
 public sealed record ProduceSessionRecord(Ulid SessionId, int AppVersion, int StateVersion, int RuleVersion, int Version, ProduceSessionData? Data);
 
 public sealed record ProduceResultRecord(
-    Ulid SessionId, Ulid PlayerId, ProduceSessionStatus Ending, ExamOutcome ExamOutcome, int EvaluationValue, ProduceRank Rank,
+    Ulid SessionId, Ulid PlayerId, ProduceSessionStatus Ending, ExamResultKind ExamResultKind, int EvaluationValue, ProduceRank Rank,
     int FinalScore, int FinalRank, int GachaCurrency, int Gold, int SupportPoints, int Exp)
 {
-    /// <summary>放棄・破棄の行（数値は 0、ExamOutcome / Rank は Nothing）。</summary>
+    /// <summary>放棄・破棄の行（数値は 0、ExamResultKind / Rank は Nothing）。</summary>
     public static ProduceResultRecord Empty(Ulid sessionId, Ulid playerId, ProduceSessionStatus ending) =>
-        new(sessionId, playerId, ending, ExamOutcome.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0);
+        new(sessionId, playerId, ending, ExamResultKind.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0);
 }

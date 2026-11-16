@@ -26,6 +26,6 @@ public sealed class AbandonProduceUseCase(IProduceSessionRepository sessions, IP
         await sessions.InsertResultAsync(tx, ProduceResultRecord.Empty(session.SessionId, playerId, ProduceSessionStatus.Abandoned));
         var player = await players.FindAsync(tx, playerId) ?? throw new InvalidOperationException("player not found");
         return new ProduceEndResult(
-            ProduceSessionStatus.Abandoned, ExamOutcome.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0, player.Exp);
+            ProduceSessionStatus.Abandoned, ExamResultKind.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0, player.Exp);
     }
 }
