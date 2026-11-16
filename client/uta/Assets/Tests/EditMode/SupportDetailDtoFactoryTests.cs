@@ -52,6 +52,21 @@ namespace Uta.Client.Tests
         }
 
         [Test]
+        public void Create_NotAffordable_DisablesStep()
+        {
+            OwnedFixtures.SetPlayer(playerRepository, gold: 1000, supportPoints: 300);
+
+            var dto = supportDetailDtoFactory.Create("01A");
+
+            Assert.IsTrue(dto.LevelSteps[0].Enabled);
+            Assert.AreEqual("+5 → Lv 8（足りません）", dto.LevelSteps[1].Label);
+            Assert.IsFalse(dto.LevelSteps[1].Enabled);
+            Assert.AreEqual(3, dto.LevelSteps[1].TargetLevel);
+            Assert.IsNull(dto.LevelSteps[1].ConfirmText);
+            Assert.AreEqual("最大 → Lv 6（強化pt 300 / G 150）", dto.LevelSteps[2].Label);
+        }
+
+        [Test]
         public void Create_CardGone_NotExists()
         {
             var dto = supportDetailDtoFactory.Create("01Z");

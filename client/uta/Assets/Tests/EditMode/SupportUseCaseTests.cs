@@ -61,7 +61,7 @@ namespace Uta.Client.Tests
             Assert.AreEqual(SupportResultKind.NotEnoughGold, (await useCase.LevelUpAsync("01A", 4)).Kind);
             Assert.AreEqual(SupportResultKind.InvalidTarget, (await useCase.LevelUpAsync("01A", 4)).Kind);
             Assert.AreEqual(SupportResultKind.NotOwned, (await useCase.LevelUpAsync("01A", 4)).Kind);
-            Assert.AreEqual(0, player.RefreshCount);
+            Assert.AreEqual(4, player.RefreshCount);
         });
 
         [UnityTest]
@@ -72,6 +72,18 @@ namespace Uta.Client.Tests
             var result = await useCase.LevelUpAsync("01A", 4);
 
             Assert.AreEqual(SupportResultKind.Failed, result.Kind);
+            Assert.AreEqual(0, player.RefreshCount);
+        });
+
+        [UnityTest]
+        public IEnumerator LevelUp_BusinessErrorRefreshFails_StillReturnsKind() => UniTask.ToCoroutine(async () =>
+        {
+            service.LevelUpResults.Enqueue(FakeSupportService.Fail<LevelUpResponse>(SupportErrors.NotOwned));
+            player.RefreshResults.Enqueue(() => throw new InvalidOperationException("sign-in failed: x"));
+
+            var result = await useCase.LevelUpAsync("01A", 4);
+
+            Assert.AreEqual(SupportResultKind.NotOwned, result.Kind);
         });
 
         [UnityTest]
@@ -115,7 +127,7 @@ namespace Uta.Client.Tests
             Assert.AreEqual(SupportResultKind.InvalidMaterial, (await useCase.LimitBreakAsync("01A", "01D")).Kind);
             Assert.AreEqual(SupportResultKind.NotOwned, (await useCase.LimitBreakAsync("01A", "01D")).Kind);
             Assert.AreEqual(SupportResultKind.Failed, (await useCase.LimitBreakAsync("01A", "01D")).Kind);
-            Assert.AreEqual(0, player.RefreshCount);
+            Assert.AreEqual(3, player.RefreshCount);
         });
 
         [UnityTest]

@@ -164,7 +164,7 @@ namespace Uta.Client.Tests
             var presenter = CreatePresenter();
             await presenter.InitializeAsync();
 
-            Assert.IsTrue(log.Entries.Contains("SetLevelButtons:+1 → Lv 4（強化pt 100 / G 50）,+5 → Lv 8（強化pt 500 / G 250）,最大（足りません）,True,True,False"));
+            Assert.IsTrue(log.Entries.Contains("SetLevelButtons:+1 → Lv 4（足りません）,+5 → Lv 8（足りません）,最大（足りません）,False,False,False"));
         });
 
         [UnityTest]
