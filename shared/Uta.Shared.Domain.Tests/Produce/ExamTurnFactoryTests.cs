@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Uta.Shared.Domain.Tests.Produce
 {
-    public class ExamTurnBuilderTests
+    public class ExamTurnFactoryTests
     {
         private static readonly ProduceCatalog Catalog = TestProduceMaster.Create();
         private static readonly int[] ParamValues = { 300, 200, 100 };
@@ -23,12 +23,12 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_Mid_TotalCountsMatchPattern()
+        public void Create_Mid_TotalCountsMatchPattern()
         {
             var idol = Catalog.GetIdol(1);
             for (ulong seed = 1; seed <= 20; seed++)
             {
-                var turns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Mid, ParamValues, Random(seed));
+                var turns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Mid, ParamValues, Random(seed));
                 Assert.Equal(9, turns.Count);
                 Assert.Equal(4, Count(turns, ParamKind.Singing));
                 Assert.Equal(3, Count(turns, ParamKind.Rhythm));
@@ -37,12 +37,12 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_Final_Sense_Has12Turns()
+        public void Create_Final_Sense_Has12Turns()
         {
             var idol = Catalog.GetIdol(1);
             for (ulong seed = 1; seed <= 20; seed++)
             {
-                var turns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
+                var turns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
                 Assert.Equal(12, turns.Count);
                 Assert.Equal(5, Count(turns, ParamKind.Singing));
                 Assert.Equal(4, Count(turns, ParamKind.Rhythm));
@@ -51,12 +51,12 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_Final_Logic_Counts()
+        public void Create_Final_Logic_Counts()
         {
             var idol = Catalog.GetIdol(2);
             for (ulong seed = 1; seed <= 20; seed++)
             {
-                var turns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
+                var turns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
                 Assert.Equal(11, turns.Count);
                 Assert.Equal(5, Count(turns, ParamKind.Rhythm));
                 Assert.Equal(4, Count(turns, ParamKind.Expression));
@@ -65,12 +65,12 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_LastThreeTurns_AreThirdSecondFirst()
+        public void Create_LastThreeTurns_AreThirdSecondFirst()
         {
             var idol = Catalog.GetIdol(1);
             for (ulong seed = 1; seed <= 20; seed++)
             {
-                var turns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
+                var turns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
                 var n = turns.Count;
                 Assert.Equal(ParamKind.Expression, turns[n - 3].Param);
                 Assert.Equal(ParamKind.Rhythm, turns[n - 2].Param);
@@ -79,12 +79,12 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_FirstTurn_FollowsFirstTurnDraw()
+        public void Create_FirstTurn_FollowsFirstTurnDraw()
         {
             var idol = Catalog.GetIdol(1);
 
             var second = new ScriptedRandom(new ulong[] { 10000 }, Random(1));
-            var turnsSecond = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Mid, ParamValues, second);
+            var turnsSecond = ExamTurnFactory.Create(Catalog, idol, ExamKind.Mid, ParamValues, second);
             Assert.Equal(ParamKind.Rhythm, turnsSecond[0].Param);
             Assert.Equal(9, turnsSecond.Count);
             Assert.Equal(4, Count(turnsSecond, ParamKind.Singing));
@@ -92,7 +92,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             Assert.Equal(2, Count(turnsSecond, ParamKind.Expression));
 
             var first = new ScriptedRandom(new ulong[] { 5000 }, Random(1));
-            var turnsFirst = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Mid, ParamValues, first);
+            var turnsFirst = ExamTurnFactory.Create(Catalog, idol, ExamKind.Mid, ParamValues, first);
             Assert.Equal(ParamKind.Singing, turnsFirst[0].Param);
             Assert.Equal(9, turnsFirst.Count);
             Assert.Equal(4, Count(turnsFirst, ParamKind.Singing));
@@ -101,28 +101,28 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_RateZero_FirstTurnAlwaysFirstParam()
+        public void Create_RateZero_FirstTurnAlwaysFirstParam()
         {
             var idol = Catalog.GetIdol(2);
             for (ulong seed = 1; seed <= 20; seed++)
             {
-                var turns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
+                var turns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
                 Assert.Equal(ParamKind.Rhythm, turns[0].Param);
             }
 
             var scripted = new ScriptedRandom(new ulong[] { 5000 }, Random(1));
-            var scriptedTurns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, scripted);
+            var scriptedTurns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, scripted);
             Assert.Equal(ParamKind.Rhythm, scriptedTurns[0].Param);
             Assert.Equal(1, scripted.Consumed);
         }
 
         [Fact]
-        public void Build_ScoreBonusMatchesFormula()
+        public void Create_ScoreBonusMatchesFormula()
         {
             var idol = Catalog.GetIdol(1);
             for (ulong seed = 1; seed <= 20; seed++)
             {
-                var turns = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
+                var turns = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(seed));
                 foreach (var turn in turns)
                 {
                     var rank = turn.Param == idol.FirstParam ? 1 : turn.Param == idol.SecondParam ? 2 : 3;
@@ -133,11 +133,11 @@ namespace Uta.Shared.Domain.Tests.Produce
         }
 
         [Fact]
-        public void Build_SameSeed_SameResult()
+        public void Create_SameSeed_SameResult()
         {
             var idol = Catalog.GetIdol(1);
-            var a = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(5));
-            var b = ExamTurnBuilder.Build(Catalog, idol, ExamKind.Final, ParamValues, Random(5));
+            var a = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(5));
+            var b = ExamTurnFactory.Create(Catalog, idol, ExamKind.Final, ParamValues, Random(5));
             Assert.Equal(a.Select(t => t.Param).ToArray(), b.Select(t => t.Param).ToArray());
             Assert.Equal(a.Select(t => t.ScoreBonusPercent).ToArray(), b.Select(t => t.ScoreBonusPercent).ToArray());
         }

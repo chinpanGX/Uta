@@ -638,7 +638,7 @@ namespace Uta.Shared.Domain.Produce
             var week = scenario.GetWeek(state.Week);
             var idol = catalog.GetIdol(state.Input.IdolId);
             var random = streams.Get(new RandomStreamKey(RandomStreamKind.Lesson, state.Week, state.Attempt));
-            var turns = ExamTurnBuilder.Build(catalog, idol, GetExamKind(week), state.CopyParams(), random);
+            var turns = ExamTurnFactory.Create(catalog, idol, GetExamKind(week), state.CopyParams(), random);
             var setup = new LessonSetup(
                 week.Kind == WeekKind.MidExam ? LessonKind.MidExam : LessonKind.FinalExam,
                 ParamKind.Nothing,
