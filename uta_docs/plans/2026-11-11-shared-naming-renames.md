@@ -1,6 +1,6 @@
 ---
 title: 実装計画: shared/ の型の改名（naming.md の差の表の Shared.Domain・Contracts の行）
-status: in-progress
+status: done
 updated: 2026-11-16
 spec: ../wiki/architecture/naming.md, ../wiki/architecture/api-design.md, ../wiki/architecture/lesson-domain-types.md, ../wiki/architecture/produce-domain.md, ../wiki/architecture/master/gacha-tables.md, ../wiki/systems/gacha.md
 ---
@@ -279,3 +279,11 @@ Windows の IL2CPP のプレイヤーのビルドは確かめない（型を足�
 
 | タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
 |---|---|---|---|
+| 1 | 完了 | `0d82156` | なし |
+| 2 | 完了 | `a8e55b9` | なし |
+| 3 | 完了 | `2b5c5df` | なし。**未確認**: この worktree を Unity の Editor で開いていなかったので、`unity command package resolve`・`unity recompile --format json`・EditMode のテスト（`GachaMapperTests`・`GachaUseCaseTests` を含む全件）は実行していない。`GrantResultKind.cs` の XML コメントは、直後が全角の括弧で `\b` に当たらず sed で置き換わらなかったので、別に置き換えた（結果は 3.3 のとおり） |
+| 4 | 完了 | `f19d171` | なし（wiki は 3.4 のとおり。ほかに直す実装設計書は無い） |
+
+確かめたこと（2026-11-16）: `dotnet build Uta.slnx --no-incremental` は警告 0・エラー 0。`dotnet test --project shared/Uta.Shared.Domain.Tests` は 462 件成功。`dotnet test --project server/Uta.Server.Tests` は 311 件成功（Docker あり。結合テストを含む）。Lint はエラー 0・警告 0。
+
+コードレビュー（2026-11-16。shared・server・client の 3 レイヤー）: Critical 0・Important 0。Minor は 2 つ残した: client の `GachaMapperTests.ToDrawResult_MapsOutcomeAndSortsBySlot` のメソッド名に `Outcome` の語が残る（計画の `git grep -w` では複合語の中に当たらない。名前だけで動きに影響しない）、実装メモの表が空だった（この表で直した）。
