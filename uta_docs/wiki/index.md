@@ -1,14 +1,14 @@
 ---
 title: Uta wiki 目次
 status: draft
-updated: 2026-11-01
+updated: 2026-11-16
 ---
 
 # Uta wiki 目次
 
 wiki の入口。ページの一覧と一行要約は、各フォルダの README.md に置く。ページを足した・消したら、そのフォルダの README.md を更新する。
 
-設計書は 3 段に分ける（[ADR 0017](decisions/0017-spec-design-plan-stages.md)）: ゲームの仕様（overview/・systems/）→ 実装設計書（architecture/）→ 実装計画（[../plans/](../plans/README.md)）。
+設計書は 3 段に分ける（[ADR 0024](decisions/0024-verification-first-reviews.md)。ADR 0017 から引き継ぐ）: ゲームの仕様（overview/・systems/）→ 実装設計書（architecture/）→ 実装計画（[../plans/](../plans/README.md)）。
 
 ## フォルダ
 

@@ -1,12 +1,12 @@
 ---
 title: systems（ゲームの仕様）の目次
 status: draft
-updated: 2026-10-31
+updated: 2026-11-16
 ---
 
 # systems（ゲームの仕様）の目次
 
-システムごとのゲームの仕様。**実装設計書（[architecture/](../architecture/README.md)）の一次情報**（[ADR 0017](../decisions/0017-spec-design-plan-stages.md)）。
+システムごとのゲームの仕様。**実装設計書（[architecture/](../architecture/README.md)）の一次情報**（[ADR 0024](../decisions/0024-verification-first-reviews.md)。3 段は ADR 0017 から引き継ぐ）。
 
 ## 決まり
 

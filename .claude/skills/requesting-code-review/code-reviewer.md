@@ -25,6 +25,10 @@ Agent:
 
     [PLAN_OR_REQUIREMENTS]
 
+    ## 動作検証の結果
+
+    [VERIFICATION]
+
     ## レビューする範囲
 
     **Base:** [BASE_SHA]
@@ -60,6 +64,7 @@ Agent:
 - `[CHECKLIST]`: `.claude/skills/requesting-code-review/layers/<レイヤー>.md` のパス
 - `[DESCRIPTION]`: 何を作ったかの短い要約
 - `[PLAN_OR_REQUIREMENTS]`: 実装計画・wiki の仕様ページ・ADR のパス、タスクの文
+- `[VERIFICATION]`: 進行役が回した動作検証のコマンドと結果（通った件数・失敗 0）、確認できていないもの（PlayMode・実機など）。計画がないときは、回したテストを書く
 - `[BASE_SHA]` / `[HEAD_SHA]`: 範囲（foundation は共通基盤のリポジトリの範囲）
 - `[FILES]`: このレイヤーのファイル
 - `[OTHER_LAYERS]`: ほかのレイヤーのファイル（なければ「なし」）

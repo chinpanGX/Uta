@@ -1,7 +1,7 @@
 ---
 title: decisions（ADR）の目次
 status: draft
-updated: 2026-11-01
+updated: 2026-11-16
 ---
 
 # decisions（ADR）の目次
@@ -33,10 +33,11 @@ updated: 2026-11-01
 - [0014-design-heavy-sonnet-implementation.md](0014-design-heavy-sonnet-implementation.md) — 設計は厚く書き、実装は Sonnet のサブエージェントに任せる。仕様と実装の間に実装計画（`uta_docs/plans/`）を置く（superseded。ADR 0017 で置き換え）
 - [0015-reference-card-values.md](0015-reference-card-values.md) — 初期カードセットの数値は参考作品の値を使う（superseded。ADR 0016 で置き換え）
 - [0016-reference-game-values.md](0016-reference-game-values.md) — ゲームシステムの数値（カード・週構成・排出率・強化量など）は参考作品の値を使う。ADR 0015 を置き換え（accepted）
-- [0017-spec-design-plan-stages.md](0017-spec-design-plan-stages.md) — ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え（accepted）
+- [0017-spec-design-plan-stages.md](0017-spec-design-plan-stages.md) — ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す。ADR 0014 を置き換え（superseded。ADR 0024 で置き換え）
 - [0018-change-log-from-git.md](0018-change-log-from-git.md) — 変更の記録は log.md をやめ、git log から取る。ADR 0017 の「log.md に追記する」を置き換え（accepted）
 - [0019-foundation-packages.md](0019-foundation-packages.md) — 共通基盤はサブモジュールをやめ、サーバーは `packages/` の NuGet パッケージ、Unity は git URL で参照する。ADR 0005 を置き換え（accepted）
 - [0020-masterdata-referenced-outside-shared-domain.md](0020-masterdata-referenced-outside-shared-domain.md) — 生成したマスタは Shared.Domain 以外のどの層から参照してもよい。`MemoryDatabase` はシングルトンで Inject する。ADR 0008 の一部を置き換え（accepted）
 - [0021-domain-entities-and-repositories.md](0021-domain-entities-and-repositories.md) — 各側の Domain にエンティティ（`<名詞>Entity`）とリポジトリの IF（読み取り専用と書き込み）を置く。ADR 0008 の一部を置き換え（accepted）
 - [0022-client-external-concretes-in-infrastructure.md](0022-client-external-concretes-in-infrastructure.md) — クライアントは外部に触れる具象を Infrastructure に置き、Application には機能ごとの UseCase の IF を置く。ADR 0008 の一部を置き換え（accepted）
 - [0023-client-linq-with-zlinq.md](0023-client-linq-with-zlinq.md) — クライアントの LINQ 形式の実装は ZLinq を使う（DropInGenerator の Everything。client だけ）（accepted）
+- [0024-verification-first-reviews.md](0024-verification-first-reviews.md) — 動作検証を実装計画で決め、品質の担保を動作検証に寄せる。設計の批評のレビューをやめ、コードレビューは動作検証の後に effort を下げて行う。ADR 0017 を置き換え（accepted）

@@ -1,10 +1,12 @@
 ---
 title: ADR 0017 ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す
-status: accepted
-updated: 2026-11-01
+status: superseded
+updated: 2026-11-16
 ---
 
 # ADR 0017: ゲームの仕様・実装設計書・実装計画の 3 段に分け、レビューは実装設計書と計画で回す
+
+> **Superseded**（2026-11-16）: [ADR 0024](0024-verification-first-reviews.md) で置き換えた。3 段の設計書はそのまま引き継ぎ、設計の批評のレビューをやめ、品質の担保を動作検証に寄せた。
 
 [ADR 0014](0014-design-heavy-sonnet-implementation.md) を置き換える（ADR 0014 の決定は、下の「ADR 0014 から引き継ぐもの」としてそのまま残す）。
 
