@@ -21,7 +21,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var state = engine.Start(input, streams);
             foreach (var command in commands)
             {
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
             }
 
             return state;
@@ -118,7 +118,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             while (state.Phase != ProducePhase.Finished)
             {
                 var command = ProduceBot.Next(engine, Catalog, state, true, false);
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
                 commands.Add(command);
                 snapshots.Add(ProduceStateComparer.Describe(state));
             }
@@ -128,7 +128,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             var replayed = replayEngine.Start(input, replayStreams);
             for (var i = 0; i < commands.Count; i++)
             {
-                Assert.Equal(ProduceApplyResult.Accepted, replayEngine.Apply(replayed, commands[i], replayStreams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, replayEngine.Apply(replayed, commands[i], replayStreams));
                 Assert.Equal(snapshots[i], ProduceStateComparer.Describe(replayed));
             }
         }
@@ -146,13 +146,13 @@ namespace Uta.Shared.Domain.Tests.Produce
             while (state.Phase != ProducePhase.Finished)
             {
                 var command = ProduceBot.Next(engine, Catalog, state, true, false);
-                Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(state, command, streams));
+                Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(state, command, streams));
                 commands.Add(command);
                 if (step < rejected.Length && state.Phase != ProducePhase.Finished)
                 {
                     var before = ProduceStateComparer.Describe(state);
                     var result = engine.Apply(state, rejected[step], streams);
-                    Assert.NotEqual(ProduceApplyResult.Accepted, result);
+                    Assert.NotEqual(ProduceApplyResultKind.Accepted, result);
                     Assert.Equal(before, ProduceStateComparer.Describe(state));
                 }
 

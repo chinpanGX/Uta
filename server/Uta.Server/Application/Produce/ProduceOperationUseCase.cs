@@ -31,9 +31,9 @@ public sealed class ProduceOperationUseCase(
         var applied = engine.Apply(state, normalized, streams);
         switch (applied)
         {
-            case ProduceApplyResult.UnexpectedPhase:
+            case ProduceApplyResultKind.UnexpectedPhase:
                 throw new UseCaseException(UseCaseError.ProduceUnexpectedPhase, "unexpected phase");
-            case ProduceApplyResult.InvalidArgument:
+            case ProduceApplyResultKind.InvalidArgument:
                 throw new UseCaseException(UseCaseError.ProduceInvalidArgument, "invalid argument");
         }
 

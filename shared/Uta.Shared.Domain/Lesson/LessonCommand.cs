@@ -38,7 +38,7 @@
     }
 
     /// <summary>カードを使えるか（P1・P3 の判定）。乱数を使わないので、クライアントの予測にも使える。</summary>
-    public enum UseCheckResult
+    public enum UseCheckResultKind
     {
         Ok = 0,
         NotPlayerPhase = 1,
@@ -49,7 +49,7 @@
     }
 
     /// <summary>操作を受け付けたか。Accepted 以外は状態を変えていない。</summary>
-    public enum LessonApplyResult
+    public enum LessonApplyResultKind
     {
         Accepted = 0,
         NotPlayerPhase = 1,

@@ -128,14 +128,14 @@ namespace Uta.Client.Tests
             return new PlayerEntity("P1", 1, 0, 0, 0, gachaCurrency, false, false);
         }
 
-        public static DrawResultDto IdolResult(int slot, int idolId, GachaOutcome outcome, int shards)
+        public static DrawResultDto IdolResult(int slot, int idolId, GachaResultKind resultKind, int shards)
         {
-            return new DrawResultDto(slot, ItemKind.Idol, idolId, outcome, shards, 0, "");
+            return new DrawResultDto(slot, ItemKind.Idol, idolId, resultKind, shards, 0, "");
         }
 
-        public static DrawResultDto SupportCardResult(int slot, int supportCardId, GachaOutcome outcome, int supportPoints)
+        public static DrawResultDto SupportCardResult(int slot, int supportCardId, GachaResultKind resultKind, int supportPoints)
         {
-            return new DrawResultDto(slot, ItemKind.SupportCard, supportCardId, outcome, 0, supportPoints, "uid" + slot);
+            return new DrawResultDto(slot, ItemKind.SupportCard, supportCardId, resultKind, 0, supportPoints, "uid" + slot);
         }
     }
 }

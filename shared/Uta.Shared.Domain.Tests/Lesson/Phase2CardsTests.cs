@@ -25,7 +25,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         private static void Use(LessonState state, int instanceId)
         {
             var result = Engine.Apply(state, LessonCommand.UseCard(instanceId), TestStates.NewRandom());
-            Assert.Equal(LessonApplyResult.Accepted, result);
+            Assert.Equal(LessonApplyResultKind.Accepted, result);
         }
 
         [Fact]

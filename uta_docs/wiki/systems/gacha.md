@@ -1,7 +1,7 @@
 ---
 title: ガチャ
 status: draft
-updated: 2026-11-08
+updated: 2026-11-16
 ---
 
 # ガチャ
@@ -65,7 +65,7 @@ updated: 2026-11-08
 - 排出テーブルの中身(行)を変えるときは、新しい `GachaTableId` のテーブルを作る。同じ ID のまま変えない(履歴の `gacha_table_id` から当時の確率を追えるようにする)。**この規則は公開・配布してから適用する**。MVP の開発中は、同じ ID のまま CSV を書き換え、DB を作り直してよい
 - 確定枠を別のテーブルにする理由: ピックアップ(GAC-06)で確定枠だけ重みを変えられるようにするため。MVP では通常枠の SR 以上と同じ比なので重複に見えるが、テーブルを分けておけば GAC-06 で構造を変えずに済む(ユーザーの判断。2026-10-31)。`GachaDetailTable`（排出テーブルの見出し）を別に置くのは、`Gacha` の 2 つの列から `[Exists]` で参照するため
 - ガチャは「通常枠のテーブル」と「確定枠のテーブル」の 2 つを指す。単発と 10 連の 1〜9 枠目は通常枠、10 連の 10 枠目は確定枠から引く。確定枠のテーブルには SR 以上のカードだけを入れる。参考作品の「10連のどこかに SR 以上 1 枚」ではなく「10 枠目を常に SR 以上」に単純化した
-- マスタのテーブル・列・`ItemKind` の enum・区分・検証は [gacha-tables.md](../architecture/master/gacha-tables.md)。`Outcome`(新規か重複か)の enum は [api-design.md](../architecture/api-design.md) 1.1
+- マスタのテーブル・列・`ItemKind` の enum・区分・検証は [gacha-tables.md](../architecture/master/gacha-tables.md)。`GachaResultKind`(新規か重複か)の enum は [api-design.md](../architecture/api-design.md) 1.1
 
 ### 3.2 抽選 [決定。2026-10-31]
 
@@ -100,9 +100,9 @@ updated: 2026-11-08
 
 サポートカード: 1枚ずつ所持ID(ULID)で持ち、重複は手動の上限解放の素材に使う([idol-support](idol-support.md) 2.2.1)。同じカードの完凸のものを持っていれば、引いた時点でサポート強化pt に変換する(7章) [決定。2026-10-31]。
 
-結果の種類(`Outcome`。DTO と履歴の `outcome`)[決定。2026-10-31]: **行が増えた・所持になったら `New`、増やさずに変換したら `Duplicate`**。
+結果の種類(`GachaResultKind`。DTO の `ResultKind` と、履歴の列 `outcome`)[決定。2026-10-31]: **行が増えた・所持になったら `New`、増やさずに変換したら `Duplicate`**。
 
-| 場合 | `Outcome` | `Shards` | `SupportPoints` | `SupportCardUniqueId` |
+| 場合 | `ResultKind` | `Shards` | `SupportPoints` | `SupportCardUniqueId` |
 |---|---|---|---|---|
 | 育成アイドルを初めて得た | `New` | 0 | 0 | 空 |
 | 育成アイドルを持っていた(かけらに変換) | `Duplicate` | 量 | 0 | 空 |

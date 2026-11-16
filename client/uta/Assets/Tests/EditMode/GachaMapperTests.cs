@@ -13,8 +13,8 @@ namespace Uta.Client.Tests
             var response = new DrawResponse(
                 new[]
                 {
-                    GachaFixtures.SupportCardResult(2, 2, GachaOutcome.Duplicate, 10),
-                    GachaFixtures.IdolResult(1, 1, GachaOutcome.New, 0),
+                    GachaFixtures.SupportCardResult(2, 2, GachaResultKind.Duplicate, 10),
+                    GachaFixtures.IdolResult(1, 1, GachaResultKind.New, 0),
                 },
                 750,
                 47);

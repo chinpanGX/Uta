@@ -40,7 +40,7 @@ namespace Uta.Client.Infrastructure.Gacha
                         dto.Slot,
                         (Uta.MasterData.ItemKind)(int)dto.ItemKind,
                         dto.ItemMasterId,
-                        dto.Outcome == GachaOutcome.New,
+                        dto.ResultKind == GachaResultKind.New,
                         dto.Shards,
                         dto.SupportPoints))
                     .OrderBy(r => r.Slot)

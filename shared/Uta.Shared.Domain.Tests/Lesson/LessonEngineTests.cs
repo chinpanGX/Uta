@@ -49,7 +49,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
 
             var result = Engine.Apply(state, LessonCommand.UseCard(state.Zones.Hand[0]), TestStates.NewRandom());
 
-            Assert.Equal(LessonApplyResult.Accepted, result);
+            Assert.Equal(LessonApplyResultKind.Accepted, result);
             Assert.Equal(26, state.Hp);
             Assert.Equal(9, state.ParamGained);
             Assert.Equal(2, state.Turn);
@@ -117,8 +117,8 @@ namespace Uta.Shared.Domain.Tests.Lesson
             var state = new LessonState(NormalLesson, TestStates.Deck(Enumerable.Repeat(Phase1Cards.L02, 9)), 30, 30);
             Engine.Start(state, TestStates.NewRandom());
 
-            Assert.Equal(UseCheckResult.UseConditionNotMet, Engine.CanUse(state, state.Zones.Hand[0]));
-            Assert.Equal(LessonApplyResult.UseConditionNotMet, Engine.Apply(state, LessonCommand.UseCard(state.Zones.Hand[0]), TestStates.NewRandom()));
+            Assert.Equal(UseCheckResultKind.UseConditionNotMet, Engine.CanUse(state, state.Zones.Hand[0]));
+            Assert.Equal(LessonApplyResultKind.UseConditionNotMet, Engine.Apply(state, LessonCommand.UseCard(state.Zones.Hand[0]), TestStates.NewRandom()));
         }
 
         [Fact]
@@ -207,7 +207,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
             Engine.Apply(state, LessonCommand.Skip(), TestStates.NewRandom());
 
             Assert.True(state.IsFinished);
-            Assert.Equal(LessonApplyResult.NotPlayerPhase, Engine.Apply(state, LessonCommand.Skip(), TestStates.NewRandom()));
+            Assert.Equal(LessonApplyResultKind.NotPlayerPhase, Engine.Apply(state, LessonCommand.Skip(), TestStates.NewRandom()));
         }
 
         [Fact]
@@ -234,7 +234,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
         {
             var state = TestStates.PlayerState(new[] { Phase1Cards.F01 }, hand: new[] { 1 }, drawPile: new int[0], hp: 30);
 
-            Assert.Equal(LessonApplyResult.NotSupported, Engine.Apply(state, LessonCommand.UseDrink(0), TestStates.NewRandom()));
+            Assert.Equal(LessonApplyResultKind.NotSupported, Engine.Apply(state, LessonCommand.UseDrink(0), TestStates.NewRandom()));
         }
 
         [Fact]

@@ -18,7 +18,7 @@ namespace Uta.Shared.Domain.Tests.Lesson
             var state = TestStates.PlayerState(new[] { CardId }, new[] { 1 }, new int[0], hp,
                 usesLeft: 2, shield: shield, statuses: statuses);
             var result = engine.Apply(state, LessonCommand.UseCard(1), TestStates.NewRandom());
-            Assert.Equal(LessonApplyResult.Accepted, result);
+            Assert.Equal(LessonApplyResultKind.Accepted, result);
             return state;
         }
 
@@ -96,10 +96,10 @@ namespace Uta.Shared.Domain.Tests.Lesson
             var engine = new LessonEngine(new TestCardCatalog(new[] { card }));
 
             var poor = TestStates.PlayerState(new[] { CardId }, new[] { 1 }, new int[0], 30, usesLeft: 2, statuses: Statuses(status, 1));
-            Assert.Equal(UseCheckResult.CannotPayCost, engine.CanUse(poor, 1));
+            Assert.Equal(UseCheckResultKind.CannotPayCost, engine.CanUse(poor, 1));
 
             var rich = TestStates.PlayerState(new[] { CardId }, new[] { 1 }, new int[0], 30, usesLeft: 2, statuses: Statuses(status, 3));
-            Assert.Equal(UseCheckResult.Ok, engine.CanUse(rich, 1));
+            Assert.Equal(UseCheckResultKind.Ok, engine.CanUse(rich, 1));
             engine.Apply(rich, LessonCommand.UseCard(1), TestStates.NewRandom());
             Assert.Equal(1, rich.Statuses.Get(status));
         }

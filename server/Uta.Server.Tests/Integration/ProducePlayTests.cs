@@ -321,7 +321,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         foreach (var operation in data.Snapshot.Operations)
         {
             var command = new ProduceCommand(operation.Kind, operation.Arg1, operation.Arg2, operation.Arg3);
-            Assert.Equal(ProduceApplyResult.Accepted, engine.Apply(replayed, command, streams));
+            Assert.Equal(ProduceApplyResultKind.Accepted, engine.Apply(replayed, command, streams));
         }
 
         Assert.Equal(ProducePhase.Finished, saved.Phase);

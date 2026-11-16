@@ -1,6 +1,6 @@
 ﻿namespace Uta.Shared.Contracts.Gacha
 {
-    public enum GachaOutcome
+    public enum GachaResultKind
     {
         Nothing = 0,
         New = 1,
