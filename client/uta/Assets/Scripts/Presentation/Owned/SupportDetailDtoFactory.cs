@@ -112,6 +112,11 @@ namespace Uta.Client.Presentation.Owned
             if (target > card.Level)
             {
                 var cost = supportLevelPlanner.GetLevelUpCost(card.MasterId, card.Level, target);
+                if (cost.SupportPoints > sp || cost.Gold > gold)
+                {
+                    return new SupportLevelStepViewDto(name + " → Lv " + target + "（足りません）", false, card.Level, null);
+                }
+
                 var label = name + " → Lv " + target + "（強化pt " + N0(cost.SupportPoints) + " / G " + N0(cost.Gold) + "）";
                 var confirmText = "Lv " + card.Level + " → Lv " + target + " に上げます。\n強化pt " + N0(cost.SupportPoints) + "・ゴールド " + N0(cost.Gold) + " を使います。";
                 return new SupportLevelStepViewDto(label, true, target, confirmText);
