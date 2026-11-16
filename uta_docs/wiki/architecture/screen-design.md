@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-11-09
+updated: 2026-11-16
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -238,11 +238,13 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 
 ### 画面 3/6（所持一覧・サポートカードの強化。2026-11-09。[計画](../../plans/2026-11-03-client-screens-owned.md)）
 
-- **形**: Application の `ISupportUseCase`（`LevelUpAsync` は `LevelUpResult`、`LimitBreakAsync` は `LimitBreakResult`。どちらもサーバーと同じ名前・メンバーに `Kind`（`SupportResultKind`）を足した）、Infrastructure の具象 `SupportUseCase`（業務エラーを `handledCodes` で受けて `SupportResultKind` に写す。成功のあと `IPlayerUseCase.RefreshAsync()` を呼び、失敗は握りつぶす）。残高・カードのレベル・上限解放・素材の削除は応答の player_diff で基盤がリポジトリに反映する。最大レベル・上限解放の最大・費用・目標レベルは `SupportLevelPlanner`（`MemoryDatabase` を受ける）。一覧の並び・絞り込み・選べるかは `OwnedListFactory`、表示の文字は `OwnedDtoFactory`・`SupportDetailDtoFactory`
+- **形**: Application の `ISupportUseCase`（`LevelUpAsync` は `LevelUpResult`、`LimitBreakAsync` は `LimitBreakResult`。どちらもサーバーと同じ名前・メンバーに `Kind`（`SupportResultKind`）を足した）、Infrastructure の具象 `SupportUseCase`（業務エラーを `handledCodes` で受けて `SupportResultKind` に写す。成功のあとと業務エラーのあと（手元の所持データが古いときに次の表示を直すため。2026-11-16、O11）に `IPlayerUseCase.RefreshAsync()` を呼び、失敗は握りつぶす。ほかのエラー（`Failed`）では取り直さない）。残高・カードのレベル・上限解放・素材の削除は応答の player_diff で基盤がリポジトリに反映する。最大レベル・上限解放の最大・費用・目標レベルは `SupportLevelPlanner`（`MemoryDatabase` を受ける）。一覧の並び・絞り込み・選べるかは `OwnedListFactory`、表示の文字は `OwnedDtoFactory`・`SupportDetailDtoFactory`
 - **上限解放の素材は所持一覧の選択モードで選ぶ**: `OwnedArgs`（`OwnedSelectionCondition.ForLimitBreakMaterial`）で `OwnedPresenter` をもう 1 枚積み、`WaitForPopAsync<OwnedSelection>` で結果を受ける（`Home` シーンの中のページ）。編成も同じ選択モード（`ForIdol`・`ForSupportCard(idolId, excludedUids)`）を使う
+- **足りない強化は押せない**（2026-11-16、O11）: 「+1」「+5」の費用が手元の強化pt・ゴールドを超えるときは「+1 → Lv N（足りません）」の無効なボタンにする。「最大」は払える目標だけを出し、1 つも上げられなければ「最大（足りません）」
 - **押した時点の値**: 強化のボタンを押したとき、詳細の Presenter は `SupportDetailDtoFactory.Create` を呼び直し、その時点のリポジトリの値で目標レベルと確認の文を決める
 - **叩き台との差**: 育成アイドルの一覧は `IdolId` の順に固定し、並び・絞り込みはサポートカードだけ（[screen-wireframes.md](../overview/screen-wireframes.md) 10）。詳細と強化は 1 ページ。上限解放の確認は、素材の Lv にかかわらず常に「強化に使った強化pt・ゴールドは戻りません」を出す
 - **確かめた範囲**: EditMode のテスト。Editor の Play で、ホーム →「アイドル」→ 所持一覧（タブ・並び・絞り込み・0 件の「ありません」）→ 詳細 → +1・最大（強化pt・ゴールドが減る）→ 上限解放（素材の一覧 → 確認 → 解放数と最大レベルが上がり、素材が一覧から消える）→ 素材の無いカードの案内 → ホームへ戻る
+- **O11 の確かめた範囲**（2026-11-16）: 業務エラーのあとの取り直しと、足りない +1・+5 の無効なボタンは、EditMode のテストだけで確かめた（Play では未確認）
 - **計画とのズレ**: 実装メモ（計画の 7 章）を参照。ズレは無い。コードレビューの指摘で、「素材にできるカードがあるか」を `OwnedListFactory.HasLimitBreakMaterial` の 1 か所にし、「最大」の目標の計算を 1 回のループにした
 
 ### 画面 2/6（ガチャ。2026-11-09。[計画](../../plans/2026-11-03-client-screens-gacha.md)）

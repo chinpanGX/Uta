@@ -47,6 +47,7 @@ namespace Uta.Client.Tests
             var result = await useCase.LevelUpAsync("01A", 4);
 
             Assert.AreEqual(SupportResultKind.Succeeded, result.Kind);
+            Assert.AreEqual(0, player.RefreshResults.Count);
         });
 
         [UnityTest]
@@ -84,6 +85,7 @@ namespace Uta.Client.Tests
             var result = await useCase.LevelUpAsync("01A", 4);
 
             Assert.AreEqual(SupportResultKind.NotOwned, result.Kind);
+            Assert.AreEqual(0, player.RefreshResults.Count);
         });
 
         [UnityTest]

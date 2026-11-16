@@ -14,7 +14,7 @@ namespace Uta.Client.Application.Support
 
         /// <summary>
         /// どちらかの ID が null・空、または 2 つが同じなら ArgumentException（通信しない）。SUPPORT_MAX_LIMIT_BREAK → MaxLimitBreak、SUPPORT_INVALID_MATERIAL → InvalidMaterial、
-        /// SUPPORT_NOT_OWNED → NotOwned、ほかは Failed。成功の扱いは LevelUpAsync と同じ。
+        /// SUPPORT_NOT_OWNED → NotOwned、ほかは Failed。成功・業務エラーのあとの取り直し（Failed では取り直さない）は LevelUpAsync と同じ。
         /// </summary>
         UniTask<LimitBreakResult> LimitBreakAsync(string supportCardUniqueId, string materialUniqueId);
     }

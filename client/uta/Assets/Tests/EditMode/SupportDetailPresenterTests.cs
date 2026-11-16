@@ -187,6 +187,18 @@ namespace Uta.Client.Tests
         });
 
         [UnityTest]
+        public IEnumerator LevelUpAsync_StepNotAffordable_DoesNothing() => UniTask.ToCoroutine(async () =>
+        {
+            OwnedFixtures.SetPlayer(playerRepository, supportPoints: 300);
+            var presenter = await InitializedAsync();
+
+            await presenter.LevelUpAsync(LevelUpStepKind.Plus5);
+
+            Assert.AreEqual(0, log.Entries.Count);
+            Assert.AreEqual(0, supportUseCase.Calls.Count);
+        });
+
+        [UnityTest]
         public IEnumerator LevelUpAsync_Declined_DoesNotExecute() => UniTask.ToCoroutine(async () =>
         {
             var presenter = await InitializedAsync();

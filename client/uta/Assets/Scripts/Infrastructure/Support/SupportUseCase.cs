@@ -120,7 +120,7 @@ namespace Uta.Client.Infrastructure.Support
             }
             catch (InvalidOperationException)
             {
-                // 取り直しの失敗は成功を妨げない（通信の失敗のダイアログは ApiCore が出している）
+                // 取り直しの失敗は結果（成功・業務エラーの種類）を変えない（通信の失敗のダイアログは ApiCore が出している）
             }
         }
     }

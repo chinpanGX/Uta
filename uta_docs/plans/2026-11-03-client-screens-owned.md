@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client/ の画面 3/6 所持一覧・サポートカードの強化
-status: in-progress
-updated: 2026-11-09
+status: done
+updated: 2026-11-16
 spec: ../wiki/systems/idol-support.md
 ---
 
@@ -1308,4 +1308,5 @@ Play モード・手動（タスク 5。Editor、サーバー起動済み。初�
 | 4 | 5b2c58f | テスト名 LevelUpAsync_UsesCacheAtClickTime → LevelUpAsync_UsesRepositoryAtClickTime |
 | 5（Play。進行役） | — | ローカルのサーバーで確かめた: ホームの「アイドル」→ 所持一覧（タブ・下段の出し隠し・絞り込みで 0 件の「ありません」）→ 詳細（4 行・アビリティ・ボタンのラベル）→ +1・最大（確認 → Lv と強化pt・ゴールドが減る）→ 上限解放（素材の一覧はタブ・プラン/タイプの段なし・同じカードだけ・Lv の昇順 → 確認 → 解放 1・最大 Lv 25、一覧に戻ると素材が消えた）→ 素材の無いカードの案内 → ホームへ戻る。Uta のコードの例外なし（コンソールのエラーは Unity.AI.* のパッケージだけ）。確かめていない: 強化pt 不足のダイアログ（EditMode のテストで確認）、素材の一覧の「戻る」で何も起きないこと（素材の一覧を「戻る」で閉じた後、詳細に戻ったことだけ見た）。Editor が背面だとフレームが進まないので、Play 中だけ eval で Application.runInBackground = true にした（プロジェクトの設定は変えていない） |
 | レビュー対応（O10） | 0903765 | M8 の期待は計画の文面の誤り（01D を消すと残るサポートA は Lv 3）。計画を直した。M2 で GetLevelUpCost も Dictionary を使う形にした |
-| 残したもの | — | コードレビュー 2 回目の Minor 4 件（エラーのあとの再表示・積んだあとの破棄のガード・「最大」のループの上端とゴールドで止まる場合・DidPopEnter_RefreshesRows の重なる Assert のテスト）は直していない。ユーザーの判断待ち: I2（キャッシュのずれを示すエラー（InvalidTarget・NotOwned・InvalidMaterial・MaxLimitBreak）のあとも取り直さない）、M5（強化pt・ゴールドが足りない +1・+5 も押せて、確認のあとにサーバーが拒否する） |
+| 残したもの | — | コードレビュー 2 回目の Minor 4 件（エラーのあとの再表示・積んだあとの破棄のガード・「最大」のループの上端とゴールドで止まる場合・DidPopEnter_RefreshesRows の重なる Assert のテスト）は直していない。I2・M5 はユーザーの判断「両方直す」で O11 として直した（次の行） |
+| O11（I2・M5） | 3669bb4 ほか | なし（計画の try/catch は、中身が同じ既存の private の `RefreshAsync` で書いた）。コードレビュー（2026-11-16）の Minor のうち、コメント 2 件と、テストの補強 3 件（取り直しが呼ばれたこと・+5 のちょうど払える境目とゴールドだけ足りない場合・足りない +5 を押しても何もしないこと）を直した。「足りるか」の比較を `SupportLevelPlanner` にまとめる M6 は、次に Planner を触るときに回した。確かめた範囲: EditMode のテスト（`unity test`。Editor を閉じた状態で 371 件）。Editor の Play では確かめていない |
