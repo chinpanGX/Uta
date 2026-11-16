@@ -6,12 +6,12 @@ namespace Uta.Shared.Contracts.Gacha
     public sealed class DrawResultDto
     {
         [SerializationConstructor]
-        public DrawResultDto(int slot, ItemKind itemKind, int itemMasterId, GachaOutcome outcome, int shards, int supportPoints, string supportCardUniqueId)
+        public DrawResultDto(int slot, ItemKind itemKind, int itemMasterId, GachaResultKind resultKind, int shards, int supportPoints, string supportCardUniqueId)
         {
             Slot = slot;
             ItemKind = itemKind;
             ItemMasterId = itemMasterId;
-            Outcome = outcome;
+            ResultKind = resultKind;
             Shards = shards;
             SupportPoints = supportPoints;
             SupportCardUniqueId = supportCardUniqueId;
@@ -29,7 +29,7 @@ namespace Uta.Shared.Contracts.Gacha
         public int ItemMasterId { get; }
 
         [Key(3)]
-        public GachaOutcome Outcome { get; }
+        public GachaResultKind ResultKind { get; }
 
         /// <summary>重複した育成アイドルのかけら。</summary>
         [Key(4)]

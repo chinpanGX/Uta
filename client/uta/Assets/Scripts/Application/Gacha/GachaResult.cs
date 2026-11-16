@@ -24,7 +24,7 @@ namespace Uta.Client.Application.Gacha
         /// <summary>育成アイドルなら IdolId、サポートカードなら SupportCardId。</summary>
         public int ItemId { get; }
 
-        /// <summary>応答の Outcome が New（育成アイドルは初めて得た、サポートカードは所持の行が 1 つ増えた）。</summary>
+        /// <summary>応答の ResultKind が New（育成アイドルは初めて得た、サポートカードは所持の行が 1 つ増えた）。</summary>
         public bool IsNew { get; }
 
         /// <summary>育成アイドルの重複で得たかけら（それ以外は 0）。</summary>

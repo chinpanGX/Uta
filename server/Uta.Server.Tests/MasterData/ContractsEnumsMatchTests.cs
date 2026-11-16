@@ -1,7 +1,7 @@
 ﻿using Uta.Server.Domain.Gacha;
 using ContractsItemKind = Uta.Shared.Contracts.Gacha.ItemKind;
 using MasterItemKind = Uta.MasterData.ItemKind;
-using GachaOutcome = Uta.Shared.Contracts.Gacha.GachaOutcome;
+using GachaResultKind = Uta.Shared.Contracts.Gacha.GachaResultKind;
 
 namespace Uta.Server.Tests.MasterData;
 
@@ -17,7 +17,7 @@ public class ContractsEnumsMatchTests
         Assert.Equal((int)MasterItemKind.Idol, (int)GrantedItemKind.Idol);
         Assert.Equal((int)MasterItemKind.SupportCard, (int)GrantedItemKind.SupportCard);
 
-        Assert.Equal((int)GachaOutcome.New, (int)GrantResultKind.New);
-        Assert.Equal((int)GachaOutcome.Duplicate, (int)GrantResultKind.Duplicate);
+        Assert.Equal((int)GachaResultKind.New, (int)GrantResultKind.New);
+        Assert.Equal((int)GachaResultKind.Duplicate, (int)GrantResultKind.Duplicate);
     }
 }
