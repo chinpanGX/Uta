@@ -1,6 +1,6 @@
 ---
 title: 実装計画: Android の実機のスモークと IL2CPP の計算の一致（MVP の完了条件 7）
-status: draft
+status: ready
 updated: 2026-11-16
 spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/architecture/lesson-phases.md, ../wiki/architecture/produce-domain.md
 ---
@@ -13,7 +13,7 @@ spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/a
 
 1. **タスクの順番: shared（.NET）→ Unity への取り込み（コンパイルだけ）→ Windows の IL2CPP の Test Runner → Android のビルドとスモーク（スパイク）→ Android の Test Runner → 記録**。Test Runner のプレイヤー実行は Unity 7 a12 で一度も動かしていないので、ビルドの時間が短く Library もある Windows（`build-foundation`）で先に仕組みを確かめる。Windows で通れば、Android で止まったときの代え（[build-ci.md](../wiki/architecture/build-ci.md) 5.3）の材料が先にそろう
 2. **Android のビルドとスモーク（タスク 4）はスパイクにし、止まる条件を置く**。Unity 7 Alpha の Android のビルド、YetAnotherHttpHandler のネイティブ、`adb reverse` での平文の HTTP/2、MasterMemory・VContainer・MessagePack の実機での動作は、どれも確かめていないため。止まる条件に当たったら、回避の実装を書かずに止まって報告する。Windows に代えるかはユーザーが決める
-3. スモークの端末の操作はユーザーが行う（実装担当は端末を操作できない）。実装担当は、ビルド・`adb install`・`adb reverse`・logcat の取り込みまでを行い、操作をユーザーに頼む
+3. スモークの端末の操作はユーザーが行う。**ユーザーとのやり取りが要る手順（タスク 4 の手順 1・5〜8、タスク 5 の手順 1）は、実装担当（サブエージェント。ユーザーと対話できない）に渡さず、メインのセッションが行う**（2026-11-16。実装可能性のレビューの指摘で決めた）。実装担当に渡すのは、タスク 1・2 と、タスク 3、タスク 4 の手順 2〜4（ビルド）。メインのセッションは、手順 7 の答えを `AskUserQuestion` で聞く
 4. 実機の Test Runner の結果は、実装担当が結果の XML とログで確かめる。ユーザーには、端末をつなぎ、画面のロックを外したままにしておくことだけ頼む
 5. `LessonReplayExpected` の期待値は、.NET のテストの失敗の出力から写す（3.4。手で書かない）
 6. 新しい asmdef `Uta.Client.Tests.SharedDomainReplay` には LINQ を書かないので、ZLinq の `AssemblyAttributes.cs` を置かない（CLAUDE.md の ZLinq の決まりは LINQ を書くファイルのため。参照も [lesson-phases.md](../wiki/architecture/lesson-phases.md) 8章の 3 つに限る）
@@ -492,7 +492,7 @@ namespace Uta.Client.Tests.SharedDomainReplay
 
 ### タスク 4: Android のビルドとスモーク（スパイク）
 
-触るファイル: なし（実行だけ）。タスク 3 の後（決めたこと 1）。
+触るファイル: なし（実行だけ）。タスク 3 の後（決めたこと 1）。手順 1・5〜8 はメインのセッションが行い、手順 2〜4 は実装担当に渡してよい（決めたこと 3）。
 
 手順:
 
@@ -520,7 +520,7 @@ namespace Uta.Client.Tests.SharedDomainReplay
 
 ### タスク 5: Android の実機で Test Runner を回す
 
-触るファイル: なし（実行だけ）。タスク 3・4 の後。
+触るファイル: なし（実行だけ）。タスク 3・4 の後。メインのセッションが行う（手順 1 でユーザーに頼むため。決めたこと 3）。
 
 手順:
 
