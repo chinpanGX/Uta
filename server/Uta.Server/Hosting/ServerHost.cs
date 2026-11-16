@@ -93,6 +93,7 @@ internal static class ServerHost
         services.AddSingleton(MasterDataLoader.Load());
         services.AddSingleton<ICardCatalog>(sp => CardCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>()));
         services.AddSingleton(sp => ProduceCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>(), sp.GetRequiredService<ICardCatalog>()));
+        services.AddSingleton(sp => PlayerLevelCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>()));
 
         // Infrastructure（DB の接続と、IF の実装）
         services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));

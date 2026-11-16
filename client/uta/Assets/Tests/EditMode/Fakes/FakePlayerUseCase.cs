@@ -17,7 +17,7 @@ namespace Uta.Client.Tests
         {
             this.log = log;
             this.notice = notice;
-            Player = new PlayerEntity("P1", 1, 0, 0, 0, 0, false, false);
+            Player = new PlayerEntity("P1", 0, 0, 0, 0, false, false);
         }
 
         /// <summary>EnterAsync の 1 回ごとの振る舞い。空なら new EnterPlayerResult(afterRegistration, afterRegistration, Player, 0, 0)。</summary>

@@ -12,7 +12,7 @@ namespace Uta.Client.Infrastructure.Player
         public static PlayerEntity ToPlayerEntity(SignInResponse response)
         {
             return new PlayerEntity(
-                response.PlayerId, response.Level, response.Exp, response.Gold, response.SupportPoints, response.GachaCurrency,
+                response.PlayerId, response.Exp, response.Gold, response.SupportPoints, response.GachaCurrency,
                 response.HasActiveProduce, response.DiscardedProduce);
         }
 

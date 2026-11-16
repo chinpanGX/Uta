@@ -7,10 +7,9 @@ namespace Uta.Shared.Contracts.Common
     public sealed class PlayerDiffDto
     {
         [SerializationConstructor]
-        public PlayerDiffDto(bool hasBalance, int level, int exp, int gold, int supportPoints, int gachaCurrency, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string[] removedSupportCardUniqueIds)
+        public PlayerDiffDto(bool hasBalance, int exp, int gold, int supportPoints, int gachaCurrency, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string[] removedSupportCardUniqueIds)
         {
             HasBalance = hasBalance;
-            Level = level;
             Exp = exp;
             Gold = gold;
             SupportPoints = supportPoints;
@@ -20,35 +19,32 @@ namespace Uta.Shared.Contracts.Common
             RemovedSupportCardUniqueIds = removedSupportCardUniqueIds;
         }
 
-        /// <summary>false なら通貨とレベル（次の 5 つ）は変化なし。</summary>
+        /// <summary>false なら経験値の累計と通貨（次の 4 つ）は変化なし。</summary>
         [Key(0)]
         public bool HasBalance { get; }
 
         [Key(1)]
-        public int Level { get; }
-
-        [Key(2)]
         public int Exp { get; }
 
-        [Key(3)]
+        [Key(2)]
         public int Gold { get; }
 
-        [Key(4)]
+        [Key(3)]
         public int SupportPoints { get; }
 
-        [Key(5)]
+        [Key(4)]
         public int GachaCurrency { get; }
 
         /// <summary>触ったアイドル（変更後の値）。無ければ空配列。</summary>
-        [Key(6)]
+        [Key(5)]
         public OwnedIdolDto[] Idols { get; }
 
         /// <summary>触ったサポートカード（変更後の値）。無ければ空配列。</summary>
-        [Key(7)]
+        [Key(6)]
         public OwnedSupportCardDto[] SupportCards { get; }
 
         /// <summary>無くなったサポートカードの UniqueId（ULID 26 文字）。無ければ空配列。</summary>
-        [Key(8)]
+        [Key(7)]
         public string[] RemovedSupportCardUniqueIds { get; }
     }
 }

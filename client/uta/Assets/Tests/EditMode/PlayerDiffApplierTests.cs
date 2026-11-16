@@ -28,7 +28,7 @@ namespace Uta.Client.Tests
             idols = new IdolRepository();
             supportCards = new SupportCardRepository();
             applier = new PlayerDiffApplier(players, idols, supportCards);
-            players.Upsert(new PlayerEntity("P1", 1, 2, 3, 4, 5, true, true));
+            players.Upsert(new PlayerEntity("P1", 2, 3, 4, 5, true, true));
             idols.Upsert(new IdolEntity("I1", 10, 0, 0, 0));
             supportCards.Upsert(new SupportCardEntity(CardA, 100, 1, 0));
             supportCards.Upsert(new SupportCardEntity(CardB, 200, 1, 0));
@@ -36,7 +36,7 @@ namespace Uta.Client.Tests
 
         private static PlayerDiffDto Diff(bool hasBalance, OwnedIdolDto[] idolDtos, OwnedSupportCardDto[] cardDtos, string[] removed)
         {
-            return new PlayerDiffDto(hasBalance, 9, 8, 7, 6, 5 + 100, idolDtos, cardDtos, removed);
+            return new PlayerDiffDto(hasBalance, 8, 7, 6, 5 + 100, idolDtos, cardDtos, removed);
         }
 
         [Test]
@@ -46,7 +46,6 @@ namespace Uta.Client.Tests
 
             var p = players.Find();
             Assert.AreEqual("P1", p.UniqueId);
-            Assert.AreEqual(9, p.Level);
             Assert.AreEqual(8, p.Exp);
             Assert.AreEqual(7, p.Gold);
             Assert.AreEqual(6, p.SupportPoints);
@@ -112,7 +111,7 @@ namespace Uta.Client.Tests
             applier.Apply(diff);
             applier.Apply(diff);
 
-            Assert.AreEqual(9, players.Find().Level);
+            Assert.AreEqual(8, players.Find().Exp);
             Assert.AreEqual(2, idols.FindAll().Count);
             Assert.AreEqual(2, supportCards.FindAll().Count);
             Assert.IsNull(supportCards.Find(CardB));

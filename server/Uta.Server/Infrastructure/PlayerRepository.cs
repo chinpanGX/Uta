@@ -20,12 +20,12 @@ public sealed class PlayerRepository : IPlayerRepository
     public async Task<PlayerEntity?> FindAsync(TxContext tx, Ulid playerId)
     {
         var row = await tx.Connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
-            "SELECT level AS Level, exp AS Exp, gold AS Gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency " +
+            "SELECT exp AS Exp, gold AS Gold, support_points AS SupportPoints, gacha_currency AS GachaCurrency " +
             "FROM players WHERE player_id = @playerId",
             new { playerId = playerId.ToString() },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
-        return row is null ? null : new PlayerEntity(row.Level, row.Exp, row.Gold, row.SupportPoints, row.GachaCurrency);
+        return row is null ? null : new PlayerEntity(row.Exp, row.Gold, row.SupportPoints, row.GachaCurrency);
     }
 
     public async Task GrantCurrenciesAsync(TxContext tx, Ulid playerId, int gachaCurrency, int gold, int supportPoints)
@@ -84,12 +84,12 @@ public sealed class PlayerRepository : IPlayerRepository
         return new PlayerBalance(row.SupportPoints, row.Gold);
     }
 
-    public async Task GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int level, int exp)
+    public async Task GrantProduceRewardAsync(TxContext tx, Ulid playerId, ProduceReward reward, int exp)
     {
         await tx.Connection.ExecuteAsync(new CommandDefinition(
             "UPDATE players SET gacha_currency = gacha_currency + @gachaCurrency, gold = gold + @gold, " +
-            "support_points = support_points + @supportPoints, level = @level, exp = @exp WHERE player_id = @playerId",
-            new { playerId = playerId.ToString(), gachaCurrency = reward.GachaCurrency, gold = reward.Gold, supportPoints = reward.SupportPoints, level, exp },
+            "support_points = support_points + @supportPoints, exp = @exp WHERE player_id = @playerId",
+            new { playerId = playerId.ToString(), gachaCurrency = reward.GachaCurrency, gold = reward.Gold, supportPoints = reward.SupportPoints, exp },
             tx.Transaction,
             cancellationToken: tx.CancellationToken));
         tx.GetCollector<PlayerDiffCollector>().TouchBalance(playerId);
@@ -103,7 +103,6 @@ public sealed class PlayerRepository : IPlayerRepository
 
     private sealed class Row
     {
-        public int Level { get; set; }
         public int Exp { get; set; }
         public int Gold { get; set; }
         public int SupportPoints { get; set; }

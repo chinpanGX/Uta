@@ -169,7 +169,6 @@ public class CommonResponseTests(PostgresFixture postgres)
         Assert.Equal(await Scalar<int>("SELECT gacha_currency FROM players WHERE player_id = $1", player), diff.GachaCurrency);
         Assert.Equal(await Scalar<int>("SELECT gold FROM players WHERE player_id = $1", player), diff.Gold);
         Assert.Equal(await Scalar<int>("SELECT support_points FROM players WHERE player_id = $1", player), diff.SupportPoints);
-        Assert.Equal(await Scalar<int>("SELECT level FROM players WHERE player_id = $1", player), diff.Level);
         Assert.Equal(await Scalar<int>("SELECT exp FROM players WHERE player_id = $1", player), diff.Exp);
     }
 

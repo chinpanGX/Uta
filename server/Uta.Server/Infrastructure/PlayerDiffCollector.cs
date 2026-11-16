@@ -55,7 +55,6 @@ public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolReposito
         }
 
         var hasBalance = false;
-        var level = 0;
         var exp = 0;
         var gold = 0;
         var supportPoints = 0;
@@ -65,7 +64,6 @@ public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolReposito
             var snapshot = await players.FindAsync(tx, id)
                 ?? throw new InvalidOperationException("player not found");
             hasBalance = true;
-            level = snapshot.Level;
             exp = snapshot.Exp;
             gold = snapshot.Gold;
             supportPoints = snapshot.SupportPoints;
@@ -99,7 +97,7 @@ public sealed class PlayerDiffCollector(IPlayerRepository players, IIdolReposito
             return null;
         }
 
-        return new AppCommonDto(new PlayerDiffDto(hasBalance, level, exp, gold, supportPoints, gachaCurrency, idolDtos.ToArray(), cardDtos.ToArray(), removed));
+        return new AppCommonDto(new PlayerDiffDto(hasBalance, exp, gold, supportPoints, gachaCurrency, idolDtos.ToArray(), cardDtos.ToArray(), removed));
     }
 
     private void Bind(Ulid id)

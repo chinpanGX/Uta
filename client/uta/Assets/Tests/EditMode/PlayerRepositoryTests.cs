@@ -7,9 +7,9 @@ namespace Uta.Client.Tests
 {
     public sealed class PlayerRepositoryTests
     {
-        private static PlayerEntity Player(int level)
+        private static PlayerEntity Player(int exp)
         {
-            return new PlayerEntity("P1", level, 1, 2, 3, 4, false, false);
+            return new PlayerEntity("P1", exp, 2, 3, 4, false, false);
         }
 
         [Test]
@@ -25,7 +25,7 @@ namespace Uta.Client.Tests
             repo.Upsert(Player(1));
             repo.Upsert(Player(2));
 
-            Assert.AreEqual(2, repo.Find().Level);
+            Assert.AreEqual(2, repo.Find().Exp);
         }
 
         [Test]
@@ -37,7 +37,7 @@ namespace Uta.Client.Tests
         [Test]
         public void Entity_NullUniqueId_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() => new PlayerEntity(null, 1, 0, 0, 0, 0, false, false));
+            Assert.Throws<ArgumentNullException>(() => new PlayerEntity(null, 0, 0, 0, 0, false, false));
         }
     }
 }

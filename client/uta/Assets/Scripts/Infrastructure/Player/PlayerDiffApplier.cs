@@ -32,7 +32,7 @@ namespace Uta.Client.Infrastructure.Player
             if (diff.HasBalance)
             {
                 players.Upsert(new PlayerEntity(
-                    current.UniqueId, diff.Level, diff.Exp, diff.Gold, diff.SupportPoints, diff.GachaCurrency,
+                    current.UniqueId, diff.Exp, diff.Gold, diff.SupportPoints, diff.GachaCurrency,
                     current.HasActiveProduce, current.DiscardedProduce));
             }
 

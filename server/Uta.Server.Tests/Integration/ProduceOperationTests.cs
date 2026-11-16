@@ -368,11 +368,10 @@ public class ProduceOperationTests(PostgresFixture postgres)
         return (factory, channel, player, injector);
     }
 
-    private async Task<(int GachaCurrency, int Gold, int SupportPoints, int Level, int Exp)> PlayerValuesAsync(PlayerClient player) =>
+    private async Task<(int GachaCurrency, int Gold, int SupportPoints, int Exp)> PlayerValuesAsync(PlayerClient player) =>
         (await Scalar<int>("SELECT gacha_currency FROM players WHERE player_id = $1", player),
             await Scalar<int>("SELECT gold FROM players WHERE player_id = $1", player),
             await Scalar<int>("SELECT support_points FROM players WHERE player_id = $1", player),
-            await Scalar<int>("SELECT level FROM players WHERE player_id = $1", player),
             await Scalar<int>("SELECT exp FROM players WHERE player_id = $1", player));
 
     private static Func<Task> BumpVersion(PostgresFixture postgres, PlayerClient player) =>
