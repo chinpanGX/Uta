@@ -2,6 +2,7 @@
 using System.Linq;
 using Uta.Client.Application.Produce;
 using Uta.Client.Domain.Player;
+using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Domain.Produce;
 
 namespace Uta.Client.Tests
@@ -25,6 +26,23 @@ namespace Uta.Client.Tests
         public static ProduceEndResult Abandoned()
         {
             return new ProduceEndResult(ProduceEndKind.Abandoned, ExamResultKind.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0, 0);
+        }
+
+        /// <summary>ProduceStateResponse（応答の DTO）。null の配列は空の配列。</summary>
+        public static ProduceStateResponse StateResponse(int operationNumber = 0, ProducePhase phase = ProducePhase.WeekSelect, int scenarioId = 1, int idolId = 1,
+            int week = 1, int singing = 100, int rhythm = 100, int expression = 100, int hp = 30, int maxHp = 30, int examRetryLeft = 1,
+            DeckCardDto[] deck = null, WeekActionDto[] weekActions = null, ClassOptionDto[] classOptions = null, int[] cardOffers = null,
+            LessonDto lesson = null, ExamResultDto examResult = null, ProduceResultResponse result = null)
+        {
+            return new ProduceStateResponse(operationNumber, phase, scenarioId, idolId, week, singing, rhythm, expression, hp, maxHp, examRetryLeft,
+                deck ?? new DeckCardDto[0], weekActions ?? new WeekActionDto[0], classOptions ?? new ClassOptionDto[0], cardOffers ?? new int[0],
+                lesson, examResult, result);
+        }
+
+        /// <summary>ProduceResultResponse（放棄の既定。ほかの引数は 0・ExamResultKind.Nothing・ProduceRank.Nothing）。</summary>
+        public static ProduceResultResponse ResultResponse(ProduceEnding ending = ProduceEnding.Abandoned)
+        {
+            return new ProduceResultResponse(ending, ExamResultKind.Nothing, 0, ProduceRank.Nothing, 0, 0, 0, 0, 0, 0, 0);
         }
 
         /// <summary>uniqueId = "P1"、exp・gold・supportPoints = 0、discardedProduce = false。</summary>

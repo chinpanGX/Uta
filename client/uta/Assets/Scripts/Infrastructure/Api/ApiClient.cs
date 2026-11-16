@@ -3,6 +3,7 @@ using Grpc.Net.Client;
 using Uta.Shared.Contracts.Common;
 using Uta.Shared.Contracts.Gacha;
 using Uta.Shared.Contracts.Player;
+using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Contracts.Support;
 using VolTech.Client;
 using VolTech.Client.Auth;
@@ -30,10 +31,12 @@ namespace Uta.Client.Infrastructure.Api
 
         public ISupportService Support { get; }
 
+        public IProduceService Produce { get; }
+
         /// <summary>ApiCore がトークンを捨てた（Invalidate を呼んだ）回数。再認証の再送の診断用。</summary>
         public int TokenInvalidationCount => counting.InvalidationCount;
 
-        private ApiClient(GrpcChannel channel, IDeviceService deviceClient, ApiCoreOptions options, string accountFilePath, string keySource, DeviceTokenProvider tokenProvider, CountingTokenProvider counting, IPlayerService player, IGachaService gacha, ISupportService support)
+        private ApiClient(GrpcChannel channel, IDeviceService deviceClient, ApiCoreOptions options, string accountFilePath, string keySource, DeviceTokenProvider tokenProvider, CountingTokenProvider counting, IPlayerService player, IGachaService gacha, ISupportService support, IProduceService produce)
         {
             this.counting = counting;
             this.channel = channel;
@@ -45,6 +48,7 @@ namespace Uta.Client.Infrastructure.Api
             Player = player;
             Gacha = gacha;
             Support = support;
+            Produce = produce;
         }
 
         /// <param name="errorHandler">アプリの共通エラーハンドラー（Bootstrap が DefaultCommonErrorHandler を渡す）</param>
@@ -73,7 +77,8 @@ namespace Uta.Client.Infrastructure.Api
             var playerClient = core.CreateClient<IPlayerService>();
             var gachaClient = core.CreateClient<IGachaService>();
             var supportClient = core.CreateClient<ISupportService>();
-            return new ApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, playerClient, gachaClient, supportClient);
+            var produceClient = core.CreateClient<IProduceService>();
+            return new ApiClient(channel, deviceClient, options, accountFilePath, keySource, tokenProvider, counting, playerClient, gachaClient, supportClient, produceClient);
         }
 
         /// <summary>同じ端末のアカウントのファイルを読む、もう 1 つの DeviceTokenProvider（診断で、メインの持つトークンをサーバーで無効にするために使う）。</summary>
