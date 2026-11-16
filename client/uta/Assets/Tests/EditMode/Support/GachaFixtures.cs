@@ -125,7 +125,7 @@ namespace Uta.Client.Tests
 
         public static PlayerEntity Player(int gachaCurrency)
         {
-            return new PlayerEntity("P1", 1, 0, 0, 0, gachaCurrency, false, false);
+            return new PlayerEntity("P1", 0, 0, 0, gachaCurrency, false, false);
         }
 
         public static DrawResultDto IdolResult(int slot, int idolId, GachaResultKind resultKind, int shards)

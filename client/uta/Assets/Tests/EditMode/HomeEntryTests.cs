@@ -26,7 +26,7 @@ namespace Uta.Client.Tests
         {
             var log = new CallLog();
             var players = new PlayerRepository();
-            players.Upsert(new PlayerEntity("P1", 1, 0, 0, 0, 0, false, false));
+            players.Upsert(new PlayerEntity("P1", 0, 0, 0, 0, false, false));
             var entry = new HomeEntry(new FakeScreenNavigator(log), players, new FakeSceneNavigator(log));
 
             await entry.StartAsync();

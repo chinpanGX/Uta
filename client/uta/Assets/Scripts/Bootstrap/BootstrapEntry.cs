@@ -30,6 +30,7 @@ using Uta.Shared.Contracts.Gacha;
 using Uta.Shared.Contracts.Player;
 using Uta.Shared.Contracts.Support;
 using Uta.Shared.Domain.Lesson;
+using Uta.Shared.Domain.Player;
 using VolTech.Client;
 using VContainer;
 using VContainer.Unity;
@@ -70,10 +71,12 @@ namespace Uta.Client.Bootstrap
             {
                 MemoryDatabase db;
                 CardCatalog cardCatalog;
+                PlayerLevelCatalog playerLevelCatalog;
                 try
                 {
                     db = await MasterDataLoader.LoadFromStreamingAssetsAsync();
                     cardCatalog = CardCatalogFactory.Create(db);
+                    playerLevelCatalog = PlayerLevelCatalogFactory.Create(db);
                 }
                 catch (Exception e)
                 {
@@ -97,6 +100,7 @@ namespace Uta.Client.Bootstrap
                 {
                     builder.RegisterInstance(db);
                     builder.RegisterInstance<ICardCatalog>(cardCatalog);
+                    builder.RegisterInstance(playerLevelCatalog);
                     builder.RegisterInstance(sceneUi);
                     builder.RegisterInstance(new StartupOptions(quitAfterCheck));
                     builder.Register<SceneNavigator>(Lifetime.Singleton).As<ISceneNavigator>();

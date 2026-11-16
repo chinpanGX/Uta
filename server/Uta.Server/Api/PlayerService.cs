@@ -31,7 +31,7 @@ public sealed class PlayerService(ITransactions transactions, SignUpUseCase sign
                 ?? throw new BusinessException(PlayerErrors.NotCreated, "player not created");
             var player = result.Player;
             return new SignInResponse(
-                player.Level, player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, result.HasActiveProduce, result.DiscardedProduce,
+                player.Exp, player.Gold, player.SupportPoints, player.GachaCurrency, result.HasActiveProduce, result.DiscardedProduce,
                 result.Idols.Select(x => new OwnedIdolDto(x.MasterId, x.Training, x.Awakening, x.Shards, x.UniqueId.ToString())).ToArray(),
                 result.SupportCards.Select(x => new OwnedSupportCardDto(x.UniqueId.ToString(), x.MasterId, x.Level, x.LimitBreak)).ToArray(),
                 playerId.ToString());

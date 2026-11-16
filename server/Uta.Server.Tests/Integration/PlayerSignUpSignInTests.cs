@@ -63,7 +63,6 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
         await player.CallAsync(service => service.SignUpAsync(), "req-1");
         var response = await player.CallAsync(service => service.SignInAsync(), "req-2");
 
-        Assert.Equal(1, response.Level);
         Assert.Equal(0, response.Exp);
         Assert.Equal(10000, response.Gold);
         Assert.Equal(10000, response.SupportPoints);
@@ -202,7 +201,8 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
         await player.CallAsync(service => service.SignUpAsync(), "req-2");
         var response = await player.CallAsync(service => service.SignInAsync(), "req-3");
 
-        Assert.Equal(1, response.Level);
+        Assert.Equal(0, response.Exp);
+        Assert.Equal(player.PlayerId.ToString(), response.PlayerId);
     }
 
     [Fact]
@@ -234,9 +234,18 @@ public class PlayerSignUpSignInTests(PostgresFixture postgres)
     public async Task Migration_AddsPlayerColumns()
     {
         var count = await postgres.QueryScalarAsync<long>(
-            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'players' AND column_name = ANY(ARRAY['level','exp','gold','support_points','gacha_currency'])");
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'players' AND column_name = ANY(ARRAY['exp','gold','support_points','gacha_currency'])");
 
-        Assert.Equal(5L, count);
+        Assert.Equal(4L, count);
+    }
+
+    [Fact]
+    public async Task Migration_DropsPlayerLevel()
+    {
+        var count = await postgres.QueryScalarAsync<long>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'players' AND column_name = 'level'");
+
+        Assert.Equal(0L, count);
     }
 
     private static byte[] GetDetailsBytes(RpcException exception)

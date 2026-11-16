@@ -12,7 +12,7 @@ namespace Uta.Client.Tests
         public void AppCommonDto_RoundTripsThroughMessagePack()
         {
             var original = new AppCommonDto(new PlayerDiffDto(
-                true, 1, 2, 3, 4, 5,
+                true, 2, 3, 4, 5,
                 new[] { new OwnedIdolDto(10, 1, 2, 3, "I1") },
                 new[] { new OwnedSupportCardDto("01ARZ3NDEKTSV4RRFFQ69G5FAV", 100, 5, 1) },
                 new[] { "01ARZ3NDEKTSV4RRFFQ69G5FAW" }));
@@ -22,7 +22,6 @@ namespace Uta.Client.Tests
             var actual = MessagePackSerializer.Deserialize<AppCommonDto>(bytes, options).PlayerDiff;
 
             Assert.IsTrue(actual.HasBalance);
-            Assert.AreEqual(1, actual.Level);
             Assert.AreEqual(2, actual.Exp);
             Assert.AreEqual(3, actual.Gold);
             Assert.AreEqual(4, actual.SupportPoints);

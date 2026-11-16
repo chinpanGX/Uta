@@ -6,9 +6,8 @@ namespace Uta.Shared.Contracts.Player
     public sealed class SignInResponse
     {
         [SerializationConstructor]
-        public SignInResponse(int level, int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string playerId)
+        public SignInResponse(int exp, int gold, int supportPoints, int gachaCurrency, bool hasActiveProduce, bool discardedProduce, OwnedIdolDto[] idols, OwnedSupportCardDto[] supportCards, string playerId)
         {
-            Level = level;
             Exp = exp;
             Gold = gold;
             SupportPoints = supportPoints;
@@ -20,37 +19,34 @@ namespace Uta.Shared.Contracts.Player
             PlayerId = playerId;
         }
 
+        /// <summary>経験値の累計（produce.md 7章）。Lv はクライアントが PlayerLevelCatalog で求める。</summary>
         [Key(0)]
-        public int Level { get; }
-
-        /// <summary>今のレベルの中の経験値（produce.md 7章）。</summary>
-        [Key(1)]
         public int Exp { get; }
 
-        [Key(2)]
+        [Key(1)]
         public int Gold { get; }
 
-        [Key(3)]
+        [Key(2)]
         public int SupportPoints { get; }
 
-        [Key(4)]
+        [Key(3)]
         public int GachaCurrency { get; }
 
         /// <summary>プロデュース未実装の間は常に false。</summary>
-        [Key(5)]
+        [Key(4)]
         public bool HasActiveProduce { get; }
 
         /// <summary>プロデュース未実装の間は常に false。</summary>
-        [Key(6)]
+        [Key(5)]
         public bool DiscardedProduce { get; }
 
-        [Key(7)]
+        [Key(6)]
         public OwnedIdolDto[] Idols { get; }
 
-        [Key(8)]
+        [Key(7)]
         public OwnedSupportCardDto[] SupportCards { get; }
 
-        [Key(9)]
+        [Key(8)]
         public string PlayerId { get; }
     }
 }

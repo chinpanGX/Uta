@@ -196,6 +196,25 @@ public class MasterDataInvariantTests
     }
 
     [Fact]
+    public void PlayerLevelExp_RangesAreContiguous()
+    {
+        var rows = Db.PlayerLevelExpTable.All.OrderBy(x => x.Level).ToList();
+        Assert.True(rows[0].FromExp == 0, $"playerLevelExp Level {rows[0].Level} の FromExp が 0 でない");
+        for (var i = 0; i < rows.Count; i++)
+        {
+            if (i < rows.Count - 1)
+            {
+                Assert.True(rows[i].FromExp < rows[i].ToExp, $"playerLevelExp Level {rows[i].Level} の FromExp が ToExp 以上");
+                Assert.True(rows[i + 1].FromExp == rows[i].ToExp + 1, $"playerLevelExp Level {rows[i + 1].Level} の FromExp が前の Lv の ToExp + 1 でない");
+            }
+            else
+            {
+                Assert.True(rows[i].FromExp == rows[i].ToExp, $"playerLevelExp Level {rows[i].Level} の FromExp と ToExp が違う");
+            }
+        }
+    }
+
+    [Fact]
     public void Idols_UniqueCardPlanMatchesIdolPlanOrFree()
     {
         foreach (var idol in Db.IdolTable.All)

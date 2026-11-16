@@ -1,7 +1,7 @@
 ---
 title: プロデュースのサーバー処理
 status: draft
-updated: 2026-11-09
+updated: 2026-11-16
 ---
 
 # プロデュースのサーバー処理
@@ -91,7 +91,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
   - `static PlayerLevelCatalog Create(IReadOnlyList<int> fromExps)`: `fromExps[i]` は Lv `i+1` の `FromExp`。次のどれかに当たれば `ArgumentException`: `fromExps` が空、`fromExps[0]` が 0 でない、`fromExps` が狭義の単調増加でない。`fromExps` は写して持つ
   - `int MaxLevel`(= `fromExps` の個数)、`int MaxExp`(= `fromExps` の最後の値。最大 Lv の行は `FromExp` = `ToExp` なので、累計の上限。[produce-tables.md](../master/produce-tables.md)。`ToExp` の検査はマスタの検証が持ち、この型は受けない)
   - `int GetLevel(int totalExp)`: `fromExps[i] <= totalExp` を満たす最大の `i` に 1 を足して返す(`fromExps[0]` は 0 なので必ず 1 以上)。`totalExp` が `MaxExp` を超えていても `MaxLevel` を返す。`totalExp` が負なら `ArgumentOutOfRangeException`。マスタは連続している(`ToExp` + 1 = 次の `FromExp`)ので `ToExp` は見ない
-  - **作るのは各側の Factory で、1 度だけ作ってシングルトンにする**(`CardCatalog` と同じ形。[ADR 0020](../../decisions/0020-masterdata-referenced-outside-shared-domain.md))。サーバー: `server/Uta.Server/Infrastructure/MasterData/PlayerLevelCatalogFactory.cs` の `static PlayerLevelCatalog Create(MemoryDatabase master)`。`master.PlayerLevelExpTable.All` は主キー(`Level`)の昇順(MasterMemory の表は主キーで並んでいる。既存のテスト `MasterDataTests.PlayerLevelExp_AllIsInLevelOrder` が確かめている)なので並べ替えない。`fromExps` = 各行の `FromExp`。`CardCatalogFactory` と同じ場所で `AddSingleton(sp => PlayerLevelCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>()))` に登録し、`StartProduceUseCase`・`ProduceCompletion` はコンストラクターで受ける。クライアントの Factory(`client/uta/Assets/Scripts/Infrastructure/MasterData/PlayerLevelCatalogFactory.cs`)と登録(`BootstrapEntry`)は、この変更の計画([2026-11-09-player-level-from-exp.md](../../../plans/2026-11-09-player-level-from-exp.md))で足す。今のホームの表示に Lv があるため(2026-11-09。ユーザーの判断。それまでは「ホームの Lv の表示を作る計画で足す」としていた。[screen-design.md](../screen-design.md) 7.5)
+  - **作るのは各側の Factory で、1 度だけ作ってシングルトンにする**(`CardCatalog` と同じ形。[ADR 0020](../../decisions/0020-masterdata-referenced-outside-shared-domain.md))。サーバー: `server/Uta.Server/Infrastructure/MasterData/PlayerLevelCatalogFactory.cs` の `static PlayerLevelCatalog Create(MemoryDatabase master)`。`master.PlayerLevelExpTable.All` は主キー(`Level`)の昇順(MasterMemory の表は主キーで並んでいる。既存のテスト `MasterDataTests.PlayerLevelExp_AllIsInLevelOrder` が確かめている)なので並べ替えない。`fromExps` = 各行の `FromExp`。`CardCatalogFactory` と同じ場所で `AddSingleton(sp => PlayerLevelCatalogFactory.Create(sp.GetRequiredService<MemoryDatabase>()))` に登録し、`StartProduceUseCase`・`ProduceCompletion` はコンストラクターで受ける。クライアントの Factory(`client/uta/Assets/Scripts/Infrastructure/MasterData/PlayerLevelCatalogFactory.cs`)と登録(`BootstrapEntry`)は、この変更の計画([2026-11-09-player-level-from-exp.md](../../../plans/2026-11-09-player-level-from-exp.md))で足した。今のホームの表示に Lv があるため(2026-11-09。ユーザーの判断。それまでは「ホームの Lv の表示を作る計画で足す」としていた。[screen-design.md](../screen-design.md) 7.5)
 - **経験値の付与はサーバーの Domain**(報酬の付与はサーバーだけが行う。[repository-layout.md](../repository-layout.md) 6.1): `server/Uta.Server/Domain/Player/PlayerExpRules.cs`(名前空間 `Uta.Server.Domain.Player`)の `static int AddExp(int totalExp, int gain, int maxExp)`。`gain` が負なら `ArgumentOutOfRangeException`。`totalExp >= maxExp` なら `totalExp` をそのまま返す(上限をマスタで下げても累計を減らさない)。それ以外は `Math.Min(totalExp + gain, maxExp)`(報酬の表の値では桁あふれしないので見ない)。2026-11-03 の `Uta.Server.Domain.Produce.PlayerLevelRules`(`AddExp(level, exp, gain, requiredExps)`)と `PlayerLevelRulesTests` は消す
 - **サーバーの型の変更**:
   - `PlayerEntity(int Exp, int Gold, int SupportPoints, int GachaCurrency)`(`Level` を消す。`Exp` は累計)。`PlayerRepository.FindAsync` の `SELECT` から `level` を消す
@@ -219,4 +219,5 @@ Response:
 - **楽観ロックの競合**: `FindActiveAsync` は行ロックを取らないので、事前に `version` を進めても競合にならない(読んだ値で更新に成功する)。競合になるのは読んだあとの割り込みだけで、テストは `IProduceSessionRepository` を包んで読んだ直後に別接続で `version` を進める(`ConflictingSessionRepository`)
 - **テストの支え**: `ProduceDriver`(局面を見て次の RPC を呼ぶ自動プレイ)、`PlayerClient.WithAppVersion` / `OnChannel`、`RpcAssert`。保存した操作列を再生して保存した最終状態と一致することを `ProducePlayTests.Replay_FromSavedOperations_MatchesSavedState` で確かめる
 - 未確認: Unity 7(IL2CPP)での `Uta.Shared.Contracts/Produce` のコンパイルと MessagePack の動作。同じプレイヤーの同時要求の実測(基盤の直列化と楽観ロックの設計は読んだ)。`state` の大きさ(数十ストリーム)の実測
+- **プレイヤーLv を経験値の累計から求める** [2026-11-16。計画 `plans/2026-11-09-player-level-from-exp.md`]: 4.1 のとおりに実装した(コミット 1483a68・9f9c4b6・a656ccf・e85ddb9)。設計とのズレは無い。開始時の Lv(`StartProduceUseCase` の `GetLevel(player.Exp)`)は `ProduceStartTests` で、ゲームログの `level_after`・`exp_after` は `ProducePlayTests.Complete_LevelUp_AndMaxLevel` で値を確かめる。マイグレーション 0008 が既存の行の `exp` を 0 にすることは、結合テストでは確かめていない(Testcontainers の DB は空から作るため)。ローカルの DB に当てて確かめた
 - **`UsableHand`** [2026-11-03。計画 `plans/2026-11-03-client-screens-formation.md`]: `ProduceStateResultFactory` が `ProduceEngine.CanUse(state, id)` で作る(`Lesson` が無ければ空)。`Uta.Shared.Domain` に公開メソッドは足していない

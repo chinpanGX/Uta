@@ -6,7 +6,7 @@ Goldfish（`.claude/agents/uta-goldfish-*.md`）を出すときに、Agent ツ�
 
 ```
 Agent:
-  subagent_type: uta-goldfish-consistency | uta-goldfish-readiness | uta-goldfish-critique
+  subagent_type: uta-goldfish-consistency | uta-goldfish-readiness
   description: "設計書のレビュー（[観点]）"
   prompt: |
     ## 対象

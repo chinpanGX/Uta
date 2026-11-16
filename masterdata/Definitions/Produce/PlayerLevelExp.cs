@@ -9,12 +9,17 @@ namespace Uta.MasterData
         [PrimaryKey]
         public int Level { get; init; }
 
-        public int RequiredExp { get; init; }
+        /// <summary>この Lv である経験値の累計の下限（両端を含む）。</summary>
+        public int FromExp { get; init; }
+
+        /// <summary>この Lv である経験値の累計の上限（両端を含む）。最大 Lv の行は FromExp と同じで、累計の上限。コードは読まない（検証と読みやすさのための列。Lv は FromExp だけで決まる）。</summary>
+        public int ToExp { get; init; }
 
         void IValidatable<PlayerLevelExp>.Validate(IValidator<PlayerLevelExp> validator)
         {
             validator.Validate(x => x.Level >= 1, "playerLevelExp: Level が 1 未満");
-            validator.Validate(x => x.RequiredExp >= 1, "playerLevelExp: RequiredExp が 1 未満");
+            validator.Validate(x => x.FromExp >= 0, "playerLevelExp: FromExp が 0 未満");
+            validator.Validate(x => x.FromExp <= x.ToExp, "playerLevelExp: FromExp が ToExp より大きい");
         }
     }
 }

@@ -3,6 +3,7 @@ using Uta.Client.Application.Idol;
 using Uta.Client.Application.Player;
 using Uta.Client.Domain.Player;
 using Uta.MasterData;
+using Uta.Shared.Domain.Player;
 
 namespace Uta.Client.Presentation.Home
 {
@@ -13,13 +14,15 @@ namespace Uta.Client.Presentation.Home
         private readonly FeaturedIdolPicker featuredIdolPicker;
         private readonly DiscardNoticeState discardNoticeState;   // 読むだけ
         private readonly MemoryDatabase memoryDatabase;
+        private readonly PlayerLevelCatalog playerLevelCatalog;
 
-        public HomeDtoFactory(IReadOnlyPlayerRepository playerRepository, FeaturedIdolPicker featuredIdolPicker, DiscardNoticeState discardNoticeState, MemoryDatabase memoryDatabase)
+        public HomeDtoFactory(IReadOnlyPlayerRepository playerRepository, FeaturedIdolPicker featuredIdolPicker, DiscardNoticeState discardNoticeState, MemoryDatabase memoryDatabase, PlayerLevelCatalog playerLevelCatalog)
         {
             this.playerRepository = playerRepository;
             this.featuredIdolPicker = featuredIdolPicker;
             this.discardNoticeState = discardNoticeState;
             this.memoryDatabase = memoryDatabase;
+            this.playerLevelCatalog = playerLevelCatalog;
         }
 
         /// <summary>プレイヤーがまだ無ければ null。</summary>
@@ -31,7 +34,7 @@ namespace Uta.Client.Presentation.Home
                 return null;
             }
 
-            var profileText = "プレイヤーLv " + p.Level + "　ガチャ通貨 " + p.GachaCurrency.ToString("N0", CultureInfo.InvariantCulture);
+            var profileText = "プレイヤーLv " + playerLevelCatalog.GetLevel(p.Exp) + "　ガチャ通貨 " + p.GachaCurrency.ToString("N0", CultureInfo.InvariantCulture);
             var resumeVisible = p.HasActiveProduce;
             var primaryLabel = resumeVisible ? "再開" : "プロデュース";
             var showDiscardNotice = p.DiscardedProduce && !discardNoticeState.Shown;

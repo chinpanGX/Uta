@@ -26,12 +26,12 @@ namespace Uta.Client.Tests
 
         private HomeDtoFactory Create(MemoryDatabase db)
         {
-            return new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db);
+            return new HomeDtoFactory(players, new FeaturedIdolPicker(idols, db), notice, db, TestPlayerLevels.Catalog());
         }
 
-        private static PlayerEntity Player(int level = 1, int gachaCurrency = 0, bool hasActiveProduce = false, bool discardedProduce = false)
+        private static PlayerEntity Player(int exp = 0, int gachaCurrency = 0, bool hasActiveProduce = false, bool discardedProduce = false)
         {
-            return new PlayerEntity("P1", level, 0, 0, 0, gachaCurrency, hasActiveProduce, discardedProduce);
+            return new PlayerEntity("P1", exp, 0, 0, gachaCurrency, hasActiveProduce, discardedProduce);
         }
 
         [Test]
@@ -45,7 +45,7 @@ namespace Uta.Client.Tests
         [Test]
         public void Create_FormatsProfileAndResume()
         {
-            players.Upsert(Player(12, 3250, true));
+            players.Upsert(Player(2640, 3250, true));
             var factory = Create(TestMasterData.Build(_ => { }));
 
             var dto = factory.Create();
@@ -53,6 +53,19 @@ namespace Uta.Client.Tests
             Assert.AreEqual("プレイヤーLv 12　ガチャ通貨 3,250", dto.ProfileText);
             Assert.IsTrue(dto.ResumeVisible);
             Assert.AreEqual("再開", dto.PrimaryLabel);
+        }
+
+        [Test]
+        public void Create_LevelFromExp()
+        {
+            var factory = Create(TestMasterData.Build(_ => { }));
+
+            players.Upsert(Player(39));
+            Assert.AreEqual("プレイヤーLv 1　ガチャ通貨 0", factory.Create().ProfileText);
+            players.Upsert(Player(40));
+            Assert.AreEqual("プレイヤーLv 2　ガチャ通貨 0", factory.Create().ProfileText);
+            players.Upsert(Player(198000));
+            Assert.AreEqual("プレイヤーLv 100　ガチャ通貨 0", factory.Create().ProfileText);
         }
 
         [Test]
