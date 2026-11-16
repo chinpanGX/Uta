@@ -281,5 +281,5 @@ Request のフィールド。操作の RPC はすべて、先頭に `OperationNu
 - 処理の途中で例外が出たときの `ProduceState` は不定。サーバーは保存せず、保存済みの状態から取り直す
 - テストのマスタは `masterdata/csv/` を直接読む(`TestProduceMaster`)。バランス調整で値を変えたら、期待値のテストも直す
 - マスタ・乱数の参照で、タプルをキーにした辞書を使わない(IL2CPP の AOT でリフレクション依存の比較子を避けるため。`long` のキーにした)
-- 未確認: Unity(IL2CPP)でのコンパイルと再生。`ProduceCatalog.Create` を `SharedDomainReplay` の確認に含めるかは順 7 の前に決める
+- 未確認: Unity(IL2CPP)でのコンパイルと再生。`ProduceCatalog.Create`・プロデュースの再生は `SharedDomainReplay` の確認に**含めない**(2026-11-16。ユーザーの判断。MVP の後。テストのマスタ `TestProduceMaster` が `masterdata/csv/` をディスクから読むので、実機に持ち込む仕組みが別に要るため。[build-ci.md](build-ci.md) 5.2)
 - 2026-11-03 に順 6 で `ProduceSnapshot`(6.1)を実装した([計画](../../plans/2026-11-03-produce-snapshot.md))。サーバーでの使い方は [server/produce-server.md](server/produce-server.md)
