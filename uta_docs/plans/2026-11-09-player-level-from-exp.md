@@ -1,6 +1,6 @@
 ---
 title: 実装計画: プレイヤーは経験値の累計だけを持ち、Lv は累計から求める
-status: in-progress
+status: done
 updated: 2026-11-16
 spec: ../wiki/systems/produce.md, ../wiki/architecture/server/produce-server.md, ../wiki/architecture/master/produce-tables.md, ../wiki/architecture/api-design.md, ../wiki/architecture/screen-design.md
 ---
@@ -407,6 +407,19 @@ namespace Uta.Client.Tests
 
 足すテスト（`HomeDtoFactoryTests.cs`）: `Create_LevelFromExp`（`Player(39)` → `"プレイヤーLv 1　ガチャ通貨 0"`、`Player(40)` → `"プレイヤーLv 2　ガチャ通貨 0"`、`Player(198000)` → `"プレイヤーLv 100　ガチャ通貨 0"`。1 つのテストで 3 回 `Upsert` して `Create` する）。
 
+**コードレビューの直し（2026-11-16。1 回目のレビューの Important 1 件と Minor 5 件。タスク 4 として 1 人に渡す）**:
+
+| ファイル | 変えること |
+|---|---|
+| `server/Uta.Server.Tests/Integration/ProduceStartTests.cs` | 足す: `Start_PlayerLevelFromExp_SavedInSnapshot`。開始前に `UPDATE players SET exp = 40 WHERE player_id = $1` → 開始 → 保存された state の `Snapshot.PlayerLevel` が 2（読み方は `ProducePlayTests` の `data.Snapshot.PlayerLevel` と同じ）。別のプレイヤーで `exp = 39` → 1。期待値は直接書く（`OfferPool` の `UnlockLv` に使う開始時の Lv を確かめる） |
+| `server/Uta.Server.Tests/Integration/ProducePlayTests.cs` | `Complete_LevelUp_AndMaxLevel` の 1 人目の後に、`SELECT (body->>'level_after')::int FROM game_logs WHERE player_id = $1 AND kind = 'produce' AND body->>'reason' = 'produce_reward'` が 2、`(body->>'exp_after')::int` が `39 + reward.Exp`。列名・`kind`・`reason` の値は `ProduceCompletion.cs` のゲームログの書き込みに合わせる |
+| `server/Uta.Server.Tests/Integration/PlayerSignUpSignInTests.cs` | 204 行目付近の `Assert.Equal(0, response.Exp);` の次に、0 でない既定値の確かめ `Assert.Equal(player.PlayerId, response.PlayerId);`（そのテストで使える変数名に合わせる。無ければ `players` の既定値で 0 でない列 1 つ） |
+| `shared/Uta.Shared.Contracts/Produce/ProduceResultResponse.cs` | `PlayerExp` の summary を「付与したあとのプレイヤーの経験値の累計（放棄・破棄は今の累計）。」 |
+| `shared/Uta.Shared.Domain.Tests/Player/PlayerLevelCatalogTests.cs` | `Create_NotStrictlyIncreasing_Throws` に `new[] { 0, 40, 30 }` の `Assert.Throws<ArgumentException>` を 1 行足す |
+| `client/uta/Assets/Tests/EditMode/PlayerLevelCatalogFactoryTests.cs`（作成） | `CardCatalogFactoryTests` と同じ形（同梱のマスタを `MasterDataLoader.Load(ReadBundled())` で読む。読み方はそのファイルに合わせる）で `PlayerLevelCatalogFactory.Create` を作り、`MaxLevel` = 100、`MaxExp` = 198000、`GetLevel(0)` = 1、`GetLevel(40)` = 2、`GetLevel(197999)` = 99。`.meta` は Editor が作る |
+
+終わりの確かめ: `dotnet build Uta.slnx` 警告 0・エラー 0、shared と server のテスト、`unity recompile` エラー 0、EditMode のテスト（CLAUDE.md「ビルド・テスト・実行」の手順。Editor はこの worktree で開いている）。
+
 Unity でしか確かめられないもの: クライアントのコンパイル・EditMode のテスト・Play（タスク 3）。IL2CPP のビルドは確かめない（Contracts は既存の型のキーを詰めるだけで、型を足さないため）。
 
 ## 6. 未決事項
@@ -421,4 +434,9 @@ Unity でしか確かめられないもの: クライアントのコンパイル
 |---|---|---|
 | 1 | 1483a68 | なし（Editor を開いたので `Player.meta`・`PlayerLevelCatalog.cs.meta` もこのコミットに入れた） |
 | 2 | 9f9c4b6 | なし（`gen.ps1` は `-ExecutionPolicy Bypass` を付けて実行。server のテスト 313 件成功） |
-| 3 | （タスク 3 のコミット） | 計画の 12 ファイルに加え `Support/OwnedFixtures.cs` の `new PlayerEntity(` の第 2 引数を消した（手順 2 のとおり）。`unity recompile` エラー 0、EditMode 372 件成功。worktree 3 に NuGet の ZLinq が復元されておらず Editor が起動時に止まったので、worktree 1 の `Assets/Packages/ZLinq*`（gitignore の復元物）を写して開き直した。Play の確認はまだ |
+| 3 | a656ccf | 計画の 12 ファイルに加え `Support/OwnedFixtures.cs` の `new PlayerEntity(` の第 2 引数を消した（手順 2 のとおり）。`unity recompile` エラー 0、EditMode 372 件成功。worktree 3 に NuGet の ZLinq が復元されておらず Editor が起動時に止まったので、worktree 1 の `Assets/Packages/ZLinq*`（gitignore の復元物）を写して開き直した。Play: ローカルの DB に 0008 を当て（owned は main に入り確認済みなので 3b の待ちは無い）、タイトル → ホームでホームの上部が「プレイヤーLv 1　ガチャ通貨 2,750」（exp 0）になったことを確かめた |
+| 4（レビューの直し） | e85ddb9 | 1 回目のコードレビュー（server: Important 1・Minor 2、shared: Minor 3、client: Minor 2）。5章の「コードレビューの直し」の 6 件を直した。`ProduceStartTests` の 2 人目は別の factory（`ScriptedRandomSource` の乱数の数のため）。`PlayerLevelCatalogFactoryTests` は 2 メソッドに分けた。wiki の Minor（screen-design.md のルートの登録の一覧、masterdata-pipeline.md の登録の説明、produce-tables.md・produce-server.md の予定の書き方）は進行役が直した。server のテスト 314 件、EditMode 374 件成功 |
+
+確かめ（全体。2026-11-16）: `dotnet build Uta.slnx` 警告 0・エラー 0、shared 472 件・server 314 件（結合テストを含む）成功、`unity recompile` エラー 0、EditMode 374 件成功、Lint エラー 0。Play: ホームの上部が「プレイヤーLv 1　ガチャ通貨 2,750」（ローカルの DB に 0008 を当てた直後で exp 0）。確かめていないもの: 経験値がある状態での Play の Lv の表示（EditMode のテストで見る）、IL2CPP のビルド・実機（5章のとおり範囲外）
+
+2 回目のコードレビュー（server）: マージしてよい。残した Minor: `ProducePlayTests` のローカルの定数 `LogSql` が周りの `logSql` と合わない、`PlayerSignUpSignInTests` の `player.PlayerId.ToString()` の `.ToString()` は要らない（どちらも動作に関係しない）。1 回目の「判断しなかったこと」（デプロイの間の古いリビジョンの失敗・保存済みレスポンスのキーの並び・古いアプリとの互換）は、リリース前で互換を持たない決定（produce-server.md 4.1）の範囲なので扱わない
