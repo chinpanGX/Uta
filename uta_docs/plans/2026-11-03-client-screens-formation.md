@@ -1025,3 +1025,4 @@ Play モード・IL2CPP・手動はタスク 6。
 |---|---|---|---|
 | 1 | 完了 | PR #59 | なし |
 | 2 | 完了 | `61b7e8a` | `TestProduce` の `StateResponse`・`ResultResponse`（Contracts を使う）はタスク 3 に回した。境界のテスト 2 件（`ProduceStateResultTests.Constructor_NullArray_Throws`・`FormationNormalizerTests.RemoveIncompatible_Null_Throws`）を足した |
+| 3 | 完了 | `d841435` | `AbandonAsync` の成功時は `ToEndResult` を呼ばない（戻り値が bool）。`FakeProduceService` は `CallLog log = null` を受け、記録は `CallLog` に出す。`BootstrapEntry` の登録はタスク 5 |
