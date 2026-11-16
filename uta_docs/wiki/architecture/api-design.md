@@ -100,7 +100,7 @@ updated: 2026-11-16
 
 Request のフィールドは [produce-domain.md](produce-domain.md) 8章、Response の全フィールドと、サーバーでの処理の手順は [produce-server.md](server/produce-server.md) 5・6章が正。
 
-- `IProduceService` は、クライアントでは Infrastructure の `ProduceUseCase`（`IProduceUseCase`）が呼ぶ（2026-11-16。[計画](../../plans/2026-11-03-client-screens-formation.md)）。業務エラーとして受けるコード（`handledCodes`）と、結果の種類への割り振りは次のとおり。表に無いコードは共通エラーハンドラーに任せ、結果は `Failed`（放棄は false）
+- `IProduceService` は、クライアントでは Infrastructure の `ProduceUseCase`（`IProduceUseCase`）が呼ぶ（2026-11-16。[計画](../../plans/2026-11-03-client-screens-formation.md)）。業務エラーとして受けるコード（`handledCodes`）と、結果の種類への割り振りは次のとおり。表に無いコードは共通エラーハンドラーに任せ、結果は `Failed`（放棄は false）。成功したときは、応答を `ProduceStateResult` に写してセッションに入れる（開始は `Succeeded`、操作は `Succeeded`。操作の応答の局面が `Finished` なら所持データを取り直す）
 
 | RPC | 受けるコード | 結果 |
 |---|---|---|

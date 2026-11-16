@@ -41,7 +41,7 @@ Prefab の計画（P1〜P3）は、画面の Prefab と View の骨格（`[Seria
 | 5 | [gacha ガチャ](2026-11-03-client-screens-gacha.md) | ガチャのページ・排出率・結果のモーダル、`IGachaUseCase`・`GachaUseCase`・`GachaDtoFactory` など（`PortResult<T>`・`ServerReasons`・`FakeGameMaster` は作らない）、偽の形 `FakeGachaUseCase`・`FakeGachaService` | foundation・P2 | foundation の実装ブランチ | done |
 | 6 | [owned 所持一覧・サポートカードの強化](2026-11-03-client-screens-owned.md) | 所持一覧（選択モード付き）・サポートカードの詳細と強化、`ISupportUseCase`・`SupportUseCase`・`SupportLevelPlanner`・`OwnedListFactory`・DtoFactory、`DisplayText`、`FormationValidator.IsPlanCompatible`（shared/） | gacha | gacha の実装ブランチ | done |
 | 7 | [P3 編成・プロデュースの Prefab](2026-11-07-client-prefabs-screens-b.md) | 画面の Prefab 10 個・行の Prefab 5 個・View の骨格 | P1・P2（C# の型には依存しない） | owned の実装ブランチ | done |
-| 8 | [formation 編成・プロデュースの開始と再開](2026-11-03-client-screens-formation.md) | 編成のページ、`IProducePort`・`ProduceSession`・`ProduceFlow`・`ProduceMenu`、`Produce` シーンの作り直し（`UiRoot`）、`LessonDto.UsableHand`（server・shared） | owned・P3 | P3 の実装ブランチ | ready |
+| 8 | [formation 編成・プロデュースの開始と再開](2026-11-03-client-screens-formation.md) | 編成のページ、`IProducePort`・`ProduceSession`・`ProduceFlow`・`ProduceMenu`、`Produce` シーンの作り直し（`UiRoot`）、`LessonDto.UsableHand`（server・shared） | owned・P3 | P3 の実装ブランチ | done |
 | 9 | [week 週の行動選択・授業・支給・スキルカードの選択肢](2026-11-03-client-screens-week.md) | 週・授業・支給のページ、カードの選択肢のモーダル、`ProduceFlow` の `WeekSelect`・`CardOffer`、`FakeProduceFlow` | formation | formation の実装ブランチ | ready |
 | 10 | [lesson レッスン・試験・試験結果・プロデュース結果](2026-11-03-client-screens-lesson.md) | レッスンのページ・山札などの一覧・試験結果・プロデュース結果、`ProduceFlow` の残りの局面。完了条件 6 の通し | week | week の実装ブランチ | ready |
 
