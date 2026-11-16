@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
+    <ProjectReference Include="..\Uta.Shared.Domain.Testing\Uta.Shared.Domain.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

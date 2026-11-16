@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- テストのカード・再生のシナリオと期待値。.NET のテストと Unity のプレイヤーのテストが使う（build-ci.md 5.2）。Unity にソースで入るため、netstandard2.1・C# 9 -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Uta.Shared.Domain.Testing</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Uta.Shared.Domain\Uta.Shared.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

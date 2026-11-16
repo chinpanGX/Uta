@@ -2,6 +2,7 @@
   <Folder Name="/shared/">
     <Project Path="shared/Uta.Shared.Contracts/Uta.Shared.Contracts.csproj" />
     <Project Path="shared/Uta.Shared.Domain/Uta.Shared.Domain.csproj" />
+    <Project Path="shared/Uta.Shared.Domain.Testing/Uta.Shared.Domain.Testing.csproj" />
     <Project Path="shared/Uta.Shared.Domain.Tests/Uta.Shared.Domain.Tests.csproj" />
   </Folder>
   <Folder Name="/server/">
