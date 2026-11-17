@@ -1,7 +1,7 @@
 ---
 title: 実装計画: Android の実機のスモークと IL2CPP の計算の一致（MVP の完了条件 7）
-status: in-progress
-updated: 2026-11-16
+status: done
+updated: 2026-11-17
 spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/architecture/lesson-phases.md, ../wiki/architecture/produce-domain.md
 ---
 
@@ -666,3 +666,5 @@ namespace Uta.Shared.Domain.Tests.Lesson
 | 3 | 完了 | （このコミット） | `total="3" passed="3" failed="0"`、`platform=WindowsPlayer`。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）・UnityLinker の `OutOfMemoryException` で落ちた（16 GB の PC で Editor 2 つとバッチのビルドが重なった）。Uta-wt/3 の Editor を閉じて空きを約 4.7 GB にして 3 回目で通った。`build-foundation` はビルドのたびに `ProjectSettings.asset`（`Standalone: 1` ほか）と `UniversalRenderPipelineGlobalSettings.asset` に差分が出る（戻してから切り替える） |
 | 4・5 | 行わない | — | 手元に Android の端末が無く、サーバーのクラウド化の後に回した（決めたこと 15。2026-11-17。ユーザーの判断）。`BuildAndroidIl2Cpp` は一度も実行していない |
 | 6 | 完了 | （このコミット） | 計画の本文のリンク（wiki のページ相対で書いていた）が lint のエラーになったので、計画からの相対に直した |
+
+コードレビュー（2026-11-17）: client・shared とも Critical 0・Important 0。Minor（後でよいもの）: client 4 件（本番の入口で作ったプレイヤーに `Uta.Shared.Domain.Testing` が入っていないことを成果物で確かめていない、ほか）、shared 3 件（`LessonReplayScenario` と `LessonReplayTests` の設定の重複を確かめるテストが無い、`Compare` の「実際 (なし)」・`expected` が null の境界のテストが無い、`package.json` に `com.uta.shared.domain` への依存が無い）
