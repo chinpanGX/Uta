@@ -18,8 +18,12 @@ namespace Uta.Client.Tests
         /// <summary>Bootstrap シーンを Single で読み、Title シーンのタイトルのページが操作できるまで待つ。</summary>
         public static IEnumerator BootToTitle()
         {
+            var stale = Object.FindAnyObjectByType<TitlePage>();
             SceneManager.LoadScene("Bootstrap", LoadSceneMode.Single);
-            yield return TestWait.Until(IsTitleReady, BootTimeoutSeconds, "Title のページ（status=\"" + TitleReadyStatus + "\"、スタートが押せる）");
+            yield return TestWait.Until(
+                () => IsTitleReady() && !ReferenceEquals(Object.FindAnyObjectByType<TitlePage>(), stale),
+                BootTimeoutSeconds,
+                "Title のページ（status=\"" + TitleReadyStatus + "\"、スタートが押せる）");
         }
 
         /// <summary>アクティブなシーンが Title で、TitlePage が activeInHierarchy、StatusText が TitleReadyStatus、StartButton が interactable。</summary>
