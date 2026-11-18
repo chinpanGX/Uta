@@ -1,7 +1,7 @@
 ---
 title: 命名規則（型の名前の付け方）
 status: draft
-updated: 2026-11-16
+updated: 2026-11-19
 ---
 
 # 命名規則（型の名前の付け方）
@@ -123,7 +123,7 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 - テストのクラスは `<対象>Tests`。メソッドは `Method_Condition_Result` を許す（CLAUDE.md）
 - テストの偽物は `Fake<IF の名前から I を除いたもの>`（`FakeGachaService`、`FakeGachaUseCase`）
-- クライアントのテストのアセンブリは `Uta.Client.Tests.EditMode`
+- クライアントのテストのアセンブリは `Uta.Client.Tests.EditMode` と `Uta.Client.Tests.PlayMode`（名前空間はどちらも `Uta.Client.Tests`）。PlayMode の補助は `Tests/PlayMode/Support/` に置く（`TestWait`・`TestScenes`）
 - テストのデータを組み立てる static の補助は `Test<名詞>`（`TestMasterData`・`TestProduce`）。置き場は `Tests/EditMode/Support/`。ready の計画にある `GachaFixtures`・`LessonTestData` は計画の名前のまま（実装のときに改名しない）
 
 ### 9. 補助の役割の接尾辞

@@ -1,7 +1,7 @@
 ---
 title: Unity 7 の検証結果
 status: draft
-updated: 2026-11-11
+updated: 2026-11-19
 ---
 
 # Unity 7 の検証結果
@@ -100,7 +100,60 @@ ILLink: error IL1040: Type 'System.IAsyncDisposable' reference could not be reso
   unity command --timeout 300 eval 'var path = System.IO.Path.GetFullPath("Temp/uta-test-results.xml"); if (System.IO.File.Exists(path)) System.IO.File.Delete(path); var api = UnityEngine.ScriptableObject.CreateInstance<UnityEditor.TestTools.TestRunner.Api.TestRunnerApi>(); var t = typeof(UnityEditor.TestTools.TestRunner.Api.TestRunnerApi).Assembly.GetType("UnityEditor.TestTools.TestRunner.CommandLineTest.ResultsSavingCallbacks"); var cb = (UnityEditor.TestTools.TestRunner.Api.ICallbacks)UnityEngine.ScriptableObject.CreateInstance(t); t.GetField("m_ResultFilePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).SetValue(cb, path); api.RegisterCallbacks(cb); var filter = new UnityEditor.TestTools.TestRunner.Api.Filter { testMode = UnityEditor.TestTools.TestRunner.Api.TestMode.EditMode }; api.Execute(new UnityEditor.TestTools.TestRunner.Api.ExecutionSettings(filter)); return "started";'
   ```
   結果は `Temp/uta-test-results.xml` の `<test-run … total= passed= failed=>` と、`result="Failed"` の `<test-case>` の `<message>` で見る
-- **Play モードは Editor が前面にないとループが進まない**（2026-11-08。`Time.frameCount` が 1 のままだった）。一時停止して `unity command eval 'UnityEditor.EditorApplication.Step(); return UnityEngine.Time.frameCount;'` を 1 回ずつ呼ぶと、フレームが進んだ。Play で画面の遷移を確かめるときは、この `Step()` で送る
+- **PlayMode のテストも、Editor を開いたまま `TestRunnerApi` で回す**（2026-11-16。[計画](../../plans/2026-11-16-client-playmode-tests.md)）。テストは `Assets/Tests/PlayMode`（`Uta.Client.Tests.PlayMode`）。サーバーが要らないものは `[Category("Smoke")]`、ローカルのサーバー（`http://localhost:5000`）が要るものは `[Category("Server")]`。結果は `Temp/uta-playmode-results.xml`。`client/uta` で、Bash で回す:
+   1. 未保存のシーンが無いことを確かめる（`True` なら止まり、保存か破棄を頼む。Play に入るときの保存の確認で止まるため）:
+   ```
+      unity command eval 'return UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty;'
+      
+   ```
+   2. 前の Play の USN の static（`PageContainer.Instances`・`ModalContainer.Instances`）が残っていれば、ドメインを読み直して捨てる。出力の `"result":"uta-clean"` なら読み直さない。`"result":"uta-dirty"` なら下の 2 行を回す（2 行目は `uta-clean` に変わるまで待つ。`unity status --until-ready` はリロードが始まる前の ready で返ることがあるので使わない）:
+   ```
+      unity command eval 'return UnityScreenNavigator.Runtime.Core.Page.PageContainer.Instances.Count + UnityScreenNavigator.Runtime.Core.Modal.ModalContainer.Instances.Count == 0 ? "uta-clean" : "uta-dirty";'
+      
+   ```
+   ```
+      unity command eval 'UnityEditor.EditorUtility.RequestScriptReload(); return "ok";'
+      timeout 180 bash -c 'until unity command eval '"'"'return UnityScreenNavigator.Runtime.Core.Page.PageContainer.Instances.Count + UnityScreenNavigator.Runtime.Core.Modal.ModalContainer.Instances.Count == 0 ? "uta-clean" : "uta-dirty";'"'"' 2>/dev/null | grep -q '"'"'"result":"uta-clean"'"'"'; do sleep 2; done'
+      
+   ```
+   3. テストを始める（`Smoke` だけ。全部は `, categoryNames = new[] { "Smoke" }` を消す。`assemblyNames` は消さない）。`started` でなければ `unity status --until-ready` のあと 1 回だけ回し直す:
+   ```
+      unity command --timeout 300 eval 'UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = null; var path = System.IO.Path.GetFullPath("Temp/uta-playmode-results.xml"); if (System.IO.File.Exists(path)) System.IO.File.Delete(path); var api = UnityEngine.ScriptableObject.CreateInstance<UnityEditor.TestTools.TestRunner.Api.TestRunnerApi>(); var t = typeof(UnityEditor.TestTools.TestRunner.Api.TestRunnerApi).Assembly.GetType("UnityEditor.TestTools.TestRunner.CommandLineTest.ResultsSavingCallbacks"); var cb = (UnityEditor.TestTools.TestRunner.Api.ICallbacks)UnityEngine.ScriptableObject.CreateInstance(t); t.GetField("m_ResultFilePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).SetValue(cb, path); api.RegisterCallbacks(cb); var filter = new UnityEditor.TestTools.TestRunner.Api.Filter { testMode = UnityEditor.TestTools.TestRunner.Api.TestMode.PlayMode, assemblyNames = new[] { "Uta.Client.Tests.PlayMode" }, categoryNames = new[] { "Smoke" } }; api.Execute(new UnityEditor.TestTools.TestRunner.Api.ExecutionSettings(filter)); return "started";'
+      
+   ```
+   4. 結果のファイルを待って読み、Play を抜け切るまで待つ:
+   ```
+      timeout 600 bash -c 'until [ -f Temp/uta-playmode-results.xml ]; do sleep 2; done' && grep -o '<test-run[^>]*>' Temp/uta-playmode-results.xml
+      
+   ```
+   ```
+      timeout 120 bash -c 'until unity command eval '"'"'return UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode ? "uta-playing" : "uta-edit";'"'"' 2>/dev/null | grep -q '"'"'"result":"uta-edit"'"'"'; do sleep 2; done'
+      
+   ```
+   5. 手順 3 で外した `playModeStartScene` を戻す（出力が `Bootstrap`）:
+   ```
+      unity command eval 'UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEditor.SceneAsset>("Assets/Scenes/Bootstrap.unity"); return UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene.name;'
+      
+   ```
+   - **ローカルのサーバーの上げ下げ**（`Server` を回す前後。リポジトリのルートで。`server/.env` と user-secrets の接続文字列が要る）。上げる（最後の行が終了コード 0 なら準備ができた）:
+   ```
+      docker compose --env-file server/.env -f server/compose.yaml up -d --wait
+      dotnet run --project server/Uta.Server -- migrate
+      nohup dotnet run --project server/Uta.Server > client/uta/Temp/uta-server.log 2>&1 &
+      timeout 180 bash -c 'until grep -q "Now listening on" client/uta/Temp/uta-server.log; do sleep 2; done'
+      
+   ```
+     止める（2 行目が `0` なら止まった。PostgreSQL のコンテナーは止めない。PowerShell の式は単一引用符で渡す）:
+   ```
+      powershell -NoProfile -Command 'Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }'
+      powershell -NoProfile -Command '(Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue | Measure-Object).Count'
+      
+   ```
+   - **`playModeStartScene` を外さないとテストが走らない**（2026-11-19）。Editor の拡張 `BootstrapPlayMode` が Play を `Bootstrap` から始めるので、Test Runner の初期化シーンが置き換わり、結果を書かずに Bootstrap → Title の Play が続いた。手順 3 で `null` にし、手順 5 で戻す（戻し忘れても、次のドメインのリロードで `BootstrapPlayMode` が戻す）
+   - **`assemblyNames` で絞る**: PlayMode のアセンブリには IL2CPP のプレイヤーで回す `Uta.Client.Tests.SharedDomainReplay` もあり、Editor では `Player_IsIl2CppPlayer` が落ちる
+   - **USN の static は、テストの Play を抜けるたびに残る**（`PageContainer.Instances` が 1 件）。残ったまま次を回すと、`PageContainer.set_Interactable` の破棄済みの `CanvasGroup` で `MissingReferenceException` になり、`LogAssert` で落ちる。同じ Play の中で Bootstrap を読み直すのは問題ない（全部の 3 本が 1 回の Play で通る）。`unity command` の出力にはパラメーター（コードの文字列）も出るので、`grep uta-clean` だけだと常に当たって見誤る。必ず `"result":"uta-clean"` で探す
+   - かかった時間: 全部の 3 本で約 8 秒、Smoke で約 4〜7 秒（Editor は背面のまま。`runInBackground` は変えていない）
+- **Play モードは Editor が前面にないとループが進まない**（2026-11-08。`Time.frameCount` が 1 のままだった）。一時停止して `unity command eval 'UnityEditor.EditorApplication.Step(); return UnityEngine.Time.frameCount;'` を 1 回ずつ呼ぶと、フレームが進んだ。Play で画面の遷移を確かめるときは、この `Step()` で送る。Test Runner の PlayMode のテストは、Editor が背面のままでも進んだ（2026-11-19。`runInBackground` は 0 のまま）
 - **Enter Play Mode Options でドメインのリロードを切っているので、static の値が Play をまたいで残る**（2026-11-09）。基盤の UnityScreenNavigator の static（コンテナーの一覧）に前の Play の破棄済みのものが残り、2 回目の Play の Push が例外になった。`EditorUtility.RequestScriptReload()` で直る。Uta のコードは値が変わる static の状態を持たない（CLAUDE.md の C# コーディング規約）
 - `unity test --mode EditMode`（2026-11-08 に 1 回だけ試した。以後は使わない）: 同じプロジェクトを開いた Editor があると、`プロジェクトは実行中のエディター（PID …）で既に開かれています` で終了コード 6。`unity close .`（保存せずに閉じる。終了コード 0、`graceful`）のあとは終了コード 0 で、プロジェクトの直下に `test-results.xml` を書いた（約 2 分。Editor の起動を含む）。`unity close` の前の `eval` の `AssetDatabase.SaveAssets` は 30 秒でタイムアウトした（閉じるのは通った）。`unity open .` は終了コード 0 で、直後の `unity status --until-ready` には出ず、もう一度 `unity open .` を実行したあと ready になった（1 回目で起動が間に合わなかっただけかは未確認）。`--filter` は試していない
 - **Prefab の生成**（2026-11-08。[計画](../../plans/2026-11-07-client-prefabs-common.md)）: Editor を開いたまま `unity command eval 'return Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAll();'` で Editor のスクリプトの静的メソッドを呼び、Prefab を作れた（`built 10`）。Editor が閉じているとき用のバッチの入口 `Unity.exe -batchmode -nographics -projectPath client/uta -executeMethod Uta.Client.Editor.Prefabs.PrefabBuildCommands.BuildAllBatch -logFile <ログ>` は、終了コード 0 を 1 回確かめた。`BuildAll` のたびに `NotoSansJP-Regular SDF.asset` のマテリアルの `_ScaleRatioA`・`_ScaleRatioC` が変わり、`FontAssets.ClearDynamicData()` では戻らないので、差分は `git restore` で戻す

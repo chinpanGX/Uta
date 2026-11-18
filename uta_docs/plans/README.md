@@ -105,9 +105,9 @@ spec: <仕様ページへの相対パス（複数なら並べる）>
 |---|---|
 | shared | `dotnet test --project shared/Uta.Shared.Domain.Tests` |
 | server | `dotnet test --project server/Uta.Server.Tests`（結合テストを含む。Docker が要る） |
-| client | `unity recompile`、EditMode のテスト、**PlayMode のテスト**。画面・遷移・通信を触るタスクは PlayMode のテストで確かめる |
+| client | `unity recompile`、EditMode のテスト、**PlayMode のテスト**（`Assets/Tests/PlayMode`。回し方は CLAUDE.md）。画面・遷移・通信を触るタスクは PlayMode のテストで確かめる |
 
-client の PlayMode のテストは、基盤（PlayMode の asmdef・回し方・テスト用のサーバー）ができてから必須にする。基盤ができるまでは、EditMode のテストと `unity recompile` で確かめ、PlayMode で確かめるはずのものを「未確認（PlayMode の基盤なし）」と書く。
+client の PlayMode のテストは、画面・遷移・通信を触るタスクで必須（基盤は [2026-11-16-client-playmode-tests.md](2026-11-16-client-playmode-tests.md)）。サーバーが要るテストは `[Category("Server")]` にし、5.1 の期待する結果に、ローカルのサーバーを上げることを書く。
 
 **5.2 足すテストケース**: 正常系と境界ごとに並べる（テスト名は `Method_Condition_Result` の形でよい）。どのタスクで足すかを添える。
 
