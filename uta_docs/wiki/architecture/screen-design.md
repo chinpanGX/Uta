@@ -185,9 +185,9 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 
 ### 7.6 プロデュースの画面の流れ [Uta案]
 
-- 局面（`ProducePhase`）が画面を決める。`ProduceSession`（最新の `ProduceStateView` と次の操作番号）を操作のたびに更新し、`ProduceFlow` が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業は別ページ。screen-wireframes のとおり授業・支給はページ）、`CardOffer` → スキルカード獲得（モーダル）、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
+- 局面（`ProducePhase`）が画面を決める。`ProduceSessionState`（最新の `ProduceStateResult`（応答の写し）。次の操作番号は `Current.OperationNumber`。操作の前後の差は `Previous` と `Current`）を操作のたびに更新し、`ProduceFlow` が局面から画面への対応を持つ: `WeekSelect` → 週の行動選択（授業は別ページ。screen-wireframes のとおり授業・支給はページ）、`CardOffer` → スキルカード獲得（モーダル）、`Lesson`・`Exam` → レッスン・試験、`ExamResult` → 試験結果、`Finished` → プロデュース結果
 - 試験が終わった応答の `ExamResult` は、次の局面の前に試験結果の画面で見せる
-- `PRODUCE_STALE_OPERATION` は `GetStateAsync` で取り直す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` はホームへ戻る
+- `PRODUCE_STALE_OPERATION`・`PRODUCE_UNEXPECTED_PHASE` を受けたら `GetStateAsync` で取り直して同じ流れに戻す。`PRODUCE_SESSION_DISCARDED`・`PRODUCE_NOT_IN_PROGRESS` を受けたら、セッションを消して所持データを取り直し、`Home` シーンへ戻る
 - 授業・休むの結果は、操作の前後の状態の差で出す。ターン終了時の効果の 1 件ずつの表示は MVP から外す（応答に効果の記録が無い）
 
 ### 7.7 ウィンドウ・確かめ方 [Uta案]
@@ -206,14 +206,14 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 
 ## 8. シーン構成 [決定。2026-11-03。ユーザーの判断。細部は Uta案]
 
-Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（`Bootstrap`・`Title`・`Home` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う（小さい `LifetimeScope` で USN の Overlay に出す）。`Produce` は順 7 の 4 本目が作り直す）。
+Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面（ページ・モーダル）は、シーンの中で `UnityScreenNavigator` が積む（`Bootstrap`・`Title`・`Home`・`Produce` に `UiRoot.prefab` を 1 つずつ置く。`Bootstrap` の `UiRoot` はマスタの失敗と起動の失敗のダイアログだけに使う（小さい `LifetimeScope` で USN の Overlay に出す））。
 
 | シーン | 役割 | 遷移 |
 |---|---|---|
 | `Bootstrap` | 起動の起点（Build Settings の先頭）。マスタを読み、アプリ全体で共有するもの（ルートの DI スコープ）を作り、`Title` を読み込む。マスタの読み込みに失敗したら、エラーを表示して止まる（4章） | → `Title` |
 | `Title` | 「スタートをタップ」を待つ。タップしたら端末の登録・トークンの発行・サインアップ・サインイン（4章 2〜4）を行い、成功したら `Home` へ。失敗したら状態を表示し、もう一度タップできる | → `Home` |
-| `Home` | サインインで受け取った所持データを表示する（最小）。ここから `Produce` へ（4 本目から）。ホームの構成とキャラ表示のステージは 7.8 | → `Produce`（順 7 の 4 本目（formation）から。1 本目の時点ではホームのボタンは「準備中です。」で、移る道が無い） |
-| `Produce` | プロデュース。この章の時点では空（文字と `Home` へ戻るボタンだけ） | → `Home` |
+| `Home` | サインインで受け取った所持データを表示する（最小）。編成（`FormationPage`）はこのシーンのページ。開始・再開で `Produce` へ。ホームの構成とキャラ表示のステージは 7.8 | → `Produce` |
+| `Produce` | プロデュース。底に背景のページを置き、局面の画面を積む（7.6）。ホームへ戻る・放棄・終了で `Home` へ | → `Home` |
 
 - **ルートの DI スコープは `Bootstrap` が作る**（`DontDestroyOnLoad`）。通信（`ApiClient`・`IPlayerService`）・所持データのリポジトリ（3 つ）・マスタ（`MemoryDatabase`・`ICardCatalog`・`PlayerLevelCatalog`）・共通エラーハンドラー・**すべての UseCase の具象**（IF で登録）・`ISceneNavigator`・`IErrorNavigator` を登録する。`Title`・`Home`・`Produce` は、それぞれのシーンに置いた `LifetimeScope`（Presentation の `TitleLifetimeScope` など）が、ルートを親にして、そのシーンの `UiRoot`・入口と、そのシーンだけの補助（診断など）だけを登録する。Presenter と View は登録しない（Presenter の `[AssetAddress]` で、`IScreenNavigator` が Push のたびにシーンのスコープの子スコープで解決する。7.4）。シーンの読み込みは `LifetimeScope.EnqueueParent(ルート)` の中で行い、子が親を見つけられるようにする（ルートの `LifetimeScope` は VContainer が自分自身を登録するので、`SceneNavigator` がコンストラクターで受け取る）
 - **シーンの遷移は `ISceneNavigator`**（Application の IF: `GoToTitleAsync`・`GoToHomeAsync`・`GoToProduceAsync`）。実装は `Bootstrap` に置く（`SceneManager.LoadSceneAsync` を単独（Single）で呼ぶ）。Presenter は `ISceneNavigator` だけを知り、シーンの名前や `SceneManager` を知らない
@@ -221,7 +221,7 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 - **Editor で Play したときも `Bootstrap` から始める**（`EditorSceneManager.playModeStartScene`）。どのシーンを開いていても、起動の流れが同じになる
 - **Home に入ったとき所持データが無い**（`IReadOnlyPlayerRepository.Find()` が null。サインインしていない）場合は、`Title` へ戻す。`HomeEntry` が確かめる（2026-11-08）
 - 診断: `-uta-quit-after-check`（バッチモードの疎通の確認）のときは、`Title` がタップを待たずに開始し、サインインのあと診断（トークンの取り直し・再認証の再送・サーバーのエラーの受け取り）を行って、`Home` に進まずに終了コードで終わる。通常の起動では行わない。診断は `TitleDiagnostics`（`TitleEntry` が分ける）[2026-11-08]
-- シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` はまだ最小の uGUI（4 本目が同じ形にする。日本語の文字は TextMeshPro + フォントアセット）
+- シーンは Editor のスクリプト（`Uta/Create Scenes`）で作り、`.unity` をコミットする。`Bootstrap`・`Title`・`Home`・`Produce` にはカメラ・`UiRoot.prefab`・`LifetimeScope`（`Bootstrap` は `BootstrapEntry`）だけを置き、画面はページの Prefab（7章）。`Produce` の入口は `ProduceEntry`（セッションがあれば背景のページを積み、局面の画面を出す。7.6）
 - 置き場: ビュー・Presenter・各シーンの `LifetimeScope` は `Presentation/<シーン名>/`。`Presentation` は `UnityEngine.UI` を参照してよい（`VolTech` のクライアントは参照しない）
 
 ## 未決事項
@@ -235,6 +235,12 @@ Unity のシーン（`.unity`）は機能の単位で 4 つに分ける。画面
 （2026-11-01 に解決: 基準解像度・セーフエリア・Windows のウィンドウ、スキルカード獲得・授業・支給・試験結果の画面の種類 → [screen-wireframes.md](../overview/screen-wireframes.md)「共通の方針」・2章の表）
 
 ## 実装メモ
+
+### 画面 4/6（編成・プロデュースの開始と再開。2026-11-16。[計画](../../plans/2026-11-03-client-screens-formation.md)）
+
+- **形**: Application の `IProduceUseCase`（開始・再開・放棄と 7 つの操作。結果は `ProduceStartResultKind`・`ProduceResumeResultKind`・`ProduceStepResultKind`）と状態 `ProduceSessionState`（ルートのスコープ）、Infrastructure の具象 `ProduceUseCase`（業務エラーを `handledCodes` で受けて結果の種類に写す。応答は `ProduceMapper` で `ProduceStateResult`・`ProduceEndResult` に写す）。`Produce` シーンは入口 `ProduceEntry` が背景のページ（`ProduceBackdropPage`）を積み、`ProduceFlow.ShowCurrentAsync` が局面の画面を出す。局面の画面はまだ無いので「この局面の画面は準備中です: <局面>」を出してホームへ戻る（5・6 本目が足す）
+- **確かめた範囲**: EditMode のテスト（480 件）。Editor の Play で、ホーム →「プロデュース」→ 編成（既定の育成アイドル、育成アイドルの選択、サポートカードの「選ぶ」「外す」、シナリオの「変更」）→「プロデュース開始」→ `Produce`（背景の「週 1」とパラメータ・体力、準備中のダイアログ）→ `Home`（「再開」が出る）→「再開」→ `Produce` → `Home` →「プロデュース」→「進行中のプロデュースがあります。」→「放棄」→ 確認 →「再開」が消える → 編成の「戻る」でホーム。Windows の IL2CPP のプレイヤーでの通信は未確認
+- **計画とのズレ**: 実装メモ（計画の 7 章）を参照。設計とのズレは無い
 
 ### 画面 3/6（所持一覧・サポートカードの強化。2026-11-09。[計画](../../plans/2026-11-03-client-screens-owned.md)）
 

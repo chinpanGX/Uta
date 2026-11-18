@@ -1,6 +1,6 @@
 ---
 title: 実装計画: client/ の画面 4/6 編成・プロデュースの開始と再開
-status: ready
+status: done
 updated: 2026-11-16
 spec: ../wiki/systems/produce.md, ../wiki/systems/idol-support.md
 ---
@@ -454,7 +454,7 @@ public sealed class ProduceActions
 
 ユースケースの動き（`r` は port の結果。業務エラーの `r.Reason` は `ServerReasons` の定数と比べる）:
 
-- `StartProduceUseCase.ExecuteAsync`: `r = await port.StartAsync(...)`。成功 → `session.Set(r.Value)`、`Succeeded`。`r.IsBusinessError` で `ProduceInvalidFormation` → `InvalidFormation`、`ProduceAlreadyInProgress` → `await ProduceRefresh.TryAsync(refresh)`（`PlayerCache.HasActiveProduce` を最新にする）して `AlreadyInProgress`、`ProduceInvalidArgument` → `InvalidArgument`。それ以外 → `Failed`
+- `StartProduceUseCase.ExecuteAsync`: `r = await port.StartAsync(...)`。成功 → `session.Set(r.Value)`、`Succeeded`。`r.IsBusinessError` で `ProduceInvalidFormation` → `InvalidFormation`、`ProduceAlreadyInProgress` → `session.Clear()`（2026-11-16。コードレビュー M1 (a) で足した。手元のセッションはサーバーの進行中のものではないため）のあと `await ProduceRefresh.TryAsync(refresh)`（`PlayerCache.HasActiveProduce` を最新にする）して `AlreadyInProgress`、`ProduceInvalidArgument` → `InvalidArgument`。それ以外 → `Failed`
 - `ResumeProduceUseCase.ExecuteAsync`: `r = await port.GetStateAsync()`。成功で `r.Value.Phase != ProducePhase.Nothing` → `session.Set(r.Value)`、`Resumed`。成功で `Phase == Nothing` → `session.Clear()`、`await ProduceRefresh.TryAsync(refresh)`、`NotInProgress`。失敗 → `Failed`
 - `AbandonProduceUseCase.ExecuteAsync`: `r = await port.AbandonAsync()`。成功、または業務エラーの `ProduceNotInProgress`・`ProduceSessionDiscarded` → `session.Clear()`、`await ProduceRefresh.TryAsync(refresh)`、`true`。それ以外（`PRODUCE_STALE_OPERATION` は `handledCodes` に入れないので `Failure` で届く）→ `false`
 - `ProduceActions` の 4 つの操作（共通。`port` の対応するメソッドに `session.Current.OperationNumber` と引数を渡す）:
@@ -1018,3 +1018,16 @@ Play モード・IL2CPP・手動はタスク 6。
 いまは ready。ユーザーの確認は全件了承済み（2026-11-07）。
 
 - （2026-11-07 に照合済み）owned・gacha の名前（`OwnedArgs`・`OwnedSelectionRequest`・`OwnedSelection`・`FormationValidator.IsPlanCompatible`・`DisplayText.RarityName`／`PlanName`／`ParamName`・`PortResult<T>`・`ServerReasons`・`FakeGameMaster`・`HomePresenter` の `IScreenNavigator`）。week・lesson はこの版の `ProduceFlow`（`ProduceEntry`・`ShowCurrentAsync`・`HandleStepAsync`・`GoToHomeAsync`）に合わせてある。スキルカード獲得のモーダルを背景の上に出すこと（week の決めたこと 15）は 2026-11-07 にユーザーが了承済み（[索引](2026-11-07-client-screens-index.md)）
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
+| 1 | 完了 | PR #59 | なし |
+| 2 | 完了 | `61b7e8a` | `TestProduce` の `StateResponse`・`ResultResponse`（Contracts を使う）はタスク 3 に回した。境界のテスト 2 件（`ProduceStateResultTests.Constructor_NullArray_Throws`・`FormationNormalizerTests.RemoveIncompatible_Null_Throws`）を足した |
+| 3 | 完了 | `d841435` | `AbandonAsync` の成功時は `ToEndResult` を呼ばない（戻り値が bool）。`FakeProduceService` は `CallLog log = null` を受け、記録は `CallLog` に出す。`BootstrapEntry` の登録はタスク 5 |
+| 4 | 完了 | `9e0dfd9` | `ISceneNavigator` は using の別名（HomeEntry と同じ）。`FormationPresenter` のボタンは private `RunAsync` にまとめた。`HandleStep_SucceededAndRecovered_ShowCurrent` を 2 本に分けた。境界のテストを少し足した。引数名は省略しない形（`formationView` など） |
+| 5 | 完了 | `2a19d02` | `ProduceEntryTests` の `Start_NoSession_GoesHome`・`Start_Finished_GoesHome` は `LogAssert.Expect` で警告の文言を期待する形。`HomePresenterTests` の `SetResumeVisible` は既存の `SetResume` の記録形式に合わせた。`Create Scenes` で変わった Bootstrap・Title・Home のシーンは戻した |
+| 6 | 一部 | `58454be` | 1（Editor の Play）は手順どおりに確かめた（ボタンは `unity command eval` の `onClick.Invoke()`）。Play の終了時に UnityScreenNavigator の `PageContainer.OnDestroy` から Addressables の「invalid operation handle」が 1 件出る（編成を開かずホームで止めても出るので、この計画の変更由来ではないとみる。推測）。**2（Windows の IL2CPP）は未確認**（Editor を閉じたビルドと exe の手操作が要る）。そのため 4（produce-server.md の未確認の直し）はしていない。3・5 は済み |
+| レビュー | 完了 | `7957263` | client 1 回目: Important 2（screen-design 8章の古い記述・`ProduceEntry` の例外の経路のテスト）と M1 (a)・M5 を直した。server・shared は指摘なし（server の Minor 1: Blob・SQL に旧い名前を残す理由のコメント。未対応）。**残した Minor**: M1 (b) 再サインインの後、古い `ProduceSessionState` がサインインの値より優先される（week・lesson の計画で扱う。2026-11-17。ユーザーの判断。[索引](2026-11-07-client-screens-index.md)の申し送り）、M2 `ProduceMapperTests` の `ToEndResult` の詰め替えの確認が 4 項目だけ、M3 所持に無い uid が枠に残ると開始の要求に載る（今の画面の流れでは起きない）、M4 `HomePresenter` の `OpenProduceAsync` の例外と再開の `Failed` のテストが無い |
+| レビュー 2 回目 | 完了 | （この行のコミット） | client: 指摘は直っていた。Minor 2（api-design.md 1.3 の表に成功時の扱い、計画 3.3 に `session.Clear()` の注記）も直した |

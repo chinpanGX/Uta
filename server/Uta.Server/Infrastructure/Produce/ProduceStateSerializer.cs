@@ -104,7 +104,7 @@ public static class ProduceStateSerializer
 
     private static ProduceResultSnapshotBlob ToBlob(ProduceResultSnapshot x) => new()
     {
-        Outcome = (int)x.Outcome,
+        Outcome = (int)x.ResultKind,
         EvaluationValue = x.EvaluationValue,
         Rank = (int)x.Rank,
         FinalScore = x.FinalScore,
@@ -113,7 +113,7 @@ public static class ProduceStateSerializer
 
     private static ProduceResultSnapshot FromBlob(ProduceResultSnapshotBlob x) => new()
     {
-        Outcome = (ExamOutcome)x.Outcome,
+        ResultKind = (ExamResultKind)x.Outcome,
         EvaluationValue = x.EvaluationValue,
         Rank = (ProduceRank)x.Rank,
         FinalScore = x.FinalScore,

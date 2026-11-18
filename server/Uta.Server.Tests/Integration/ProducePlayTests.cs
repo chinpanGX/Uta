@@ -74,7 +74,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         Assert.NotNull(result);
         Assert.Equal(ProduceEnding.Completed, result.Ending);
         Assert.InRange((int)result.Rank, (int)ProduceRank.F, (int)ProduceRank.SSPlus);
-        Assert.True(result.ExamOutcome is ExamOutcome.FinalPassed or ExamOutcome.FinalFailed);
+        Assert.True(result.ExamResultKind is ExamResultKind.FinalPassed or ExamResultKind.FinalFailed);
         Assert.Null(final.ExamResult);
         Assert.Equal(ExamKind.Final, driver.ExamResults[^1].Kind);
 
@@ -231,7 +231,7 @@ public class ProducePlayTests(PostgresFixture postgres)
         var final = await new ProduceDriver(player, skipOnly: true).PlayToEndAsync(started);
 
         var result = final.Result;
-        Assert.Equal(ExamOutcome.MidFailed, result.ExamOutcome);
+        Assert.Equal(ExamResultKind.MidFailed, result.ExamResultKind);
         Assert.Equal(0, result.FinalScore);
         Assert.Equal(0, result.FinalRank);
         var reward = MasterReward(result.Rank);

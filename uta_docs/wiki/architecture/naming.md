@@ -155,15 +155,13 @@ C# の型の名前を、役割ごとに決める。書式（大文字・小文�
 
 | 今 | 新 | 根拠 |
 |---|---|---|
-| Shared.Domain の `ExamOutcome` | `ExamResultKind` | 2章 |
-| プロパティ名の `Outcome`・`ExamOutcome`（Shared.Domain の `ProduceResult.Outcome`、Contracts の `ProduceResultResponse.ExamOutcome` など） | `ResultKind`・`ExamResultKind` | 1章。MessagePack はキーの番号で読み書きするので通信に影響しない。DB の列名（`exam_outcome`）は変えない。サーバーの `ProduceEndResult.ExamOutcome`・`ProduceResultRecord.ExamOutcome` は、Shared.Domain の `ExamOutcome` の改名と同じ計画で直す |
 | 計画にある `CardSummaryBuilder`（Application）と `CardSummary`（型） | 作らない。行の `SkillCardRowDtoFactory` がマスタを直接読んで Dto を作り、`DisplayText.Card`・`DisplayText.Costs`・`LessonCardText` は Dto を受ける形にする | 6章、ADR 0020 |
 | 計画にある `ProduceOutcome`・`ProduceEndingKind` | `ProduceEndResult`・`ProduceEndKind`（Contracts の `ProduceEnding` と同じ名前にしない） | 1章・2章 |
 | 計画にある Contracts の enum のクライアントの写し（`LessonActionType`・`CardOfferAction`・`MasterItemKind`） | 作らない（`IProduceUseCase` のメソッドを操作ごとに分ける。`MasterItemKind` はマスタの `ItemKind`） | 1章 |
 | 計画にある `ProduceProgress`・`ProduceSession` | `ProduceStateResult`・`ProduceSessionState` | 1章（Shared.Domain の `ProduceSnapshot` と同名にしない）・2章 |
 | 計画にある操作の結果の enum `<名詞>Status`（`ProduceStartStatus` など。gacha の `DrawStatus` は `DrawResultKind`、owned の `SupportStatus` は `SupportResultKind` にした） | `<操作>ResultKind` | 2章（`Status` は保存される進行の段階） |
 | Bootstrap の `ErrorDialogView`（診断用の IMGUI） | 置き場（Presentation に移す）か名前（`View` を外す）を、触る実装計画で決める | 1章 |
-| `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Produce/ProduceView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
+| `Presentation/Home/HomeView.cs`・`Title/TitleView.cs`・`Startup/StartupView.cs` | 使われているかを確かめて片付ける | 6章（Prefab の画面を作る前の View とみられる） |
 | 計画にある `PortResult<T>` | `UseCaseResult<T>`（要るときだけ。ready の計画では作らない見込み。gacha・owned では作らなかった）[ADR 案] | 2章、ADR 0022 |
 | 計画にある `<名詞>ViewData` | `<View 名>Dto` | 6章 |
 

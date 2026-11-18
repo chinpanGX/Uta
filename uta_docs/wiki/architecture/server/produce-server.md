@@ -63,7 +63,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 
 - `status`: 0 進行中 / 1 完了 / 2 放棄 / 3 破棄(`ProduceSessionStatus`)。`produce_results.ending` は 1〜3 で同じ値。進行中のセッションは 1 ユーザー 1 つ(部分ユニークインデックスで守る)
 - `week` / `turn`: 保存のたびに状態の `Week` と `Lesson?.Turn ?? 0` を入れる(調査用。判定には使わない)
-- `exam_outcome` / `produce_rank`: `ExamOutcome` / `ProduceRank` の数値(放棄・破棄は 0)。`final_score` / `final_rank`: 最終試験を受けていなければ 0
+- `exam_outcome` / `produce_rank`: `ExamResultKind` / `ProduceRank` の数値(放棄・破棄は 0)。`final_score` / `final_rank`: 最終試験を受けていなければ 0
 - 楽観ロック: `UPDATE produce_sessions SET ..., version = version + 1, updated_at = now() WHERE session_id = @id AND version = @version`。0 行なら `PRODUCE_STALE_OPERATION`
 - **バージョンの定数**(`Uta.Server.Application.Produce.ProduceVersions`): `StateVersion = 1`(`state` の形を変えたら上げる)、`RuleVersion = 2`(2026-11-09 に 1 から上げた。4.1。[repository-layout.md](../repository-layout.md) 10.5。`Uta.Shared.Domain`・マスタ・サーバーのルールを変えたコミットで上げる)。セッションの 3 つのバージョン(`app_version`・`state_version`・`rule_version`)のどれかが今と違えば「古い」セッション。`state_version` が違うときは `state` を読まない。`state_version` が同じでも `state` が読めない(MessagePack の例外)ときは、`Data = null` にして古いセッションと同じに扱う(`SignInAsync` が起動できなくなるのを防ぐ)
 - **`state` の形**(`Uta.Server.Infrastructure.Produce` の `[MessagePackObject]` の型。整数キーは 0 から宣言順):
@@ -78,7 +78,7 @@ CREATE INDEX ix_produce_results_player ON produce_results (player_id, created_at
 1. 報酬: `EvaluationRankReward`(マスタ。`ProduceRank` で引く。`ProduceCompletion` が `MemoryDatabase` の `EvaluationRankRewardTable.FindByRank` で引く)の行。ランクは `ProduceState.Result.Rank`
 2. プレイヤー経験値: `PlayerExpRules.AddExp(totalExp, gain, maxExp)`(4.1)。`totalExp` は `players.exp`(経験値の累計)、`maxExp` は `PlayerLevelCatalog.MaxExp`
 3. `players` の更新: `gacha_currency`・`gold`・`support_points` に報酬を加え、`exp` を 2 の結果にする(1 文の `UPDATE`)
-4. `produce_results` に 1 行(終わり方は完了、`exam_outcome` は `ProduceState.Result.Outcome`)
+4. `produce_results` に 1 行(終わり方は完了、`exam_outcome` は `ProduceState.Result.ResultKind`)
 5. `produce_sessions` の `status` を完了にする(状態も最後のものを保存する)
 6. ゲームログ 1 件: kind `produce`、reason `produce_reward`、`Target` はセッション ID、フィールドは `rank`・`evaluation_value`・`gacha_currency`・`gold`・`support_points`・`exp`(付与した量)と `level_after`(2 の結果から `PlayerLevelCatalog.GetLevel` で求めた Lv)・`exp_after`(2 の結果の累計)
 
@@ -187,7 +187,7 @@ Response:
 | `ParamBonusDto` | `Percent`、`RemainingTurns` |
 | `PersistentDto` | `Trigger`(`PersistentTrigger`)、`RemainingTurns`、`RemainingCount`(無制限は -1) |
 | `ExamResultDto` | `Kind`(`ExamKind`)、`Attempt`、`Score`、`Rank`、`NpcScores`(`int[]`)、`Passed`(`bool`) |
-| `ProduceResultResponse` | `Ending`(`ProduceEnding`)、`ExamOutcome`、`EvaluationValue`、`Rank`(`ProduceRank`)、`FinalScore`、`FinalRank`、`GachaCurrency`、`Gold`、`SupportPoints`、`Exp`(以上は付与した量・結果)、`PlayerExp`(付与したあとのプレイヤーの経験値の累計。2026-11-09 に `PlayerLevel` を消した。4.1) |
+| `ProduceResultResponse` | `Ending`(`ProduceEnding`)、`ExamResultKind`、`EvaluationValue`、`Rank`(`ProduceRank`)、`FinalScore`、`FinalRank`、`GachaCurrency`、`Gold`、`SupportPoints`、`Exp`(以上は付与した量・結果)、`PlayerExp`(付与したあとのプレイヤーの経験値の累計。2026-11-09 に `PlayerLevel` を消した。4.1) |
 
 - `Phase` が `Nothing` のレスポンスは、数値は 0、配列は空、オブジェクトは `null`
 - エラーは `Uta.Shared.Contracts.Produce.ProduceErrors`(`static readonly ErrorCode`。domain `uta`、reason は [api-design.md](../api-design.md) 2章の `PRODUCE_` 7 つ)

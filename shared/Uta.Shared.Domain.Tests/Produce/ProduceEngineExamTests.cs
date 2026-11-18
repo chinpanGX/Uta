@@ -179,7 +179,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             Accept(engine, state, streams, ProduceCommand.ExamNoRetry());
 
             Assert.Equal(ProducePhase.Finished, state.Phase);
-            Assert.Equal(ExamOutcome.FinalFailed, state.Result.Outcome);
+            Assert.Equal(ExamResultKind.FinalFailed, state.Result.ResultKind);
             Assert.Equal(6, state.Result.FinalRank);
             Assert.Equal(0, state.Result.FinalScore);
             Assert.Equal(138, state.Result.EvaluationValue);
@@ -205,7 +205,7 @@ namespace Uta.Shared.Domain.Tests.Produce
 
             Assert.Equal(0, state.ExamRetryLeft);
             Assert.Equal(ProducePhase.Finished, state.Phase);
-            Assert.Equal(ExamOutcome.FinalFailed, state.Result.Outcome);
+            Assert.Equal(ExamResultKind.FinalFailed, state.Result.ResultKind);
             Assert.Equal(3, state.LastExam.Attempt);
             Assert.Equal(0, state.Attempt);
         }
@@ -226,7 +226,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             Accept(engine, state, streams, ProduceCommand.ExamNoRetry());
 
             Assert.Equal(ProducePhase.Finished, state.Phase);
-            Assert.Equal(ExamOutcome.FinalPassed, state.Result.Outcome);
+            Assert.Equal(ExamResultKind.FinalPassed, state.Result.ResultKind);
             Assert.Equal(60, state.GetParam(ParamKind.Singing));
             Assert.Equal(50, state.GetParam(ParamKind.Rhythm));
             Assert.Equal(40, state.GetParam(ParamKind.Expression));
@@ -245,7 +245,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             SkipExam(engine, state, streams);
 
             Assert.Equal(ProducePhase.Finished, state.Phase);
-            Assert.Equal(ExamOutcome.FinalPassed, state.Result.Outcome);
+            Assert.Equal(ExamResultKind.FinalPassed, state.Result.ResultKind);
         }
 
         [Fact]
@@ -321,7 +321,7 @@ namespace Uta.Shared.Domain.Tests.Produce
             Accept(engine, state, streams, ProduceCommand.ExamNoRetry());
 
             Assert.Equal(ProducePhase.Finished, state.Phase);
-            Assert.Equal(ExamOutcome.MidFailed, state.Result.Outcome);
+            Assert.Equal(ExamResultKind.MidFailed, state.Result.ResultKind);
             Assert.Equal(0, state.Result.FinalRank);
             Assert.Equal(0, state.Result.FinalScore);
             var sum = state.GetParam(ParamKind.Singing) + state.GetParam(ParamKind.Rhythm) + state.GetParam(ParamKind.Expression);

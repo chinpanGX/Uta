@@ -21,7 +21,7 @@ public sealed class ProduceCompletion(
         var exp = PlayerExpRules.AddExp(player.Exp, reward.Exp, levelCatalog.MaxExp);
         await players.GrantProduceRewardAsync(tx, playerId, reward, exp);
         await sessions.InsertResultAsync(tx, new ProduceResultRecord(
-            sessionId, playerId, ProduceSessionStatus.Completed, result.Outcome, result.EvaluationValue, result.Rank,
+            sessionId, playerId, ProduceSessionStatus.Completed, result.ResultKind, result.EvaluationValue, result.Rank,
             result.FinalScore, result.FinalRank, reward.GachaCurrency, reward.Gold, reward.SupportPoints, reward.Exp));
         tx.WriteGameLog(GameLog.Event("produce", "produce_reward")
             .Target(sessionId.ToString())
@@ -34,7 +34,7 @@ public sealed class ProduceCompletion(
             .Field("level_after", levelCatalog.GetLevel(exp))
             .Field("exp_after", exp));
         return new ProduceEndResult(
-            ProduceSessionStatus.Completed, result.Outcome, result.EvaluationValue, result.Rank, result.FinalScore, result.FinalRank,
+            ProduceSessionStatus.Completed, result.ResultKind, result.EvaluationValue, result.Rank, result.FinalScore, result.FinalRank,
             reward.GachaCurrency, reward.Gold, reward.SupportPoints, reward.Exp, exp);
     }
 }

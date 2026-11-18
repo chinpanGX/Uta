@@ -103,7 +103,7 @@ namespace Uta.Shared.Domain.Tests.Produce
 
             AssertSameState(state, replayed);
             Assert.Equal(ProducePhase.Finished, replayed.Phase);
-            Assert.Equal(ExamOutcome.FinalFailed, replayed.Result.Outcome);
+            Assert.Equal(ExamResultKind.FinalFailed, replayed.Result.ResultKind);
         }
 
         [Fact]

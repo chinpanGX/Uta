@@ -70,7 +70,7 @@ namespace Uta.Shared.Domain.Produce
             else
             {
                 var result = state.Result;
-                lines.Add("result=" + Text((int)result.Outcome) + "," + Text(result.EvaluationValue) + "," + Text((int)result.Rank)
+                lines.Add("result=" + Text((int)result.ResultKind) + "," + Text(result.EvaluationValue) + "," + Text((int)result.Rank)
                     + "," + Text(result.FinalScore) + "," + Text(result.FinalRank));
             }
 

@@ -98,7 +98,7 @@ public sealed class ProduceSessionRepository : IProduceSessionRepository
                 sessionId = result.SessionId.ToString(),
                 playerId = result.PlayerId.ToString(),
                 ending = (int)result.Ending,
-                examOutcome = (int)result.ExamOutcome,
+                examOutcome = (int)result.ExamResultKind,
                 evaluationValue = result.EvaluationValue,
                 produceRank = (int)result.Rank,
                 finalScore = result.FinalScore,

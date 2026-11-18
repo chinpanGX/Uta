@@ -130,7 +130,7 @@
     }
 
     /// <summary>育成の結果の種類（produce_results の「試験の結果」）。</summary>
-    public enum ExamOutcome
+    public enum ExamResultKind
     {
         Nothing = 0,
         MidFailed = 1,

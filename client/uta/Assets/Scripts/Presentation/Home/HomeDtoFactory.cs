@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Uta.Client.Application.Idol;
 using Uta.Client.Application.Player;
+using Uta.Client.Application.Produce;
 using Uta.Client.Domain.Player;
 using Uta.MasterData;
 using Uta.Shared.Domain.Player;
@@ -15,14 +16,16 @@ namespace Uta.Client.Presentation.Home
         private readonly DiscardNoticeState discardNoticeState;   // 読むだけ
         private readonly MemoryDatabase memoryDatabase;
         private readonly PlayerLevelCatalog playerLevelCatalog;
+        private readonly ProduceSessionState produceSessionState;   // 読むだけ
 
-        public HomeDtoFactory(IReadOnlyPlayerRepository playerRepository, FeaturedIdolPicker featuredIdolPicker, DiscardNoticeState discardNoticeState, MemoryDatabase memoryDatabase, PlayerLevelCatalog playerLevelCatalog)
+        public HomeDtoFactory(IReadOnlyPlayerRepository playerRepository, FeaturedIdolPicker featuredIdolPicker, DiscardNoticeState discardNoticeState, MemoryDatabase memoryDatabase, PlayerLevelCatalog playerLevelCatalog, ProduceSessionState produceSessionState)
         {
             this.playerRepository = playerRepository;
             this.featuredIdolPicker = featuredIdolPicker;
             this.discardNoticeState = discardNoticeState;
             this.memoryDatabase = memoryDatabase;
             this.playerLevelCatalog = playerLevelCatalog;
+            this.produceSessionState = produceSessionState;
         }
 
         /// <summary>プレイヤーがまだ無ければ null。</summary>
@@ -35,7 +38,7 @@ namespace Uta.Client.Presentation.Home
             }
 
             var profileText = "プレイヤーLv " + playerLevelCatalog.GetLevel(p.Exp) + "　ガチャ通貨 " + p.GachaCurrency.ToString("N0", CultureInfo.InvariantCulture);
-            var resumeVisible = p.HasActiveProduce;
+            var resumeVisible = produceSessionState.Current != null ? produceSessionState.HasActive : p.HasActiveProduce;
             var primaryLabel = resumeVisible ? "再開" : "プロデュース";
             var showDiscardNotice = p.DiscardedProduce && !discardNoticeState.Shown;
             var stageIdolId = featuredIdolPicker.Pick();

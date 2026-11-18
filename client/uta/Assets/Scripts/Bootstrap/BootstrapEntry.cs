@@ -8,6 +8,7 @@ using Uta.Client.Application.Idol;
 using Uta.Client.Application.Navigation;
 using Uta.Client.Application.Owned;
 using Uta.Client.Application.Player;
+using Uta.Client.Application.Produce;
 using Uta.Client.Application.Support;
 using Uta.Client.Domain.Idol;
 using Uta.Client.Domain.Player;
@@ -18,16 +19,20 @@ using Uta.Client.Infrastructure.Auth;
 using Uta.Client.Infrastructure.Gacha;
 using Uta.Client.Infrastructure.Idol;
 using Uta.Client.Infrastructure.Player;
+using Uta.Client.Infrastructure.Produce;
 using Uta.Client.Infrastructure.Support;
 using Uta.Client.Infrastructure.SupportCard;
 using Uta.Client.Presentation.Common;
+using Uta.Client.Presentation.Formation;
 using Uta.Client.Presentation.Gacha;
 using Uta.Client.Presentation.Home;
 using Uta.Client.Presentation.Owned;
+using Uta.Client.Presentation.Produce;
 using Uta.Client.Presentation.Startup;
 using Uta.MasterData;
 using Uta.Shared.Contracts.Gacha;
 using Uta.Shared.Contracts.Player;
+using Uta.Shared.Contracts.Produce;
 using Uta.Shared.Contracts.Support;
 using Uta.Shared.Domain.Lesson;
 using Uta.Shared.Domain.Player;
@@ -139,6 +144,7 @@ namespace Uta.Client.Bootstrap
         private static void RegisterUseCases(IContainerBuilder builder)
         {
             builder.Register<IPlayerService>(resolver => resolver.Resolve<ApiClient>().Player, Lifetime.Singleton);
+            builder.Register<IProduceService>(resolver => resolver.Resolve<ApiClient>().Produce, Lifetime.Singleton);
             builder.Register<IGachaService>(resolver => resolver.Resolve<ApiClient>().Gacha, Lifetime.Singleton);
             builder.Register<ISupportService>(resolver => resolver.Resolve<ApiClient>().Support, Lifetime.Singleton);
             builder.Register<PlayerRepository>(Lifetime.Singleton).As<IPlayerRepository>().As<IReadOnlyPlayerRepository>();
@@ -161,6 +167,12 @@ namespace Uta.Client.Bootstrap
             builder.Register<OwnedDtoFactory>(Lifetime.Singleton);
             builder.Register<SupportDetailDtoFactory>(Lifetime.Singleton);
             builder.Register<SupportUseCase>(Lifetime.Singleton).As<ISupportUseCase>();
+            builder.Register<ProduceSessionState>(Lifetime.Singleton);
+            builder.Register<ProduceUseCase>(Lifetime.Singleton).As<IProduceUseCase>();
+            builder.Register<ScenarioResolver>(Lifetime.Singleton);
+            builder.Register<FormationNormalizer>(Lifetime.Singleton);
+            builder.Register<FormationDtoFactory>(Lifetime.Singleton);
+            builder.Register<ProduceBackdropDtoFactory>(Lifetime.Singleton);
         }
     }
 }

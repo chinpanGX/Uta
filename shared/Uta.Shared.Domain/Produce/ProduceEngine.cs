@@ -688,7 +688,7 @@ namespace Uta.Shared.Domain.Produce
                 state.MidExam = report;
                 if (!report.Passed)
                 {
-                    FinishProduce(state, ExamOutcome.MidFailed);
+                    FinishProduce(state, ExamResultKind.MidFailed);
                     return;
                 }
 
@@ -701,11 +701,11 @@ namespace Uta.Shared.Domain.Produce
             if (report.Passed)
             {
                 AddRankReward(state, scenario, report);
-                FinishProduce(state, ExamOutcome.FinalPassed);
+                FinishProduce(state, ExamResultKind.FinalPassed);
                 return;
             }
 
-            FinishProduce(state, ExamOutcome.FinalFailed);
+            FinishProduce(state, ExamResultKind.FinalFailed);
         }
 
         private void AddRankReward(ProduceState state, ScenarioDefinition scenario, ExamReport report)
@@ -718,14 +718,14 @@ namespace Uta.Shared.Domain.Produce
             }
         }
 
-        private void FinishProduce(ProduceState state, ExamOutcome outcome)
+        private void FinishProduce(ProduceState state, ExamResultKind resultKind)
         {
-            var finalTaken = outcome != ExamOutcome.MidFailed;
+            var finalTaken = resultKind != ExamResultKind.MidFailed;
             var finalRank = finalTaken ? state.LastExam.Rank : 0;
             var finalScore = finalTaken ? state.LastExam.Score : 0;
             var paramSum = state.GetParam(ParamKind.Singing) + state.GetParam(ParamKind.Rhythm) + state.GetParam(ParamKind.Expression);
             var eval = ProduceFormulas.Evaluate(catalog, paramSum, finalRank, finalScore);
-            state.Result = new ProduceResult(outcome, eval.Value, eval.Rank, finalScore, finalRank);
+            state.Result = new ProduceResult(resultKind, eval.Value, eval.Rank, finalScore, finalRank);
             state.ExamBackup = null;
             state.Phase = ProducePhase.Finished;
         }

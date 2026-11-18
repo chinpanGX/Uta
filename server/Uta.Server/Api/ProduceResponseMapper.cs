@@ -41,7 +41,7 @@ public static class ProduceResponseMapper
     }
 
     public static ProduceResultResponse ToResultResponse(ProduceEndResult end) => new(
-        (ProduceEnding)(int)end.Ending, end.ExamOutcome, end.EvaluationValue, end.Rank, end.FinalScore, end.FinalRank,
+        (ProduceEnding)(int)end.Ending, end.ExamResultKind, end.EvaluationValue, end.Rank, end.FinalScore, end.FinalRank,
         end.GachaCurrency, end.Gold, end.SupportPoints, end.Exp, end.PlayerExp);
 
     private static LessonDto ToLessonDto(LessonState lesson, IReadOnlyList<int> npcScores, IReadOnlyList<bool> usableHand)
