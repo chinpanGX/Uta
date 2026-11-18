@@ -546,3 +546,4 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
 |---|---|---|
 | 0（手順 0） | — | EditMode の `total="481"` |
 | 1 | （このコミット） | 1 回目は結果のファイルができず、Bootstrap → Title の Play が続いた。原因は `BootstrapPlayMode` が `playModeStartScene` を Bootstrap に固定していること。ユーザーの判断で、3.7 の手順 3 で外し手順 5 で戻す形に計画を直した（2026-11-19）。直した後: Smoke `total="1" passed="1"`、約 4 秒、Editor は背面のまま進んだ（`runInBackground` は変えていない）。EditMode は 481 のまま。Play のたびに Unity が `ProjectSettings.asset` の `scriptingDefineSymbols` に `SENTIS_ANALYTICS_ENABLED` を足すので、コミットしない（`git restore`） |
+| 2 | （このコミット） | ズレなし。`references` は足していない（`CS0012` は出なかった）。Smoke `total="2" passed="2"`（`Boot_FromBootstrapScene_ReachesTitlePage` は約 0.7 秒）。`eval` が 1 回 30 秒でタイムアウトし、回し直して通った（3.7 の手順 3 の回し直しの範囲） |
