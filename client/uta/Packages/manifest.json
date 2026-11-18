@@ -22,6 +22,7 @@
     "com.unity.ugui": "7.0.0",
     "com.uta.shared.domain": "file:../../../shared/Uta.Shared.Domain",
     "com.uta.shared.contracts": "file:../../../shared/Uta.Shared.Contracts",
+    "com.uta.shared.domain.testing": "file:../../../shared/Uta.Shared.Domain.Testing",
     "jp.hadashikick.vcontainer": "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.19.0",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",
@@ -62,5 +63,8 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  }
+  },
+  "testables": [
+    "com.uta.shared.domain.testing"
+  ]
 }

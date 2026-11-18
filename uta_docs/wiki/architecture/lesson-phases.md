@@ -1,7 +1,7 @@
 ---
 title: レッスンの実装フェーズ
 status: draft
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 # レッスンの実装フェーズ
@@ -35,7 +35,7 @@ updated: 2026-11-16
 | 5 | 別の仕様(6章)を書いてから決める |
 | 6 | 試験(7章) |
 
-**テストのカードの置き場** [決定。2026-10-31。置き場を `shared/Uta.Shared.Domain.Testing/Lesson/` へ移すと 2026-11-16 に決めた（まだ移していない。[計画](../../plans/2026-11-11-android-smoke.md)で移す。名前空間は `Uta.Shared.Domain.Tests.Lesson` のまま。[build-ci.md](build-ci.md) 5.2）]: テストのカード定義は `shared/Uta.Shared.Domain.Tests/Lesson/` に、フェーズごとに `Phase<N>Cards` を足す。カードを組み立てる補助(今の `Phase1Cards` の `private` な補助メソッド)は、共通の静的クラス `TestCards` に移し、開始時手札(`startInHand`)も渡せるようにする。全フェーズのカードをまとめて返す `ICardCatalog` の実装 `TestCardCatalog` を 1 つ作り、テストはそれを使う。カード ID は [lesson-card.md](../systems/lesson-card.md) 14章の番号から機械的に振る: マスタの `CardId`(`masterdata/csv/card.csv`)と同じ値にする [決定。2026-11-01。ユーザーの判断。それまでは L = 10 + 番号、S = 30 + 番号]: F は番号そのまま(F01 = 1)、S は 100 + 番号(S01 = 101)、L は 200 + 番号(L01 = 201)。テストだけで使う合成カードは 900 以上。(採番の規則としては定めない。[lesson-card.md](../systems/lesson-card.md) 3.2)。マスタができたら、テストのカードとマスタの値が一致することを確かめるテストを 1 本置く。テストとマスタの二重の定義は暫定。一致テストは 2026-11-01 に `server/Uta.Server.Tests/MasterData/TestCardsMatchMasterTests.cs` に置いた（`UnlockLv` は比べない）。二重の定義をなくすかは未決。`TestCards`・`TestCardCatalog` のシグネチャは [2026-11-01-shared-lesson-phases.md](../../plans/2026-11-01-shared-lesson-phases.md) 3.1 で決め、実装した。テストの ID は 2026-11-01 にマスタの値に合わせた(一致テストは別の計画で作る)
+**テストのカードの置き場** [決定。2026-10-31。置き場を `shared/Uta.Shared.Domain.Testing/Lesson/` へ移すと 2026-11-16 に決めた（名前空間は `Uta.Shared.Domain.Tests.Lesson` のまま。[build-ci.md](build-ci.md) 5.2）]: テストのカード定義は `shared/Uta.Shared.Domain.Tests/Lesson/` に、フェーズごとに `Phase<N>Cards` を足す。カードを組み立てる補助(今の `Phase1Cards` の `private` な補助メソッド)は、共通の静的クラス `TestCards` に移し、開始時手札(`startInHand`)も渡せるようにする。全フェーズのカードをまとめて返す `ICardCatalog` の実装 `TestCardCatalog` を 1 つ作り、テストはそれを使う。カード ID は [lesson-card.md](../systems/lesson-card.md) 14章の番号から機械的に振る: マスタの `CardId`(`masterdata/csv/card.csv`)と同じ値にする [決定。2026-11-01。ユーザーの判断。それまでは L = 10 + 番号、S = 30 + 番号]: F は番号そのまま(F01 = 1)、S は 100 + 番号(S01 = 101)、L は 200 + 番号(L01 = 201)。テストだけで使う合成カードは 900 以上。(採番の規則としては定めない。[lesson-card.md](../systems/lesson-card.md) 3.2)。マスタができたら、テストのカードとマスタの値が一致することを確かめるテストを 1 本置く。テストとマスタの二重の定義は暫定。一致テストは 2026-11-01 に `server/Uta.Server.Tests/MasterData/TestCardsMatchMasterTests.cs` に置いた（`UnlockLv` は比べない）。二重の定義をなくすかは未決。`TestCards`・`TestCardCatalog` のシグネチャは [2026-11-01-shared-lesson-phases.md](../../plans/2026-11-01-shared-lesson-phases.md) 3.1 で決め、実装した。テストの ID は 2026-11-01 にマスタの値に合わせた(一致テストは別の計画で作る)
 
 **カードのない op の確かめ方** [決定。2026-10-31]: 初期カードセットで使われない op・コスト(`AddFixedShield`・`RecoverHp`・`SetShield`、消費体力増加の付与、好調・絶好調・集中のコストなど)は、テストだけの合成カード(ID 900 以上)で op ごとに単体テストする。F08(不調カード)と `CreateCard` はどのフェーズにも入れない(後回し)。
 
@@ -100,6 +100,6 @@ updated: 2026-11-16
 
 - そのフェーズの全カードについて、[lesson-card.md](../systems/lesson-card.md) 9章の式から出した期待値のユニットテストが通る。期待値は、初期状態 → 操作 → 期待値の具体例を実装計画に 3〜5 個書き、計算の途中も計画に書く(実装と同じ丸め方を実装担当が選ばないようにする)
 - 同じシードと操作列で、再生した状態が一致する(`Uta.Shared.Domain` の単体テスト。比べ方は [produce-domain.md](produce-domain.md) 7章: 値を項目ごとに比べる。比べる関数は `Uta.Shared.Domain` の `LessonStateComparer` に置き、.NET のテストと IL2CPP の確認で同じものを使う。`LessonEngineTests` の `Summarize` はそれに置き換えた(2026-10-31 に「テストの共通クラス」から直した)。含める項目は `LessonState` の全部(`NextGrantOrder` などの内部の値を含む))
-- IL2CPP との一致は、実機ビルドのときに 1 回確かめる: 固定のシードと操作列で再生した状態を .NET 側で求めてテストに埋め込み、**IL2CPP でビルドした実行物**(Android の実機。または Windows の IL2CPP スタンドアロン)で同じ再生を走らせて比べる。Unity Editor は Mono で動くので、IL2CPP の確認にならない。比べ方は [produce-domain.md](produce-domain.md) 7章(項目ごと。ハッシュは作らない)。入口は Unity Test Runner の実機実行。テストの置き場は `client/uta/Assets/Tests/SharedDomainReplay/`(asmdef `Uta.Client.Tests.SharedDomainReplay`。参照は `Uta.Shared.Domain` と Unity Test Framework だけ。**`Uta.Shared.Domain.Testing` を足す**(2026-11-16 に決定。まだ足していない。[計画](../../plans/2026-11-11-android-smoke.md)で足す): テストのカード・再生のシナリオ・期待値を .NET のテストと共有するため。[build-ci.md](build-ci.md) 5.2)。期待値は .NET の単体テストで出した値を定数で書く(置き場は `Uta.Shared.Domain.Testing` の `LessonReplayExpected`)。CI では回さない(ADR 0008) [決定。2026-11-01。ユーザーの判断]。本番のクライアントはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。この確認は実機ビルドの手順に入れる([game-spec.md](../overview/game-spec.md) 完了条件 7)
+- IL2CPP との一致は、実機ビルドのときに 1 回確かめる: 固定のシードと操作列で再生した状態を .NET 側で求めてテストに埋め込み、**IL2CPP でビルドした実行物**(Android の実機。または Windows の IL2CPP スタンドアロン)で同じ再生を走らせて比べる。Unity Editor は Mono で動くので、IL2CPP の確認にならない。比べ方は [produce-domain.md](produce-domain.md) 7章(項目ごと。ハッシュは作らない)。入口は Unity Test Runner の実機実行。Windows の IL2CPP のプレイヤーで一致を確かめた（2026-11-17。[unity7-evaluation.md](unity7-evaluation.md) 2章）。Android の実機は、サーバーのクラウド化の後に回す（[build-ci.md](build-ci.md) 4章）。テストの置き場は `client/uta/Assets/Tests/SharedDomainReplay/`(asmdef `Uta.Client.Tests.SharedDomainReplay`。参照は `Uta.Shared.Domain` と Unity Test Framework だけ。**`Uta.Shared.Domain.Testing` を足す**(2026-11-16 に決定): テストのカード・再生のシナリオ・期待値を .NET のテストと共有するため。[build-ci.md](build-ci.md) 5.2)。期待値は .NET の単体テストで出した値を定数で書く(置き場は `Uta.Shared.Domain.Testing` の `LessonReplayExpected`)。CI では回さない(ADR 0008) [決定。2026-11-01。ユーザーの判断]。本番のクライアントはシードを持たない([ADR 0008](../decisions/0008-shared-domain-and-onion.md))。この確認は実機ビルドの手順に入れる([game-spec.md](../overview/game-spec.md) 完了条件 7)
 
 ---

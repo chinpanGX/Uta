@@ -1,0 +1,22 @@
+{
+    "name": "Uta.Client.Tests.SharedDomainReplay",
+    "rootNamespace": "Uta.Client.Tests.SharedDomainReplay",
+    "references": [
+        "UnityEngine.TestRunner",
+        "Uta.Shared.Domain",
+        "Uta.Shared.Domain.Testing"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

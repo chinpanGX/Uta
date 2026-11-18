@@ -1,0 +1,7 @@
+{
+  "name": "com.uta.shared.domain.testing",
+  "version": "0.1.0",
+  "displayName": "Uta Shared Domain Testing",
+  "description": "Uta の Shared.Domain のテストのカードと、IL2CPP の計算の一致を確かめる再生のシナリオ・期待値。テストを含むビルドでだけ使う。",
+  "unity": "7000.0"
+}

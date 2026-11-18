@@ -1,7 +1,7 @@
 ---
 title: 実装計画: Android の実機のスモークと IL2CPP の計算の一致（MVP の完了条件 7）
-status: ready
-updated: 2026-11-16
+status: done
+updated: 2026-11-17
 spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/architecture/lesson-phases.md, ../wiki/architecture/produce-domain.md
 ---
 
@@ -25,6 +25,7 @@ spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/a
 12. **再生のシナリオは今の `LessonReplayTests` と同じ手順・値にする**（[lesson-phases.md](../wiki/architecture/lesson-phases.md) 8章の決定の「固定のシードと操作列」）。カードごとの計算は .NET の単体テストが受け持ち、実機の確認は、整数の演算・乱数・並べ替え・文字列の書式が IL2CPP で同じになるかを見る。どれだけのカードと局面を通ったかは、タスク 1 で期待値の `turn=`・`paramGained=`・`discard=`・`exiled=` の行を実装メモに写して残す（厚みが足りないと判断したら、シナリオを足すのは別の変更）
 13. Editor の PlayMode ではこのテストを回さない。`BootstrapPlayMode`（`Assets/Scripts/Editor/BootstrapPlayMode.cs`）が Play を Bootstrap シーンから始めるので、テストの Play にサーバーへの接続が混ざるため。Editor（Mono）で回しても IL2CPP の確認にならない（lesson-phases.md 8章）。Unity ではコンパイルだけを確かめ、実行はプレイヤー（タスク 3・5）で行う
 14. `file:` のパッケージの asmdef の `UNITY_INCLUDE_TESTS` の制約が効くように、`manifest.json` の `testables` に `com.uta.shared.domain.testing` を入れる（3.5）。入れても `Uta.Shared.Domain.Testing` がコンパイルされなければ、タスク 2 の止まる条件
+15. **Android の実機で行う手順（タスク 4・5）は、サーバーのクラウド化（dev 環境へのデプロイ。[repository-layout.md](../wiki/architecture/repository-layout.md) 11章）の後に回し、この計画では行わない**（2026-11-17。ユーザーの判断。タスク 3 が通った後、手元に Android の端末が無いと分かったとき）。決めたこと 8（`adb reverse`）も、実機をクラウドのサーバーにつなぐ方式に置き換える（つなぎ方はクラウド化の後の計画で決める）。この計画で完了条件 7 のうち確かめたのは、Windows の IL2CPP のプレイヤーでの計算の一致（タスク 3）まで。[build-ci.md](../wiki/architecture/build-ci.md) 5.3 の代え方のうち、スモークを Windows の `Uta.exe` で代える手順（4.4 の 2）は行わない（Windows のクライアントの通しは完了条件 6 が受け持つ）。`BuildAndroidIl2Cpp`（3.1）と `ProjectSettings.asset` の Android のパッケージ名（3.2）は入れたまま残し、APK のビルドは後の計画で初めて回す
 
 ## ユーザーの確認が要ること
 
@@ -38,6 +39,7 @@ spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/a
 - 実装の worktree は、Library のある固定の worktree（`tools/worktree-pool.sh start`）で、Editor を開いておく。以下「実装の worktree」と書く
 - **決めないこと（範囲外）**:
   - iOS の実機ビルド、CI、dev 環境（Cloud Run）への接続（[build-ci.md](../wiki/architecture/build-ci.md) 6章）
+  - Android の APK のビルド・実機のスモーク・実機の Test Runner（タスク 4・5）。サーバーのクラウド化の後に回す（決めたこと 15）
   - プロデュースの再生の IL2CPP の一致（決めたこと 11）
   - Managed Stripping の段階を変えること・`link.xml`。今の既定のまま。実機で型が落ちたら止まる条件（タスク 4）
   - 署名用のキーストア、ストア向けの AAB
@@ -66,7 +68,7 @@ spec: ../wiki/overview/game-spec.md, ../wiki/architecture/build-ci.md, ../wiki/a
 | 作成 | `Assets/Tests/SharedDomainReplay/Uta.Client.Tests.SharedDomainReplay.asmdef` | 3.5 | 2 |
 | 作成 | `Assets/Tests/SharedDomainReplay/LessonReplayDeviceTests.cs` | 3.5 | 2 |
 | 作成（Unity が作る） | `Assets/Tests/SharedDomainReplay.meta` と、フォルダの中の `.meta` | コミットする | 2 |
-| 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md`・`build-ci.md`・`repository-layout.md`（2章・7章・8章・10.4）・`lesson-phases.md`（1章・8章）、`uta_docs/wiki/overview/game-spec.md`、`CLAUDE.md`（ビルド・テスト・実行、リポジトリ構成） | 結果とコマンドの記録、「まだ無い」の印を消す（タスク 6） | 6 |
+| 変更 | `uta_docs/wiki/architecture/unity7-evaluation.md`・`build-ci.md`・`repository-layout.md`（2章・7章・10.4・11.1）・`lesson-phases.md`（1章・8章）、`uta_docs/wiki/overview/game-spec.md`、`CLAUDE.md`（ビルド・テスト・実行、リポジトリ構成） | 結果とコマンドの記録、「まだ無い」の印を消す、Android をクラウド化の後に回したこと（タスク 6） | 6 |
 
 `ProjectSettings.asset` は Editor が書く（3.2）。手で書かない。
 
@@ -492,6 +494,8 @@ namespace Uta.Client.Tests.SharedDomainReplay
 
 ### タスク 4: Android のビルドとスモーク（スパイク）
 
+**この計画では行わない**（決めたこと 15）。下の本文は、クラウド化の後の計画の下書きとして残す。手順 5・6 のローカルのサーバーと `adb reverse` は、クラウドのサーバーへの接続に置き換わる。
+
 触るファイル: なし（実行だけ）。タスク 3 の後（決めたこと 1）。手順 1・5〜8 はメインのセッションが行い、手順 2〜4 は実装担当に渡してよい（決めたこと 3）。
 
 手順:
@@ -520,6 +524,8 @@ namespace Uta.Client.Tests.SharedDomainReplay
 
 ### タスク 5: Android の実機で Test Runner を回す
 
+**この計画では行わない**（決めたこと 15）。
+
 触るファイル: なし（実行だけ）。タスク 3・4 の後。メインのセッションが行う（手順 1 でユーザーに頼むため。決めたこと 3）。
 
 手順:
@@ -541,16 +547,38 @@ namespace Uta.Client.Tests.SharedDomainReplay
 
 ### タスク 6: 結果を wiki と CLAUDE.md に記録する
 
-触るファイル: 2章のタスク 6 の行。
+触るファイル: 2章のタスク 6 の行（`repository-layout.md` は 2章・7章・10.4・11.1。8章の表は Android を確かめていないので変えない）。タスク 4・5 は行わない（決めたこと 15）ので、記録するのはタスク 1〜3 の結果と、Android をクラウド化の後に回したこと。日付は 2026-11-17。
 
 手順:
 
-1. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章の表に、行を足す: 「Test Runner の Windows の IL2CPP のプレイヤー実行（`SharedDomainReplay`）」（タスク 3）、「Android の IL2CPP のビルドとスモーク」（タスク 4。端末の機種・版）、「Android の Test Runner の実機実行と IL2CPP の計算の一致」（タスク 5）。列は今の表と同じ（項目・結果・方法・日付）。止まる条件に当たったものは、3章に「3.4 <項目>」の節を足し、症状・ログの該当行・止めたことを書く。3.3 の「**Android / iOS** の実機ビルド」の行は、Android を確かめた（または Windows に代えた）ことと日付を書き足す
-2. [repository-layout.md](../wiki/architecture/repository-layout.md) 8章の表の、「未確認: Android」または「Android・iOS は未確認」と書いた行（`file:` 取り込み、MasterMemoryAddons のバイナリ、MasterMemory・MessagePack・MagicOnion の版、UnityScreenNavigator・VContainer・UniTask）の「確かめ方」の列の末尾に、次の文字列（リンクは repository-layout.md からの相対）: `**2026-MM-DD に Android（<機種>・Android <版>）の IL2CPP で確かめた**（unity7-evaluation.md へのリンク）`を足す。7章の「これから作るもの」の Android の実機ビルドの括弧に`Android は build-ci.md へのリンク の手順で手で回す`を足す
-3. [build-ci.md](../wiki/architecture/build-ci.md): 3章の「確かめていないもの」の箇条を、「確かめたもの（日付。結果は unity7-evaluation.md）」に書き換える。2章・3章・5章のコマンドや手順が実装とずれていたら（引数・パス・待ち時間）、実装で使ったものに直す
-4. CLAUDE.md「ビルド・テスト・実行」の Windows の IL2CPP の項目の次に、2 項目を足す: Android の IL2CPP の APK（タスク 4 の手順 4 のコマンド。置き場は `C:/Work/Uta-wt/build-android`）、Test Runner のプレイヤー実行（タスク 3・5 の手順のコマンド）。どちらも詳細は [build-ci.md](../wiki/architecture/build-ci.md) へリンクする
-5. この計画を書いたときに wiki に付けた「まだ無い・まだ移していない」の印を消す（実装で作ったので）: [build-ci.md](../wiki/architecture/build-ci.md) の冒頭の「このページの状態（2026-11-16）」の段落（2章の `Standalone: 1` の「いまは `Android: 1` だけ」と、3章の「今はテンプレートの値」も）、[repository-layout.md](../wiki/architecture/repository-layout.md) の 2章の `Uta.Shared.Domain.Testing/` の行の「まだ無い。計画で作る」、7章の「Android は計画で作る」、10.4 の「まだ移していない。計画で移す」、[lesson-phases.md](../wiki/architecture/lesson-phases.md) の 1章の「まだ移していない。計画で移す」と 8章の「まだ足していない。計画で足す」。CLAUDE.md の「リポジトリ構成」の `shared/` の行に `Uta.Shared.Domain.Testing`（テストのカード・IL2CPP の一致の期待値）を足す
-6. [game-spec.md](../wiki/overview/game-spec.md) の「実装計画の単位と順」の 8 の行の先頭に `**done**（日付）` を足し、この計画を `status: done` にする
+1. [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md):
+   - 2章の表の末尾に 1 行足す。項目「Test Runner の Windows の IL2CPP のプレイヤー実行と、IL2CPP の計算の一致（`SharedDomainReplay`。完了条件 7 の一致の部分）」、結果「通った。`total="3" passed="3" failed="0"`、`Player_IsIl2CppPlayer` の `platform=WindowsPlayer`。レッスンの再生（通常・中間試験）の状態が .NET の期待値（`LessonReplayExpected`）と項目ごとに一致した。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）と UnityLinker が `OutOfMemoryException` で落ちた（16 GB の PC で、Editor 2 つとバッチのビルドが重なった。空きを約 4.7 GB にして通った）」、方法「`build-foundation` でバッチモードの `-runTests -testPlatform StandaloneWindows64`（[build-ci.md](../wiki/architecture/build-ci.md) 5.2）」、日付「2026-11-17」
+   - 3.3 の「**Android / iOS** の実機ビルド」の行の末尾に「（Android は、サーバーのクラウド化の後に回した。2026-11-17。ユーザーの判断。[build-ci.md](../wiki/architecture/build-ci.md) 4章）」を足す
+   - 4章の箇条に 1 つ足す: 「**IL2CPP のプレイヤーのビルドはメモリを多く使う**（2026-11-17）。Test Runner のテスト用のプレイヤー（開発ビルド）で、16 GB の PC で Editor を 2 つ開いたまま回すと、IL2CPP の変換が `OutOfMemoryException` で落ちた。ビルドの前に、使っていない Editor を閉じて空きを 4 GB 以上にする」
+   - 5章の「Android / iOS の実機ビルド（3.3）。…」の行の「実装は [計画](2026-11-11-android-smoke.md)」を「Android はサーバーのクラウド化の後に回す（[build-ci.md](../wiki/architecture/build-ci.md) 4章）」に置き換える
+2. [build-ci.md](../wiki/architecture/build-ci.md):
+   - 冒頭の「**このページの状態（2026-11-16）**」の段落を次に置き換える: 「**このページの状態（2026-11-17）**: 2章の Windows の IL2CPP のビルドと、5.2 の Test Runner のプレイヤー実行（Windows）は今ある。3章の `BuildAndroidIl2Cpp` と `ProjectSettings.asset` の Android の設定は入れたが、Android のビルド・実機での確かめ（3〜5章の Android の部分）はまだ回していない。サーバーのクラウド化の後に回す（4章）」
+   - 2章の「いまは `Android: 1` だけ」を消す。3章の表のパッケージ名の「今はテンプレートの値」を消す
+   - 3章の「確かめていないもの（計画のタスク 3〜5 で確かめる）: …」の箇条を、2 つに分ける: 「確かめたもの（2026-11-17。結果は [unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章）: Test Runner のプレイヤー実行（Windows の IL2CPP）」と、「確かめていないもの（サーバーのクラウド化の後の計画で確かめる）: 」に続けて元の箇条の残り（Unity 7 Alpha の Android のビルドから Managed Stripping まで、と Test Runner の Android での実行。Test Framework 1.9.0 のパッケージ名の文は残す）
+   - 4章の見出しを「## 4. 実機からサーバーへの接続 [決定。2026-11-17。ユーザーの判断]」にし、本文の先頭に箇条を 1 つ足す: 「Android の実機は、サーバーをクラウド（dev 環境。[repository-layout.md](../wiki/architecture/repository-layout.md) 11章）に置いてからつなぐ。2026-11-16 に決めた `adb reverse` でローカルのサーバーにつなぐ方式（下の箇条）は使わない。接続先の渡し方は、クラウド化の後の計画で決める（6章）」。残りの箇条（`adb reverse` 以下）は、先頭に「（2026-11-16 の案。使わない）」を付けて残す
+   - 5.1・5.2 の手順はそのまま。5.3 の末尾に 1 文足す: 「2026-11-17 に、Android の端末が手元に無く、実機はクラウド化の後に回すと決めた（ユーザーの判断）。計算の一致は 5.2 の Windows の結果で代えた。スモークは Windows では代えない（Windows のクライアントの通しは完了条件 6 が受け持つ）」
+   - frontmatter の `updated` を 2026-11-17 にする
+3. [repository-layout.md](../wiki/architecture/repository-layout.md):
+   - 2章の `Uta.Shared.Domain.Testing/` の行の「まだ無い。[計画](2026-11-11-android-smoke.md)で作る」を消す（`[決定。2026-11-16]` は残す）
+   - 7章の「Android は[計画](2026-11-11-android-smoke.md)で作る」を「Android はサーバーのクラウド化の後に回す（[build-ci.md](../wiki/architecture/build-ci.md) 4章）」に置き換える
+   - 10.4 の「まだ移していない。[計画](2026-11-11-android-smoke.md)で移す。」を消す
+   - 11.1 の `adb reverse` の箇条を次に置き換える: 「実機は、サーバーをクラウド（dev 環境）に置いてからつなぐ [決定。2026-11-17。ユーザーの判断。2026-11-16 には `adb reverse tcp:5000 tcp:5000` でローカルのサーバーにつなぐと決めていた。それより前は「PC の LAN の IP を使い、ポートを公開する」]。接続先の渡し方はクラウド化の後の計画で決める（[build-ci.md](../wiki/architecture/build-ci.md) 4章）」
+   - frontmatter の `updated` を 2026-11-17 にする
+4. [lesson-phases.md](../wiki/architecture/lesson-phases.md): 1章（テストのカードの置き場）の「まだ移していない。[計画](2026-11-11-android-smoke.md)で移す。」を消し、8章の「まだ足していない。[計画](2026-11-11-android-smoke.md)で足す」を消す。8章の同じ箇条の「入口は Unity Test Runner の実機実行。」の後ろに「Windows の IL2CPP のプレイヤーで一致を確かめた（2026-11-17。[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 2章）。Android の実機は、サーバーのクラウド化の後に回す（[build-ci.md](../wiki/architecture/build-ci.md) 4章）。」を足す。`updated` を 2026-11-17 にする
+5. [game-spec.md](../wiki/overview/game-spec.md):
+   - 完了条件の表の 7 の行の「確かめ方」の末尾に「。**2026-11-17**: 計算の一致は Windows の IL2CPP のプレイヤーで確かめた（Android の代え。下の「Unity 7（Alpha）の不具合で詰まったとき」の代え方）。Android の実機（スモークと一致）は、サーバーのクラウド化（dev 環境へのデプロイ）の後に回す（ユーザーの判断。[build-ci.md](../wiki/architecture/build-ci.md) 4章）」を足す
+   - 表の下の「dev 環境（Cloud Run + Cloud SQL）へのデプロイは MVP の条件に含めない別の項目」の箇条の末尾に「。Android の実機の確かめ（条件 7 の残り）は、このデプロイの後に行う（2026-11-17）」を足す
+   - 「実装計画の単位と順」の 8 の行の先頭に `**done**（2026-11-17。Android の実機はクラウド化の後に回した）` を足す
+   - `updated` を 2026-11-17 にする
+6. [CLAUDE.md](../../CLAUDE.md):
+   - 「ビルド・テスト・実行」の Windows の IL2CPP の項目（`Unity.exe -batchmode -nographics -projectPath client/uta -buildTarget Win64 …` を含む箇条）の次に、箇条を 1 つ足す: 「Test Runner のプレイヤー実行（IL2CPP の計算の一致。Windows）: ビルド用の worktree（`C:/Work/Uta-wt/build-foundation`）で `Unity.exe -batchmode -projectPath <worktree>/client/uta -buildTarget Win64 -runTests -testPlatform StandaloneWindows64 -assemblyNames Uta.Client.Tests.SharedDomainReplay -testResults <XML> -logFile <ログ>`。結果の XML が `total="3" passed="3" failed="0"` なら通り。メモリを多く使うので、使っていない Editor を閉じてから回す。詳細は [build-ci.md](../wiki/architecture/build-ci.md) 5.2。Android は、サーバーのクラウド化の後に回す」
+   - 「リポジトリ構成」の `shared/` の行のコメントを「`# Uta.Shared.Domain（Shared.Domain）・Uta.Shared.Contracts（サービスIF・DTO）・Uta.Shared.Domain.Testing（テストのカード・IL2CPP の一致の期待値）。マスタ型は置かない（ADR 0007）`」にする
+7. この計画の frontmatter を `status: done`・`updated: 2026-11-17` にする
 
 終わったことの確かめ方: `python -I .claude/skills/linting-wiki/lint_wiki.py` がエラー 0。
 
@@ -628,3 +656,15 @@ namespace Uta.Shared.Domain.Tests.Lesson
 ## 6. 未決事項
 
 なし
+
+## 7. 実装メモ
+
+| タスク | 状態 | コミット | 計画とのズレ・確認できていないこと |
+|---|---|---|---|
+| 1 | 完了 | （このコミット） | なし。期待値は各 29 行。通常: `turn=7`・`paramGained=76`・`discard=34,23,29,28,10,11,32,7,24,1,2,27,31,30,35,3,25`・`exiled=21,12,9,18`。試験: `turn=7`・`paramGained=106`・`discard=34,9,26,35,27,32,28,2,6,30,25,19,18,23,16,4`・`exiled=21,13,11,12,17`（決めたこと 12）。shared 476 件・server 314 件通過 |
+| 2 | 完了 | （このコミット） | Editor が `scriptingDefineSymbols` の Standalone に足した `;SENTIS_ANALYTICS_ENABLED` を戻した（3.2）。`testables` で `UNITY_INCLUDE_TESTS` が効き、`Uta.Shared.Domain.Testing.dll` ができた。`unity recompile` エラー 0、EditMode 374 件通過 |
+| 3 | 完了 | （このコミット） | `total="3" passed="3" failed="0"`、`platform=WindowsPlayer`。最初の 2 回は IL2CPP の変換（`GenericMethodCollectorComponent` のマージ）・UnityLinker の `OutOfMemoryException` で落ちた（16 GB の PC で Editor 2 つとバッチのビルドが重なった）。Uta-wt/3 の Editor を閉じて空きを約 4.7 GB にして 3 回目で通った。`build-foundation` はビルドのたびに `ProjectSettings.asset`（`Standalone: 1` ほか）と `UniversalRenderPipelineGlobalSettings.asset` に差分が出る（戻してから切り替える） |
+| 4・5 | 行わない | — | 手元に Android の端末が無く、サーバーのクラウド化の後に回した（決めたこと 15。2026-11-17。ユーザーの判断）。`BuildAndroidIl2Cpp` は一度も実行していない |
+| 6 | 完了 | （このコミット） | 計画の本文のリンク（wiki のページ相対で書いていた）が lint のエラーになったので、計画からの相対に直した |
+
+コードレビュー（2026-11-17）: client・shared とも Critical 0・Important 0。Minor（後でよいもの）: client 4 件（本番の入口で作ったプレイヤーに `Uta.Shared.Domain.Testing` が入っていないことを成果物で確かめていない、ほか）、shared 3 件（`LessonReplayScenario` と `LessonReplayTests` の設定の重複を確かめるテストが無い、`Compare` の「実際 (なし)」・`expected` が null の境界のテストが無い、`package.json` に `com.uta.shared.domain` への依存が無い）

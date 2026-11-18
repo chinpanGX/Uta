@@ -312,6 +312,12 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.uta.shared.domain.testing": {
+      "version": "file:../../../shared/Uta.Shared.Domain.Testing",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "jp.hadashikick.vcontainer": {
       "version": "https://github.com/hadashiA/VContainer.git?path=VContainer/Assets/VContainer#1.19.0",
       "depth": 0,
