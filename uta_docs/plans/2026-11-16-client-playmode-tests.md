@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client の PlayMode のテストの基盤
-status: ready
-updated: 2026-11-16
+status: done
+updated: 2026-11-19
 spec: ../wiki/decisions/0024-verification-first-reviews.md, ../wiki/architecture/unity7-evaluation.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/screen-design.md
 ---
 
@@ -16,6 +16,7 @@ spec: ../wiki/decisions/0024-verification-first-reviews.md, ../wiki/architecture
 - **確かめ方のコマンドの例外**: plans/README.md は「コマンドは CLAUDE.md にあるものだけ」とするが、この計画は回し方そのものを作る。3.7・3.9 のコマンドと、unity7-evaluation.md 4章にある `unity command editor.playmode stop`・`unity command console get` を、この計画に限って使う。タスク 4 で、CLAUDE.md「ビルド・テスト・実行」に PlayMode の 1 行（3.9 の末尾の文）を足し、3.7・3.9 のコマンドの全文は unity7-evaluation.md 4章に置く。EditMode のテストと同じ形（CLAUDE.md の行が 4章の全文へリンクする）で、以後の計画は、CLAUDE.md の行とそのリンク先の全文からコマンドを引く
 - **カテゴリで分ける**: サーバーが要らないテストは `[Category("Smoke")]`、ローカルのサーバーが要るテストは `[Category("Server")]`。回すコマンドは 2 つ（`Smoke` だけ／全部）
 - **回し方**: Editor を開いたまま、EditMode と同じ `unity command eval` + `TestRunnerApi` の非同期の形で `TestMode.PlayMode` を渡す。結果は `client/uta/Temp/uta-playmode-results.xml`（EditMode の結果のファイルと分ける）。回す前に `EditorUtility.RequestScriptReload()` で USN の static を捨てる（ドメインのリロードを切っているため。[unity7-evaluation.md](../wiki/architecture/unity7-evaluation.md) 4章）
+- **Test Runner の間は `playModeStartScene` を外す**（2026-11-19。ユーザーの判断）。Editor の拡張 `BootstrapPlayMode`（`[InitializeOnLoad]`）が `EditorSceneManager.playModeStartScene` を `Bootstrap` に固定しているので、そのままでは Test Runner の初期化シーンの代わりに `Bootstrap` が始まり、テストが走らずに Play が続く（タスク 1 で分かった）。3.7 の手順 3 の `eval` の先頭で `null` にし、結果を読んだ後の手順 5 で `Bootstrap` に戻す。Editor のコードは変えない（戻し忘れても、次のドメインのリロードで `BootstrapPlayMode` が戻す）
 - **背面で止まったら `runInBackground` を 1 にする**（2026-11-16。ユーザーの判断）。タスク 1 のスパイクで、Editor が背面のまま PlayMode のテストが終わらないと分かったときだけ、`ProjectSettings.asset` の `runInBackground` を 1 にする。Windows のプレイヤーも背面で止まらなくなる。Android・iOS は無視される
 - **最初のテスト**: 3 本。`PlayModeHarnessTests`（フレームが進むこと。Smoke）、`BootToTitleTests`（Bootstrap → Title のページ。Smoke）、`TitleToHomeTests`（Title でスタートを押す → Home のページ。Server）
 - **テストの後片付け**: 各テストの `[UnityTearDown]` で、`DontDestroyOnLoad` のシーンの root のうち `LifetimeScope` を持つものを破棄する（ルートのスコープが次のテストに残らないように）。Test Runner 自身の `DontDestroyOnLoad` のオブジェクトは消さない
@@ -177,11 +178,18 @@ namespace Uta.Client.Tests
         public const float BootTimeoutSeconds = 30f;
         public const string TitleReadyStatus = "タップしてスタート";
 
-        /// <summary>Bootstrap シーンを Single で読み、Title シーンのタイトルのページが操作できるまで待つ。</summary>
+        /// <summary>
+        /// Bootstrap シーンを Single で読み、Title シーンのタイトルのページが操作できるまで待つ。
+        /// 読む前に残っていた TitlePage（前のテストのもの）は数えない（LoadScene は次のフレームで読むので、すぐ見ると古いページで通ってしまう）。
+        /// </summary>
         public static IEnumerator BootToTitle()
         {
+            var stale = Object.FindAnyObjectByType<TitlePage>();
             SceneManager.LoadScene("Bootstrap", LoadSceneMode.Single);
-            yield return TestWait.Until(IsTitleReady, BootTimeoutSeconds, "Title のページ（status=\"" + TitleReadyStatus + "\"、スタートが押せる）");
+            yield return TestWait.Until(
+                () => IsTitleReady() && !ReferenceEquals(Object.FindAnyObjectByType<TitlePage>(), stale),
+                BootTimeoutSeconds,
+                "Title のページ（status=\"" + TitleReadyStatus + "\"、スタートが押せる）");
         }
 
         /// <summary>アクティブなシーンが Title で、TitlePage が activeInHierarchy、StatusText が TitleReadyStatus、StartButton が interactable。</summary>
@@ -384,22 +392,30 @@ namespace Uta.Client.Tests
    ```
    unity command eval 'return UnityScreenNavigator.Runtime.Core.Page.PageContainer.Instances.Count + UnityScreenNavigator.Runtime.Core.Modal.ModalContainer.Instances.Count == 0 ? "uta-clean" : "uta-dirty";'
    ```
-   出力に `uta-clean` があれば、残りは無いので手順 3 へ進む（読み直さない）。`uta-dirty` なら、次の 2 行を回す:
+   出力の `"result":"uta-clean"` があれば、残りは無いので手順 3 へ進む（読み直さない）。`"result":"uta-dirty"` なら、次の 2 行を回す。`unity command` の出力にはパラメーター（コードの文字列）も出るので、`uta-clean` だけで探すと常に当たる。必ず `"result":"uta-clean"` で探す（タスク 3 の受け入れで分かった）。PlayMode のテストを回した後は、Play を抜けても `PageContainer.Instances` が 1 件残るので、毎回 `uta-dirty` になる:
    ```
    unity command eval 'UnityEditor.EditorUtility.RequestScriptReload(); return "ok";'
-   timeout 180 bash -c 'until unity command eval '"'"'return UnityScreenNavigator.Runtime.Core.Page.PageContainer.Instances.Count + UnityScreenNavigator.Runtime.Core.Modal.ModalContainer.Instances.Count == 0 ? "uta-clean" : "uta-dirty";'"'"' 2>/dev/null | grep -q uta-clean; do sleep 2; done'
+   timeout 180 bash -c 'until unity command eval '"'"'return UnityScreenNavigator.Runtime.Core.Page.PageContainer.Instances.Count + UnityScreenNavigator.Runtime.Core.Modal.ModalContainer.Instances.Count == 0 ? "uta-clean" : "uta-dirty";'"'"' 2>/dev/null | grep -q '"'"'"result":"uta-clean"'"'"'; do sleep 2; done'
    ```
    `uta-dirty` から `uta-clean` に変わるのはドメインの読み直しが終わったときだけなので、2 行目が終わればリロードは済んでいる（`unity status --until-ready` はリロードが始まる前の ready で返ることがあるので使わない）。終了コード 124 なら、1 回目の `eval` をもう一度回し、出力を添えて止まる。1 回目の `eval` がコンパイルのエラーになったときも、出力を添えて止まる
 3. PlayMode のテストを始める（`Smoke` だけ。サーバー不要）:
    ```
-   unity command --timeout 300 eval 'var path = System.IO.Path.GetFullPath("Temp/uta-playmode-results.xml"); if (System.IO.File.Exists(path)) System.IO.File.Delete(path); var api = UnityEngine.ScriptableObject.CreateInstance<UnityEditor.TestTools.TestRunner.Api.TestRunnerApi>(); var t = typeof(UnityEditor.TestTools.TestRunner.Api.TestRunnerApi).Assembly.GetType("UnityEditor.TestTools.TestRunner.CommandLineTest.ResultsSavingCallbacks"); var cb = (UnityEditor.TestTools.TestRunner.Api.ICallbacks)UnityEngine.ScriptableObject.CreateInstance(t); t.GetField("m_ResultFilePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).SetValue(cb, path); api.RegisterCallbacks(cb); var filter = new UnityEditor.TestTools.TestRunner.Api.Filter { testMode = UnityEditor.TestTools.TestRunner.Api.TestMode.PlayMode, categoryNames = new[] { "Smoke" } }; api.Execute(new UnityEditor.TestTools.TestRunner.Api.ExecutionSettings(filter)); return "started";'
+   unity command --timeout 300 eval 'UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = null; var path = System.IO.Path.GetFullPath("Temp/uta-playmode-results.xml"); if (System.IO.File.Exists(path)) System.IO.File.Delete(path); var api = UnityEngine.ScriptableObject.CreateInstance<UnityEditor.TestTools.TestRunner.Api.TestRunnerApi>(); var t = typeof(UnityEditor.TestTools.TestRunner.Api.TestRunnerApi).Assembly.GetType("UnityEditor.TestTools.TestRunner.CommandLineTest.ResultsSavingCallbacks"); var cb = (UnityEditor.TestTools.TestRunner.Api.ICallbacks)UnityEngine.ScriptableObject.CreateInstance(t); t.GetField("m_ResultFilePath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).SetValue(cb, path); api.RegisterCallbacks(cb); var filter = new UnityEditor.TestTools.TestRunner.Api.Filter { testMode = UnityEditor.TestTools.TestRunner.Api.TestMode.PlayMode, assemblyNames = new[] { "Uta.Client.Tests.PlayMode" }, categoryNames = new[] { "Smoke" } }; api.Execute(new UnityEditor.TestTools.TestRunner.Api.ExecutionSettings(filter)); return "started";'
    ```
-   全部（`Server` を含む。ローカルのサーバーを先に上げる）は、`, categoryNames = new[] { "Smoke" }` を消した同じコマンド。出力が `started` でない（エラー・タイムアウト）ときは、`unity status --until-ready` のあと 1 回だけ回し直し、2 回目も `started` でなければ出力を添えて止まる
+   全部（`Server` を含む。ローカルのサーバーを先に上げる）は、`, categoryNames = new[] { "Smoke" }` を消した同じコマンド。`assemblyNames` は消さない（PlayMode のアセンブリには、IL2CPP のプレイヤーで回す `Uta.Client.Tests.SharedDomainReplay` もあり、Editor では `Player_IsIl2CppPlayer` が落ちるため。タスク 3 で分かった）。出力が `started` でない（エラー・タイムアウト）ときは、`unity status --until-ready` のあと 1 回だけ回し直し、2 回目も `started` でなければ出力を添えて止まる
 4. 結果のファイルができるのを待って読む（最大 600 秒）:
    ```
    timeout 600 bash -c 'until [ -f Temp/uta-playmode-results.xml ]; do sleep 2; done' && grep -o '<test-run[^>]*>' Temp/uta-playmode-results.xml
    ```
-   `<test-run … total= passed= failed=>` を見る。失敗は `result="Failed"` の `<test-case>` の `<message>`。終了コード 124 は、ファイルができなかった（タイムアウト）
+   `<test-run … total= passed= failed=>` を見る。失敗は `result="Failed"` の `<test-case>` の `<message>`。終了コード 124 は、ファイルができなかった（タイムアウト）。結果のファイルは Play を抜ける前に書かれるので、続けて Play を抜け切るまで待つ（抜ける途中で次の手順 2 を回すと、残りを見誤る）:
+   ```
+   timeout 120 bash -c 'until unity command eval '"'"'return UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode ? "uta-playing" : "uta-edit";'"'"' 2>/dev/null | grep -q '"'"'"result":"uta-edit"'"'"'; do sleep 2; done'
+   ```
+5. 手順 3 で外した `playModeStartScene` を戻す（手順 4 がタイムアウトしたときも戻す。Play 中なら先に `unity command editor.playmode stop`）:
+   ```
+   unity command eval 'UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEditor.SceneAsset>("Assets/Scenes/Bootstrap.unity"); return UnityEditor.SceneManagement.EditorSceneManager.playModeStartScene.name;'
+   ```
+   出力が `Bootstrap` なら戻った
 
 ### 3.9 ローカルのサーバーの上げ下げ（Server のテストの前後）
 
@@ -423,14 +439,14 @@ namespace Uta.Client.Tests
 CLAUDE.md「ビルド・テスト・実行」の「Unity の EditMode のテスト」の行の次に、次の 1 行を足す（文はこのとおり）:
 
 ```text
-- Unity の PlayMode のテスト（`Assets/Tests/PlayMode`）: **Editor を開いたまま**、`client/uta` で、未保存のシーンが無いことを確かめ → `unity command eval 'UnityEditor.EditorUtility.RequestScriptReload(); return "ok";'` → USN の `PageContainer.Instances`・`ModalContainer.Instances` が残っていれば `RequestScriptReload` して 0 件になるまで `eval` で待つ → EditMode と同じ形の `eval` に `testMode = TestMode.PlayMode` を渡す（結果は `client/uta/Temp/uta-playmode-results.xml`。コマンドの全文は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章）。`[Category("Smoke")]` はサーバー不要で `categoryNames = new[] { "Smoke" }` で絞る。`[Category("Server")]` はローカルのサーバー（`http://localhost:5000`）が要る（バックグラウンドでの上げ下げのコマンドは同じ 4章）。client の画面・遷移・通信を触るタスクは、PlayMode のテストで確かめる（[ADR 0024](uta_docs/wiki/decisions/0024-verification-first-reviews.md)）
+- Unity の PlayMode のテスト（`Assets/Tests/PlayMode`）: **Editor を開いたまま**、`client/uta` で、未保存のシーンが無いことを確かめ → USN の `PageContainer.Instances`・`ModalContainer.Instances` が残っていれば（PlayMode のテストの後は毎回残る）`RequestScriptReload` して 0 件になるまで `eval` で待つ（出力は `"result":"uta-clean"` で探す。パラメーターの文字列にも当たるため） → EditMode と同じ形の `eval` に `testMode = TestMode.PlayMode` と `assemblyNames = new[] { "Uta.Client.Tests.PlayMode" }` を渡す（`Uta.Client.Tests.SharedDomainReplay` は IL2CPP のプレイヤー用なので外す）。`eval` の先頭で `EditorSceneManager.playModeStartScene = null` にし（`BootstrapPlayMode` が Play を Bootstrap から始めるので、外さないとテストが走らない）、結果を読み、Play を抜け切るまで待ってから Bootstrap に戻す（結果は `client/uta/Temp/uta-playmode-results.xml`。コマンドの全文は [unity7-evaluation.md](uta_docs/wiki/architecture/unity7-evaluation.md) 4章）。`[Category("Smoke")]` はサーバー不要で `categoryNames = new[] { "Smoke" }` で絞る。`[Category("Server")]` はローカルのサーバー（`http://localhost:5000`）が要る（バックグラウンドでの上げ下げのコマンドは同じ 4章）。client の画面・遷移・通信を触るタスクは、PlayMode のテストで確かめる（[ADR 0024](uta_docs/wiki/decisions/0024-verification-first-reviews.md)）
 ```
 
 ### 3.8 ドキュメントの変更
 
 リンクの書き方は、書き換える先のページからの相対パス（この計画からの相対ではない）。下の「→」の後の文を、そのまま書く。
 
-- `unity7-evaluation.md` 4章: EditMode のテストの項（`TestRunnerApi` の全文がある項）の直後に、項を足す。見出しの文は「**PlayMode のテストも、Editor を開いたまま `TestRunnerApi` で回す**（2026-11-16。計画は `../../plans/2026-11-16-client-playmode-tests.md` へのリンク）」。中身は 3.7 の手順 1〜4 と 3.9 の手順 1・2 のコマンドの全文、カテゴリ（`Smoke`／`Server`）、結果のファイル、タスク 1 のスパイクで分かったこと（背面で進んだか、`runInBackground` を変えたか、かかった秒数）。4章の「Play モードは Editor が前面にないとループが進まない」の項に、タスク 1 の結果を 1 文足す
+- `unity7-evaluation.md` 4章: EditMode のテストの項（`TestRunnerApi` の全文がある項）の直後に、項を足す。見出しの文は「**PlayMode のテストも、Editor を開いたまま `TestRunnerApi` で回す**（2026-11-16。計画は `../../plans/2026-11-16-client-playmode-tests.md` へのリンク）」。中身は 3.7 の手順 1〜5 と 3.9 の手順 1・2 のコマンドの全文、カテゴリ（`Smoke`／`Server`）、結果のファイル、タスク 1 のスパイクで分かったこと（背面で進んだか、`runInBackground` を変えたか、かかった秒数）。4章の「Play モードは Editor が前面にないとループが進まない」の項に、タスク 1 の結果を 1 文足す
 - `repository-layout.md` のアセンブリの表: `Uta.Client.Tests.EditMode` の行の次に `| \`Uta.Client.Tests.PlayMode\` | \`Assets/Tests/PlayMode\` | asmdef（全プラットフォーム。\`UNITY_INCLUDE_TESTS\` でプレイヤーから外す。ルート名前空間は \`Uta.Client.Tests\`。2026-11-16） | \`Uta.Client.Presentation\`・\`UnityScreenNavigator\`・\`UniTask\`・\`VContainer\`・\`UnityEngine.UI\`・\`Unity.TextMeshPro\` と、テストに要るもの（NUnit・Test Framework・ZLinq。Editor のアセンブリは参照しない） |` を足す（タスク 2 で `references` を足したなら、その名前も書く）。同じページの「`VContainer` を参照してよいのは `Bootstrap` と `Presentation` だけ」の項の末尾に「テストのアセンブリ（`Uta.Client.Tests.EditMode`・`Uta.Client.Tests.PlayMode`）は除く（2026-11-16）」を足す
 - `naming.md` 8章: 「クライアントのテストのアセンブリは `Uta.Client.Tests.EditMode`」を「クライアントのテストのアセンブリは `Uta.Client.Tests.EditMode` と `Uta.Client.Tests.PlayMode`（名前空間はどちらも `Uta.Client.Tests`）。PlayMode の補助は `Tests/PlayMode/Support/` に置く（`TestWait`・`TestScenes`）」に書き換える
 - `screen-design.md` 7.7: 「確かめ方は計画ごとに「EditMode のテスト／ Play モード／ Windows の IL2CPP のビルド／手動」のどれかを書く」を「確かめ方は計画ごとに「EditMode のテスト／ PlayMode のテスト／ Windows の IL2CPP のビルド／手動」のどれかを書く。画面・遷移・通信は PlayMode のテストで確かめる（ADR 0024 へのリンク `../decisions/0024-verification-first-reviews.md`。基盤は計画へのリンク `../../plans/2026-11-16-client-playmode-tests.md`）」に書き換える
@@ -451,7 +467,7 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
   0. ファイルを作る前に、EditMode のテスト（unity7-evaluation.md 4章の全文）を回し、`<test-run>` の `total` を実装メモに書く（5.1 のタスク 1 で比べる）
   1. 3.1 の 2 ファイルと 3.4 のファイルを作る
   2. `unity recompile --format json`（エラー 0 を見る）
-  3. **Editor を前面にせず**（ほかのウィンドウが前面のまま）、3.7 の手順 1〜4 を `Smoke` で回す
+  3. **Editor を前面にせず**（ほかのウィンドウが前面のまま）、3.7 の手順 1〜5 を `Smoke` で回す
   4. 結果で分ける:
      - `total="1" passed="1"` → 終わり。かかった秒数を実装メモに書く
      - 600 秒でファイルができない、かつ `unity command eval 'return UnityEngine.Application.isPlaying + " " + UnityEngine.Time.frameCount;'` が `True` で `frameCount` が 10 秒あけて 2 回見ても変わらない（背面で止まっている）→ `unity command editor.playmode stop` → `unity command --timeout 120 eval 'UnityEditor.PlayerSettings.runInBackground = true; UnityEditor.AssetDatabase.SaveAssets(); return UnityEditor.PlayerSettings.runInBackground;'`（`True`）→ `git diff --stat ProjectSettings/ProjectSettings.asset` と `git diff ProjectSettings/ProjectSettings.asset` で、変わったのが `runInBackground: 0` → `1` の 1 行だけと確かめる → 手順 3 からやり直す
@@ -467,7 +483,7 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
 
 - 触るファイル: `Support/TestWait.cs`、`Support/TestScenes.cs`、`BootToTitleTests.cs`
 - 参照: 3.1・3.2・3.3・3.5・3.7
-- 手順: 3.2・3.3・3.5 のとおりに作る → `unity recompile --format json` → 3.7 の手順 1〜4 を `Smoke` で回す
+- 手順: 3.2・3.3・3.5 のとおりに作る → `unity recompile --format json` → 3.7 の手順 1〜5 を `Smoke` で回す
 - 境界: `CS0012` が出たら 3.1 の注のとおり `references` を足す。それ以外のコンパイルエラーは止まって報告する
 - 止まる条件: `Boot_FromBootstrapScene_ReachesTitlePage` が失敗し、メッセージが timeout でもエラーのログでもない（例外）とき。timeout・エラーのログで失敗したときも、`unity command console get --tail 50 --level error --format json` の出力を添えて報告する（製品のコードは直さない）
 - 確かめ方: 5.1 のタスク 2
@@ -478,7 +494,7 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
 - 参照: 3.3・3.6・3.7
 - 前提: 3.9 の手順 1 でローカルのサーバーを上げる。タスクの終わりに 3.9 の手順 2 で止める
 - 参照（追加）: 3.9
-- 手順: 3.6 のとおりに作る → `unity recompile --format json` → 3.7 の手順 1〜4 を**絞り込みなし**（全部）で回す
+- 手順: 3.6 のとおりに作る → `unity recompile --format json` → 3.7 の手順 1〜5 を**絞り込みなし**（全部）で回す
 - 止まる条件: `Start_WithLocalServer_ReachesHomePage` が `Title: 接続に失敗しました…` で落ちたとき（サーバー側か、アカウントのファイル `account-http___localhost_5000.dat` の問題。消すかどうかはユーザーに聞く）。2 本目以降のテストが USN の例外（`UnityScreenNavigator` の名前空間の例外）で落ちたとき（同じ Play の中で Bootstrap を読み直すと、USN の static に破棄済みのものが残るとみられる。回避策は書かれていないので報告する）
 - 確かめ方: 5.1 のタスク 3
 
@@ -493,7 +509,7 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
 
 ### 5.1 タスクごとの確かめ方
 
-コマンドはすべて `client/uta` で実行する（Lint はリポジトリのルート）。「3.7 Smoke」は 3.7 の手順 1〜4 を `categoryNames = new[] { "Smoke" }` で、「3.7 全部」は絞り込みなしで回すこと。
+コマンドはすべて `client/uta` で実行する（Lint はリポジトリのルート）。「3.7 Smoke」は 3.7 の手順 1〜5 を `categoryNames = new[] { "Smoke" }` で、「3.7 全部」は絞り込みなしで回すこと。
 
 | タスク | コマンド | 期待する結果 |
 |---|---|---|
@@ -536,4 +552,18 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
 
 ## 7. 実装メモ
 
-（実装を始めるときに足す）
+| タスク | コミット | ズレ・メモ |
+|---|---|---|
+| 0（手順 0） | — | EditMode の `total="481"` |
+| 1 | （このコミット） | 1 回目は結果のファイルができず、Bootstrap → Title の Play が続いた。原因は `BootstrapPlayMode` が `playModeStartScene` を Bootstrap に固定していること。ユーザーの判断で、3.7 の手順 3 で外し手順 5 で戻す形に計画を直した（2026-11-19）。直した後: Smoke `total="1" passed="1"`、約 4 秒、Editor は背面のまま進んだ（`runInBackground` は変えていない）。EditMode は 481 のまま。Play のたびに Unity が `ProjectSettings.asset` の `scriptingDefineSymbols` に `SENTIS_ANALYTICS_ENABLED` を足すので、コミットしない（`git restore`） |
+| 2 | （このコミット） | ズレなし。`references` は足していない（`CS0012` は出なかった）。Smoke `total="2" passed="2"`（`Boot_FromBootstrapScene_ReachesTitlePage` は約 0.7 秒）。`eval` が 1 回 30 秒でタイムアウトし、回し直して通った（3.7 の手順 3 の回し直しの範囲） |
+| 3 | （このコミット） | 1 回目は全部で `total="6" failed="2"`。(1) 「全部」に `Uta.Client.Tests.SharedDomainReplay` の 3 本が混ざり、Editor では `Player_IsIl2CppPlayer` が落ちた → 3.7 の手順 3 に `assemblyNames` を足した。(2) `TitleToHomeTests` が `StartButton` で `NullReferenceException`。`BootToTitle` が、`LoadScene` が効く前に前のテストの `TitlePage` で ready と判定した → 3.3 の `BootToTitle` で、読む前のページを数えないようにした（計画の書き漏れ。2026-11-19） |
+| 3（受け入れ） | （このコミット） | 直した後、全部 `total="3" passed="3"`（約 8 秒）、続けての全部も `passed="3"`、サーバーを止めて Smoke `total="2" passed="2"`、EditMode 481、`dotnet build Uta.slnx` 警告 0・エラー 0。途中で、2 回目の全部が USN の `MissingReferenceException`（`PageContainer.set_Interactable` の破棄済みの `CanvasGroup`）で落ちた。原因は 3.7 の手順 2 の `grep uta-clean` が出力のパラメーターに当たり、常に読み直しを飛ばしていたこと → `"result":"uta-clean"` で探すように直し、手順 4 に Play を抜け切るまでの待ちを足した（計画の書き漏れ） |
+| 4 | （このコミット） | 3.8 のとおり。unity7-evaluation.md 4章には、3.7・3.9 のコマンドに加え、`playModeStartScene`・`assemblyNames`・USN の static の残り・`"result":"uta-clean"` の探し方・かかった秒数を書いた。CLAUDE.md の行は、直した手順（無条件の `RequestScriptReload` をやめ、結果の後に Play を抜けるまで待つ）に合わせて 3.9 の文から直した。Lint はエラー 0 |
+| レビュー | — | client: Critical 0・Important 0・Minor 5。主な Minor: `DestroyPersistentScopes` の後も Title・Home のシーンとそのスコープ・USN の `PageContainer` が次の `LoadScene` まで残る。今の 3 本では害はないが、テストを足すと効きうる（空のシーンに切り替えて Unload してからルートのスコープを消す案）。Play を抜けた後に `PageContainer.Instances` が 1 件残るのは、これと関係するかもしれない（未確認） |
+
+確認できていないこと:
+
+- `Uta.Client.Tests.PlayMode` を足した後も、IL2CPP のプレイヤーでの `SharedDomainReplay`（CLAUDE.md の `-runTests`）が `total="3" passed="3"` になるか。`-runTests` のビルドでは `UNITY_INCLUDE_TESTS` が付くので、このアセンブリもプレイヤー向けにコンパイルされる見込み。重いビルドなので回していない
+- 通常の Windows・Android のビルドで、このアセンブリが外れること
+- 5.3 の 6（手の Play との共存。Editor で Bootstrap から Play → タイトルで「タップしてスタート」→ ホームが出る）。ユーザーに頼む

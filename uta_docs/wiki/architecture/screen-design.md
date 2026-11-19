@@ -1,7 +1,7 @@
 ---
 title: 画面・遷移・クライアントの層（実装設計書 画面設計編）
 status: draft
-updated: 2026-11-16
+updated: 2026-11-19
 ---
 
 # 画面・遷移・クライアントの層（実装設計書 画面設計編）
@@ -193,7 +193,7 @@ UseCase の具象を Infrastructure に置くと、手順のテストが MagicOn
 ### 7.7 ウィンドウ・確かめ方 [Uta案]
 
 - Windows: 初期 540×960、ウィンドウモード、縦向きのみ。比率を 9:16 に保つ補正（`WindowAspectKeeper`）
-- 確かめ方は計画ごとに「EditMode のテスト／ Play モード／ Windows の IL2CPP のビルド／手動」のどれかを書く。Editor が開けない環境では、確かめていないと書く
+- 確かめ方は計画ごとに「EditMode のテスト／ PlayMode のテスト／ Windows の IL2CPP のビルド／手動」のどれかを書く。画面・遷移・通信は PlayMode のテストで確かめる（[ADR 0024](../decisions/0024-verification-first-reviews.md)。基盤は [計画](../../plans/2026-11-16-client-playmode-tests.md)）。Editor が開けない環境では、確かめていないと書く
 
 ### 7.8 ホームの構成とキャラ表示のステージ（`ICharacterStage`）。MVP は仮の枠、3D は拡張点 [決定。2026-11-07。ユーザーの判断]
 

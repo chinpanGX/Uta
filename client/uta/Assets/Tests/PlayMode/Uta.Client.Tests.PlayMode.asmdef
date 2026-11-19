@@ -1,0 +1,27 @@
+{
+    "name": "Uta.Client.Tests.PlayMode",
+    "rootNamespace": "Uta.Client.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "Uta.Client.Presentation",
+        "UnityScreenNavigator",
+        "UniTask",
+        "VContainer",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "ZLinq.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,7 +1,7 @@
 ---
 title: リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
 status: draft
-updated: 2026-11-17
+updated: 2026-11-19
 ---
 
 # リポジトリ構成・レイヤー・共通の規約（実装設計書 共通・基盤編）
@@ -134,11 +134,12 @@ VolTech-MagicOnion と同じ形にする。VolTech-MagicOnion の設計書 [proj
 | `Uta.Client.Bootstrap` | `Assets/Scripts/Bootstrap` | asmdef | すべて（DI のスコープを組む。`VContainer`） |
 | `Uta.Client.Tests.SharedDomainReplay` | `Assets/Tests/SharedDomainReplay` | asmdef（PlayMode のテスト。[lesson-phases.md](lesson-phases.md) 8章、[build-ci.md](build-ci.md) 5.2） | `Uta.Shared.Domain`、`Uta.Shared.Domain.Testing`、Unity Test Framework（NUnit） |
 | `Uta.Client.Tests.EditMode` | `Assets/Tests/EditMode` | asmdef（Editor だけ。ルート名前空間は `Uta.Client.Tests`。2026-11-08 に `Uta.Client.Infrastructure.Tests.EditMode` から改名した） | クライアントの各層と、テストに要るもの（NUnit・Test Framework・Editor） |
+| `Uta.Client.Tests.PlayMode` | `Assets/Tests/PlayMode` | asmdef（全プラットフォーム。`UNITY_INCLUDE_TESTS` でプレイヤーから外す。ルート名前空間は `Uta.Client.Tests`。2026-11-16） | `Uta.Client.Presentation`・`UnityScreenNavigator`・`UniTask`・`VContainer`・`UnityEngine.UI`・`Unity.TextMeshPro` と、テストに要るもの（NUnit・Test Framework・ZLinq。Editor のアセンブリは参照しない） |
 
 - **`Uta.Client.MasterData`・`Uta.Client.Domain` の asmdef** [2026-11-08。[ADR 0020](../decisions/0020-masterdata-referenced-outside-shared-domain.md)・[ADR 0021](../decisions/0021-domain-entities-and-repositories.md)]: どちらも `overrideReferences: true`・`autoReferenced: false` で、`precompiledReferences` は `MasterMemory.dll`・`MasterMemory.Annotations.dll`・`MessagePack.dll`・`MessagePack.Annotations.dll`（Annotations の 2 つも要った。コンパイルで確かめた）。`overrideReferences: true` の Application・Presentation は `MasterMemory.dll`・`MessagePack.dll` を足す。`overrideReferences: false` の Infrastructure・Bootstrap は DLL が暗黙に参照されるので足さない
 
 - `ErrorDialogView`（`IErrorDialogView` の実装。表示は `Presentation` の `DialogOpener` に任せる）・`ApiActivityBridge`（`IApiActivityHandler` の実装）は `Bootstrap` に置く [2026-11-08]: `Presentation` の参照先に VolTech-MagicOnion のクライアントが無いため
-- `VContainer` を参照してよいのは `Bootstrap` と `Presentation` だけ [決定。2026-11-01。ユーザーの判断]。`Application`・`Infrastructure` はコンストラクタで受け取るだけにし、`VContainer` を知らない
+- `VContainer` を参照してよいのは `Bootstrap` と `Presentation` だけ [決定。2026-11-01。ユーザーの判断]。`Application`・`Infrastructure` はコンストラクタで受け取るだけにし、`VContainer` を知らない。テストのアセンブリ（`Uta.Client.Tests.EditMode`・`Uta.Client.Tests.PlayMode`）は除く（2026-11-16）
 
 - サーバーを1プロジェクトにするのは VolTech-MagicOnion と同じ理由（プロジェクトを細かく分けると `internal` が使えず、依存も切れない）。層の分離は**フォルダと名前空間**で行い、依存の向きは**アーキテクチャテスト**で守る（[ADR 0008](../decisions/0008-shared-domain-and-onion.md)）。ツールは VolTech-MagicOnion の設計書が挙げる **NetArchTest** で、サーバーのテストプロジェクトに置く [決定。2026-10-28]（テストの置き場は 10.4）
 - クライアントは、コンパイル時に依存を強制できる手段が asmdef しかないため、層ごとに asmdef を分ける
