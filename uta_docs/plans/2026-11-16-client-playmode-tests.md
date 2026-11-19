@@ -1,7 +1,7 @@
 ---
 title: 実装計画: client の PlayMode のテストの基盤
-status: in-progress
-updated: 2026-11-18
+status: done
+updated: 2026-11-19
 spec: ../wiki/decisions/0024-verification-first-reviews.md, ../wiki/architecture/unity7-evaluation.md, ../wiki/architecture/repository-layout.md, ../wiki/architecture/screen-design.md
 ---
 
@@ -560,3 +560,10 @@ Editor（`client/uta` を開いたもの）が要る。実装担当が Unity の
 | 3 | （このコミット） | 1 回目は全部で `total="6" failed="2"`。(1) 「全部」に `Uta.Client.Tests.SharedDomainReplay` の 3 本が混ざり、Editor では `Player_IsIl2CppPlayer` が落ちた → 3.7 の手順 3 に `assemblyNames` を足した。(2) `TitleToHomeTests` が `StartButton` で `NullReferenceException`。`BootToTitle` が、`LoadScene` が効く前に前のテストの `TitlePage` で ready と判定した → 3.3 の `BootToTitle` で、読む前のページを数えないようにした（計画の書き漏れ。2026-11-19） |
 | 3（受け入れ） | （このコミット） | 直した後、全部 `total="3" passed="3"`（約 8 秒）、続けての全部も `passed="3"`、サーバーを止めて Smoke `total="2" passed="2"`、EditMode 481、`dotnet build Uta.slnx` 警告 0・エラー 0。途中で、2 回目の全部が USN の `MissingReferenceException`（`PageContainer.set_Interactable` の破棄済みの `CanvasGroup`）で落ちた。原因は 3.7 の手順 2 の `grep uta-clean` が出力のパラメーターに当たり、常に読み直しを飛ばしていたこと → `"result":"uta-clean"` で探すように直し、手順 4 に Play を抜け切るまでの待ちを足した（計画の書き漏れ） |
 | 4 | （このコミット） | 3.8 のとおり。unity7-evaluation.md 4章には、3.7・3.9 のコマンドに加え、`playModeStartScene`・`assemblyNames`・USN の static の残り・`"result":"uta-clean"` の探し方・かかった秒数を書いた。CLAUDE.md の行は、直した手順（無条件の `RequestScriptReload` をやめ、結果の後に Play を抜けるまで待つ）に合わせて 3.9 の文から直した。Lint はエラー 0 |
+| レビュー | — | client: Critical 0・Important 0・Minor 5。主な Minor: `DestroyPersistentScopes` の後も Title・Home のシーンとそのスコープ・USN の `PageContainer` が次の `LoadScene` まで残る。今の 3 本では害はないが、テストを足すと効きうる（空のシーンに切り替えて Unload してからルートのスコープを消す案）。Play を抜けた後に `PageContainer.Instances` が 1 件残るのは、これと関係するかもしれない（未確認） |
+
+確認できていないこと:
+
+- `Uta.Client.Tests.PlayMode` を足した後も、IL2CPP のプレイヤーでの `SharedDomainReplay`（CLAUDE.md の `-runTests`）が `total="3" passed="3"` になるか。`-runTests` のビルドでは `UNITY_INCLUDE_TESTS` が付くので、このアセンブリもプレイヤー向けにコンパイルされる見込み。重いビルドなので回していない
+- 通常の Windows・Android のビルドで、このアセンブリが外れること
+- 5.3 の 6（手の Play との共存。Editor で Bootstrap から Play → タイトルで「タップしてスタート」→ ホームが出る）。ユーザーに頼む
